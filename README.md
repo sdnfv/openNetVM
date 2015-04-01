@@ -1,2 +1,2 @@
 # openNetVM
-A high performance container-based NFV platforms
+A high performance container-based NFV platform.
