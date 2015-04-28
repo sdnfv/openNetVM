@@ -86,19 +86,30 @@ struct rte_ring *send_ring, *recv_ring, *new_ring;
 struct rte_mempool *message_pool, *new_message_pool;
 volatile int quit = 0;
 
+struct dummy {
+        int num1;
+        int num2;
+};
+
 static int
 fill_ring(void) {
-        void *word;
+        void *val;
+        struct dummy *dum;
 
-        if (rte_mempool_get(new_message_pool, &word) < 0) {
+        dum->num1 = 12;
+        dum->num2 = 14;
+
+        if (rte_mempool_get(new_message_pool, &val) < 0) {
                 rte_panic("Failed to get new message buffer\n");
         }
 
-        snprintf((char *)word, string_size, "Hello world!");
+        //snprintf((char *)val, string_size, "Hello world!");
 
-        if (rte_ring_enqueue(new_ring, word) < 0) {
+        val = &dum;
+
+        if (rte_ring_enqueue(new_ring, val) < 0) {
                 printf("Problem enqueuing into new ring\n");
-                rte_mempool_put(new_message_pool, word);
+                rte_mempool_put(new_message_pool, val);
         }
 
         return 0;
@@ -106,14 +117,17 @@ fill_ring(void) {
 
 static int
 get_from_ring(void) {
-        void *msg;
+        void *val;
 
-        if (rte_ring_dequeue(new_ring, &msg) < 0) {
+        if (rte_ring_dequeue(new_ring, &val) < 0) {
                 printf("Problem dequeuing from new ring\n");
                 usleep(5);
         }
-        printf("core %u: message from new queue ---- %s\n", rte_lcore_id(), (char *)msg);
-        rte_mempool_put(new_message_pool, msg);
+        //printf("core %u: message from new queue ---- %s\n", rte_lcore_id(), (char *)val);
+
+        printf("core %u: message from new queue ---- %d\t%d\n", (((struct dummy *) val)->num1), (((struct dummy *) val)->num2));
+
+        rte_mempool_put(new_message_pool, val);
 
         return 0;
 }
@@ -167,7 +181,7 @@ main(int argc, char **argv)
                 new_ring = rte_ring_create(_NEW_RING, ring_size, rte_socket_id(), flags);
                 // mempool to hold messages for new ring
                 new_message_pool = rte_mempool_create(_NEW_MSG_POOL, pool_size,
-                                        string_size, pool_cache, priv_data_sz,
+                                        sizeof(struct dummy), pool_cache, priv_data_sz,
                                         NULL, NULL, NULL, NULL,
                                         rte_socket_id(), flags);
 
