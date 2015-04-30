@@ -67,6 +67,7 @@
 #include <rte_ring.h>
 #include <rte_log.h>
 #include <rte_mempool.h>
+#include <rte_malloc.h>
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
 #include <cmdline_socket.h>
@@ -86,34 +87,66 @@ struct rte_ring *send_ring, *recv_ring, *new_ring;
 struct rte_mempool *message_pool, *new_message_pool;
 volatile int quit = 0;
 
+struct dummy {
+        int num1;
+        int num2;
+};
+
+/**
+ * This function gets some space from the mempool, and then it will
+ * assign values to the two ints inside the dummy struct. Next, it
+ * enqueues the struct onto the ring buffer.
+ *
+ * @param
+ *     void
+ * @return
+ *     0 on success, anything else otherwise.
+ */
 static int
 fill_ring(void) {
-        void *word;
+        struct dummy *dum;
 
-        if (rte_mempool_get(new_message_pool, &word) < 0) {
+        if (rte_mempool_get(new_message_pool, (void *)&dum) < 0) {
                 rte_panic("Failed to get new message buffer\n");
         }
 
-        snprintf((char *)word, string_size, "Hello world!");
+        if (dum == NULL) {
+                rte_panic("Failed to rte_malloc struct\n");
+                exit(-1);
+        }
 
-        if (rte_ring_enqueue(new_ring, word) < 0) {
+        dum->num1 = 45;
+        dum->num2 = 32;
+
+        if (rte_ring_enqueue(new_ring, dum) < 0) {
                 printf("Problem enqueuing into new ring\n");
-                rte_mempool_put(new_message_pool, word);
+                rte_mempool_put(new_message_pool, dum);
         }
 
         return 0;
 }
 
+/**
+ * This struct dequeues the ring buffer and get the struct that fill_ring(void)
+ * enqueued.  It will then print out the two values for confirmation.
+ *
+ * @param
+ *     void
+ * @return
+ *     0 if success, anything else otherwise
+ */
 static int
 get_from_ring(void) {
-        void *msg;
+        void *val;
 
-        if (rte_ring_dequeue(new_ring, &msg) < 0) {
-                printf("Problem dequeuing from new ring\n");
+        if (rte_ring_dequeue(new_ring, &val) < 0) {
+                printf("Problem dequeuing from new ring -- %d\n", x);
                 usleep(5);
         }
-        printf("core %u: message from new queue ---- %s\n", rte_lcore_id(), (char *)msg);
-        rte_mempool_put(new_message_pool, msg);
+
+        printf("core %u: message from new queue ---- %d\t%d\n", rte_lcore_id(), (int)(((struct dummy *) val)->num1), (int)(((struct dummy *) val)->num2));
+
+        rte_mempool_put(new_message_pool, val);
 
         return 0;
 }
@@ -167,7 +200,7 @@ main(int argc, char **argv)
                 new_ring = rte_ring_create(_NEW_RING, ring_size, rte_socket_id(), flags);
                 // mempool to hold messages for new ring
                 new_message_pool = rte_mempool_create(_NEW_MSG_POOL, pool_size,
-                                        string_size, pool_cache, priv_data_sz,
+                                        sizeof(struct dummy), pool_cache, priv_data_sz,
                                         NULL, NULL, NULL, NULL,
                                         rte_socket_id(), flags);
 
@@ -183,8 +216,8 @@ main(int argc, char **argv)
                 new_message_pool = rte_mempool_lookup(_NEW_MSG_POOL);
 
                 get_from_ring();
-
 	}
+
 	if (send_ring == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
 	if (recv_ring == NULL)

@@ -15,12 +15,15 @@ used in the client_manager application.
       passed around
     + new_message_pool: this is the mempool used to hold all of the
       messages being passed in the new_ring
+    + struct dummy: this is a struct that contains two ints.  It is 
+      the data that will be passed between primary and secondary apps.
   - new functions: fill_ring(void) and get_from_ring(void)
     + fill_ring(void): this function gets a msg buffer from the mempool
-      and then crafts a string and stores it there. It will then enqueue that msg.
+      and then creates a dummy struct and stores it there. It will then 
+      enqueue that msg.
     + get_from_ring(void): this function checks if there's a message by
-      dequeuing the new_ring. If it finds something, it will display it
-and then put the buffer back in the mempool
+      dequeuing the new_ring. If it finds something, it will dequeue it
+      and then put the buffer back in the mempool
 
 ### Licensing
 
