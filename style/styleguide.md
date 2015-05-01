@@ -111,6 +111,8 @@ We follow the [Composite Style Guide's](https://github.com/gparmer/Composite/blo
 
 **Use 8 spaces to define a tab.** This makes tabs wide, discouraging you from writing code that is deeply nested. It also matches the Linux standard. Learn how to setup your editor to do this for you. *All lines should have an indentation that is a multiple of 4.*
 
+**Keep lines to 100 characters max.** Where possible, keep lines under 80 characters, with 100 characters max.
+
 ## Style Guide Conformance
 You can use `gwclint.py` to check some of these style guide rules. Note that this is based on Google's style guide, so it may mark some pieces of code invalid which are fine, and it may not find other problems.
 
