@@ -44,16 +44,16 @@ If the project contains a License file (it should), then each file can begin sim
 ## Variable and Function Naming
 How you name your variables, data structures, and functions can be the dominant factor on whether your code is readable. In general, we follow the [Composite](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true) and [Google](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Naming) naming conventions, although Google's recommendations are for C++ and thus use more capital letters than you are likely to use in a C program.
 
-### Understandable, Lower Case with Underscores
+**Understandable, Lower Case with Underscores.**
 Variable names should be meaningful and help users understand what they are for. Do not use CamelCase unless you are writing Java programs. In C, we prefer all lowercase function and variable names, with underscores between words where necessary. Avoid abbreviations except for very obvious cases.
 
   * **Good:** `num_users, read_socket,   check_param`
   * **Bad:** `n, readsocket, readSocket, check_prm`
 
-### Single Letter Iterators
+**Single Letter Iterators.**
 You can use ``i, j, k`` for iterators in loops. Otherwise, avoid single letter variable names.
 
-### Return Type on Previous Line
+**Return Type on Previous Line.**
 When declaring a function, the return type should be listed on a separate line before the function name and parameter list.
 
 ## Code Structure
