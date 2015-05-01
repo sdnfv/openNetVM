@@ -27,17 +27,18 @@ Your project is likely to include multiple files, so you need to think about how
 If the project contains a License file (it should), then each file can begin simply:
 
 ````
-/************************************************
+/*********************************************************************
  *                     PROJECT NAME
  * https://PROJECTURL
  *
  * Copyright 2015 George Washington University
  *
  * This program is licensed under the MIT license.
- * Full license available at: http://mit-license.org/
+ * Full license available in the project root and
+ * at: http://mit-license.org/
  *
  * filename.c - brief description of this file
- *************************************************/
+ ********************************************************************/
 ````
 
 ## Variable and Function Naming
@@ -52,6 +53,9 @@ Variable names should be meaningful and help users understand what they are for.
 ### Single Letter Iterators
 You can use ``i, j, k`` for iterators in loops. Otherwise, avoid single letter variable names.
 
+### Return Type on Previous Line
+When declaring a function, the return type should be listed on a separate line before the function name and parameter list.
+
 ## Code Structure
 Names are important, but the overall structure of your functions and files also makes a difference.
 
@@ -63,7 +67,8 @@ Functions should be short, single purpose chunks of code that follow the Onion M
 
 This example is stolen from the [Composite Style Guide](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true):
 ````
-int request_handle(char *request_txt) {
+int
+request_handle(char *request_txt) {
         struct request req;
         struct response resp;
         request_parse(&req, request_txt);
@@ -91,14 +96,15 @@ We follow the [Composite Style Guide's](https://github.com/gparmer/Composite/blo
 
 **Blank lines are used to separate "thoughts".** Leave an empty line between variable declaration blocks and code, or between chunks of code that have a different purpose. Think of it as the separator between paragraphs.
 
-**Curly brace positioning** should never be on a new line. This applies to both control structures and functions. For example:
+**Curly brace positioning** should never be on a new line. This applies to both control structures and functions. All code blocks, even single line `if` statements, should be within braces. For example:
 
 ````
-1: int some_func(int x) {
-2:         if(x < 0){
-3:                 printf("X is negative.");
-4:         }
-5: }
+1: int
+2: some_func(int x) {
+3:         if(x < 0){
+4:                 printf("X is negative.");
+5:         }
+6: }
 ````
 
 *Note that this is different from Composite!*
@@ -107,6 +113,10 @@ We follow the [Composite Style Guide's](https://github.com/gparmer/Composite/blo
 
 ## Style Guide Conformance
 You can use `gwclint.py` to check some of these style guide rules. Note that this is based on Google's style guide, so it may mark some pieces of code invalid which are fine, and it may not find other problems.
+
+In particular, the checker currently *does not*:
+  * Check for 8 space indentation (only checks for a multiple of 4)
+  * Check for function return values on separate line from function name
 
 # Makefiles
 Please follow the guidelines below when creating makefiles.
@@ -180,3 +190,5 @@ The contents of this guide are largely stolen from the [Composite Style Guide](h
   * Changed brace placement: should never be on new line.
   * Updated git branching recommendations
   * Added note on gwclint.py
+  * Put return type on separate line
+  * Add licensing header
