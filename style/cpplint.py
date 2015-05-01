@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
+# Copyright (c) 2015 George Washington University - modifications for C support
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -71,7 +72,7 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
   suppresses errors of all categories on that line.
 
   The files passed in will be linted; at least one file must be provided.
-  Default linted extensions are .cc, .cpp, .cu, .cuh and .h.  Change the
+  Default linted extensions are .c .cc, .cpp, .cu, .cuh and .h.  Change the
   extensions with the --extensions flag.
 
   Flags:
@@ -499,7 +500,7 @@ _line_length = 80
 
 # The allowed extensions for file names
 # This is set by --extensions flag.
-_valid_extensions = set(['cc', 'h', 'cpp', 'cu', 'cuh'])
+_valid_extensions = set(['c', 'cc', 'h', 'cpp', 'cu', 'cuh'])
 
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
   """Updates the global list of error-suppressions.
@@ -4419,15 +4420,16 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, nesting_state,
   if line and line[-1].isspace():
     error(filename, linenum, 'whitespace/end_of_line', 4,
           'Line ends in whitespace.  Consider deleting these extra spaces.')
-  # There are certain situations we allow one space, notably for
+  # Check for an odd number of spaces
+  # There are certain situations we allow odd spaces, notably for
   # section labels, and also lines containing multi-line raw strings.
-  elif ((initial_spaces == 1 or initial_spaces == 3) and
+  elif ((initial_spaces % 4 != 0) and
         not Match(scope_or_label_pattern, cleansed_line) and
         not (clean_lines.raw_lines[linenum] != line and
              Match(r'^\s*""', line))):
     error(filename, linenum, 'whitespace/indent', 3,
-          'Weird number of spaces at line-start.  '
-          'Are you using a 2-space indent?')
+          'Odd number of spaces at line-start.  '
+          'Are you using a 4/8-space indent?')
 
   # Check if the line is a header guard.
   is_header_guard = False
@@ -5336,6 +5338,7 @@ def CheckCasts(filename, clean_lines, linenum, error):
 
 def CheckCStyleCast(filename, clean_lines, linenum, cast_type, pattern, error):
   """Checks for a C-style cast by looking for the pattern.
+     This is NOT enforced in the GW C Style Guide.
 
   Args:
     filename: The name of the current file.
@@ -5350,92 +5353,7 @@ def CheckCStyleCast(filename, clean_lines, linenum, cast_type, pattern, error):
     True if an error was emitted.
     False otherwise.
   """
-  line = clean_lines.elided[linenum]
-  match = Search(pattern, line)
-  if not match:
-    return False
-
-  # Exclude lines with keywords that tend to look like casts
-  context = line[0:match.start(1) - 1]
-  if Match(r'.*\b(?:sizeof|alignof|alignas|[_A-Z][_A-Z0-9]*)\s*$', context):
-    return False
-
-  # Try expanding current context to see if we one level of
-  # parentheses inside a macro.
-  if linenum > 0:
-    for i in xrange(linenum - 1, max(0, linenum - 5), -1):
-      context = clean_lines.elided[i] + context
-  if Match(r'.*\b[_A-Z][_A-Z0-9]*\s*\((?:\([^()]*\)|[^()])*$', context):
-    return False
-
-  # operator++(int) and operator--(int)
-  if context.endswith(' operator++') or context.endswith(' operator--'):
-    return False
-
-  # A single unnamed argument for a function tends to look like old
-  # style cast.  If we see those, don't issue warnings for deprecated
-  # casts, instead issue warnings for unnamed arguments where
-  # appropriate.
-  #
-  # These are things that we want warnings for, since the style guide
-  # explicitly require all parameters to be named:
-  #   Function(int);
-  #   Function(int) {
-  #   ConstMember(int) const;
-  #   ConstMember(int) const {
-  #   ExceptionMember(int) throw (...);
-  #   ExceptionMember(int) throw (...) {
-  #   PureVirtual(int) = 0;
-  #   [](int) -> bool {
-  #
-  # These are functions of some sort, where the compiler would be fine
-  # if they had named parameters, but people often omit those
-  # identifiers to reduce clutter:
-  #   (FunctionPointer)(int);
-  #   (FunctionPointer)(int) = value;
-  #   Function((function_pointer_arg)(int))
-  #   Function((function_pointer_arg)(int), int param)
-  #   <TemplateArgument(int)>;
-  #   <(FunctionPointerTemplateArgument)(int)>;
-  remainder = line[match.end(0):]
-  if Match(r'^\s*(?:;|const\b|throw\b|final\b|override\b|[=>{),]|->)',
-           remainder):
-    # Looks like an unnamed parameter.
-
-    # Don't warn on any kind of template arguments.
-    if Match(r'^\s*>', remainder):
-      return False
-
-    # Don't warn on assignments to function pointers, but keep warnings for
-    # unnamed parameters to pure virtual functions.  Note that this pattern
-    # will also pass on assignments of "0" to function pointers, but the
-    # preferred values for those would be "nullptr" or "NULL".
-    matched_zero = Match(r'^\s=\s*(\S+)\s*;', remainder)
-    if matched_zero and matched_zero.group(1) != '0':
-      return False
-
-    # Don't warn on function pointer declarations.  For this we need
-    # to check what came before the "(type)" string.
-    if Match(r'.*\)\s*$', line[0:match.start(0)]):
-      return False
-
-    # Don't warn if the parameter is named with block comments, e.g.:
-    #  Function(int /*unused_param*/);
-    raw_line = clean_lines.raw_lines[linenum]
-    if '/*' in raw_line:
-      return False
-
-    # Passed all filters, issue warning here.
-    error(filename, linenum, 'readability/function', 3,
-          'All parameters should be named in a function')
-    return True
-
-  # At this point, all that should be left is actual casts.
-  error(filename, linenum, 'readability/casting', 4,
-        'Using C-style cast.  Use %s<%s>(...) instead' %
-        (cast_type, match.group(1)))
-
-  return True
+  return False
 
 
 def ExpectingFunctionArgs(clean_lines, linenum):
