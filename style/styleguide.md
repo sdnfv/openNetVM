@@ -116,6 +116,8 @@ We follow the [Composite Style Guide's](https://github.com/gparmer/Composite/blo
 ## Style Guide Conformance
 You can use `gwclint.py` to check some of these style guide rules. Note that this is based on Google's style guide, so it may mark some pieces of code invalid which are fine, and it may not find other problems.
 
+Usage: ``python gwclint.py FILENAME`
+
 In particular, the checker currently *does not*:
   * Check for 8 space indentation (only checks for a multiple of 4)
   * Check for function return values on separate line from function name
