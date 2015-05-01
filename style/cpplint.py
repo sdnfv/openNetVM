@@ -1669,10 +1669,8 @@ def GetHeaderGuardCPPVariable(filename):
   filename = filename.replace('C++', 'cpp').replace('c++', 'cpp')
 
   fileinfo = FileInfo(filename)
-  file_path_from_root = fileinfo.RepositoryName()
-  if _root:
-    file_path_from_root = re.sub('^' + _root + os.sep, '', file_path_from_root)
-  return re.sub(r'[^a-zA-Z0-9]', '_', file_path_from_root).upper() + '_'
+  base_file = fileinfo.BaseName()
+  return "_" + re.sub(r'[^a-zA-Z0-9]', '_', base_file).upper() + '_H_'
 
 
 def CheckForHeaderGuard(filename, clean_lines, error):
