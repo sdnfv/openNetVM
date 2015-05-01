@@ -22,6 +22,24 @@ Your project is likely to include multiple files, so you need to think about how
 
 **A readme.md file** should be included with every project. Learn to use [Markdown to format your documents](https://guides.github.com/features/mastering-markdown/).
 
+**Each file should begin with licensing and copyright information.**
+
+If the project contains a License file (it should), then each file can begin simply:
+
+````
+/************************************************
+ *                     PROJECT NAME
+ * https://PROJECTURL
+ *
+ * Copyright 2015 George Washington University
+ *
+ * This program is licensed under the MIT license.
+ * Full license available at: http://mit-license.org/
+ *
+ * filename.c - brief description of this file
+ *************************************************/
+````
+
 ## Variable and Function Naming
 How you name your variables, data structures, and functions can be the dominant factor on whether your code is readable. In general, we follow the [Composite](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true) and [Google](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Naming) naming conventions, although Google's recommendations are for C++ and thus use more capital letters than you are likely to use in a C program.
 
@@ -85,12 +103,12 @@ We follow the [Composite Style Guide's](https://github.com/gparmer/Composite/blo
 
 *Note that this is different from Composite!*
 
-**Use 8 spaces to define a tab.** This makes tabs wide, discouraging you from writing code that is deeply nested. It also matches the Linux standard. Learn how to setup your editor to do this for you.
+**Use 8 spaces to define a tab.** This makes tabs wide, discouraging you from writing code that is deeply nested. It also matches the Linux standard. Learn how to setup your editor to do this for you. *All lines should have an indentation that is a multiple of 4.*
 
 ## Style Guide Conformance
 You can use `gwclint.py` to check some of these style guide rules. Note that this is based on Google's style guide, so it may mark some pieces of code invalid which are fine, and it may not find other problems.
 
-## Makefiles
+# Makefiles
 Please follow the guidelines below when creating makefiles.
 
 - Include targets for `make all` and `make clean` (`make rebuild` can be useful for enforcing recompilation)
@@ -133,7 +151,7 @@ clean:
 	@rm -f $(OBJS)
 ````
 
-## Git Usage
+# Git Usage
 We use git to track code changes. Learn how to use it.
 
 **Commit messages** should be at least one sentence and should help a reader understand what you have modified.
@@ -150,12 +168,12 @@ We use git to track code changes. Learn how to use it.
 
 **Notifications.** You should setup github's notification system so that it will email you when changes are made to repositories that you are working on. For example, if someone tags you in a commit message or assigns an Issue to you, then you should be sure you will be notified of this.  It's a good idea to regularly look at your github web page to see what updates other students are making on projects relevant to you.
 
-## More Resources
+# More Resources
 The contents of this guide are largely stolen from the [Composite Style Guide](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true). Where not discussed here, follow the Composite rules.
 
 [Google's C++ Style Guide](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Header_Files) also provides many reasonable style choices, and is used by many different companies. Where not discussed here or in the Composite guide, follow Google's.
 
-## History
+# History
 
 5/1/15:
   * Specified header guard format.
