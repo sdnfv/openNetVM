@@ -24,18 +24,25 @@ Your project is likely to include multiple files, so you need to think about how
 
 **Each file should begin with licensing and copyright information.**
 
-If the project contains a License file (it should), then each file can begin simply:
-
 ````
 /*********************************************************************
- *                     PROJECT NAME
- * https://PROJECTURL
+ *                     openNetVM
+ *       https://github.com/sdnfv/openNetVM
  *
- * Copyright 2015 George Washington University
+ *  Copyright 2015 George Washington University
+ *            2015 University of California Riverside
  *
- * This program is licensed under the MIT license.
- * Full license available in the project root and
- * at: http://mit-license.org/
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *  
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *  
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  *
  * filename.c - brief description of this file
  ********************************************************************/
