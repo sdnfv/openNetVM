@@ -2,7 +2,7 @@
 
 These config files are used to configure and run Pktgen-DPDK
 
-## Usages
+## Usage
   - Place these files in `[...]/Pktgen-DPDK/dpdk/examples/pktgen/`
   - Change src/dest ip, src/dest mac, and other settings in
     pktgen-config.ua
