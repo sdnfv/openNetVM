@@ -140,7 +140,7 @@ get_from_ring(void) {
         void *val;
 
         if (rte_ring_dequeue(new_ring, &val) < 0) {
-                printf("Problem dequeuing from new ring -- %d\n", x);
+                printf("Problem dequeuing from new ring -- %p\n", val);
                 usleep(5);
         }
 
