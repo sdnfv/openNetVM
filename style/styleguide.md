@@ -1,6 +1,6 @@
 # CloudLab Coding Style Guide
 
-*Updated May 1, 2015*
+*Updated May 15, 2015*
 
 As a student, you have spent years writing code that was read by at most two or three people. This has allowed you to get away with terrible coding habits. In the real world, writing good code is **important**, but writing readable code is **critical**.
 
@@ -195,6 +195,8 @@ The contents of this guide are largely stolen from the [Composite Style Guide](h
 [Google's C++ Style Guide](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Header_Files) also provides many reasonable style choices, and is used by many different companies. Where not discussed here or in the Composite guide, follow Google's.
 
 # History
+5/15/15: 
+  * Updated license to Apache v2
 
 5/1/15:
   * Specified header guard format.
