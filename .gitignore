@@ -1,8 +1,15 @@
 # Object files
+*.o.cmd
+*.o.d
+*.map
 *.o
 *.ko
 *.obj
 *.elf
+_install
+_postbuild
+_postinstall
+_preinstall
 
 # Precompiled Headers
 *.gch
