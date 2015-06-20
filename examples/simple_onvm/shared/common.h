@@ -1,35 +1,24 @@
-/*-
- *   BSD LICENSE
+/*********************************************************************
+ *                     openNetVM
+ *       https://github.com/sdnfv/openNetVM
  *
- *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
- *   All rights reserved.
+ *  Copyright 2015 George Washington University
+ *            2015 University of California Riverside
  *
- *   Redistribution and use in source and binary forms, with or without
- *   modification, are permitted provided that the following conditions
- *   are met:
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in
- *       the documentation and/or other materials provided with the
- *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ * common.h - shared data between host and NFs
+ ********************************************************************/
 
 #ifndef _COMMON_H_
 #define _COMMON_H_
@@ -48,19 +37,19 @@
  * cache lines for each client to use.
  */
 struct rx_stats{
-	uint64_t rx[RTE_MAX_ETHPORTS];
+        uint64_t rx[RTE_MAX_ETHPORTS];
 } __rte_cache_aligned;
 
 struct tx_stats{
-	uint64_t tx[RTE_MAX_ETHPORTS];
-	uint64_t tx_drop[RTE_MAX_ETHPORTS];
+        uint64_t tx[RTE_MAX_ETHPORTS];
+        uint64_t tx_drop[RTE_MAX_ETHPORTS];
 } __rte_cache_aligned;
 
 struct port_info {
-	uint8_t num_ports;
-	uint8_t id[RTE_MAX_ETHPORTS];
-	volatile struct rx_stats rx_stats;
-	volatile struct tx_stats tx_stats[MAX_CLIENTS];
+        uint8_t num_ports;
+        uint8_t id[RTE_MAX_ETHPORTS];
+        volatile struct rx_stats rx_stats;
+        volatile struct tx_stats tx_stats[MAX_CLIENTS];
 };
 
 /* define common names for structures shared between server and client */
@@ -74,12 +63,12 @@ struct port_info {
 static inline const char *
 get_rx_queue_name(unsigned id)
 {
-	/* buffer for return value. Size calculated by %u being replaced
-	 * by maximum 3 digits (plus an extra byte for safety) */
-	static char buffer[sizeof(MP_CLIENT_RXQ_NAME) + 2];
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(MP_CLIENT_RXQ_NAME) + 2];
 
-	snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_RXQ_NAME, id);
-	return buffer;
+        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_RXQ_NAME, id);
+        return buffer;
 }
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1

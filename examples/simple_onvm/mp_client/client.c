@@ -1,35 +1,25 @@
-/*-
- *   BSD LICENSE
+/*********************************************************************
+ *                     openNetVM
+ *       https://github.com/sdnfv/openNetVM
  *
- *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
- *   All rights reserved.
+ *  Copyright 2015 George Washington University
+ *            2015 University of California Riverside
  *
- *   Redistribution and use in source and binary forms, with or without
- *   modification, are permitted provided that the following conditions
- *   are met:
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in
- *       the documentation and/or other materials provided with the
- *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ * client.c - client NF for simple onvm
+ ********************************************************************/
+
 
 #include <stdint.h>
 #include <stdio.h>
@@ -88,7 +78,7 @@ static volatile struct tx_stats *tx_stats;
 static void
 usage(const char *progname)
 {
-	printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
+        printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
 }
 
 /*
@@ -97,18 +87,18 @@ usage(const char *progname)
 static int
 parse_client_num(const char *client)
 {
-	char *end = NULL;
-	unsigned long temp;
+        char *end = NULL;
+        unsigned long temp;
 
-	if (client == NULL || *client == '\0')
-		return -1;
+        if (client == NULL || *client == '\0')
+                return -1;
 
-	temp = strtoul(client, &end, 10);
-	if (end == NULL || *end != '\0')
-		return -1;
+        temp = strtoul(client, &end, 10);
+        if (end == NULL || *end != '\0')
+                return -1;
 
-	client_id = (uint8_t)temp;
-	return 0;
+        client_id = (uint8_t)temp;
+        return 0;
 }
 
 /*
@@ -117,29 +107,29 @@ parse_client_num(const char *client)
 static int
 parse_app_args(int argc, char *argv[])
 {
-	int option_index, opt;
-	char **argvopt = argv;
-	const char *progname = NULL;
-	static struct option lgopts[] = { /* no long options */
-		{NULL, 0, 0, 0 }
-	};
-	progname = argv[0];
+        int option_index, opt;
+        char **argvopt = argv;
+        const char *progname = NULL;
+        static struct option lgopts[] = { /* no long options */
+                {NULL, 0, 0, 0 }
+        };
+        progname = argv[0];
 
-	while ((opt = getopt_long(argc, argvopt, "n:", lgopts,
-		&option_index)) != EOF){
-		switch (opt){
-			case 'n':
-				if (parse_client_num(optarg) != 0){
-					usage(progname);
-					return -1;
-				}
-				break;
-			default:
-				usage(progname);
-				return -1;
-		}
-	}
-	return 0;
+        while ((opt = getopt_long(argc, argvopt, "n:", lgopts,
+                &option_index)) != EOF){
+                switch (opt){
+                        case 'n':
+                                if (parse_client_num(optarg) != 0){
+                                        usage(progname);
+                                        return -1;
+                                }
+                                break;
+                        default:
+                                usage(progname);
+                                return -1;
+                }
+        }
+        return 0;
 }
 
 /*
@@ -149,20 +139,20 @@ parse_app_args(int argc, char *argv[])
  */
 static void configure_output_ports(const struct port_info *ports)
 {
-	int i;
-	if (ports->num_ports > RTE_MAX_ETHPORTS)
-		rte_exit(EXIT_FAILURE, "Too many ethernet ports. RTE_MAX_ETHPORTS = %u\n",
-				(unsigned)RTE_MAX_ETHPORTS);
-	for (i = 0; i < ports->num_ports; i+=1){
-		uint8_t p1 = ports->id[i];
-		output_ports[p1] = p1;
-	}
+        int i;
+        if (ports->num_ports > RTE_MAX_ETHPORTS)
+                rte_exit(EXIT_FAILURE, "Too many ethernet ports. RTE_MAX_ETHPORTS = %u\n",
+                                (unsigned)RTE_MAX_ETHPORTS);
+        for (i = 0; i < ports->num_ports; i+=1){
+                uint8_t p1 = ports->id[i];
+                output_ports[p1] = p1;
+        }
 }
 
 static void nf_app_function(struct rte_mbuf *buf) {
-	/* do nothing */
+        /* do nothing */
 
-	printf("pkt on port %d and size %d\n" , buf->port, buf->pkt_len);
+        printf("pkt on port %d and size %d\n" , buf->port, buf->pkt_len);
 }
 
 /*
@@ -172,76 +162,68 @@ static void nf_app_function(struct rte_mbuf *buf) {
 int
 main(int argc, char *argv[])
 {
-	const struct rte_memzone *mz;
-	struct rte_ring *rx_ring;
-	struct rte_mempool *mp;
-	struct port_info *ports;
-	int retval;
-	void *pkts[PKT_READ_SIZE];
+        const struct rte_memzone *mz;
+        struct rte_ring *rx_ring;
+        struct rte_mempool *mp;
+        struct port_info *ports;
+        int retval;
+        void *pkts[PKT_READ_SIZE];
 
-	if ((retval = rte_eal_init(argc, argv)) < 0)
-		return -1;
-	argc -= retval;
-	argv += retval;
+        if ((retval = rte_eal_init(argc, argv)) < 0)
+                return -1;
+        argc -= retval;
+        argv += retval;
 
-	if (parse_app_args(argc, argv) < 0)
-		rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        if (parse_app_args(argc, argv) < 0)
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
-	if (rte_eth_dev_count() == 0)
-		rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
+        if (rte_eth_dev_count() == 0)
+                rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
-	rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
-	if (rx_ring == NULL)
-		rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
+        rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
+        if (rx_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
-	mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
-	if (mp == NULL)
-		rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
+        mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
+        if (mp == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
 
-	mz = rte_memzone_lookup(MZ_PORT_INFO);
-	if (mz == NULL)
-		rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
-	ports = mz->addr;
-	tx_stats = &(ports->tx_stats[client_id]);
+        mz = rte_memzone_lookup(MZ_PORT_INFO);
+        if (mz == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
+        ports = mz->addr;
+        tx_stats = &(ports->tx_stats[client_id]);
 
-	configure_output_ports(ports);
+        configure_output_ports(ports);
 
-	RTE_LOG(INFO, APP, "Finished Process Init.\n");
+        RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-	printf("\nClient process %d handling packets\n", client_id);
-	printf("[Press Ctrl-C to quit ...]\n");
+        printf("\nClient process %d handling packets\n", client_id);
+        printf("[Press Ctrl-C to quit ...]\n");
 
-	for (;;) {
-		uint16_t i, rx_pkts = PKT_READ_SIZE;
-		uint16_t sent;
+        for (;;) {
+                uint16_t i, rx_pkts = PKT_READ_SIZE;
+                uint16_t sent;
 
-		/* try dequeuing max possible packets first, if that fails, get the
-		 * most we can. Loop body should only execute once, maximum */
-		while (rx_pkts > 0 &&
-				unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, rx_pkts) != 0))
-			rx_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
+                /* try dequeuing max possible packets first, if that fails, get the
+                 * most we can. Loop body should only execute once, maximum */
+                while (rx_pkts > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, rx_pkts) != 0))
+                        rx_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
 
-		// if (unlikely(rx_pkts == 0)){
-		// 	if (need_flush)
-		// 		for (port = 0; port < ports->num_ports; port++)
-		// 			send_packets(ports->id[port]);
-		// 	need_flush = 0;
-		// 	continue;
-		// }
+                /* Give each packet to the user proccessing function */
+                for (i = 0; i < rx_pkts; i++) {
+                        nf_app_function(pkts[i]);
+                }
 
-		/* Give each packet to the user proccessing function */
-		for (i = 0; i < rx_pkts; i++) {
-			nf_app_function(pkts[i]);
-		}
+                sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
+                if (unlikely(sent < rx_pkts)){
+                        for (i = sent; i < rx_pkts; i++)
+                                rte_pktmbuf_free(pkts[i]);
+                        tx_stats->tx_drop[0] += (rx_pkts - sent);
+                }
+                tx_stats->tx[0] += sent;
 
-		sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
-		if (unlikely(sent < rx_pkts)){
-			for (i = sent; i < rx_pkts; i++)
-				rte_pktmbuf_free(pkts[i]);
-			tx_stats->tx_drop[0] += (rx_pkts - sent);
-		}
-		tx_stats->tx[0] += sent;
-
-		// need_flush = 1;
-	}
+                // need_flush = 1;
+        }
 }
