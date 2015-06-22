@@ -1,0 +1,7 @@
+/onvm_mgr/onvm_mgr
+/onvm_nf/onvm_nf
+/mp_server/mp_server
+/mp_server/client_server_mp
+/mp_client/mp_client
+/mp_client/client_server_mp
+*.cmd
