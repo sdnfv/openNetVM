@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * client.c - client NF for simple onvm
+ * onvm_nflib.c - client lib NF for simple onvm
  ********************************************************************/
 
 
@@ -55,82 +55,17 @@
 #include <rte_string_fns.h>
 
 #include "common.h"
+#include "onvm_nflib.h"
 
 /* Number of packets to attempt to read from queue */
 #define PKT_READ_SIZE  ((uint16_t)32)
 
-/* our client id number - tells us which rx queue to read, and NIC TX
- * queue to write to. */
-static uint8_t client_id = 0;
-
-
 /* maps input ports to output ports for packets */
 static uint8_t output_ports[RTE_MAX_ETHPORTS];
-
 
 /* shared data from server. We update statistics here */
 static volatile struct tx_stats *tx_stats;
 
-
-/*
- * print a usage message
- */
-static void
-usage(const char *progname)
-{
-        printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
-}
-
-/*
- * Convert the client id number from a string to an int.
- */
-static int
-parse_client_num(const char *client)
-{
-        char *end = NULL;
-        unsigned long temp;
-
-        if (client == NULL || *client == '\0')
-                return -1;
-
-        temp = strtoul(client, &end, 10);
-        if (end == NULL || *end != '\0')
-                return -1;
-
-        client_id = (uint8_t)temp;
-        return 0;
-}
-
-/*
- * Parse the application arguments to the client app.
- */
-static int
-parse_app_args(int argc, char *argv[])
-{
-        int option_index, opt;
-        char **argvopt = argv;
-        const char *progname = NULL;
-        static struct option lgopts[] = { /* no long options */
-                {NULL, 0, 0, 0 }
-        };
-        progname = argv[0];
-
-        while ((opt = getopt_long(argc, argvopt, "n:", lgopts,
-                &option_index)) != EOF){
-                switch (opt){
-                        case 'n':
-                                if (parse_client_num(optarg) != 0){
-                                        usage(progname);
-                                        return -1;
-                                }
-                                break;
-                        default:
-                                usage(progname);
-                                return -1;
-                }
-        }
-        return 0;
-}
 
 /*
  * set up output ports so that all traffic on port gets sent out
@@ -149,10 +84,38 @@ static void configure_output_ports(const struct port_info *ports)
         }
 }
 
-static void nf_app_function(struct rte_mbuf *buf) {
-        /* do nothing */
+/*
+ * ONVM_NF_ACTION_DROP  // drop packet
+ * ONVM_NF_ACTION_NEXT  // to whatever the next action is configured by the SDN controller in the flow table
+ * ONVM_NF_ACTION_TONF  // send to the NF specified in the argument field (assume it is on the same host)
+ * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
+ */
+int
+onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t destination)
+{
+        // TODO link with the data structure of the server (ring)
+        if (action == ONVM_NF_ACTION_DROP) {
 
-        printf("pkt on port %d and size %d\n" , buf->port, buf->pkt_len);
+                tx_stats->tx_drop[0]++;
+        } else if(action == ONVM_NF_ACTION_NEXT) {
+
+        } else if(action == ONVM_NF_ACTION_TONF) {
+
+        } else if(action == ONVM_NF_ACTION_OUT) {
+                sent = rte_eth_tx_burst(argument, 0, (struct rte_mbuf **) &pkt, 1);
+                tx_stats->tx[0]++;
+        } else {
+                return -1;
+        }
+        // OLD
+        // sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
+        // if (unlikely(sent < rx_pkts)){
+        //         for (i = sent; i < rx_pkts; i++)
+        //                 rte_pktmbuf_free(pkts[i]);
+        //         tx_stats->tx_drop[0] += (rx_pkts - sent);
+        // }
+        // tx_stats->tx[0] += sent;
+        return 0;
 }
 
 /*
@@ -160,27 +123,18 @@ static void nf_app_function(struct rte_mbuf *buf) {
  * receiving and processing packets. Never returns
  */
 int
-main(int argc, char *argv[])
+onvm_nf_init_and_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt))
 {
         const struct rte_memzone *mz;
         struct rte_ring *rx_ring;
         struct rte_mempool *mp;
         struct port_info *ports;
-        int retval;
         void *pkts[PKT_READ_SIZE];
-
-        if ((retval = rte_eal_init(argc, argv)) < 0)
-                return -1;
-        argc -= retval;
-        argv += retval;
-
-        if (parse_app_args(argc, argv) < 0)
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         if (rte_eth_dev_count() == 0)
                 rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
-        rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
+        rx_ring = rte_ring_lookup(get_rx_queue_name(info->client_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
@@ -192,13 +146,13 @@ main(int argc, char *argv[])
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz->addr;
-        tx_stats = &(ports->tx_stats[client_id]);
+        tx_stats = &(ports->tx_stats[info->client_id]);
 
         configure_output_ports(ports);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-        printf("\nClient process %d handling packets\n", client_id);
+        printf("\nClient process %d handling packets\n", info->client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
@@ -213,17 +167,8 @@ main(int argc, char *argv[])
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
-                        nf_app_function(pkts[i]);
+                        (*handler)((struct rte_mbuf*)pkts[i]);
                 }
 
-                sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
-                if (unlikely(sent < rx_pkts)){
-                        for (i = sent; i < rx_pkts; i++)
-                                rte_pktmbuf_free(pkts[i]);
-                        tx_stats->tx_drop[0] += (rx_pkts - sent);
-                }
-                tx_stats->tx[0] += sent;
-
-                // need_flush = 1;
         }
 }
