@@ -63,6 +63,9 @@
 /* maps input ports to output ports for packets */
 static uint8_t output_ports[RTE_MAX_ETHPORTS];
 
+/* this ring is used to pass packets from NFlib to NFmgr -- extern in header */
+struct rte_ring *tx_ring;
+
 /* shared data from server. We update statistics here */
 static volatile struct tx_stats *tx_stats;
 
@@ -191,9 +194,14 @@ onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t destination
 
                 tx_stats->tx_drop[0]++;
         } else if(action == ONVM_NF_ACTION_NEXT) {
-
+                if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
+                        return -1;
+                }
         } else if(action == ONVM_NF_ACTION_TONF) {
-
+                //TODO how to tell NFmgr what NF to send this packet to?
+                if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
+                        return -1;
+                }
         } else if(action == ONVM_NF_ACTION_OUT) {
                 rte_eth_tx_burst(destination, 0, (struct rte_mbuf **) &pkt, 1);
                 tx_stats->tx[0]++;
@@ -234,6 +242,10 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
+        
+        tx_ring = rte_ring_lookup(get_tx_queue_name(info->client_id));
+        if (tx_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)

@@ -239,6 +239,8 @@ do_packet_forwarding(void)
                 if (likely(rx_count > 0)) {
                         process_packets(buf, rx_count);
                 }
+                
+                //TODO read packets from the client's tx queue and process them as needed
         }
 }
 
