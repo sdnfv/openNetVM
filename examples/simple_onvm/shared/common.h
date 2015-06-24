@@ -52,6 +52,11 @@ struct port_info {
         volatile struct tx_stats tx_stats[MAX_CLIENTS];
 };
 
+struct onvm_pkt_action {
+        uint8_t action;
+        uint16_t destination;
+};
+
 /* define common names for structures shared between server and client */
 #define MP_CLIENT_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_CLIENT_TXQ_NAME "MProc_Client_%u_TX"
