@@ -21,14 +21,13 @@
  ********************************************************************/
 
 
-
 #ifndef _ONVM_NFLIB_H_
 #define _ONVM_NFLIB_H_
 #include <rte_mbuf.h>
 
 
-#define ONVM_NF_ACTION_DROP 0  // drop packet
-#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_DROP 0 // drop packet
+#define ONVM_NF_ACTION_NEXT 1 // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2 // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3  // send the packet out the NIC port set in the argument field
 
@@ -41,10 +40,30 @@ struct onvm_nf_info {
 
 
 /**
- * Initialize the OpenNetVM container Library and start running.
- * This will setup the DPDK EAL as a secondary process, notify the host
- * that there is a new NF, and register the callback used for each new
- * packet. It will then loop forever waiting for packets.
+ * Initialize the OpenNetVM container Library.
+ * This will setup the DPDK EAL as a secondary process, and notify the host
+ * that there is a new NF.
+ *
+ * @argc
+ *   The argc argument that was given to the main() function.
+ * @argv
+ *   The argv argument that was given to the main() function
+ * @param info
+ *   An info struct describing this NF app. Must be from a huge page memzone.
+ * @return
+ *   On success, the number of parsed arguments, which is greater or equal to
+ *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
+ *   may be modified and should not be accessed by the application.,
+ *   On error, a negative value .
+ */
+int
+onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info);
+
+
+/**
+ * Run the OpenNetVM container Library.
+ * This will register the callback used for each new packet. It will then
+ * loop forever waiting for packets.
  *
  * @param info
  *   an info struct describing this NF app. Must be from a huge page memzone.
@@ -54,7 +73,7 @@ struct onvm_nf_info {
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nf_init_and_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt));
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt));
 
 /**
  * Return a packet to the container library so it can be sent back to the host.

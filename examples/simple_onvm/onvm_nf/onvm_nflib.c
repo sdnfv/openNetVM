@@ -66,6 +66,99 @@ static uint8_t output_ports[RTE_MAX_ETHPORTS];
 /* shared data from server. We update statistics here */
 static volatile struct tx_stats *tx_stats;
 
+/* ring where the data are */
+static struct rte_ring *rx_ring;
+
+/* our client id number - tells us which rx queue to read, and NIC TX
+ * queue to write to. */
+static uint8_t client_id;
+
+/*
+ * print a usage message
+ */
+static void
+usage(const char *progname)
+{
+        printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
+}
+
+
+/*
+ * Convert the client id number from a string to an int.
+ */
+static int
+parse_string(const char *client)
+{
+        char *end = NULL;
+        unsigned long temp;
+
+        if (client == NULL || *client == '\0')
+                return -1;
+
+        temp = strtoul(client, &end, 10);
+        if (end == NULL || *end != '\0')
+                return -1;
+
+        client_id = (uint8_t)temp;
+        return 0;
+}
+
+/*
+ * Parse the application arguments to the client app.
+ */
+static int
+parse_app_args(int argc, char *argv[])
+{
+        int option_index, opt, i;
+
+        char **argvopt = argv;
+        const char *progname = NULL;
+        static struct option lgopts[] = { /* no long options */
+                {NULL, 0, 0, 0 }
+        };
+        progname = argv[0];
+        for(i = 0; i< argc; i++) {
+                printf("%s\n", argv[i]);
+        }
+        client_id = 0;
+        opt = getopt_long(argc, argvopt, "n:", lgopts, &option_index);
+        switch (opt){
+                case 'n':
+                        if (parse_string(optarg) != 0){
+                                usage(progname);
+                                return -1;
+                        }
+                        client_id = parse_string(optarg);
+                        break;
+                default:
+                        usage(progname);
+                        return -1;
+        }
+        return 2; // number of argument that have been read.
+        // while ((opt = getopt_long(argc, argvopt, "n:", lgopts,
+        //         &option_index)) != EOF){
+        //         switch (opt){
+        //                 case 'n':
+        //                         if (parse_string(optarg) != 0){
+        //                                 usage(progname);
+        //                                 return -1;
+        //                         }
+        //                         client_id = parse_string(optarg);
+        //                         break;
+        //                 case 'p':
+        //                         if (parse_string(optarg) < 1){
+        //                                 usage(progname);
+        //                                 return -1;
+        //                         }
+        //                         print_delay = parse_string(optarg);
+        //                         break;
+        //                 default:
+        //                         usage(progname);
+        //                         return -1;
+        //         }
+        // }
+
+}
 
 /*
  * set up output ports so that all traffic on port gets sent out
@@ -102,7 +195,7 @@ onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t destination
         } else if(action == ONVM_NF_ACTION_TONF) {
 
         } else if(action == ONVM_NF_ACTION_OUT) {
-                sent = rte_eth_tx_burst(argument, 0, (struct rte_mbuf **) &pkt, 1);
+                rte_eth_tx_burst(destination, 0, (struct rte_mbuf **) &pkt, 1);
                 tx_stats->tx[0]++;
         } else {
                 return -1;
@@ -118,23 +211,27 @@ onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t destination
         return 0;
 }
 
-/*
- * Application main function - loops through
- * receiving and processing packets. Never returns
- */
 int
-onvm_nf_init_and_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt))
+onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
 {
         const struct rte_memzone *mz;
-        struct rte_ring *rx_ring;
         struct rte_mempool *mp;
         struct port_info *ports;
-        void *pkts[PKT_READ_SIZE];
+        int retval_eal, retval_parse;
+
+        if ((retval_eal = rte_eal_init(argc, argv)) < 0)
+                return -1;
+        argc -= retval_eal;
+        argv += retval_eal;
+
+        if ((retval_parse = parse_app_args(argc, argv)) < 0)
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        (*info).client_id = client_id;
 
         if (rte_eth_dev_count() == 0)
                 rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
-        rx_ring = rte_ring_lookup(get_rx_queue_name(info->client_id));
+        rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
@@ -146,18 +243,30 @@ onvm_nf_init_and_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* 
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz->addr;
-        tx_stats = &(ports->tx_stats[info->client_id]);
+        tx_stats = &(ports->tx_stats[client_id]);
 
         configure_output_ports(ports);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
+        return retval_parse;
+}
 
-        printf("\nClient process %d handling packets\n", info->client_id);
+/*
+ * Application main function - loops through
+ * receiving and processing packets. Never returns
+ */
+int
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt))
+{
+        void *pkts[PKT_READ_SIZE];
+
+        (*info).client_id = client_id;
+        printf("\nClient process %d handling packets\n", client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
                 uint16_t i, rx_pkts = PKT_READ_SIZE;
-                uint16_t sent;
+                //uint16_t sent;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
