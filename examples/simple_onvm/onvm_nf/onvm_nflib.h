@@ -74,21 +74,6 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info);
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt));
-
-/**
- * Return a packet to the container library so it can be sent back to the host.
- *
- * @param pkt
- *   a pointer to the completed packet
- * @param action
- *   an NF_ACTION such as forward, drop, etc
- * @param argument
- *   an argument used for some actions
- * @return
- *   0 on success, or a negative value on error.
- */
-int
-onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t argument);
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action));
 
 #endif

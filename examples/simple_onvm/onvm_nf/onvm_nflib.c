@@ -187,23 +187,24 @@ static void configure_output_ports(const struct port_info *ports)
  * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
  */
 int
-onvm_nf_return_packet(struct rte_mbuf* pkt, uint8_t action, uint16_t destination)
+onvm_nf_return_packet(struct onvm_nf_info* info, struct rte_mbuf* pkt, struct onvm_pkt_action* action)
 {
         // TODO link with the data structure of the server (ring)
-        if (action == ONVM_NF_ACTION_DROP) {
-
+        if (action->action == ONVM_NF_ACTION_DROP) {
+                rte_pktmbuf_free(pkt);
                 tx_stats->tx_drop[0]++;
-        } else if(action == ONVM_NF_ACTION_NEXT) {
+        } else if(action->action == ONVM_NF_ACTION_NEXT) {
+                pkt->udata64 = (uint64_t)(*action);
                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
                         return -1;
                 }
-        } else if(action == ONVM_NF_ACTION_TONF) {
-                //TODO how to tell NFmgr what NF to send this packet to?
+        } else if(action->action == ONVM_NF_ACTION_TONF) {
+                pkt->udata64 = (uint64_t)(*action);
                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
                         return -1;
                 }
-        } else if(action == ONVM_NF_ACTION_OUT) {
-                rte_eth_tx_burst(destination, 0, (struct rte_mbuf **) &pkt, 1);
+        } else if(action->action == ONVM_NF_ACTION_OUT) {
+                rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
                 tx_stats->tx[0]++;
         } else {
                 return -1;
@@ -268,13 +269,15 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
  * receiving and processing packets. Never returns
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt))
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))
 {
         void *pkts[PKT_READ_SIZE];
 
         (*info).client_id = client_id;
         printf("\nClient process %d handling packets\n", client_id);
         printf("[Press Ctrl-C to quit ...]\n");
+        
+        struct onvm_pkt_action action;
 
         for (;;) {
                 uint16_t i, rx_pkts = PKT_READ_SIZE;
@@ -288,7 +291,9 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt))
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
-                        (*handler)((struct rte_mbuf*)pkts[i]);
+                        (*handler)((struct rte_mbuf*)pkts[i], &action);
+                        
+                        onvm_nf_return_packet(&info, (struct rte_mbuf*)pkts[i], &action);
                 }
 
         }
