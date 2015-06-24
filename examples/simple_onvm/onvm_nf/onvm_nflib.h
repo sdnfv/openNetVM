@@ -32,6 +32,7 @@
 #define ONVM_NF_ACTION_TONF 2 // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3  // send the packet out the NIC port set in the argument field
 
+extern struct rte_ring *tx_ring; //this ring is used to pass packets from NFlib to NFmgr
 
 struct onvm_nf_info {
         uint8_t client_id;
