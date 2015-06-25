@@ -89,6 +89,11 @@ parse_app_args(int argc, char *argv[])
         };
         progname = argv[0];
 
+        // debug
+        for(i = 0; i< argc; i++) {
+                printf("NF_SAMPLE : argv[%d] = %s\n", i, argv[i]);
+        }
+
         while ((opt = getopt_long(argc, argvopt, "p:", lgopts,
                 &option_index)) != EOF){
                 switch (opt){

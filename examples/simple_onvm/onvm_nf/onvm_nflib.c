@@ -120,9 +120,12 @@ parse_app_args(int argc, char *argv[])
                 {NULL, 0, 0, 0 }
         };
         progname = argv[0];
+
+        // debug
         for(i = 0; i< argc; i++) {
-                printf("%s\n", argv[i]);
+                printf("NF_LIB : argv[%d] = %s\n", i, argv[i]);
         }
+
         client_id = 0;
         opt = getopt_long(argc, argvopt, "n:", lgopts, &option_index);
         switch (opt){
@@ -243,7 +246,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
-        
+
         tx_ring = rte_ring_lookup(get_tx_queue_name(info->client_id));
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
@@ -276,7 +279,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         (*info).client_id = client_id;
         printf("\nClient process %d handling packets\n", client_id);
         printf("[Press Ctrl-C to quit ...]\n");
-        
+
         struct onvm_pkt_action action;
 
         for (;;) {
@@ -292,7 +295,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
                         (*handler)((struct rte_mbuf*)pkts[i], &action);
-                        
+
                         onvm_nf_return_packet(&info, (struct rte_mbuf*)pkts[i], &action);
                 }
 
