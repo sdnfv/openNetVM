@@ -275,16 +275,14 @@ int
 onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))
 {
         void *pkts[PKT_READ_SIZE];
-
+        struct *onvm_pkt_action action;
         (*info).client_id = client_id;
+
         printf("\nClient process %d handling packets\n", client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
-        struct onvm_pkt_action action;
-
         for (;;) {
                 uint16_t i, rx_pkts = PKT_READ_SIZE;
-                //uint16_t sent;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
@@ -294,9 +292,9 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
-                        (*handler)((struct rte_mbuf*)pkts[i], &action);
-
-                        onvm_nf_return_packet(&info, (struct rte_mbuf*)pkts[i], &action);
+                        action = pkts[i]->udata64;
+                        (*handler)((struct rte_mbuf*)pkts[i], action);
+                        return_packet(&info, (struct rte_mbuf*)pkts[i], action);
                 }
 
         }

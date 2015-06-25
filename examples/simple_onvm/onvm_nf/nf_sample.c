@@ -112,17 +112,47 @@ parse_app_args(int argc, char *argv[])
         return 0;
 }
 
+/*
+ * This function displays stats. It uses ANSI terminal codes to clear
+ * screen when called. It is called from a single non-master
+ * thread in the server process, when the process is run with more
+ * than one lcore enabled.
+ */
+static void
+do_stats_display(struct rte_mbuf* pkt)
+{
+        unsigned i, j;
+        const char clr[] = { 27, '[', '2', 'J', '\0' };
+        const char topLeft[] = { 27, '[', '1', ';', '1', 'H','\0' };
+        static int pkt_process = 0;
 
+        pkt_process += print_delay;
+
+        /* Clear screen and move to top left */
+        printf("%s%s", clr, topLeft);
+
+        printf("PACKETS\n");
+        printf("-----\n");
+        printf("Port : %d\n", pkt->port);
+        printf("Size : %d\n", pkt->pkt_len);
+        printf("Type : %d\n", pkt->packet_type);
+        printf("Number of packet processed : %d\n", pkt_process);
+        printf("\n\n");
+}
 
 static void
-packet_handler(struct rte_mbuf* pkt) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         static int counter = 0;
 
         if(counter++ == print_delay) {
-                printf("pkt on port %d and size %d\n" , pkt->port , pkt->pkt_len);
+                do_stats_display(pkt);
                 counter = 0;
         }
-        onvm_nf_return_packet(pkt, ONVM_NF_ACTION_OUT, 0);
+
+        action->action = ONVM_NF_ACTION_OUT;
+        action->destination = 0;
+        
+        return 0;
 }
 
 
