@@ -1,4 +1,4 @@
-/*********************************************************************
+²/*********************************************************************
  *                     openNetVM
  *       https://github.com/sdnfv/openNetVM
  *
@@ -216,7 +216,33 @@ process_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
         }
 }
 
+/*
+ * Handle the packets whose come from a client. Check what the next action is
+ * and forward the packet either to the NIC or to another NF Client.
+ */
+static void
+process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
+{
+        uint16_t i;
+        struct onvm_pkt_action *action;
 
+        for (i = 0; i < tx_count; i++) {
+                action = (struct onvm_pkt_action*)pkts[i]->udata64;
+                if (action->action == ONVM_NF_ACTION_DROP) {
+                        rte_pktmbuf_free(pkts[i]);
+                } else if(action->action == ONVM_NF_ACTION_NEXT) {
+                        // Here we drop the packet for test reason
+                        rte_pktmbuf_free(pkts[i]);
+                } else if(action->action == ONVM_NF_ACTION_TONF) {
+                        // Here we forward the packet to the NIC for test reason
+                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkt, 1);
+                } else if(action->action == ONVM_NF_ACTION_OUT) {
+                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
+                } else {
+                        return -1;
+                }
+        }
+}
 
 /*
  * Function called by the master lcore of the DPDK process.
@@ -227,8 +253,9 @@ do_packet_forwarding(void)
         unsigned port_num = 0; /* indexes the port[] array */
 
         for (;;) {
-                struct rte_mbuf *buf[PACKET_READ_SIZE];
-                uint16_t rx_count;
+                struct rte_mbuf *buf[PACKET_READ_SIZE], *pkts[PACKET_READ_SIZE];
+                uint16_t rx_count, tx_count;
+                struct client *cl;
 
                 /* read a port */
                 rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
@@ -239,8 +266,16 @@ do_packet_forwarding(void)
                 if (likely(rx_count > 0)) {
                         process_packets(buf, rx_count);
                 }
-                
-                //TODO read packets from the client's tx queue and process them as needed
+
+                /* Read packets from the client's tx queue and process them as needed */
+                /* read packets */
+                cl = &clients[0]; // the client we read
+                tx_count = rte_ring_dequeue_bulk(cl->tx_q, pkts, rx_pkts);
+
+                /* Now process the Client packets read */
+                if (likely(tx_count > 0)) {
+                        process_packets_from_clients(pkts, tx_count);
+                }
         }
 }
 

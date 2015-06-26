@@ -292,7 +292,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
-                        action = pkts[i]->udata64;
+                        action = (struct onvm_pkt_action*)pkts[i]->udata64;
                         (*handler)((struct rte_mbuf*)pkts[i], action);
                         return_packet(&info, (struct rte_mbuf*)pkts[i], action);
                 }
