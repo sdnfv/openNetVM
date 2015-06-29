@@ -62,12 +62,13 @@
 #include "common.h"
 #include "args.h"
 #include "init.h"
+#include "onvm_nflib.h"
 
 /*
  * When doing reads from the NIC or the client queues,
  * use this batch size
  */
-#define PACKET_READ_SIZE 32
+#define PACKET_READ_SIZE ((uint16_t)32)
 
 
 static const char *
@@ -227,7 +228,7 @@ process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
         struct onvm_pkt_action *action;
 
         for (i = 0; i < tx_count; i++) {
-                action = (struct onvm_pkt_action*)pkts[i]->udata64;
+                action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 if (action->action == ONVM_NF_ACTION_DROP) {
                         rte_pktmbuf_free(pkts[i]);
                 } else if(action->action == ONVM_NF_ACTION_NEXT) {
@@ -235,11 +236,11 @@ process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
                         rte_pktmbuf_free(pkts[i]);
                 } else if(action->action == ONVM_NF_ACTION_TONF) {
                         // Here we forward the packet to the NIC for test reason
-                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkt, 1);
+                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) pkts, 1);
                 } else if(action->action == ONVM_NF_ACTION_OUT) {
-                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
+                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) pkts, 1);
                 } else {
-                        return -1;
+                        return;
                 }
         }
 }
@@ -254,7 +255,7 @@ do_packet_forwarding(void)
 
         for (;;) {
                 struct rte_mbuf *buf[PACKET_READ_SIZE], *pkts[PACKET_READ_SIZE];
-                uint16_t rx_count, tx_count = PKT_READ_SIZE;
+                uint16_t rx_count, tx_count = PACKET_READ_SIZE;
                 struct client *cl;
 
                 /* read a port */
@@ -274,7 +275,7 @@ do_packet_forwarding(void)
                  * most we can. Loop body should only execute once, maximum */
                 while (tx_count > 0 &&
                                 unlikely(rte_ring_dequeue_bulk(cl->tx_q, pkts, tx_count) != 0))
-                        tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PKT_READ_SIZE);
+                        tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
 
                 /* Now process the Client packets read */
                 if (likely(tx_count > 0)) {

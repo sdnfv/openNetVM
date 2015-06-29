@@ -43,6 +43,7 @@ INC := $(wildcard *.h)
 
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(SRCDIR)/../shared
+CFLAGS += -I$(SRCDIR)/../onvm_nf
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.

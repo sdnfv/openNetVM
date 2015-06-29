@@ -80,7 +80,7 @@ parse_string(const char *client)
 static int
 parse_app_args(int argc, char *argv[])
 {
-        int option_index, opt;
+        int option_index, opt, i;
 
         char **argvopt = argv;
         const char *progname = NULL;
@@ -121,7 +121,6 @@ parse_app_args(int argc, char *argv[])
 static void
 do_stats_display(struct rte_mbuf* pkt)
 {
-        unsigned i, j;
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H','\0' };
         static int pkt_process = 0;
@@ -151,8 +150,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
 
         action->action = ONVM_NF_ACTION_OUT;
         action->destination = 0;
-        
-        return 0;
 }
 
 

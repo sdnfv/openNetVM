@@ -24,7 +24,7 @@
 #ifndef _ONVM_NFLIB_H_
 #define _ONVM_NFLIB_H_
 #include <rte_mbuf.h>
-
+#include "common.h"
 
 #define ONVM_NF_ACTION_DROP 0 // drop packet
 #define ONVM_NF_ACTION_NEXT 1 // to whatever the next action is configured by the SDN controller in the flow table

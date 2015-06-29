@@ -215,7 +215,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
 
         if ((retval_parse = parse_app_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-        (*info).client_id = client_id;
+        info->client_id = client_id;
 
         if (rte_eth_dev_count() == 0)
                 rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
