@@ -62,7 +62,6 @@
 #include "common.h"
 #include "args.h"
 #include "init.h"
-#include "onvm_nflib.h"
 
 /*
  * When doing reads from the NIC or the client queues,
