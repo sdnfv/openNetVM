@@ -141,29 +141,6 @@ parse_app_args(int argc, char *argv[])
                         return -1;
         }
         return 2; // number of argument that have been read.
-        // while ((opt = getopt_long(argc, argvopt, "n:", lgopts,
-        //         &option_index)) != EOF){
-        //         switch (opt){
-        //                 case 'n':
-        //                         if (parse_string(optarg) != 0){
-        //                                 usage(progname);
-        //                                 return -1;
-        //                         }
-        //                         client_id = parse_string(optarg);
-        //                         break;
-        //                 case 'p':
-        //                         if (parse_string(optarg) < 1){
-        //                                 usage(progname);
-        //                                 return -1;
-        //                         }
-        //                         print_delay = parse_string(optarg);
-        //                         break;
-        //                 default:
-        //                         usage(progname);
-        //                         return -1;
-        //         }
-        // }
-
 }
 
 /*

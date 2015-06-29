@@ -254,7 +254,7 @@ do_packet_forwarding(void)
 
         for (;;) {
                 struct rte_mbuf *buf[PACKET_READ_SIZE], *pkts[PACKET_READ_SIZE];
-                uint16_t rx_count, tx_count;
+                uint16_t rx_count, tx_count = PKT_READ_SIZE;
                 struct client *cl;
 
                 /* read a port */
@@ -270,7 +270,11 @@ do_packet_forwarding(void)
                 /* Read packets from the client's tx queue and process them as needed */
                 /* read packets */
                 cl = &clients[0]; // the client we read
-                tx_count = rte_ring_dequeue_bulk(cl->tx_q, pkts, rx_pkts);
+                /* try dequeuing max possible packets first, if that fails, get the
+                 * most we can. Loop body should only execute once, maximum */
+                while (tx_count > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, pkts, tx_count) != 0))
+                        tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PKT_READ_SIZE);
 
                 /* Now process the Client packets read */
                 if (likely(tx_count > 0)) {
