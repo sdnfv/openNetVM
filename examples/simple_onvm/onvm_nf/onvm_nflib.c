@@ -140,7 +140,7 @@ parse_app_args(int argc, char *argv[])
                         usage(progname);
                         return -1;
         }
-        return 2; // number of argument that have been read.
+        return 2; // FIXME: number of argument that have been read.
 }
 
 /*
@@ -161,25 +161,24 @@ static void configure_output_ports(const struct port_info *ports)
 }
 
 /*
+ * The action parameter is just a pointer to pkt->udata64, so we don't currently use it.
  * ONVM_NF_ACTION_DROP  // drop packet
  * ONVM_NF_ACTION_NEXT  // to whatever the next action is configured by the SDN controller in the flow table
  * ONVM_NF_ACTION_TONF  // send to the NF specified in the argument field (assume it is on the same host)
  * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
  */
-int
-return_packet(struct onvm_nf_info* info, struct rte_mbuf* pkt, struct onvm_pkt_action* action)
+static int
+return_packet(struct onvm_nf_info* info __attribute__((__unused__)), struct rte_mbuf* pkt, struct onvm_pkt_action* action)
 {
         // TODO link with the data structure of the server (ring)
         if (action->action == ONVM_NF_ACTION_DROP) {
                 rte_pktmbuf_free(pkt);
                 tx_stats->tx_drop[0]++;
         } else if(action->action == ONVM_NF_ACTION_NEXT) {
-                pkt->udata64 = (uint64_t)(*action);
                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
                         return -1;
                 }
         } else if(action->action == ONVM_NF_ACTION_TONF) {
-                pkt->udata64 = (uint64_t)(*action);
                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
                         return -1;
                 }
@@ -241,7 +240,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         configure_output_ports(ports);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-        return retval_parse;
+        return retval_parse + retval_eal;
 }
 
 /*

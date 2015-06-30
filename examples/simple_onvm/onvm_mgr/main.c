@@ -235,9 +235,9 @@ process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
                         rte_pktmbuf_free(pkts[i]);
                 } else if(action->action == ONVM_NF_ACTION_TONF) {
                         // Here we forward the packet to the NIC for test reason
-                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) pkts, 1);
+                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
                 } else if(action->action == ONVM_NF_ACTION_OUT) {
-                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) pkts, 1);
+                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkts[i], 1);
                 } else {
                         return;
                 }
@@ -273,7 +273,7 @@ do_packet_forwarding(void)
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
                 while (tx_count > 0 &&
-                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, pkts, tx_count) != 0))
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0))
                         tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
 
                 /* Now process the Client packets read */

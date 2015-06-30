@@ -38,11 +38,11 @@
 #include "onvm_nflib.h"
 
 /* number of package between each print */
-static uint8_t print_delay;
+static uint32_t print_delay = 100000;
 
 /* our client id number - tells us which rx queue to read, and NIC TX
  * queue to write to. */
-static uint8_t client_id;
+// static uint8_t client_id;
 
 /*
  * print a usage message
@@ -53,26 +53,6 @@ usage(const char *progname)
         printf("Usage: %s [EAL args] -- [NF_LIB args] -p <print_delay>\n\n", progname);
 }
 
-
-/*
- * Convert the a string to an int.
- */
-static int
-parse_string(const char *client)
-{
-        char *end = NULL;
-        unsigned long temp;
-
-        if (client == NULL || *client == '\0')
-                return -1;
-
-        temp = strtoul(client, &end, 10);
-        if (end == NULL || *end != '\0')
-                return -1;
-
-        client_id = (uint8_t)temp;
-        return 0;
-}
 
 /*
  * Parse the application arguments to the client app.
@@ -96,13 +76,11 @@ parse_app_args(int argc, char *argv[])
 
         while ((opt = getopt_long(argc, argvopt, "p:", lgopts,
                 &option_index)) != EOF){
+                printf("opt = %c", opt);
                 switch (opt){
                         case 'p':
-                                if (parse_string(optarg) < 1){
-                                        usage(progname);
-                                        return -1;
-                                }
-                                print_delay = parse_string(optarg);
+                                print_delay = strtoul(optarg, NULL, 10);
+                                printf("print delay = %u", print_delay);
                                 break;
                         default:
                                 usage(progname);
@@ -141,14 +119,14 @@ do_stats_display(struct rte_mbuf* pkt)
 
 static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
-        static int counter = 0;
+        static uint32_t counter = 0;
 
         if(counter++ == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_OUT;
+        action->action = ONVM_NF_ACTION_TONF; //ONVM_NF_ACTION_OUT;
         action->destination = 0;
 }
 
