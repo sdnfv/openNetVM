@@ -38,7 +38,7 @@
 #include "onvm_nflib.h"
 
 /* number of package between each print */
-static uint32_t print_delay = 100000;
+static uint32_t print_delay = 1000000;
 
 /* our client id number - tells us which rx queue to read, and NIC TX
  * queue to write to. */

@@ -223,25 +223,29 @@ process_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
 static void
 process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
 {
-        uint16_t i;
+        // uint16_t i;
         struct onvm_pkt_action *action;
 
-        for (i = 0; i < tx_count; i++) {
-                action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                if (action->action == ONVM_NF_ACTION_DROP) {
-                        rte_pktmbuf_free(pkts[i]);
-                } else if(action->action == ONVM_NF_ACTION_NEXT) {
-                        // Here we drop the packet for test reason
-                        rte_pktmbuf_free(pkts[i]);
-                } else if(action->action == ONVM_NF_ACTION_TONF) {
-                        // Here we forward the packet to the NIC for test reason
-                        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
-                } else if(action->action == ONVM_NF_ACTION_OUT) {
-                        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkts[i], 1);
-                } else {
-                        return;
-                }
-        }
+        action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[0])->udata64);
+        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) pkts, tx_count);
+
+
+        // for (i = 0; i < tx_count; i++) {
+        //         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
+        //         if (action->action == ONVM_NF_ACTION_DROP) {
+        //                 rte_pktmbuf_free(pkts[i]);
+        //         } else if(action->action == ONVM_NF_ACTION_NEXT) {
+        //                 // Here we drop the packet for test reason
+        //                 rte_pktmbuf_free(pkts[i]);
+        //         } else if(action->action == ONVM_NF_ACTION_TONF) {
+        //                 // Here we forward the packet to the NIC for test reason
+        //                 rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
+        //         } else if(action->action == ONVM_NF_ACTION_OUT) {
+        //                 rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkts[i], 1);
+        //         } else {
+        //                 return;
+        //         }
+        // }
 }
 
 /*

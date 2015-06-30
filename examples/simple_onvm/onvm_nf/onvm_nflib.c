@@ -167,37 +167,37 @@ static void configure_output_ports(const struct port_info *ports)
  * ONVM_NF_ACTION_TONF  // send to the NF specified in the argument field (assume it is on the same host)
  * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
  */
-static int
-return_packet(struct onvm_nf_info* info __attribute__((__unused__)), struct rte_mbuf* pkt, struct onvm_pkt_action* action)
-{
-        // TODO link with the data structure of the server (ring)
-        if (action->action == ONVM_NF_ACTION_DROP) {
-                rte_pktmbuf_free(pkt);
-                tx_stats->tx_drop[0]++;
-        } else if(action->action == ONVM_NF_ACTION_NEXT) {
-                if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
-                        return -1;
-                }
-        } else if(action->action == ONVM_NF_ACTION_TONF) {
-                if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
-                        return -1;
-                }
-        } else if(action->action == ONVM_NF_ACTION_OUT) {
-                rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
-                tx_stats->tx[0]++;
-        } else {
-                return -1;
-        }
-        // OLD
-        // sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
-        // if (unlikely(sent < rx_pkts)){
-        //         for (i = sent; i < rx_pkts; i++)
-        //                 rte_pktmbuf_free(pkts[i]);
-        //         tx_stats->tx_drop[0] += (rx_pkts - sent);
-        // }
-        // tx_stats->tx[0] += sent;
-        return 0;
-}
+// static int
+// return_packet(struct onvm_nf_info* info __attribute__((__unused__)), struct rte_mbuf* pkt, struct onvm_pkt_action* action)
+// {
+//         // TODO link with the data structure of the server (ring)
+//         if (action->action == ONVM_NF_ACTION_DROP) {
+//                 rte_pktmbuf_free(pkt);
+//                 tx_stats->tx_drop[0]++;
+//         } else if(action->action == ONVM_NF_ACTION_NEXT) {
+//                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
+//                         return -1;
+//                 }
+//         } else if(action->action == ONVM_NF_ACTION_TONF) {
+//                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
+//                         return -1;
+//                 }
+//         } else if(action->action == ONVM_NF_ACTION_OUT) {
+//                 rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
+//                 tx_stats->tx[0]++;
+//         } else {
+//                 return -1;
+//         }
+//         // OLD
+//         // sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
+//         // if (unlikely(sent < rx_pkts)){
+//         //         for (i = sent; i < rx_pkts; i++)
+//         //                 rte_pktmbuf_free(pkts[i]);
+//         //         tx_stats->tx_drop[0] += (rx_pkts - sent);
+//         // }
+//         // tx_stats->tx[0] += sent;
+//         return 0;
+// }
 
 int
 onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
@@ -270,7 +270,10 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 for (i = 0; i < rx_pkts; i++) {
                         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], action);
-                        return_packet(info, (struct rte_mbuf*)pkts[i], action);
+                        //return_packet(info, (struct rte_mbuf*)pkts[i], action);
+                }
+                if( unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS) ) {
+                        tx_stats->tx_drop[0] += rx_pkts;
                 }
 
         }
