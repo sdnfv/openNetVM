@@ -167,7 +167,7 @@ static void configure_output_ports(const struct port_info *ports)
  * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
  */
 int
-onvm_nf_return_packet(struct onvm_nf_info* info, struct rte_mbuf* pkt, struct onvm_pkt_action* action)
+return_packet(struct onvm_nf_info* info, struct rte_mbuf* pkt, struct onvm_pkt_action* action)
 {
         // TODO link with the data structure of the server (ring)
         if (action->action == ONVM_NF_ACTION_DROP) {
@@ -252,8 +252,8 @@ int
 onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))
 {
         void *pkts[PKT_READ_SIZE];
-        struct *onvm_pkt_action action;
-        (*info).client_id = client_id;
+        struct onvm_pkt_action* action;
+        info->client_id = client_id;
 
         printf("\nClient process %d handling packets\n", client_id);
         printf("[Press Ctrl-C to quit ...]\n");
@@ -269,9 +269,9 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
-                        action = (struct onvm_pkt_action*)pkts[i]->udata64;
+                        action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], action);
-                        return_packet(&info, (struct rte_mbuf*)pkts[i], action);
+                        return_packet(info, (struct rte_mbuf*)pkts[i], action);
                 }
 
         }
