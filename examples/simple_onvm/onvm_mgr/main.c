@@ -69,6 +69,17 @@
  */
 #define PACKET_READ_SIZE ((uint16_t)32)
 
+/*
+ * Local buffers to put packets in, used to send packets in bursts to the
+ * clients
+ */
+struct client_rx_buf {
+	struct rte_mbuf *buffer[PACKET_READ_SIZE];
+	uint16_t count;
+};
+
+/* One buffer per client rx queue - dynamically allocate array */
+static struct client_rx_buf *cl_rx_buf;
 
 static const char *
 get_printable_mac_addr(uint8_t port)
@@ -193,6 +204,39 @@ clear_stats(void)
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
 }
 
+/*
+ * send a burst of traffic to a client, assuming there are packets
+ * available to be sent to this client
+ */
+static void
+flush_rx_queue(uint16_t client)
+{
+	uint16_t j;
+	struct client *cl;
+
+	if (cl_rx_buf[client].count == 0)
+		return;
+
+	cl = &clients[client];
+	if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
+			cl_rx_buf[client].count) != 0){
+		for (j = 0; j < cl_rx_buf[client].count; j++)
+			rte_pktmbuf_free(cl_rx_buf[client].buffer[j]);
+		cl->stats.rx_drop += cl_rx_buf[client].count;
+	}
+	else
+		cl->stats.rx += cl_rx_buf[client].count;
+
+	cl_rx_buf[client].count = 0;
+}
+/*
+ * marks a packet down to be sent to a particular client process
+ */
+static inline void
+enqueue_rx_packet(uint8_t client, struct rte_mbuf *buf)
+{
+	cl_rx_buf[client].buffer[cl_rx_buf[client].count++] = buf;
+}
 
 /*
  * This function takes a group of packets and routes them
@@ -223,29 +267,37 @@ process_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
 static void
 process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
 {
-        // uint16_t i;
+        uint16_t i, buffer_count = 0;
         struct onvm_pkt_action *action;
+        struct rte_mbuf *buffer_out[PACKET_READ_SIZE];
 
         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[0])->udata64);
-        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) pkts, tx_count);
 
+        for (i = 0; i < tx_count; i++) {
+                action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                if (action->action == ONVM_NF_ACTION_DROP) {
+                        rte_pktmbuf_free(pkts[i]);
+                        tx_stats->tx_drop[0]++;
+                } else if(action->action == ONVM_NF_ACTION_NEXT) {
+                        // Here we drop the packet for test reason
+                        rte_pktmbuf_free(pkts[i]);
+                        tx_stats->tx_drop[0]++;
+                } else if(action->action == ONVM_NF_ACTION_TONF) {
+                        // Here we forward the packet to the NIC for test reason
+                        enqueue_rx_packet(action->destination, pkts[i]);
+                        //rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
+                } else if(action->action == ONVM_NF_ACTION_OUT) {
+                        buffer_out[buffer_count++] = pkts[i];
+                        tx_stats->tx[0]++;
+                } else {
+                        return;
+                }
+        }
 
-        // for (i = 0; i < tx_count; i++) {
-        //         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
-        //         if (action->action == ONVM_NF_ACTION_DROP) {
-        //                 rte_pktmbuf_free(pkts[i]);
-        //         } else if(action->action == ONVM_NF_ACTION_NEXT) {
-        //                 // Here we drop the packet for test reason
-        //                 rte_pktmbuf_free(pkts[i]);
-        //         } else if(action->action == ONVM_NF_ACTION_TONF) {
-        //                 // Here we forward the packet to the NIC for test reason
-        //                 rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
-        //         } else if(action->action == ONVM_NF_ACTION_OUT) {
-        //                 rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkts[i], 1);
-        //         } else {
-        //                 return;
-        //         }
-        // }
+        rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) buffer_out, buffer_count);
+	for (i = 0; i < num_clients; i++)
+		flush_rx_queue(i);
+
 }
 
 /*
@@ -294,6 +346,8 @@ main(int argc, char *argv[])
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
+
+	cl_rx_buf = calloc(num_clients, sizeof(cl_rx_buf[0]));
 
         /* clear statistics */
         clear_stats();
