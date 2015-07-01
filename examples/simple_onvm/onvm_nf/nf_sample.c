@@ -40,10 +40,6 @@
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
-/* our client id number - tells us which rx queue to read, and NIC TX
- * queue to write to. */
-// static uint8_t client_id;
-
 /*
  * print a usage message
  */
@@ -53,26 +49,19 @@ usage(const char *progname)
         printf("Usage: %s [EAL args] -- [NF_LIB args] -p <print_delay>\n\n", progname);
 }
 
-
 /*
  * Parse the application arguments to the client app.
  */
 static int
 parse_app_args(int argc, char *argv[])
 {
-        // int option_index, opt, i;
-        int i;
+        int i; //option_index, opt;
         // char **argvopt = argv;
         const char *progname = NULL;
         // static struct option lgopts[] = { /* no long options */
         //         {NULL, 0, 0, 0 }
         // };
         progname = argv[0];
-
-        // debug
-        for(i = 0; i< argc; i++) {
-                printf("NF_SAMPLE : argv[%d] = %s\n", i, argv[i]);
-        }
 
         //FIXME : getopt does not work
         // while ((opt = getopt_long(argc, argvopt, "p:", lgopts,

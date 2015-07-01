@@ -121,11 +121,6 @@ parse_app_args(int argc, char *argv[])
         };
         progname = argv[0];
 
-        // debug
-        for(i = 0; i< argc; i++) {
-                printf("NF_LIB : argv[%d] = %s\n", i, argv[i]);
-        }
-
         client_id = 0;
         opt = getopt_long(argc, argvopt, "n:", lgopts, &option_index);
         switch (opt){
@@ -142,7 +137,7 @@ parse_app_args(int argc, char *argv[])
         }
 
         argv[2] = program;
-        return 2; // FIXME: number of argument that have been read.
+        return 2; // number of argument that have been read.
 }
 
 /*
