@@ -60,13 +60,13 @@ usage(const char *progname)
 static int
 parse_app_args(int argc, char *argv[])
 {
-        int option_index, opt, i;
-
-        char **argvopt = argv;
+        // int option_index, opt, i;
+        int i;
+        // char **argvopt = argv;
         const char *progname = NULL;
-        static struct option lgopts[] = { /* no long options */
-                {NULL, 0, 0, 0 }
-        };
+        // static struct option lgopts[] = { /* no long options */
+        //         {NULL, 0, 0, 0 }
+        // };
         progname = argv[0];
 
         // debug
@@ -74,19 +74,26 @@ parse_app_args(int argc, char *argv[])
                 printf("NF_SAMPLE : argv[%d] = %s\n", i, argv[i]);
         }
 
-        while ((opt = getopt_long(argc, argvopt, "p:", lgopts,
-                &option_index)) != EOF){
-                printf("opt = %c", opt);
-                switch (opt){
-                        case 'p':
-                                print_delay = strtoul(optarg, NULL, 10);
-                                printf("print delay = %u", print_delay);
-                                break;
-                        default:
-                                usage(progname);
-                                return -1;
-                }
+        //FIXME : getopt does not work
+        // while ((opt = getopt_long(argc, argvopt, "p:", lgopts,
+        //         &option_index)) != EOF){
+        //         printf("opt = %c", opt);
+        //         switch (opt){
+        //                 case 'p':
+        //                         print_delay = strtoul(optarg, NULL, 10);
+        //                         printf("print delay = %u", print_delay);
+        //                         break;
+        //                 default:
+        //                         usage(progname);
+        //                         return -1;
+        //         }
+        // }
+        if (strcmp(argv[1], "-p") != 0) {
+                usage(progname);
+                return -1;
         }
+
+        print_delay = strtoul(argv[2], NULL, 10);
         return 0;
 }
 

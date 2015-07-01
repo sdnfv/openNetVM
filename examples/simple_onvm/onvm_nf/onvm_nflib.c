@@ -115,7 +115,7 @@ parse_app_args(int argc, char *argv[])
         int option_index, opt, i;
 
         char **argvopt = argv;
-        const char *progname = NULL;
+        char *progname = NULL;
         static struct option lgopts[] = { /* no long options */
                 {NULL, 0, 0, 0 }
         };
@@ -140,6 +140,8 @@ parse_app_args(int argc, char *argv[])
                         usage(progname);
                         return -1;
         }
+
+        argv[2] = program;
         return 2; // FIXME: number of argument that have been read.
 }
 
