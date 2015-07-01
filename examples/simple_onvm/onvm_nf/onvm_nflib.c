@@ -136,7 +136,7 @@ parse_app_args(int argc, char *argv[])
                         return -1;
         }
 
-        argv[2] = program;
+        argv[2] = progname;
         return 2; // number of argument that have been read.
 }
 
