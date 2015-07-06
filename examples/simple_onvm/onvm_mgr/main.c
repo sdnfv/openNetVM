@@ -254,7 +254,7 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count)
  * Function called by the master lcore of the DPDK process.
  */
 static void
-do_packet_forwarding(void)
+do_rx_tx(void)
 {
         unsigned port_num = 0; /* indexes the port[] array */
 
@@ -303,6 +303,6 @@ main(int argc, char *argv[])
         /* put all other cores to sleep bar master */
         rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
 
-        do_packet_forwarding();
+        do_rx_tx();
         return 0;
 }

@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * nf_sample.c - an exemple using onvm_nflib. Print a message each p
+ * nf_sample.c - an example using onvm_nflib. Print a message each p
  * package received
  ********************************************************************/
 
