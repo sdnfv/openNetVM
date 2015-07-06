@@ -270,6 +270,7 @@ process_packets_from_clients(struct rte_mbuf *pkts[], uint16_t tx_count)
         uint16_t i, buffer_count = 0;
         struct onvm_pkt_action *action;
         struct rte_mbuf *buffer_out[PACKET_READ_SIZE];
+        volatile struct tx_stats *tx_stats = &ports->tx_stats[0]; // 0 = client id
 
         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[0])->udata64);
 
