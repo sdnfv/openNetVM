@@ -55,7 +55,7 @@ usage(const char *progname)
 static int
 parse_app_args(int argc, char *argv[])
 {
-        int i; //option_index, opt;
+        //int option_index, opt;
         // char **argvopt = argv;
         const char *progname = NULL;
         // static struct option lgopts[] = { /* no long options */
@@ -82,7 +82,7 @@ parse_app_args(int argc, char *argv[])
                 return -1;
         }
 
-        print_delay = strtoul(argv[2], NULL, 10);
+        print_delay = strtoul(argv[argc-1], NULL, 10);
         return 0;
 }
 

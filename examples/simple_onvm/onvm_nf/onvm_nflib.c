@@ -112,7 +112,7 @@ parse_string(const char *client)
 static int
 parse_app_args(int argc, char *argv[])
 {
-        int option_index, opt, i;
+        int option_index, opt;
 
         char **argvopt = argv;
         char *progname = NULL;
