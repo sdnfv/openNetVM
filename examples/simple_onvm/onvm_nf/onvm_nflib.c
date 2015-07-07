@@ -85,27 +85,6 @@ usage(const char *progname)
         printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
 }
 
-
-/*
- * Convert the client id number from a string to an int.
- */
-static int
-parse_string(const char *client)
-{
-        char *end = NULL;
-        unsigned long temp;
-
-        if (client == NULL || *client == '\0')
-                return -1;
-
-        temp = strtoul(client, &end, 10);
-        if (end == NULL || *end != '\0')
-                return -1;
-
-        client_id = (uint8_t)temp;
-        return 0;
-}
-
 /*
  * Parse the library arguments.
  */
