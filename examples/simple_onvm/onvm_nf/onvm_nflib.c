@@ -77,7 +77,7 @@ static struct rte_ring *rx_ring;
 static uint8_t client_id;
 
 /*
- * print a usage message
+ * Print a usage message
  */
 static void
 usage(const char *progname)
@@ -107,37 +107,36 @@ parse_string(const char *client)
 }
 
 /*
- * Parse the application arguments to the client app.
+ * Parse the library arguments.
  */
 static int
-parse_app_args(int argc, char *argv[])
+parse_nflib_args(int argc, char *argv[])
 {
-        int option_index, opt;
+        const char *progname = argv[0];
+        int c;
 
-        char **argvopt = argv;
-        char *progname = NULL;
-        static struct option lgopts[] = { /* no long options */
-                {NULL, 0, 0, 0 }
-        };
-        progname = argv[0];
+        opterr = 0;
 
-        client_id = 0;
-        opt = getopt_long(argc, argvopt, "n:", lgopts, &option_index);
-        switch (opt){
+        while ((c = getopt (argc, argv, "n:")) != -1)
+                switch (c)
+                {
                 case 'n':
-                        if (parse_string(optarg) != 0){
-                                usage(progname);
-                                return -1;
-                        }
-                        client_id = parse_string(optarg);
+                        client_id =  strtoul(optarg, NULL, 10);
                         break;
-                default:
+                case '?':
                         usage(progname);
-                        return -1;
-        }
-
-        argv[2] = progname;
-        return 2; // number of argument that have been read.
+                        if (optopt == 'n')
+                                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                        else if (isprint (optopt))
+                                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                        else
+                                fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
+                        return 1;
+                default:
+                        abort ();
+                }
+        printf ("client id = %d\n", client_id); // debug
+        return optind;
 }
 
 /*
@@ -209,7 +208,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         argc -= retval_eal;
         argv += retval_eal;
 
-        if ((retval_parse = parse_app_args(argc, argv)) < 0)
+        if ((retval_parse = parse_nflib_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         info->client_id = client_id;
 
