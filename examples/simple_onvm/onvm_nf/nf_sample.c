@@ -80,7 +80,7 @@ parse_app_args(int argc, char *argv[])
                 default:
                         abort ();
                 }
-        printf ("pvalue = %d, print_delay = %d\n", pvalue, print_delay); // debug
+        printf ("pvalue = %s, print_delay = %d\n", pvalue, print_delay); // debug
         return optind;
 }
 
