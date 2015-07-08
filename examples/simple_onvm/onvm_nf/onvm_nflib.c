@@ -94,7 +94,7 @@ parse_nflib_args(int argc, char *argv[])
         const char *progname = argv[0];
         int c;
 
-        opterr = 0;
+	opterr = 0;
 
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c)
@@ -112,9 +112,8 @@ parse_nflib_args(int argc, char *argv[])
                                 fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
                         return 1;
                 default:
-                        abort ();
-                }
-        printf ("client id = %d\n", client_id); // debug
+                        abort ();        
+	}
         return optind;
 }
 
@@ -215,7 +214,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         configure_output_ports(ports);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-        return retval_parse + retval_eal;
+        return retval_eal;
 }
 
 /*

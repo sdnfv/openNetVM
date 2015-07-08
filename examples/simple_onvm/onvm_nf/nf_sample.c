@@ -55,7 +55,6 @@ usage(const char *progname)
 static int
 parse_app_args(int argc, char *argv[])
 {
-        char *pvalue = NULL;
         const char *progname = argv[0];
         int c;
 
@@ -65,7 +64,6 @@ parse_app_args(int argc, char *argv[])
                 switch (c)
                 {
                 case 'p':
-                        pvalue = optarg;
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
@@ -80,7 +78,6 @@ parse_app_args(int argc, char *argv[])
                 default:
                         abort ();
                 }
-        printf ("pvalue = %d, print_delay = %d\n", pvalue, print_delay); // debug
         return optind;
 }
 
@@ -131,6 +128,8 @@ int main(int argc, char *argv[]) {
 
         if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
                 return -1;
+	argc -= retval;
+	argv += retval;
 
         if (parse_app_args(argc, argv) < 0)
                 exit(EXIT_FAILURE);
