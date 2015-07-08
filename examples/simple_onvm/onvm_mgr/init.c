@@ -168,7 +168,8 @@ init_shm_rings(void)
 {
         unsigned i;
         unsigned socket_id;
-        const char * q_name;
+        const char * rq_name;
+        const char * tq_name;
         const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
 
         clients = rte_malloc("client details",
@@ -179,12 +180,20 @@ init_shm_rings(void)
         for (i = 0; i < num_clients; i++) {
                 /* Create an RX queue for each client */
                 socket_id = rte_socket_id();
-                q_name = get_rx_queue_name(i);
-                clients[i].rx_q = rte_ring_create(q_name,
+                rq_name = get_rx_queue_name(i);
+                tq_name = get_tx_queue_name(i);
+                clients[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
                                 RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */
+                clients[i].tx_q = rte_ring_create(tq_name,
+                                ringsize, socket_id,
+                                RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */
+                
                 if (clients[i].rx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
+                
+                if (clients[i].tx_q == NULL)
+                        rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for client %u\n", i);
         }
         return 0;
 }
