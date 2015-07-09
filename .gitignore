@@ -1,3 +1,7 @@
+# ctags files
+tags
+.tags
+
 # Object files
 *.o.cmd
 *.o.d

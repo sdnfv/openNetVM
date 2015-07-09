@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * nf_sample.c - an exemple using onvm_nflib. Print a message each p
+ * nf_sample.c - an example using onvm_nflib. Print a message each p
  * package received
  ********************************************************************/
 
@@ -41,49 +41,44 @@
 static uint32_t print_delay = 1000000;
 
 /*
- * print a usage message
+ * Print a usage message
  */
 static void
 usage(const char *progname)
 {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -p <print_delay>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
 }
 
 /*
- * Parse the application arguments to the client app.
+ * Parse the application arguments.
  */
 static int
 parse_app_args(int argc, char *argv[])
 {
-        int i; //option_index, opt;
-        // char **argvopt = argv;
-        const char *progname = NULL;
-        // static struct option lgopts[] = { /* no long options */
-        //         {NULL, 0, 0, 0 }
-        // };
-        progname = argv[0];
+        const char *progname = argv[0];
+        int c;
 
-        //FIXME : getopt does not work
-        // while ((opt = getopt_long(argc, argvopt, "p:", lgopts,
-        //         &option_index)) != EOF){
-        //         printf("opt = %c", opt);
-        //         switch (opt){
-        //                 case 'p':
-        //                         print_delay = strtoul(optarg, NULL, 10);
-        //                         printf("print delay = %u", print_delay);
-        //                         break;
-        //                 default:
-        //                         usage(progname);
-        //                         return -1;
-        //         }
-        // }
-        if (strcmp(argv[1], "-p") != 0) {
-                usage(progname);
-                return -1;
-        }
+        opterr = 0;
 
-        print_delay = strtoul(argv[2], NULL, 10);
-        return 0;
+        while ((c = getopt (argc, argv, "p:")) != -1)
+                switch (c)
+                {
+                case 'p':
+                        print_delay = strtoul(optarg, NULL, 10);
+                        break;
+                case '?':
+                        usage(progname);
+                        if (optopt == 'p')
+                                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                        else if (isprint (optopt))
+                                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                        else
+                                fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
+                        return 1;
+                default:
+                        abort ();
+                }
+        return optind;
 }
 
 /*
@@ -133,8 +128,8 @@ int main(int argc, char *argv[]) {
 
         if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
                 return -1;
-        argc -= retval;
-        argv += retval;
+	argc -= retval;
+	argv += retval;
 
         if (parse_app_args(argc, argv) < 0)
                 exit(EXIT_FAILURE);
