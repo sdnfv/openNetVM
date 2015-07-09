@@ -278,13 +278,12 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count)
                         rte_pktmbuf_free(pkts[i]);
                         tx_stats->tx_drop[0]++;
                 } else if(action->action == ONVM_NF_ACTION_NEXT) {
-                        // Here we drop the packet for test reason
+                        /* Here we drop the packet : there will be a flow table
+			in the future to know what to do with the packet next */
                         rte_pktmbuf_free(pkts[i]);
                         tx_stats->tx_drop[0]++;
                 } else if(action->action == ONVM_NF_ACTION_TONF) {
-                        // Here we forward the packet to the NIC for test reason
                         enqueue_rx_packet(action->destination, pkts[i]);
-                        //rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
                 } else if(action->action == ONVM_NF_ACTION_OUT) {
                         buffer_out[buffer_count++] = pkts[i];
                         tx_stats->tx[0]++;
