@@ -67,7 +67,7 @@
  * When doing reads from the NIC or the client queues,
  * use this batch size
  */
-#define PACKET_READ_SIZE 32
+#define PACKET_READ_SIZE ((uint16_t)32)
 
 
 static const char *
@@ -200,7 +200,7 @@ clear_stats(void)
  * without checking any of the packet contents.
  */
 static void
-process_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
+process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
 {
         uint16_t j;
         struct client *cl;
@@ -216,28 +216,75 @@ process_packets(struct rte_mbuf *pkts[], uint16_t rx_count)
         }
 }
 
+/*
+ * Handle the packets whose come from a client. Check what the next action is
+ * and forward the packet either to the NIC or to another NF Client.
+ */
+static void
+process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count)
+{
+        // uint16_t i;
+        struct onvm_pkt_action *action;
 
+        action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[0])->udata64);
+
+        // Send all packets out as a burst, but in the future we may handle
+        // packets individually since they will have different actions.
+        rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) pkts, tx_count);
+
+        // for (i = 0; i < tx_count; i++) {
+        //         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
+        //         if (action->action == ONVM_NF_ACTION_DROP) {
+        //                 rte_pktmbuf_free(pkts[i]);
+        //         } else if(action->action == ONVM_NF_ACTION_NEXT) {
+        //                 // Here we drop the packet for test reason
+        //                 rte_pktmbuf_free(pkts[i]);
+        //         } else if(action->action == ONVM_NF_ACTION_TONF) {
+        //                 // Here we forward the packet to the NIC for test reason
+        //                 rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) &pkts[i], 1);
+        //         } else if(action->action == ONVM_NF_ACTION_OUT) {
+        //                 rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkts[i], 1);
+        //         } else {
+        //                 return;
+        //         }
+        // }
+}
 
 /*
  * Function called by the master lcore of the DPDK process.
  */
 static void
-do_packet_forwarding(void)
+do_rx_tx(void)
 {
         unsigned port_num = 0; /* indexes the port[] array */
 
         for (;;) {
-                struct rte_mbuf *buf[PACKET_READ_SIZE];
-                uint16_t rx_count;
+                struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
+                uint16_t rx_count, tx_count = PACKET_READ_SIZE;
+                struct client *cl;
 
                 /* read a port */
                 rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
-                                buf, PACKET_READ_SIZE);
+                                rx_pkts, PACKET_READ_SIZE);
                 ports->rx_stats.rx[port_num] += rx_count;
 
                 /* Now process the NIC packets read */
                 if (likely(rx_count > 0)) {
-                        process_packets(buf, rx_count);
+                        process_rx_packets(rx_pkts, rx_count);
+                }
+
+                /* Read packets from the client's tx queue and process them as needed */
+                /* read packets */
+                cl = &clients[0]; // the client we read
+                /* try dequeuing max possible packets first, if that fails, get the
+                 * most we can. Loop body should only execute once, maximum */
+                while (tx_count > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0))
+                        tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
+
+                /* Now process the Client packets read */
+                if (likely(tx_count > 0)) {
+                        process_tx_packets(tx_pkts, tx_count);
                 }
         }
 }
@@ -256,6 +303,6 @@ main(int argc, char *argv[])
         /* put all other cores to sleep bar master */
         rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
 
-        do_packet_forwarding();
+        do_rx_tx();
         return 0;
 }

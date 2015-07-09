@@ -30,7 +30,7 @@ include $(RTE_SDK)/mk/rte.vars.mk
 APP = onvm_nf
 
 # all source are stored in SRCS-y
-SRCS-y := client.c
+SRCS-y := nf_sample.c onvm_nflib.c
 
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(SRCDIR)/../shared

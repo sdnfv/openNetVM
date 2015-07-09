@@ -34,6 +34,7 @@
  */
 struct client {
         struct rte_ring *rx_q;
+        struct rte_ring *tx_q;
         unsigned client_id;
         /* these stats hold how many packets the client will actually receive,
          * and how many packets were dropped because the client's queue was full.
