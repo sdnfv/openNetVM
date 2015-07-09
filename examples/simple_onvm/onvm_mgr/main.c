@@ -240,7 +240,7 @@ enqueue_rx_packet(uint8_t client, struct rte_mbuf *buf)
 
 /*
  * This function takes a group of packets and routes them
- * individually to the client process. Very simply round-robins the packets
+ * to the first client process. Simply forwarding the packets
  * without checking any of the packet contents.
  */
 static void
@@ -272,8 +272,6 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count)
         struct rte_mbuf *buffer_out[PACKET_READ_SIZE];
         volatile struct tx_stats *tx_stats = &ports->tx_stats[0]; // 0 = client id
 
-        action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[0])->udata64);
-
         for (i = 0; i < tx_count; i++) {
                 action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 if (action->action == ONVM_NF_ACTION_DROP) {
@@ -296,8 +294,10 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count)
         }
 
         rte_eth_tx_burst(ports->id[0], 0, (struct rte_mbuf **) buffer_out, buffer_count);
-	for (i = 0; i < num_clients; i++)
+	/* Send a burst to every client */
+	for (i = 0; i < num_clients; i++) {
 		flush_rx_queue(i);
+	}
 }
 
 /*
@@ -307,6 +307,7 @@ static void
 do_rx_tx(void)
 {
         unsigned port_num = 0; /* indexes the port[] array */
+	unsigned client_num = 0; /* indexes the clients[] array*/
 
         for (;;) {
                 struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
@@ -324,8 +325,7 @@ do_rx_tx(void)
                 }
 
                 /* Read packets from the client's tx queue and process them as needed */
-                /* read packets */
-                cl = &clients[0]; // the client we read
+                cl = &clients[client_num]; // the client we read
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
                 while (tx_count > 0 &&
@@ -336,6 +336,10 @@ do_rx_tx(void)
                 if (likely(tx_count > 0)) {
                         process_tx_packets(tx_pkts, tx_count);
                 }
+		/* Move to the next client */
+		if (++client_num == num_clients) {
+			client_num = 0;
+		}
         }
 }
 
