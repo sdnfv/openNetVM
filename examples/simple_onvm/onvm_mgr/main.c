@@ -32,6 +32,7 @@
 #include <sys/queue.h>
 #include <errno.h>
 #include <netinet/ip.h>
+#include <stdbool.h>
 
 #include <rte_common.h>
 #include <rte_memory.h>
@@ -288,7 +289,8 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
  */
 static void
 process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
-        struct onvm_pkt_action *action;
+       	uint16_t i;
+	struct onvm_pkt_action *action;
         volatile struct tx_stats *tx_stats = &ports->tx_stats[0]; // 0 = client id
 
         for (i = 0; i < tx_count; i++) {
@@ -301,7 +303,7 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
 			in the future to know what to do with the packet next */
                         rte_pktmbuf_free(pkts[i]);
                         tx_stats->tx_drop[0]++;
-			printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n")
+			printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
                 } else if(action->action == ONVM_NF_ACTION_TONF) {
                         enqueue_rx_packet(action->destination, pkts[i], true);
                 } else if(action->action == ONVM_NF_ACTION_OUT) {
@@ -327,6 +329,7 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
  */
 static void
 do_rx_tx(void) {
+       	uint16_t i;
         unsigned port_num = 0; /* indexes the port[] array */
 
         for (;;) {
@@ -369,7 +372,7 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
 	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-	port_tx_buf = calloc(ports->port_num, sizeof(struct packet_buf));
+	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
         /* clear statistics */
         clear_stats();
 
