@@ -368,8 +368,8 @@ main(int argc, char *argv[]) {
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-	cl_rx_buf = calloc(num_clients, sizeof(cl_rx_buf[0]));
-
+	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+	port_tx_buf = calloc(ports->port_num, sizeof(struct packet_buf));
         /* clear statistics */
         clear_stats();
 
