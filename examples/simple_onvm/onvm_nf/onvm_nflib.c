@@ -189,7 +189,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if ((retval_parse = parse_nflib_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         info->client_id = client_id;
-
+	printf("%d", info->client_id);
         if (rte_eth_dev_count() == 0)
                 rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
@@ -197,7 +197,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
-        tx_ring = rte_ring_lookup(get_tx_queue_name(info->client_id));
+        tx_ring = rte_ring_lookup(get_tx_queue_name(client_id));
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
@@ -209,7 +209,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz->addr;
-        tx_stats = &(ports->tx_stats[client_id]);
+        tx_stats = &(ports->tx_stats[0]);
 
         configure_output_ports(ports);
 
@@ -240,6 +240,8 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                                 unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, rx_pkts) != 0))
                         rx_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
 
+//	printf("Client %"PRIu16"receive %"PRIu16" packets\n", client_id, rx_pkts);
+
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
                         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
@@ -247,7 +249,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                         //return_packet(info, (struct rte_mbuf*)pkts[i], action);
                 }
                 if( unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS) ) {
-                        tx_stats->tx_drop[0] += rx_pkts;
+			tx_stats->tx_drop[client_id] += rx_pkts;
                 }
 
         }
