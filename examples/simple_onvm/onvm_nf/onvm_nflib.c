@@ -64,7 +64,7 @@
 static uint8_t output_ports[RTE_MAX_ETHPORTS];
 
 /* this ring is used to pass packets from NFlib to NFmgr -- extern in header */
-struct rte_ring *tx_ring;
+static struct rte_ring *tx_ring;
 
 /* shared data from server. We update statistics here */
 static volatile struct tx_stats *tx_stats;
@@ -201,6 +201,8 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
+	printf("TX ring adress : %p\n", tx_ring);
+
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
@@ -209,7 +211,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz->addr;
-        tx_stats = &(ports->tx_stats[0]);
+        tx_stats = &(ports->tx_stats[client_id]);
 
         configure_output_ports(ports);
 
@@ -232,25 +234,34 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
-                uint16_t i, rx_pkts = PKT_READ_SIZE;
+                uint16_t i, j, rx_pkts = PKT_READ_SIZE;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
-                while (rx_pkts > 0 &&
+	      while (rx_pkts > 0 &&
                                 unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, rx_pkts) != 0))
                         rx_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
 
 //	printf("Client %"PRIu16"receive %"PRIu16" packets\n", client_id, rx_pkts);
-
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < rx_pkts; i++) {
                         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], action);
                         //return_packet(info, (struct rte_mbuf*)pkts[i], action);
                 }
-                if( unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS) ) {
-			tx_stats->tx_drop[client_id] += rx_pkts;
-                }
 
+		if( unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS) ) {
+//			printf("drop");
+			tx_stats->tx_drop[0] += rx_pkts;
+			for (j = 0; j < rx_pkts; j++) {
+ 		 		rte_pktmbuf_free(pkts[j]);
+   			}
+
+		} else {
+			tx_stats->tx[0] += rx_pkts;	
+		}
+	//	if (rte_ring_count(tx_ring) != 0 && rte_ring_count(tx_ring) != 127)  {
+	//		printf("%d", rte_ring_count(tx_ring));
+	//	}
         }
 }

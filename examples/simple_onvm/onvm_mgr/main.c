@@ -284,9 +284,9 @@ enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int client) {
 static void
 process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
 	uint16_t j;
-
 	struct client *cl;
-	cl = &clients[1];
+
+	cl = &clients[0];
         if(unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -339,11 +339,10 @@ do_rx_tx(void) {
        	uint16_t i = 0;
 	unsigned port_num = 0; /* indexes the port[] array */
         struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
-        uint16_t rx_count, tx_count = PACKET_READ_SIZE;
         struct client *cl;
 
         for (;;) {
- 		tx_count = PACKET_READ_SIZE;
+        	uint16_t rx_count, tx_count = PACKET_READ_SIZE;
 
                 /* read a port */
                 rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
@@ -356,17 +355,21 @@ do_rx_tx(void) {
                 }
 
                 /* Read packets from the client's tx queue and process them as needed */
+	
 		for (i = 0; i < num_clients; i++) {
 			cl = &clients[i];
 	                /* try dequeuing max possible packets first, if that fails, get the
 	                 * most we can. Loop body should only execute once, maximum */
+//			printf("Elements in tx ring %d : %d\n", i, rte_ring_count(cl->tx_q));
 	                while (tx_count > 0 &&
-	                               unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0))
-	                        tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
+	                               unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
+                tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
+}
+
 	                /* Now process the Client packets read */
 	                if (likely(tx_count > 0)) {
+//				printf("process %d packets form client %d\n", tx_count, i);
 	                        process_tx_packets(tx_pkts, tx_count);
-	  
             		  }
 
 		}
