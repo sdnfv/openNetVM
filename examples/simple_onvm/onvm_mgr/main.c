@@ -28,7 +28,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <inttypes.h>
-#include <inttypes.h>
 #include <sys/queue.h>
 #include <errno.h>
 #include <netinet/ip.h>
@@ -86,7 +85,7 @@ struct packet_buf {
 /* One buffer per client rx queue - dynamically allocate array
  * and one buffer per port tx queue. */
 static struct packet_buf *cl_rx_buf;
-static struct packet_buf *port_tx_buf ;
+static struct packet_buf *port_tx_buf;
 
 static const char *
 get_printable_mac_addr(uint8_t port) {
@@ -95,7 +94,7 @@ get_printable_mac_addr(uint8_t port) {
 
         if (unlikely(port >= RTE_MAX_ETHPORTS))
                 return err_address;
-        if (unlikely(addresses[port][0]=='\0')){
+        if (unlikely(addresses[port][0] == '\0')) {
                 struct ether_addr mac;
                 rte_eth_macaddr_get(port, &mac);
                 snprintf(addresses[port], sizeof(addresses[port]),
@@ -117,7 +116,7 @@ static void
 do_stats_display(void) {
         unsigned i, j;
         const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H','\0' };
+        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
         uint64_t port_tx[RTE_MAX_ETHPORTS], port_tx_drop[RTE_MAX_ETHPORTS];
         uint64_t client_tx[MAX_CLIENTS], client_tx_drop[MAX_CLIENTS];
 
@@ -127,9 +126,9 @@ do_stats_display(void) {
         memset(client_tx, 0, sizeof(client_tx));
         memset(client_tx_drop, 0, sizeof(client_tx_drop));
 
-        for (i = 0; i < num_clients; i++){
+        for (i = 0; i < num_clients; i++) {
                 const volatile struct tx_stats *tx = &ports->tx_stats[i];
-                for (j = 0; j < ports->num_ports; j++){
+                for (j = 0; j < ports->num_ports; j++) {
                         /* assign to local variables here, save re-reading volatile vars */
                         const uint64_t tx_val = tx->tx[ports->id[j]];
                         const uint64_t drop_val = tx->tx_drop[ports->id[j]];
@@ -149,7 +148,7 @@ do_stats_display(void) {
                 printf("Port %u: '%s'\t", (unsigned)ports->id[i],
                                 get_printable_mac_addr(ports->id[i]));
         printf("\n\n");
-        for (i = 0; i < ports->num_ports; i++){
+        for (i = 0; i < ports->num_ports; i++) {
                 printf("Port %u - rx: %9"PRIu64"\t"
                                 "tx: %9"PRIu64"\n",
                                 (unsigned)ports->id[i], ports->rx_stats.rx[i],
@@ -158,7 +157,7 @@ do_stats_display(void) {
 
         printf("\nCLIENTS\n");
         printf("-------\n");
-        for (i = 0; i < num_clients; i++){
+        for (i = 0; i < num_clients; i++) {
                 const unsigned long long rx = clients[i].stats.rx;
                 const unsigned long long rx_drop = clients[i].stats.rx_drop;
                 printf("Client %2u - rx: %9llu, rx_drop: %9llu\n"
@@ -213,21 +212,20 @@ clear_stats(void) {
  */
 static void
 flush_rx_queue(uint16_t client) {
-	uint16_t j;
+	uint16_t i;
 	struct client *cl;
 
 	if (cl_rx_buf[client].count == 0)
 		return;
-	
+
 	cl = &clients[client];
 	if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
-			cl_rx_buf[client].count) != 0){
-		for (j = 0; j < cl_rx_buf[client].count; j++) {
-			rte_pktmbuf_free(cl_rx_buf[client].buffer[j]);
+			cl_rx_buf[client].count) != 0) {
+		for (i = 0; i < cl_rx_buf[client].count; i++) {
+			rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
 		}
 		cl->stats.rx_drop += cl_rx_buf[client].count;
-	}
-	else {
+	} else {
 		cl->stats.rx += cl_rx_buf[client].count;
 	}
 	cl_rx_buf[client].count = 0;
@@ -248,9 +246,9 @@ flush_tx_queue(uint16_t port) {
                 for (i = sent; i < port_tx_buf[port].count; i++) {
 			rte_pktmbuf_free(port_tx_buf[port].buffer[i]);
 		}
-                //tx_stats->tx_drop[port] += (port_tx_buf[port].count - sent);
+                // tx_stats->tx_drop[port] += (port_tx_buf[port].count - sent);
         }
-        //tx_stats->tx[port] += sent;
+        // tx_stats->tx[port] += sent;
         port_tx_buf[port].count = 0;
 }
 /*
@@ -273,7 +271,6 @@ enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int client) {
 			port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
 		}
 	}
-
 }
 
 /*
@@ -287,12 +284,11 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
 	struct client *cl;
 
 	cl = &clients[0];
-        if(unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
+        if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
                 cl->stats.rx_drop += rx_count;
-        }
-        else {
+        } else {
                 cl->stats.rx += rx_count;
         }
 }
@@ -303,24 +299,24 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
  */
 static void
 process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
-       	uint16_t i;
+	uint16_t i;
 	struct onvm_pkt_action *action;
-        volatile struct tx_stats *tx_stats = &ports->tx_stats[0]; // 0 = client id
+        volatile struct tx_stats *tx_stats = &ports->tx_stats[0];  // 0 = client id
 
-        for (i = 0; i < tx_count; i++) {
+	for (i = 0; i < tx_count; i++) {
                 action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 if (action->action == ONVM_NF_ACTION_DROP) {
 			rte_pktmbuf_free(pkts[i]);
                         tx_stats->tx_drop[0]++;
-                } else if(action->action == ONVM_NF_ACTION_NEXT) {
+                } else if (action->action == ONVM_NF_ACTION_NEXT) {
                         /* Here we drop the packet : there will be a flow table
 			in the future to know what to do with the packet next */
                         rte_pktmbuf_free(pkts[i]);
                         tx_stats->tx_drop[0]++;
 			printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
-                } else if(action->action == ONVM_NF_ACTION_TONF) {
+                } else if (action->action == ONVM_NF_ACTION_TONF) {
                         enqueue_rx_packet(action->destination, pkts[i], TO_CLIENT);
-                } else if(action->action == ONVM_NF_ACTION_OUT) {
+                } else if (action->action == ONVM_NF_ACTION_OUT) {
 			enqueue_rx_packet(action->destination, pkts[i], TO_PORT);
                         tx_stats->tx[0]++;
                 } else {
@@ -328,7 +324,6 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
                         return;
                 }
         }
-
 }
 
 /*
@@ -336,14 +331,12 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
  */
 static void
 do_rx_tx(void) {
-       	uint16_t i = 0;
+	uint16_t i, rx_count, tx_count;
 	unsigned port_num = 0; /* indexes the port[] array */
         struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
         struct client *cl;
 
         for (;;) {
-        	uint16_t rx_count, tx_count = PACKET_READ_SIZE;
-
                 /* read a port */
                 rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
                                 rx_pkts, PACKET_READ_SIZE);
@@ -355,25 +348,24 @@ do_rx_tx(void) {
                 }
 
                 /* Read packets from the client's tx queue and process them as needed */
-	
+
 		for (i = 0; i < num_clients; i++) {
 			tx_count = PACKET_READ_SIZE;
 			cl = &clients[i];
 	                /* try dequeuing max possible packets first, if that fails, get the
 	                 * most we can. Loop body should only execute once, maximum */
-//			printf("Elements in tx ring %d : %d\n", i, rte_ring_count(cl->tx_q));
 	                while (tx_count > 0 &&
-	                               unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
-                tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q), PACKET_READ_SIZE);
-}
+				unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
+                		tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
+					PACKET_READ_SIZE);
+			}
 
 	                /* Now process the Client packets read */
 	                if (likely(tx_count > 0)) {
-//				printf("process %d packets form client %d\n", tx_count, i);
 	                        process_tx_packets(tx_pkts, tx_count);
-            		  }
-
+            		}
 		}
+
 		/* Send a burst to every port */
 		for (i = 0; i < ports->num_ports; i++) {
 			flush_tx_queue(i);
@@ -392,7 +384,7 @@ main(int argc, char *argv[]) {
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-	cl_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
+	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
 	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
         /* clear statistics */
         clear_stats();
