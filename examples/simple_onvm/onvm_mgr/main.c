@@ -357,6 +357,7 @@ do_rx_tx(void) {
                 /* Read packets from the client's tx queue and process them as needed */
 	
 		for (i = 0; i < num_clients; i++) {
+			tx_count = PACKET_READ_SIZE;
 			cl = &clients[i];
 	                /* try dequeuing max possible packets first, if that fails, get the
 	                 * most we can. Loop body should only execute once, maximum */
