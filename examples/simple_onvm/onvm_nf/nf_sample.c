@@ -112,8 +112,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
-        action->destination = 1;
+        action->action = ONVM_NF_ACTION_OUT;  // ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
+        action->destination = 0;
 }
 
 

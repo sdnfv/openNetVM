@@ -257,16 +257,16 @@ flush_tx_queue(uint16_t port) {
 static inline void
 enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int client) {
 	if (client) {
-		if (cl_rx_buf[id].count == PACKET_READ_SIZE) {
-			// Drop packet
-                        rte_pktmbuf_free(buf);
+		if (cl_rx_buf[id].count == PACKET_READ_SIZE - 1) {
+			cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
+			flush_rx_queue(id);			
 		} else {
 			cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
 		}
 	} else {
-		if (port_tx_buf[id].count == PACKET_READ_SIZE) {
-			// Drop packet
-                        rte_pktmbuf_free(buf);
+		if (port_tx_buf[id].count == PACKET_READ_SIZE - 1) {
+			port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
+			flush_tx_queue(id);			
 		} else {
 			port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
 		}

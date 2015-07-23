@@ -27,7 +27,7 @@ endif
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = onvm_nf-to1
+APP = onvm_nf
 
 # all source are stored in SRCS-y
 SRCS-y := nf_sample.c onvm_nflib.c
