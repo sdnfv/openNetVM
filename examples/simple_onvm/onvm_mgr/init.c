@@ -278,15 +278,15 @@ init(int argc, char *argv[])
         total_ports = rte_eth_dev_count();
 
         /* set up array for client tx data */
-        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*client_tx_stats),
+        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
                                 rte_socket_id(), NO_FLAGS);
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for client information\n");
-        memset(mz->addr, 0, sizeof(*client_tx_stats));
+        memset(mz->addr, 0, sizeof(*clients_stats));
         clients_stats = mz->addr;
 
         /* set up ports info */
-        ports = rte_malloc(MZ_PORT_INFO, sizeof(port_info), 0);
+        ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
         if (ports == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
 

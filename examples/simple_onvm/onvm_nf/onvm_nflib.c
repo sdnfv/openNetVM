@@ -58,9 +58,6 @@
 /* Number of packets to attempt to read from queue */
 #define PKT_READ_SIZE  ((uint16_t)32)
 
-/* maps input ports to output ports for packets */
-static uint8_t output_ports[RTE_MAX_ETHPORTS];
-
 /* rings used to pass packets between NFlib and NFmgr */
 static struct rte_ring *tx_ring, *rx_ring;
 
@@ -142,8 +139,6 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
         tx_stats = mz->addr;
-
-        configure_output_ports(ports);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
         return retval_eal;

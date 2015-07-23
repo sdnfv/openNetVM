@@ -113,7 +113,7 @@ get_printable_mac_addr(uint8_t port) {
  */
 static void
 do_stats_display(void) {
-        unsigned i, j;
+        unsigned i;
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
         // uint64_t port_tx[RTE_MAX_ETHPORTS], port_tx_drop[RTE_MAX_ETHPORTS];
@@ -159,8 +159,8 @@ do_stats_display(void) {
         for (i = 0; i < num_clients; i++) {
                 const unsigned long long rx = clients[i].stats.rx;
                 const unsigned long long rx_drop = clients[i].stats.rx_drop;
-		const unsigned long long tx = clients_stats->tx[i];
-                const unsigned long long tx_drop = clients_stats->tx_drop[i];
+		const uint64_t tx = clients_stats->tx[i];
+                const uint64_t tx_drop = clients_stats->tx_drop[i];
                 printf("Client %2u - rx: %9llu, rx_drop: %9llu\n"
                                 "            tx: %9"PRIu64", tx_drop: %9"PRIu64"\n",
                                 i, rx, rx_drop, tx, tx_drop);
@@ -220,7 +220,7 @@ flush_rx_queue(uint16_t client) {
 		return;
 
 	cl = clients[client];
-	if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
+	if (rte_ring_enqueue_bulk(cl.rx_q, (void **)cl_rx_buf[client].buffer,
 			cl_rx_buf[client].count) != 0) {
 		for (i = 0; i < cl_rx_buf[client].count; i++) {
 			rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
