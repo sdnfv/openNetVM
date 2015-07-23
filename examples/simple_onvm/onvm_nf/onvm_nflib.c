@@ -61,14 +61,11 @@
 /* maps input ports to output ports for packets */
 static uint8_t output_ports[RTE_MAX_ETHPORTS];
 
-/* this ring is used to pass packets from NFlib to NFmgr -- extern in header */
-static struct rte_ring *tx_ring;
+/* rings used to pass packets between NFlib and NFmgr */
+static struct rte_ring *tx_ring, *rx_ring;
 
 /* shared data from server. We update statistics here */
-static volatile struct tx_stats *tx_stats;
-
-/* ring where the data are */
-static struct rte_ring *rx_ring;
+static volatile struct client_tx_stats *tx_stats;
 
 /* our client id number - tells us which rx queue to read, and NIC TX
  * queue to write to. */
@@ -111,27 +108,10 @@ parse_nflib_args(int argc, char *argv[]) {
         return optind;
 }
 
-/*
- * set up output ports so that all traffic on port gets sent out
- * its paired port. Index using actual port numbers since that is
- * what comes in the mbuf structure.
- */
-static void configure_output_ports(const struct port_info *ports) {
-        int i;
-        if (ports->num_ports > RTE_MAX_ETHPORTS)
-                rte_exit(EXIT_FAILURE, "Too many ethernet ports. RTE_MAX_ETHPORTS = %u\n",
-                                (unsigned)RTE_MAX_ETHPORTS);
-        for (i = 0; i < ports->num_ports; i+=1) {
-                uint8_t p1 = ports->id[i];
-                output_ports[p1] = p1;
-        }
-}
-
 int
 onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
         const struct rte_memzone *mz;
         struct rte_mempool *mp;
-        struct port_info *ports;
         int retval_eal, retval_parse;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
@@ -158,11 +138,10 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
 
-        mz = rte_memzone_lookup(MZ_PORT_INFO);
+        mz = rte_memzone_lookup(MZ_CLIENT_INFO);
         if (mz == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
-        ports = mz->addr;
-        tx_stats = &(ports->tx_stats[client_id]);
+                rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
+        tx_stats = mz->addr;
 
         configure_output_ports(ports);
 
@@ -184,27 +163,27 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
-                uint16_t i, j, rx_pkts = PKT_READ_SIZE;
+                uint16_t i, j, nb_pkts = PKT_READ_SIZE;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
-                while (rx_pkts > 0 &&
-                                unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, rx_pkts) != 0))
-                        rx_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
+                while (nb_pkts > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, nb_pkts) != 0))
+                        nb_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
 
                 /* Give each packet to the user proccessing function */
-                for (i = 0; i < rx_pkts; i++) {
+                for (i = 0; i < nb_pkts; i++) {
                         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], action);
                 }
 
-                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS)) {
-                        tx_stats->tx_drop[0] += rx_pkts;
-                        for (j = 0; j < rx_pkts; j++) {
+                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, nb_pkts) == -ENOBUFS)) {
+                        tx_stats->tx_drop[client_id] += nb_pkts;
+                        for (j = 0; j < nb_pkts; j++) {
                                 rte_pktmbuf_free(pkts[j]);
                         }
                 } else {
-                        tx_stats->tx[0] += rx_pkts;
+                        tx_stats->tx[client_id] += nb_pkts;
                 }
         }
 }
