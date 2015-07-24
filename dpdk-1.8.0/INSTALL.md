@@ -2,7 +2,7 @@ DPDK	Installation
 ===================
 
 
-#### <i class="icon-file"></i>Welcome to installation memo for  **DPDK**, [DPDK](http://dpdk.org/) is a library which can be used to receive and send packets in less than 80 CPU cycles, which supports developing fast packet capture algorithms and third-party fast path stacks.
+#### <i class="icon-file"></i>Welcome to installation memo for  **DPDK**, [DPDK](http://dpdk.org/) is a library used to track packet flows.
 
 ----------
 
