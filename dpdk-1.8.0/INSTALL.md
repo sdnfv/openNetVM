@@ -24,6 +24,11 @@ Before installation of DPDK, please check your machine to see if it could meet t
 
 <i class="icon-pencil"></i> `$locate uio`
 
+1.4 if you could not locate uio in step 1.3, please install build-essential and  linux-headers, then try step 1.3 again
+
+<i class="icon-pencil"></i> `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
+
+
 2. Get Package 
 -------------
 2.1  install git
@@ -88,7 +93,7 @@ Before installation of DPDK, please check your machine to see if it could meet t
 
 5.3 create 1024 hugepages
 
-<i class="icon-pencil"></i> `$sudo sh -c "echo 1024            /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
+<i class="icon-pencil"></i> `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
 
 6. Install Kernel Module
 ------------- 
