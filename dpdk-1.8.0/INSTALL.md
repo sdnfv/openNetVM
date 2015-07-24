@@ -2,7 +2,7 @@ DPDK	Installation
 ===================
 
 
-#### <i class="icon-file"></i>Welcome to installation memo for  **DPDK**[^dpdk]. 
+#### <i class="icon-file"></i>Welcome to installation memo for  **DPDK**, [DPDK](http://dpdk.org/) is a library which can be used to receive and send packets in less than 80 CPU cycles, which supports developing fast packet capture algorithms and third-party fast path stacks.
 
 ----------
 
@@ -12,7 +12,7 @@ DPDK	Installation
 
 Before installation of DPDK, please check your machine to see if it could meet the **minimum** requirements as following: 
 
-1.1  check what NIC do you have by typing, see if your NIC belongs to one of  **Supported NICs**[^nic]. 
+1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/). 
 <i class="icon-pencil"></i> `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
 1.2  check what operating system do you have by typing, your Kernel version should be higher than 2.6.33.
@@ -139,9 +139,7 @@ hello from core 0
 ```
 
 
-[^dpdk]: [DPDK](http://dpdk.org/) : DPDK is a library which can be used to receive and send packets in less than 80 CPU cycles, which supports developing fast packet capture algorithms and third-party fast path stacks.
 
-[^nic]: [Supported NICs](http://dpdk.org/) : a list of supported NICs.
 
 
 
