@@ -13,9 +13,11 @@ DPDK	Installation
 Before installation of DPDK, please check your machine to see if it could meet the **minimum** requirements as following: 
 
 1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/). 
+
 <i class="icon-pencil"></i> `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
 1.2  check what operating system do you have by typing, your Kernel version should be higher than 2.6.33.
+
 <i class="icon-pencil"></i> ` $uname -a`
 
 1.3  check if your system supports uio
