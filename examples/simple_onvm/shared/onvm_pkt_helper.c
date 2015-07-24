@@ -1,6 +1,10 @@
 #include "onvm_pkt_helper.h"
 
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>
@@ -10,13 +14,13 @@
 
 struct tcp_hdr*  
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
-        ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
+        struct ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
         
         if( unlikely(ipv4 == NULL) ) { //Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
                 return NULL;
         }
         
-        if( ipv4->next_proto_id != IP_PROTOCOL_TCP ) {
+	if( ipv4->next_proto_id != IP_PROTOCOL_TCP ) {
                 return NULL;
         }
         
@@ -30,18 +34,17 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         uint8_t ihl = ipv4->version_ihl & 0b1111;
         
         uint32_t* pkt_data = rte_pktmbuf_mtod(pkt, uint32_t*);
-        return (struct tcp_hdr*)(pkt_data[ihl]);
+        return (struct tcp_hdr*)(&pkt_data[ihl]);
 }
 
 struct udp_hdr* 
 onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
-        //IP Protocol # for UDP = 17
-        ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
+        struct ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
         
         if( unlikely(ipv4 == NULL) ) { //Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
                 return NULL;
         }
-        
+	
         if( ipv4->next_proto_id != IP_PROTOCOL_UDP ) {
                 return NULL;
         }
@@ -55,24 +58,22 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
         */
         uint8_t ihl = ipv4->version_ihl & 0b1111;
         
-        uint32_t pkt_data = rte_pktmbuf_mtod(pkt, uint32_t*);
-        return (struct udp_hdr*)(pkt_data[ihl]);
+        uint32_t* pkt_data = rte_pktmbuf_mtod(pkt, uint32_t*);
+        return (struct udp_hdr*)(&pkt_data[ihl]);
 }
 
 struct ipv4_hdr* 
 onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt) {
-        ipv4_hdr* ipv4 = rte_pktmbuf_mtod(pkt, struct ipv4_hdr*);
+        struct ipv4_hdr* ipv4 = rte_pktmbuf_mtod(pkt, struct ipv4_hdr*);
         
         /* In an IP packet, the first 4 bits determine the version.
          * The next 4 bits are called the Internet Header Length, or IHL.
          * DPDK's ipv4_hdr struct combines both the version and the IHL into one uint8_t.
          */
-        
         uint8_t version = (ipv4->version_ihl >> 4) & 0b1111;
-        if( unlikely(version != 4) ) {
+	if( unlikely(version != 4) ) {
                 return NULL;
         }
-        
         return ipv4;
 }
 
@@ -95,17 +96,17 @@ onvm_pkt_is_ipv4(struct rte_mbuf* pkt) {
 
 void
 onvm_pkt_print(struct rte_mbuf* pkt) {
-        ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
+        struct ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
         if( likely(ipv4 != NULL) ) {
                 onvm_pkt_print_ipv4(ipv4);
         }
         
-        tcp_hdr* tcp = onvm_pkt_tcp_hdr(pkt);
+        struct tcp_hdr* tcp = onvm_pkt_tcp_hdr(pkt);
         if( tcp != NULL ) {
                 onvm_pkt_print_tcp(tcp);
         }
         
-        udp_hdr* udp = onvm_pkt_udp_hdr(pkt);
+        struct udp_hdr* udp = onvm_pkt_udp_hdr(pkt);
         if( udp != NULL ) {
                 onvm_pkt_print_udp(udp);
         }
@@ -167,7 +168,7 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         
         printf("Fragment Offset: %" PRIu16 "\n", hdr->fragment_offset & 0b1111111111111);
         printf("TTL: %" PRIu8 "\n", hdr->time_to_live);
-        printf("Protocol: " PRIu8, hdr->next_proto_id);
+        printf("Protocol: %" PRIu8, hdr->next_proto_id);
         
         if( hdr->next_proto_id == IP_PROTOCOL_TCP ) {
                 printf(" (TCP)");
