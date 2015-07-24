@@ -1,10 +1,6 @@
 #include "onvm_pkt_helper.h"
 
 #include <inttypes.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
 
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>

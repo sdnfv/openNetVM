@@ -2,7 +2,6 @@ struct rte_mbuf;
 struct tcp_hdr;
 struct udp_hdr;
 struct ipv4_hdr;
-#include <string.h>
 
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
