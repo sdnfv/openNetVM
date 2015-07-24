@@ -116,27 +116,6 @@ do_stats_display(void) {
         unsigned i;
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-        // uint64_t port_tx[RTE_MAX_ETHPORTS], port_tx_drop[RTE_MAX_ETHPORTS];
-        // uint64_t client_tx[MAX_CLIENTS], client_tx_drop[MAX_CLIENTS];
-
-        /* to get TX stats, we need to do some summing calculations */
-        // memset(port_tx, 0, sizeof(port_tx));
-        // memset(port_tx_drop, 0, sizeof(port_tx_drop));
-        // memset(client_tx, 0, sizeof(client_tx));
-        // memset(client_tx_drop, 0, sizeof(client_tx_drop));
-
-        // for (i = 0; i < num_clients; i++) {
-        //         const volatile struct tx_stats *tx = &ports->tx_stats[i];
-        //         for (j = 0; j < ports->num_ports; j++) {
-        //                 /* assign to local variables here, save re-reading volatile vars */
-        //                 const uint64_t tx_val = tx->tx[ports->id[j]];
-        //                 const uint64_t drop_val = tx->tx_drop[ports->id[j]];
-        //                 port_tx[j] += tx_val;
-        //                 port_tx_drop[j] += drop_val;
-        //                 client_tx[i] += tx_val;
-        //                 client_tx_drop[i] += drop_val;
-        //         }
-        // }
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
@@ -214,20 +193,20 @@ clear_stats(void) {
 static void
 flush_rx_queue(uint16_t client) {
 	uint16_t i;
-	struct client cl;
+	struct client *cl;
 
 	if (cl_rx_buf[client].count == 0)
 		return;
 
-	cl = clients[client];
-	if (rte_ring_enqueue_bulk(cl.rx_q, (void **)cl_rx_buf[client].buffer,
+	cl = &clients[client];
+	if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
 			cl_rx_buf[client].count) != 0) {
 		for (i = 0; i < cl_rx_buf[client].count; i++) {
 			rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
 		}
-		cl.stats.rx_drop += cl_rx_buf[client].count;
+		cl->stats.rx_drop += cl_rx_buf[client].count;
 	} else {
-		cl.stats.rx += cl_rx_buf[client].count;
+		cl->stats.rx += cl_rx_buf[client].count;
 	}
 	cl_rx_buf[client].count = 0;
 }
@@ -238,21 +217,20 @@ flush_rx_queue(uint16_t client) {
 static void
 flush_tx_queue(uint16_t port) {
 	uint16_t i, sent;
-	struct tx_stats tx_stats;
+	volatile struct tx_stats *tx_stats;
 
 	if (port_tx_buf[port].count == 0)
 		return;
 
-	tx_stats = ports->tx_stats;
+	tx_stats = &(ports->tx_stats);
 	sent = rte_eth_tx_burst(port, 0, port_tx_buf[port].buffer, port_tx_buf[port].count);
         if (unlikely(sent < port_tx_buf[port].count)) {
                 for (i = sent; i < port_tx_buf[port].count; i++) {
 			rte_pktmbuf_free(port_tx_buf[port].buffer[i]);
 		}
-                tx_stats.tx_drop[port] += (port_tx_buf[port].count - sent);
-        } else {
-		tx_stats.tx[port] += sent;
+                tx_stats->tx_drop[port] += (port_tx_buf[port].count - sent);
 	}
+	tx_stats->tx[port] += sent;
 
         port_tx_buf[port].count = 0;
 }
