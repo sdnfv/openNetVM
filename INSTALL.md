@@ -4,7 +4,7 @@ OpenNetVM Installation
 
 
 
-#### Welcome to installation memo for [OpenNetVM](https://www.usenix.org/conference/nsdi14/technical-sessions/presentation/hwang), OpenNetVM is build on KVM platform and Intel [DPDK](http://dpdk.org/) library, which offers high bandwidth network functions. 
+#### Welcome to installation memo for [OpenNetVM](https://www.usenix.org/conference/nsdi14/technical-sessions/presentation/hwang), OpenNetVM is build with [Docker Container](https://www.docker.com/) and Intel [DPDK](http://dpdk.org/) library, which offers high bandwidth network functions. 
 
 ----------
 
