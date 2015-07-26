@@ -60,7 +60,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 3.2  list all possible configurations in dpdk
 
- `$config/`
+ `$ls ./config/`
 
 3.3  set environment variable RTE_SDK as the output you got from step 3.1,   e.g. "/home/**your_name**/openNetVM/dpdk-1.8.0"
 
