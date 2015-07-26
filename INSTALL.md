@@ -163,7 +163,7 @@ Network devices using kernel driver
 ------------- 
 8.1 enter working directory, and compile the application
 
- `$cd ./dpdk-1.8.0/examples/helloworld/`
+ `$cd ./examples/helloworld/`
 
  `$make`
 
