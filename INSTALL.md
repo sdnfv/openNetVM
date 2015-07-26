@@ -142,7 +142,7 @@ now we could check the status again
 
 7.3 bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
 
- `$sudo ./tools/ dpdk_nic_bind.py -b igb_uio 07:00.0`
+ `$sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
 
 7.4 check the status again, if it shows up as following, you are all set
 
