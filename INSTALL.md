@@ -135,6 +135,7 @@ Network devices using kernel driver
 7.2 as you could see, the 10G one is active now, so the next thing is to turn it down
 
  `$sudo ifconfig eth2 down`
+
 now we could check the status again
 
  `$./tools/dpdk_nic_bind.py  --status`
