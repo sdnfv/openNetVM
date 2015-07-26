@@ -43,6 +43,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 2.3 switch to the branch of onvm
 
+ `$cd  ./openNetVM/`
  `$git checkout simple-onvm`
 
 2.4  enter working directory
