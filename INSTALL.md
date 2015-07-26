@@ -117,7 +117,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 ------------- 
 7.1 check your current status of NIC binding and active status
 
- `$./x86_64-native-linuxapp-gcc/tools/dpdk_nic_bind.py  --status`
+ `$./tools/dpdk_nic_bind.py  --status`
 
 something as below will show up, in this case, the "82599EB 10-Gigabit" is the NIC we want to utilize for DPDK, notice that the one for log in the node should not be the "82599EB 10-Gigabit"
 ```
@@ -137,15 +137,15 @@ Network devices using kernel driver
  `$sudo ifconfig eth2 down`
 now we could check the status again
 
- `$./x86_64-native-linuxapp-gcc/tools/dpdk_nic_bind.py  --status`
+ `$./tools/dpdk_nic_bind.py  --status`
 
 7.3 bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
 
- `$sudo ./x86_64-native-linuxapp-gcc/tools/ dpdk_nic_bind.py -b igb_uio 07:00.0`
+ `$sudo ./tools/ dpdk_nic_bind.py -b igb_uio 07:00.0`
 
 7.4 check the status again, if it shows up as following, you are all set
 
- `$./x86_64-native-linuxapp-gcc/tools/dpdk_nic_bind.py  --status`
+ `$./tools/dpdk_nic_bind.py  --status`
 
 ```
 Network devices using DPDK-compatible driver
