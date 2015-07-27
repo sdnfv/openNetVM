@@ -308,20 +308,22 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
 static void
 do_rx_tx(void) {
 	uint16_t i, rx_count, tx_count;
-	unsigned port_num = 0; /* indexes the port[] array */
+	//unsigned port_num = 0; /* indexes the port[] array */
         struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
         struct client *cl;
 
         for (;;) {
-                /* Read a port */
-                rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
-                                rx_pkts, PACKET_READ_SIZE);
-                ports->rx_stats.rx[port_num] += rx_count;
+                /* Read ports */
+		for (i = 0; i < ports->num_ports; i++) {
+			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+					rx_pkts, PACKET_READ_SIZE);
+			ports->rx_stats.rx[i] += rx_count;
 
-                /* Now process the NIC packets read */
-                if (likely(rx_count > 0)) {
-                        process_rx_packets(rx_pkts, rx_count);
-                }
+			/* Now process the NIC packets read */
+			if (likely(rx_count > 0)) {
+				process_rx_packets(rx_pkts, rx_count);
+			}
+		}
 
                 /* Read packets from the client's tx queue and process them as needed */
 		for (i = 0; i < num_clients; i++) {
