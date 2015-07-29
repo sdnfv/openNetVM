@@ -176,12 +176,13 @@ init_shm_rings(void)
                 sizeof(*clients) * num_clients, 0);
         if (clients == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
-
+	
         for (i = 0; i < num_clients; i++) {
                 /* Create an RX queue for each client */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
                 tq_name = get_tx_queue_name(i);
+		clients[i].client_id = i;
                 clients[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
                                 RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */

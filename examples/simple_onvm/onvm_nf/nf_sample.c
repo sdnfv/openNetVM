@@ -44,8 +44,7 @@ static uint32_t print_delay = 1000000;
  * Print a usage message
  */
 static void
-usage(const char *progname)
-{
+usage(const char *progname) {
         printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
 }
 
@@ -53,30 +52,28 @@ usage(const char *progname)
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[])
-{
+parse_app_args(int argc, char *argv[]) {
         const char *progname = argv[0];
         int c;
 
         opterr = 0;
 
         while ((c = getopt (argc, argv, "p:")) != -1)
-                switch (c)
-                {
+                switch (c) {
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
                         if (optopt == 'p')
-                                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint (optopt))
-                                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                        else if (isprint(optopt))
+                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                         else
-                                fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
+                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
                         return 1;
                 default:
-                        abort ();
+                        abort();
                 }
         return optind;
 }
@@ -88,10 +85,9 @@ parse_app_args(int argc, char *argv[])
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct rte_mbuf* pkt)
-{
+do_stats_display(struct rte_mbuf* pkt) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H','\0' };
+        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
         static int pkt_process = 0;
 
         pkt_process += print_delay;
@@ -111,14 +107,13 @@ do_stats_display(struct rte_mbuf* pkt)
 static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         static uint32_t counter = 0;
-
-        if(counter++ == print_delay) {
+        if (counter++ == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_TONF; //ONVM_NF_ACTION_OUT;
-        action->destination = 0;
+        action->action = ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
+        action->destination = 1;
 }
 
 
@@ -128,8 +123,8 @@ int main(int argc, char *argv[]) {
 
         if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
                 return -1;
-	argc -= retval;
-	argv += retval;
+        argc -= retval;
+        argv += retval;
 
         if (parse_app_args(argc, argv) < 0)
                 exit(EXIT_FAILURE);

@@ -43,8 +43,6 @@
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_ring.h>
-#include <rte_launch.h>
-#include <rte_lcore.h>
 #include <rte_debug.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
@@ -64,7 +62,7 @@
 static uint8_t output_ports[RTE_MAX_ETHPORTS];
 
 /* this ring is used to pass packets from NFlib to NFmgr -- extern in header */
-struct rte_ring *tx_ring;
+static struct rte_ring *tx_ring;
 
 /* shared data from server. We update statistics here */
 static volatile struct tx_stats *tx_stats;
@@ -80,8 +78,7 @@ static uint8_t client_id;
  * Print a usage message
  */
 static void
-usage(const char *progname)
-{
+usage(const char *progname) {
         printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
 }
 
@@ -89,31 +86,28 @@ usage(const char *progname)
  * Parse the library arguments.
  */
 static int
-parse_nflib_args(int argc, char *argv[])
-{
+parse_nflib_args(int argc, char *argv[]) {
         const char *progname = argv[0];
         int c;
 
-	opterr = 0;
-
+        opterr = 0;
         while ((c = getopt (argc, argv, "n:")) != -1)
-                switch (c)
-                {
+                switch (c) {
                 case 'n':
-                        client_id =  strtoul(optarg, NULL, 10);
+                        client_id = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
                         if (optopt == 'n')
-                                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint (optopt))
-                                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                        else if (isprint(optopt))
+                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                         else
-                                fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
+                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
                         return 1;
                 default:
-                        abort ();        
-	}
+                        abort();
+                }
         return optind;
 }
 
@@ -122,60 +116,19 @@ parse_nflib_args(int argc, char *argv[])
  * its paired port. Index using actual port numbers since that is
  * what comes in the mbuf structure.
  */
-static void configure_output_ports(const struct port_info *ports)
-{
+static void configure_output_ports(const struct port_info *ports) {
         int i;
         if (ports->num_ports > RTE_MAX_ETHPORTS)
                 rte_exit(EXIT_FAILURE, "Too many ethernet ports. RTE_MAX_ETHPORTS = %u\n",
                                 (unsigned)RTE_MAX_ETHPORTS);
-        for (i = 0; i < ports->num_ports; i+=1){
+        for (i = 0; i < ports->num_ports; i+=1) {
                 uint8_t p1 = ports->id[i];
                 output_ports[p1] = p1;
         }
 }
 
-/*
- * The action parameter is just a pointer to pkt->udata64, so we don't currently use it.
- * ONVM_NF_ACTION_DROP  // drop packet
- * ONVM_NF_ACTION_NEXT  // to whatever the next action is configured by the SDN controller in the flow table
- * ONVM_NF_ACTION_TONF  // send to the NF specified in the argument field (assume it is on the same host)
- * ONVM_NF_ACTION_OUT   // send the packet out the NIC port set in the argument field
- */
-// static int
-// return_packet(struct onvm_nf_info* info __attribute__((__unused__)), struct rte_mbuf* pkt, struct onvm_pkt_action* action)
-// {
-//         // TODO link with the data structure of the server (ring)
-//         if (action->action == ONVM_NF_ACTION_DROP) {
-//                 rte_pktmbuf_free(pkt);
-//                 tx_stats->tx_drop[0]++;
-//         } else if(action->action == ONVM_NF_ACTION_NEXT) {
-//                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
-//                         return -1;
-//                 }
-//         } else if(action->action == ONVM_NF_ACTION_TONF) {
-//                 if( unlikely(rte_ring_enqueue(tx_ring, (void*)pkt) == -ENOBUFS) ) {
-//                         return -1;
-//                 }
-//         } else if(action->action == ONVM_NF_ACTION_OUT) {
-//                 rte_eth_tx_burst(action->destination, 0, (struct rte_mbuf **) &pkt, 1);
-//                 tx_stats->tx[0]++;
-//         } else {
-//                 return -1;
-//         }
-//         // OLD
-//         // sent = rte_eth_tx_burst(0, 0, (struct rte_mbuf **) pkts, rx_pkts);
-//         // if (unlikely(sent < rx_pkts)){
-//         //         for (i = sent; i < rx_pkts; i++)
-//         //                 rte_pktmbuf_free(pkts[i]);
-//         //         tx_stats->tx_drop[0] += (rx_pkts - sent);
-//         // }
-//         // tx_stats->tx[0] += sent;
-//         return 0;
-// }
-
 int
-onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
-{
+onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
         const struct rte_memzone *mz;
         struct rte_mempool *mp;
         struct port_info *ports;
@@ -197,7 +150,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
-        tx_ring = rte_ring_lookup(get_tx_queue_name(info->client_id));
+        tx_ring = rte_ring_lookup(get_tx_queue_name(client_id));
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
@@ -222,8 +175,7 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)
  * receiving and processing packets. Never returns
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))
-{
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action)) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_action* action;
         info->client_id = client_id;
@@ -232,7 +184,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
-                uint16_t i, rx_pkts = PKT_READ_SIZE;
+                uint16_t i, j, rx_pkts = PKT_READ_SIZE;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
@@ -244,11 +196,15 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 for (i = 0; i < rx_pkts; i++) {
                         action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], action);
-                        //return_packet(info, (struct rte_mbuf*)pkts[i], action);
-                }
-                if( unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS) ) {
-                        tx_stats->tx_drop[0] += rx_pkts;
                 }
 
+                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, rx_pkts) == -ENOBUFS)) {
+                        tx_stats->tx_drop[0] += rx_pkts;
+                        for (j = 0; j < rx_pkts; j++) {
+                                rte_pktmbuf_free(pkts[j]);
+                        }
+                } else {
+                        tx_stats->tx[0] += rx_pkts;
+                }
         }
 }
