@@ -138,11 +138,15 @@ do_stats_display(void) {
         for (i = 0; i < num_clients; i++) {
                 const unsigned long long rx = clients[i].stats.rx;
                 const unsigned long long rx_drop = clients[i].stats.rx_drop;
+                const unsigned long long act_drop = clients[i].stats.act_drop;
+                const unsigned long long act_next = clients[i].stats.act_next;
+                const unsigned long long act_out = clients[i].stats.act_out;
+                const unsigned long long act_tonf = clients[i].stats.act_tonf;
 		const uint64_t tx = clients_stats->tx[i];
                 const uint64_t tx_drop = clients_stats->tx_drop[i];
-                printf("Client %2u - rx: %9llu, rx_drop: %9llu\n"
-                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64"\n",
-                                i, rx, rx_drop, tx, tx_drop);
+                printf("Client %2u - rx: %9llu, rx_drop: %9llu, next: %9llu, drop: %9llu\n"
+                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9llu, tonf: %9llu\n",
+                                i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
         }
 
         printf("\n");
@@ -184,6 +188,8 @@ clear_stats(void) {
 
         for (i = 0; i < num_clients; i++)
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
+                clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
+                clients[i].stats.act_next = clients[i].stats.act_out = 0;
 }
 
 /*
@@ -278,22 +284,26 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
  * and forward the packet either to the NIC or to another NF Client.
  */
 static void
-process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
+process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl) {
 	uint16_t i;
 	struct onvm_pkt_action *action;
 
 	for (i = 0; i < tx_count; i++) {
                 action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 if (action->action == ONVM_NF_ACTION_DROP) {
+			cl->stats.act_drop++;
 			rte_pktmbuf_free(pkts[i]);
                 } else if (action->action == ONVM_NF_ACTION_NEXT) {
                         /* Here we drop the packet : there will be a flow table
 			in the future to know what to do with the packet next */
+			cl->stats.act_next++;
                         rte_pktmbuf_free(pkts[i]);
 			printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
                 } else if (action->action == ONVM_NF_ACTION_TONF) {
+			cl->stats.act_tonf++;
                         enqueue_rx_packet(action->destination, pkts[i], TO_CLIENT);
                 } else if (action->action == ONVM_NF_ACTION_OUT) {
+			cl->stats.act_out++;
 			enqueue_rx_packet(action->destination, pkts[i], TO_PORT);
                 } else {
 			rte_pktmbuf_free(pkts[i]);
@@ -339,7 +349,7 @@ do_rx_tx(void) {
 
 	                /* Now process the Client packets read */
 	                if (likely(tx_count > 0)) {
-	                        process_tx_packets(tx_pkts, tx_count);
+	                        process_tx_packets(tx_pkts, tx_count, cl);
             		}
 		}
 
