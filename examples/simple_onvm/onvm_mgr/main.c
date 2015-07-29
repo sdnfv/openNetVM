@@ -193,7 +193,7 @@ clear_stats(void) {
 }
 
 /*
- * send a burst of traffic to a client, assuming there are packets
+ * Send a burst of traffic to a client, assuming there are packets
  * available to be sent to this client
  */
 static void
@@ -218,8 +218,8 @@ flush_rx_queue(uint16_t client) {
 }
 
 /**
-* send a burst of packets out a NIC port.
-*/
+ * Send a burst of packets out a NIC port.
+ */
 static void
 flush_tx_queue(uint16_t port) {
 	uint16_t i, sent;
@@ -240,24 +240,21 @@ flush_tx_queue(uint16_t port) {
 
         port_tx_buf[port].count = 0;
 }
+
 /*
- * marks a packet down to be sent to a particular client process or to a port.
+ * Marks a packet down to be sent to a particular client process or to a port.
  */
 static inline void
-enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int client) {
-	if (client) {
-		if (cl_rx_buf[id].count == PACKET_READ_SIZE - 1) {
-			cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
+enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int to_client) {
+	if (to_client) {
+		cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
+		if (cl_rx_buf[id].count == PACKET_READ_SIZE) {
 			flush_rx_queue(id);
-		} else {
-			cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
 		}
 	} else {
-		if (port_tx_buf[id].count == PACKET_READ_SIZE - 1) {
-			port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
+		port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
+		if (port_tx_buf[id].count == PACKET_READ_SIZE) {
 			flush_tx_queue(id);
-		} else {
-			port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
 		}
 	}
 }
@@ -326,7 +323,7 @@ do_rx_tx(void) {
         struct client *cl;
 
         for (;;) {
-                /* read a port */
+                /* Read a port */
                 rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
                                 rx_pkts, PACKET_READ_SIZE);
                 ports->rx_stats.rx[port_num] += rx_count;
@@ -337,7 +334,6 @@ do_rx_tx(void) {
                 }
 
                 /* Read packets from the client's tx queue and process them as needed */
-
 		for (i = 0; i < num_clients; i++) {
 			tx_count = PACKET_READ_SIZE;
 			cl = &clients[i];
