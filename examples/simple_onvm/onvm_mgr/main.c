@@ -372,8 +372,9 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
 	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
-        /* clear statistics */
+        port_tx_buf = malloc(sizeof(struct packet_buf)*RTE_MAX_ETHPORTS);
+	
+	/* clear statistics */
         clear_stats();
 
         /* put all other cores to sleep bar master */
