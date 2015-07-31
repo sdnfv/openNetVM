@@ -97,7 +97,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 5.3 create 1024 hugepages
 
- `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
+ `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages"`
 
 6. Install Kernel Module
 ------------- 
