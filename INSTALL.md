@@ -178,6 +178,33 @@ hello from core 1
 hello from core 0
 ```
 
+9. Run	openNetVM
+------------- 
+9.1 enter working directory, and compile the application
+
+`cd /home/**your_name**/openNetVM/examples/simple_onvm`
+
+`make`
+
+9.2 executing openNetVM
+
+ ***onvm_mgr*** is a monitor for incoming packets, please execute using following command
+
+`sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -c 6 -n 4 -- -p 1 -n  1`
+
+then ping this node with ***ping*** , ***httperf*** or ***pktgen***, the sample monitoring result looks like following, then you are all set, enjoy playing around with openNetVM!
+```
+PORTS
+-----
+Port 0: '90:e2:ba:5e:73:6c'	
+
+Port 0 - rx:        12	tx:         0
+
+CLIENTS
+-------
+Client  0 - rx:        12, rx_drop:         0
+            tx:         0, tx_drop:         0
+```
 
 
 
