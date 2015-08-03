@@ -186,10 +186,11 @@ static void
 clear_stats(void) {
         unsigned i;
 
-        for (i = 0; i < num_clients; i++)
+        for (i = 0; i < num_clients; i++) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
+	}
 }
 
 /*
