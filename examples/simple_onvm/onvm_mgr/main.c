@@ -317,40 +317,53 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl
  * Function called by the master lcore of the DPDK process.
  */
 static void
-do_rx_tx(void) {
-	uint16_t i, rx_count, tx_count;
-	//unsigned port_num = 0; /* indexes the port[] array */
-        struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
-        struct client *cl;
+handle_NIC_packets(void) {
+	uint16_t i, rx_count;
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
         for (;;) {
                 /* Read ports */
 		for (i = 0; i < ports->num_ports; i++) {
 			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
-					rx_pkts, PACKET_READ_SIZE);
+					pkts, PACKET_READ_SIZE);
 			ports->rx_stats.rx[i] += rx_count;
 
 			/* Now process the NIC packets read */
 			if (likely(rx_count > 0)) {
-				process_rx_packets(rx_pkts, rx_count);
+				process_rx_packets(pkts, rx_count);
 			}
 		}
 
-                /* Read packets from the client's tx queue and process them as needed */
+		/* Send a burst to every client */
+		for (i = 0; i < num_clients; i++) {
+			flush_rx_queue(i);
+		}
+        }
+}
+
+
+static int
+handle_client_packets(__attribute__((unused)) void *dummy) {
+        struct client *cl;
+        unsigned i, tx_count;
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
+
+        for(;;) {
+		/* Read packets from the client's tx queue and process them as needed */
 		for (i = 0; i < num_clients; i++) {
 			tx_count = PACKET_READ_SIZE;
 			cl = &clients[i];
 	                /* try dequeuing max possible packets first, if that fails, get the
 	                 * most we can. Loop body should only execute once, maximum */
 	                while (tx_count > 0 &&
-				unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
+				unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0)) {
                 		tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
 					PACKET_READ_SIZE);
 			}
 
 	                /* Now process the Client packets read */
 	                if (likely(tx_count > 0)) {
-	                        process_tx_packets(tx_pkts, tx_count, cl);
+	                        process_tx_packets(pkts, tx_count, cl);
             		}
 		}
 
@@ -362,8 +375,11 @@ do_rx_tx(void) {
 		for (i = 0; i < num_clients; i++) {
 			flush_rx_queue(i);
 		}
+
         }
+        return 0;
 }
+
 
 int
 main(int argc, char *argv[]) {
@@ -373,14 +389,23 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
 	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-        port_tx_buf = malloc(sizeof(struct packet_buf)*RTE_MAX_ETHPORTS);
-	
+	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
+
 	/* clear statistics */
         clear_stats();
+
+	/* Launch a core to handle NF packets (from their tx queue) */
+	unsigned cur_lcore = rte_lcore_id();
+        tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+        rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore);
+
+	// unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
+        // rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore);
+        // printf("stat thread start\n");
 
         /* put all other cores to sleep bar master */
         rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
 
-        do_rx_tx();
+        handle_NIC_packets();
         return 0;
 }
