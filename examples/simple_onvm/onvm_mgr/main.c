@@ -129,8 +129,8 @@ do_stats_display(void) {
         for (i = 0; i < ports->num_ports; i++) {
                 printf("Port %u - rx: %9"PRIu64"\t"
                                 "tx: %9"PRIu64"\n",
-                                (unsigned)ports->id[i], ports->rx_stats.rx[i],
-                                ports->tx_stats.tx[i]);
+                                (unsigned)ports->id[i], ports->rx_stats.rx[ports->id[i]],
+                                ports->tx_stats.tx[ports->id[i]]);
         }
 
         printf("\nCLIENTS\n");
@@ -326,7 +326,7 @@ handle_NIC_packets(void) {
 		for (i = 0; i < ports->num_ports; i++) {
 			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
 					pkts, PACKET_READ_SIZE);
-			ports->rx_stats.rx[i] += rx_count;
+			ports->rx_stats.rx[ports->id[i]] += rx_count;
 
 			/* Now process the NIC packets read */
 			if (likely(rx_count > 0)) {
@@ -390,7 +390,7 @@ main(int argc, char *argv[]) {
 
 	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
 	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
-
+	
 	/* clear statistics */
         clear_stats();
 
