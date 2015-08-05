@@ -283,7 +283,7 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
  * and forward the packet either to the NIC or to another NF Client.
  */
 static void
-process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count) {
+process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl) {
         uint16_t i;
         struct onvm_pkt_action *action;
 
@@ -346,7 +346,7 @@ do_rx_tx(void) {
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
-                                process_tx_packets(tx_pkts, tx_count);
+                                process_tx_packets(tx_pkts, tx_count, cl);
                             }
                 }
 
