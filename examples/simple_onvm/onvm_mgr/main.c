@@ -396,7 +396,7 @@ main(int argc, char *argv[]) {
 
 	/* Launch a core to handle NF packets (from their tx queue) */
 	unsigned cur_lcore = rte_lcore_id();
-        tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+        unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore);
 
 	// unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
