@@ -44,7 +44,7 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
                 return NULL;
         }
         
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + struct(struct ipv4_hdr);
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr);
         return (struct tcp_hdr*)pkt_data;
 }
 
@@ -60,7 +60,7 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
                 return NULL;
         }
         
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + struct(struct ipv4_hdr);
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr);
         return (struct udp_hdr*)pkt_data;
 }
 
@@ -116,10 +116,10 @@ onvm_pkt_print(struct rte_mbuf* pkt) {
 
 void
 onvm_pkt_print_tcp(struct tcp_hdr* hdr) {
-        printf("Source Port: %" PRIu16 "\n", hdr->src_port);
-        printf("Destination Port: %" PRIu16 "\n", hdr->dst_port);
-        printf("Sequence number: %" PRIu32 "\n", hdr->sent_seq);
-        printf("Acknowledgement number: %" PRIu32 "\n", hdr->recv_ack);
+        printf("Source Port: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->src_port));
+        printf("Destination Port: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->dst_port));
+        printf("Sequence number: %" PRIu32 "\n", rte_be_to_cpu_32(hdr->sent_seq));
+        printf("Acknowledgement number: %" PRIu32 "\n", rte_be_to_cpu_32(hdr->recv_ack));
         printf("Data offset: %" PRIu8 "\n", hdr->data_off);
 
         /* TCP defines 9 different 1-bit flags, but DPDK's flags field only leaves room for 8.
@@ -140,9 +140,9 @@ onvm_pkt_print_tcp(struct tcp_hdr* hdr) {
         if (flags        & 0x1) printf("FIN,");
         printf(")\n");
 
-        printf("Window Size: %" PRIu16 "\n", hdr->rx_win);
-        printf("Checksum: %" PRIu16 "\n", hdr->cksum);
-        printf("Urgent Pointer: %" PRIu16 "\n", hdr->tcp_urp);
+        printf("Window Size: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->rx_win));
+        printf("Checksum: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->cksum));
+        printf("Urgent Pointer: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->tcp_urp));
 }
 
 void
@@ -158,8 +158,8 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         printf("IHL: %" PRIu8 "\n", hdr->version_ihl & 0b1111);
         printf("DSCP: %" PRIu8 "\n", hdr->type_of_service & 0b111111);
         printf("ECN: %" PRIu8 "\n", (hdr->type_of_service >> 6) & 0b11);
-        printf("Total Length: %" PRIu16 "\n", hdr->total_length);
-        printf("Identification: %" PRIu16 "\n", hdr->packet_id);
+        printf("Total Length: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->total_length));
+        printf("Identification: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->packet_id));
 
         uint8_t flags = (hdr->fragment_offset >> 13) & 0b111;  // there are three 1-bit flags, but only 2 are used
         printf("Flags: %" PRIx8 "\n", flags);
@@ -168,7 +168,7 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         if ( flags       & 0x1) printf("MF,");
         printf("\n");
 
-        printf("Fragment Offset: %" PRIu16 "\n", hdr->fragment_offset & 0b1111111111111);
+        printf("Fragment Offset: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->fragment_offset) & 0b1111111111111);
         printf("TTL: %" PRIu8 "\n", hdr->time_to_live);
         printf("Protocol: %" PRIu8, hdr->next_proto_id);
 
