@@ -26,6 +26,8 @@
 
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>
+
+#include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
@@ -51,8 +53,8 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         */
         uint8_t ihl = ipv4->version_ihl & 0b1111;
 
-        uint32_t* pkt_data = rte_pktmbuf_mtod(pkt, uint32_t*);
-        return (struct tcp_hdr*)(&pkt_data[ihl]);
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
+        return (struct tcp_hdr*)(&pkt_data[ihl * 4]);
 }
 
 struct udp_hdr*
@@ -76,13 +78,13 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
         */
         uint8_t ihl = ipv4->version_ihl & 0b1111;
 
-        uint32_t* pkt_data = rte_pktmbuf_mtod(pkt, uint32_t*);
-        return (struct udp_hdr*)(&pkt_data[ihl]);
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
+        return (struct udp_hdr*)(&pkt_data[ihl * 4]);
 }
 
 struct ipv4_hdr*
 onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt) {
-        struct ipv4_hdr* ipv4 = rte_pktmbuf_mtod(pkt, struct ipv4_hdr*);
+        struct ipv4_hdr* ipv4 = (struct ipv4_hdr*)(rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr));
 
         /* In an IP packet, the first 4 bits determine the version.
          * The next 4 bits are called the Internet Header Length, or IHL.
