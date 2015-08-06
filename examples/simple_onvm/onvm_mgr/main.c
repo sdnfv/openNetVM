@@ -128,8 +128,8 @@ do_stats_display(void) {
         for (i = 0; i < ports->num_ports; i++) {
                 printf("Port %u - rx: %9"PRIu64"\t"
                                 "tx: %9"PRIu64"\n",
-                                (unsigned)ports->id[i], ports->rx_stats.rx[i],
-                                ports->tx_stats.tx[i]);
+                                (unsigned)ports->id[i], ports->rx_stats.rx[ports->id[i]],
+                                ports->tx_stats.tx[ports->id[i]]);
         }
 
         printf("\nCLIENTS\n");
@@ -185,10 +185,11 @@ static void
 clear_stats(void) {
         unsigned i;
 
-        for (i = 0; i < num_clients; i++)
+        for (i = 0; i < num_clients; i++) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
+	}
 }
 
 /*
@@ -316,21 +317,22 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl
  */
 static void
 do_rx_tx(void) {
-        uint16_t i, rx_count, tx_count;
-        unsigned port_num = 0; /* indexes the port[] array */
+	uint16_t i, rx_count, tx_count;
         struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
         struct client *cl;
 
         for (;;) {
-                /* Read a port */
-                rx_count = rte_eth_rx_burst(ports->id[port_num], 0, \
-                                rx_pkts, PACKET_READ_SIZE);
-                ports->rx_stats.rx[port_num] += rx_count;
+                /* Read ports */
+		for (i = 0; i < ports->num_ports; i++) {
+			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+					rx_pkts, PACKET_READ_SIZE);
+			ports->rx_stats.rx[ports->id[i]] += rx_count;
 
-                /* Now process the NIC packets read */
-                if (likely(rx_count > 0)) {
-                        process_rx_packets(rx_pkts, rx_count);
-                }
+			/* Now process the NIC packets read */
+			if (likely(rx_count > 0)) {
+				process_rx_packets(rx_pkts, rx_count);
+			}
+		}
 
                 /* Read packets from the client's tx queue and process them as needed */
                 for (i = 0; i < num_clients; i++) {
@@ -368,9 +370,10 @@ main(int argc, char *argv[]) {
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-        cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-        port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
-        /* clear statistics */
+	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+        port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
+	
+	/* clear statistics */
         clear_stats();
 
         /* put all other cores to sleep bar master */
