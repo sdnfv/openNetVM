@@ -71,9 +71,9 @@ parse_app_args(int argc, char *argv[]) {
                                 fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                         else
                                 fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-                        return 1;
+                        return -1;
                 default:
-                        abort();
+                        return -1;
                 }
         return optind;
 }
@@ -112,8 +112,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
-        action->destination = 1;
+        action->action = ONVM_NF_ACTION_OUT;  // ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
+        action->destination = 0;
 }
 
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
         argv += retval;
 
         if (parse_app_args(argc, argv) < 0)
-                exit(EXIT_FAILURE);
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         onvm_nf_run(&info, &packet_handler);
         printf("If we reach here, program is ending");

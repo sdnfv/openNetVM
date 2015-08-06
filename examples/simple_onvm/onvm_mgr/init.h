@@ -44,10 +44,41 @@ struct client {
         struct {
                 volatile uint64_t rx;
                 volatile uint64_t rx_drop;
+                volatile uint64_t act_out;
+                volatile uint64_t act_tonf;
+                volatile uint64_t act_drop;
+                volatile uint64_t act_next;
         } stats;
 };
 
 extern struct client *clients;
+
+/*
+ * Shared port info, including statistics information for display by server.
+ * Structure will be put in a memzone.
+ * - All port id values share one cache line as this data will be read-only
+ * during operation.
+ * - All rx statistic values share cache lines, as this data is written only
+ * by the server process. (rare reads by stats display)
+ * - The tx statistics have values for all ports per cache line, but the stats
+ * themselves are written by the clients, so we have a distinct set, on different
+ * cache lines for each client to use.
+ */
+struct rx_stats{
+        uint64_t rx[RTE_MAX_ETHPORTS];
+};
+
+struct tx_stats{
+        uint64_t tx[RTE_MAX_ETHPORTS];
+        uint64_t tx_drop[RTE_MAX_ETHPORTS];
+};
+
+struct port_info {
+        uint8_t num_ports;
+        uint8_t id[RTE_MAX_ETHPORTS];
+        volatile struct rx_stats rx_stats;
+        volatile struct tx_stats tx_stats;
+};
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
@@ -55,7 +86,6 @@ extern struct port_info *ports;
 extern struct rte_mempool *pktmbuf_pool;
 extern uint8_t num_clients;
 extern unsigned num_sockets;
-extern struct port_info *ports;
 
 int init(int argc, char *argv[]);
 
