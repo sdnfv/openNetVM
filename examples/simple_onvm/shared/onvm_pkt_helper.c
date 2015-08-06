@@ -53,7 +53,7 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         */
         uint8_t ihl = ipv4->version_ihl & 0b1111;
 
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
+        uint8_t* pkt_data = (rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
         return (struct tcp_hdr*)(&pkt_data[ihl * 4]);
 }
 
@@ -202,7 +202,7 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
 
         printf("Header Checksum: %" PRIu16 "\n", hdr->hdr_checksum);
         printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->src_addr,
-                (hdr->src_addr >> 24) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 8) & 0xFF, hdr->src_addr & 0xFF);
+                hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 24) & 0xFF);
         printf("Destination IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->dst_addr,
-                (hdr->dst_addr >> 24) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 8) & 0xFF, hdr->dst_addr & 0xFF);
+                hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 24) & 0xFF);
 }
