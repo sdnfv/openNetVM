@@ -174,8 +174,8 @@ onvm_pkt_print_udp(struct udp_hdr* hdr) {
 void
 onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         printf("IHL: %" PRIu8 "\n", hdr->version_ihl & 0b1111);
-        printf("DSCP: %" PRIu8 "\n", (hdr->type_of_service >> 2) & 0b111111);
-        printf("ECN: %" PRIu8 "\n", hdr->type_of_service & 0b11);
+        printf("DSCP: %" PRIu8 "\n", hdr->type_of_service & 0b111111);
+        printf("ECN: %" PRIu8 "\n", (hdr->type_of_service >> 6) & 0b11);
         printf("Total Length: %" PRIu16 "\n", hdr->total_length);
         printf("Identification: %" PRIu16 "\n", hdr->packet_id);
 
