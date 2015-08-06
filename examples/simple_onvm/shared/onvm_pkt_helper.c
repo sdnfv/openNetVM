@@ -43,18 +43,9 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         if (ipv4->next_proto_id != IP_PROTOCOL_TCP) {
                 return NULL;
         }
-
-       /* In an IP packet, the first 4 bits determine the version.
-        * The next 4 bits are called the Internet Header Length, or IHL.
-        * DPDK's ipv4_hdr struct combines both the version and the IHL into one uint8_t.
-        *
-        * The IHL determines the number of 32-bit words that make up the IP header.
-        * We need to get this value so that we know where the TCP header starts.
-        */
-        uint8_t ihl = ipv4->version_ihl & 0b1111;
-
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
-        return (struct tcp_hdr*)(&pkt_data[ihl * 4]);
+        
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + struct(struct ipv4_hdr);
+        return (struct tcp_hdr*)pkt_data;
 }
 
 struct udp_hdr*
@@ -68,18 +59,9 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
         if (ipv4->next_proto_id != IP_PROTOCOL_UDP) {
                 return NULL;
         }
-
-       /* In an IP packet, the first 4 bits determine the version.
-        * The next 4 bits are called the Internet Header Length, or IHL.
-        * DPDK's ipv4_hdr struct combines both the version and the IHL into one uint8_t.
-        *
-        * The IHL determines the number of 32-bit words that make up the IP header.
-        * We need to get this value so that we know where the UDP header starts.
-        */
-        uint8_t ihl = ipv4->version_ihl & 0b1111;
-
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr);
-        return (struct udp_hdr*)(&pkt_data[ihl * 4]);
+        
+        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + struct(struct ipv4_hdr);
+        return (struct udp_hdr*)pkt_data;
 }
 
 struct ipv4_hdr*
@@ -202,7 +184,7 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
 
         printf("Header Checksum: %" PRIu16 "\n", hdr->hdr_checksum);
         printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->src_addr,
-                (hdr->src_addr >> 24) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 8) & 0xFF, hdr->src_addr & 0xFF);
+                hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 24) & 0xFF);
         printf("Destination IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->dst_addr,
-                (hdr->dst_addr >> 24) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 8) & 0xFF, hdr->dst_addr & 0xFF);
+                hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 24) & 0xFF);
 }
