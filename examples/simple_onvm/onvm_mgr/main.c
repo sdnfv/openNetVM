@@ -335,9 +335,9 @@ handle_NIC_packets(void) {
 		}
 
 		/* Send a burst to every client */
-		for (i = 0; i < num_clients; i++) {
-			flush_rx_queue(i);
-		}
+		//for (i = 0; i < num_clients; i++) {
+			flush_rx_queue(0);
+		//}
         }
 }
 
@@ -399,12 +399,12 @@ main(int argc, char *argv[]) {
         unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore);
 
-	// unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
-        // rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore);
-        // printf("stat thread start\n");
+	unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
+        rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore);
+        printf("stat thread start\n");
 
         /* put all other cores to sleep bar master */
-        rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
+        //rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
 
         handle_NIC_packets();
         return 0;
