@@ -160,21 +160,15 @@ do_stats_display(void) {
  */
 static int
 sleep_lcore(__attribute__((unused)) void *dummy) {
-        /* Used to pick a display thread - static, so zero-initialised */
-        static rte_atomic32_t display_stats;
+        const unsigned sleeptime = 1;
+	RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
 
-        /* Only one core should display stats */
-        if (rte_atomic32_test_and_set(&display_stats)) {
-                const unsigned sleeptime = 1;
-                printf("Core %u displaying statistics\n", rte_lcore_id());
+        /* Longer initial pause so above printf is seen */
+        sleep(sleeptime * 3);
 
-                /* Longer initial pause so above printf is seen */
-                sleep(sleeptime * 3);
-
-                /* Loop forever: sleep always returns 0 or <= param */
-                while (sleep(sleeptime) <= sleeptime)
-                        do_stats_display();
-        }
+        /* Loop forever: sleep always returns 0 or <= param */
+        while (sleep(sleeptime) <= sleeptime)
+                do_stats_display();
         return 0;
 }
 
@@ -348,6 +342,8 @@ handle_client_packets(__attribute__((unused)) void *dummy) {
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
+	RTE_LOG(INFO, APP, "Handle clients packets with core %d\n", rte_lcore_id());
+
         for(;;) {
 		/* Read packets from the client's tx queue and process them as needed */
 		for (i = 0; i < num_clients; i++) {
@@ -380,7 +376,6 @@ handle_client_packets(__attribute__((unused)) void *dummy) {
         return 0;
 }
 
-
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
@@ -396,16 +391,20 @@ main(int argc, char *argv[]) {
 
 	/* Launch a core to handle NF packets (from their tx queue) */
 	unsigned cur_lcore = rte_lcore_id();
+	RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
+
         unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore);
+        if (rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore) == -EBUSY) {
+		RTE_LOG(ERR, APP, "Core %d is already busy\n", tx_lcore);
+		return -1;
+	}
 
 	unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
-        rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore);
-        printf("stat thread start\n");
-
-        /* put all other cores to sleep bar master */
-        //rte_eal_mp_remote_launch(sleep_lcore, NULL, SKIP_MASTER);
-
+        if (rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore) == -EBUSY) {
+		RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
+		return -1;
+	}
+        
         handle_NIC_packets();
         return 0;
 }
