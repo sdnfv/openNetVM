@@ -135,16 +135,16 @@ do_stats_display(void) {
         printf("\nCLIENTS\n");
         printf("-------\n");
         for (i = 0; i < num_clients; i++) {
-                const unsigned long long rx = clients[i].stats.rx;
-                const unsigned long long rx_drop = clients[i].stats.rx_drop;
+                const uint64_t rx = clients[i].stats.rx;
+                const uint64_t rx_drop = clients[i].stats.rx_drop;
                 const uint64_t tx = clients_stats->tx[i];
-                const unsigned long long act_drop = clients[i].stats.act_drop;
-                const unsigned long long act_next = clients[i].stats.act_next;
-                const unsigned long long act_out = clients[i].stats.act_out;
-                const unsigned long long act_tonf = clients[i].stats.act_tonf;
+                const uint64_t act_drop = clients[i].stats.act_drop;
+                const uint64_t act_next = clients[i].stats.act_next;
+                const uint64_t act_out = clients[i].stats.act_out;
+                const uint64_t act_tonf = clients[i].stats.act_tonf;
                 const uint64_t tx_drop = clients_stats->tx_drop[i];
-                printf("Client %2u - rx: %9llu, rx_drop: %9llu, next: %9llu, drop: %9llu\n"
-                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9llu, tonf: %9llu\n",
+                printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
+                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
                                 i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
         }
 
@@ -160,7 +160,7 @@ do_stats_display(void) {
 static int
 sleep_lcore(__attribute__((unused)) void *dummy) {
         const unsigned sleeptime = 1;
-	RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
 
         /* Longer initial pause so above printf is seen */
         sleep(sleeptime * 3);
@@ -183,7 +183,7 @@ clear_stats(void) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
-	}
+        }
 }
 
 /*
@@ -311,24 +311,24 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl
  */
 static void
 handle_NIC_packets(void) {
-	uint16_t i, rx_count;
+        uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
         for (;;) {
                 /* Read ports */
-		for (i = 0; i < ports->num_ports; i++) {
-			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
-					pkts, PACKET_READ_SIZE);
-			ports->rx_stats.rx[ports->id[i]] += rx_count;
+                for (i = 0; i < ports->num_ports; i++) {
+                        rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+                                        pkts, PACKET_READ_SIZE);
+                        ports->rx_stats.rx[ports->id[i]] += rx_count;
 
-			/* Now process the NIC packets read */
-			if (likely(rx_count > 0)) {
-				process_rx_packets(pkts, rx_count);
-			}
-		}
+                        /* Now process the NIC packets read */
+                        if (likely(rx_count > 0)) {
+                                process_rx_packets(pkts, rx_count);
+                        }
+                }
 
-		/* Send a burst to every client */
-		flush_rx_queue(0);
+                /* Send a burst to every client */
+                flush_rx_queue(0);
         }
 }
 
@@ -339,9 +339,9 @@ handle_client_packets(__attribute__((unused)) void *dummy) {
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
-	RTE_LOG(INFO, APP, "Handle clients packets with core %d\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Handle clients packets with core %d\n", rte_lcore_id());
 
-        for(;;) {
+        for (;;) {
                 /* Read packets from the client's tx queue and process them as needed */
                 for (i = 0; i < num_clients; i++) {
                         tx_count = PACKET_READ_SIZE;
@@ -379,27 +379,27 @@ main(int argc, char *argv[]) {
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
+        cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+        port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
 
-	/* clear statistics */
+        /* clear statistics */
         clear_stats();
 
-	/* Launch a core to handle NF packets (from their tx queue) */
-	unsigned cur_lcore = rte_lcore_id();
-	RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
+        /* Launch a core to handle NF packets (from their tx queue) */
+        unsigned cur_lcore = rte_lcore_id();
+        RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
 
         unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         if (rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore) == -EBUSY) {
-		RTE_LOG(ERR, APP, "Core %d is already busy\n", tx_lcore);
-		return -1;
-	}
+                RTE_LOG(ERR, APP, "Core %d is already busy\n", tx_lcore);
+                return -1;
+        }
 
-	unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
+        unsigned stat_lcore = rte_get_next_lcore(tx_lcore, 1, 1);
         if (rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore) == -EBUSY) {
-		RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
-		return -1;
-	}
+                RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
+                return -1;
+        }
 
         handle_NIC_packets();
         return 0;
