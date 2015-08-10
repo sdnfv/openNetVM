@@ -66,12 +66,12 @@ extern struct client *clients;
  */
 struct rx_stats{
         uint64_t rx[RTE_MAX_ETHPORTS];
-} __rte_cache_aligned;
+};
 
 struct tx_stats{
         uint64_t tx[RTE_MAX_ETHPORTS];
         uint64_t tx_drop[RTE_MAX_ETHPORTS];
-} __rte_cache_aligned;
+};
 
 struct port_info {
         uint8_t num_ports;

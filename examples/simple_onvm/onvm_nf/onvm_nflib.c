@@ -66,7 +66,7 @@ static volatile struct client_tx_stats *tx_stats;
 
 /* our client id number - tells us which rx queue to read, and NIC TX
  * queue to write to. */
-static uint8_t client_id;
+static uint8_t client_id = 0;
 
 /*
  * Print a usage message
@@ -88,7 +88,7 @@ parse_nflib_args(int argc, char *argv[]) {
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
-                        client_id = strtoul(optarg, NULL, 10);
+                        client_id = (uint8_t) strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
@@ -98,9 +98,9 @@ parse_nflib_args(int argc, char *argv[]) {
                                 fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                         else
                                 fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-                        return 1;
+                        return -1;
                 default:
-                        abort();
+                        return -1;
                 }
         return optind;
 }

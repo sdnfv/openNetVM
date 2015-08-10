@@ -54,7 +54,6 @@
 #include <rte_interrupts.h>
 #include <rte_pci.h>
 #include <rte_ethdev.h>
-#include <rte_byteorder.h>
 #include <rte_malloc.h>
 #include <rte_fbk_hash.h>
 #include <rte_string_fns.h>
@@ -77,8 +76,8 @@
  * clients or to the NIC
  */
 struct packet_buf {
-	struct rte_mbuf *buffer[PACKET_READ_SIZE];
-	uint16_t count;
+        struct rte_mbuf *buffer[PACKET_READ_SIZE];
+        uint16_t count;
 };
 
 /* One buffer per client rx queue - dynamically allocate array
@@ -138,11 +137,11 @@ do_stats_display(void) {
         for (i = 0; i < num_clients; i++) {
                 const unsigned long long rx = clients[i].stats.rx;
                 const unsigned long long rx_drop = clients[i].stats.rx_drop;
+                const uint64_t tx = clients_stats->tx[i];
                 const unsigned long long act_drop = clients[i].stats.act_drop;
                 const unsigned long long act_next = clients[i].stats.act_next;
                 const unsigned long long act_out = clients[i].stats.act_out;
                 const unsigned long long act_tonf = clients[i].stats.act_tonf;
-		const uint64_t tx = clients_stats->tx[i];
                 const uint64_t tx_drop = clients_stats->tx_drop[i];
                 printf("Client %2u - rx: %9llu, rx_drop: %9llu, next: %9llu, drop: %9llu\n"
                                 "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9llu, tonf: %9llu\n",
@@ -193,23 +192,23 @@ clear_stats(void) {
  */
 static void
 flush_rx_queue(uint16_t client) {
-	uint16_t i;
-	struct client *cl;
+        uint16_t i;
+        struct client *cl;
 
-	if (cl_rx_buf[client].count == 0)
-		return;
+        if (cl_rx_buf[client].count == 0)
+                return;
 
-	cl = &clients[client];
-	if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
-			cl_rx_buf[client].count) != 0) {
-		for (i = 0; i < cl_rx_buf[client].count; i++) {
-			rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
-		}
-		cl->stats.rx_drop += cl_rx_buf[client].count;
-	} else {
-		cl->stats.rx += cl_rx_buf[client].count;
-	}
-	cl_rx_buf[client].count = 0;
+        cl = &clients[client];
+        if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
+                        cl_rx_buf[client].count) != 0) {
+                for (i = 0; i < cl_rx_buf[client].count; i++) {
+                        rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
+                }
+                cl->stats.rx_drop += cl_rx_buf[client].count;
+        } else {
+                cl->stats.rx += cl_rx_buf[client].count;
+        }
+        cl_rx_buf[client].count = 0;
 }
 
 /**
@@ -217,21 +216,21 @@ flush_rx_queue(uint16_t client) {
  */
 static void
 flush_tx_queue(uint16_t port) {
-	uint16_t i, sent;
-	volatile struct tx_stats *tx_stats;
+        uint16_t i, sent;
+        volatile struct tx_stats *tx_stats;
 
-	if (port_tx_buf[port].count == 0)
-		return;
+        if (port_tx_buf[port].count == 0)
+                return;
 
-	tx_stats = &(ports->tx_stats);
-	sent = rte_eth_tx_burst(port, 0, port_tx_buf[port].buffer, port_tx_buf[port].count);
+        tx_stats = &(ports->tx_stats);
+        sent = rte_eth_tx_burst(port, 0, port_tx_buf[port].buffer, port_tx_buf[port].count);
         if (unlikely(sent < port_tx_buf[port].count)) {
                 for (i = sent; i < port_tx_buf[port].count; i++) {
-			rte_pktmbuf_free(port_tx_buf[port].buffer[i]);
-		}
+                        rte_pktmbuf_free(port_tx_buf[port].buffer[i]);
+                }
                 tx_stats->tx_drop[port] += (port_tx_buf[port].count - sent);
-	}
-	tx_stats->tx[port] += sent;
+        }
+        tx_stats->tx[port] += sent;
 
         port_tx_buf[port].count = 0;
 }
@@ -241,17 +240,17 @@ flush_tx_queue(uint16_t port) {
  */
 static inline void
 enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int to_client) {
-	if (to_client) {
-		cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
-		if (cl_rx_buf[id].count == PACKET_READ_SIZE) {
-			flush_rx_queue(id);
-		}
-	} else {
-		port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
-		if (port_tx_buf[id].count == PACKET_READ_SIZE) {
-			flush_tx_queue(id);
-		}
-	}
+        if (to_client) {
+                cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
+                if (cl_rx_buf[id].count == PACKET_READ_SIZE) {
+                        flush_rx_queue(id);
+                }
+        } else {
+                port_tx_buf[id].buffer[port_tx_buf[id].count++] = buf;
+                if (port_tx_buf[id].count == PACKET_READ_SIZE) {
+                        flush_tx_queue(id);
+                }
+        }
 }
 
 /*
@@ -261,10 +260,10 @@ enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int to_client) {
  */
 static void
 process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
-	uint16_t j;
-	struct client *cl;
+        uint16_t j;
+        struct client *cl;
 
-	cl = &clients[0];
+        cl = &clients[0];
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -280,28 +279,28 @@ process_rx_packets(struct rte_mbuf *pkts[], uint16_t rx_count) {
  */
 static void
 process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl) {
-	uint16_t i;
-	struct onvm_pkt_action *action;
+        uint16_t i;
+        struct onvm_pkt_action *action;
 
-	for (i = 0; i < tx_count; i++) {
+        for (i = 0; i < tx_count; i++) {
                 action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 if (action->action == ONVM_NF_ACTION_DROP) {
-			cl->stats.act_drop++;
-			rte_pktmbuf_free(pkts[i]);
+                        rte_pktmbuf_free(pkts[i]);
+                        cl->stats.act_drop++;
                 } else if (action->action == ONVM_NF_ACTION_NEXT) {
                         /* Here we drop the packet : there will be a flow table
-			in the future to know what to do with the packet next */
-			cl->stats.act_next++;
+                        in the future to know what to do with the packet next */
+                        cl->stats.act_next++;
                         rte_pktmbuf_free(pkts[i]);
-			printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
+                        printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
                 } else if (action->action == ONVM_NF_ACTION_TONF) {
-			cl->stats.act_tonf++;
+                        cl->stats.act_tonf++;
                         enqueue_rx_packet(action->destination, pkts[i], TO_CLIENT);
                 } else if (action->action == ONVM_NF_ACTION_OUT) {
-			cl->stats.act_out++;
-			enqueue_rx_packet(action->destination, pkts[i], TO_PORT);
+                        cl->stats.act_out++;
+                        enqueue_rx_packet(action->destination, pkts[i], TO_PORT);
                 } else {
-			rte_pktmbuf_free(pkts[i]);
+                        rte_pktmbuf_free(pkts[i]);
                         return;
                 }
         }
@@ -329,9 +328,7 @@ handle_NIC_packets(void) {
 		}
 
 		/* Send a burst to every client */
-		//for (i = 0; i < num_clients; i++) {
-			flush_rx_queue(0);
-		//}
+		flush_rx_queue(0);
         }
 }
 
@@ -345,33 +342,32 @@ handle_client_packets(__attribute__((unused)) void *dummy) {
 	RTE_LOG(INFO, APP, "Handle clients packets with core %d\n", rte_lcore_id());
 
         for(;;) {
-		/* Read packets from the client's tx queue and process them as needed */
-		for (i = 0; i < num_clients; i++) {
-			tx_count = PACKET_READ_SIZE;
-			cl = &clients[i];
-	                /* try dequeuing max possible packets first, if that fails, get the
-	                 * most we can. Loop body should only execute once, maximum */
-	                while (tx_count > 0 &&
-				unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0)) {
-                		tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
-					PACKET_READ_SIZE);
-			}
+                /* Read packets from the client's tx queue and process them as needed */
+                for (i = 0; i < num_clients; i++) {
+                        tx_count = PACKET_READ_SIZE;
+                        cl = &clients[i];
+                        /* try dequeuing max possible packets first, if that fails, get the
+                         * most we can. Loop body should only execute once, maximum */
+                        while (tx_count > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
+                                tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
+                                        PACKET_READ_SIZE);
+                        }
 
-	                /* Now process the Client packets read */
-	                if (likely(tx_count > 0)) {
-	                        process_tx_packets(pkts, tx_count, cl);
-            		}
-		}
+                        /* Now process the Client packets read */
+                        if (likely(tx_count > 0)) {
+                                process_tx_packets(tx_pkts, tx_count, cl);
+                            }
+                }
 
-		/* Send a burst to every port */
-		for (i = 0; i < ports->num_ports; i++) {
-			flush_tx_queue(i);
-		}
-		/* Send a burst to every client */
-		for (i = 0; i < num_clients; i++) {
-			flush_rx_queue(i);
-		}
-
+                /* Send a burst to every port */
+                for (i = 0; i < ports->num_ports; i++) {
+                        flush_tx_queue(i);
+                }
+                /* Send a burst to every client */
+                for (i = 0; i < num_clients; i++) {
+                        flush_rx_queue(i);
+                }
         }
         return 0;
 }
@@ -385,7 +381,7 @@ main(int argc, char *argv[]) {
 
 	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
 	port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
-	
+
 	/* clear statistics */
         clear_stats();
 
@@ -404,7 +400,7 @@ main(int argc, char *argv[]) {
 		RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
 		return -1;
 	}
-        
+
         handle_NIC_packets();
         return 0;
 }
