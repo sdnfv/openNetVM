@@ -42,6 +42,7 @@ Network devices using kernel driver
 1.3.2 load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc 
 
 `$sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko`
+
 if it showed up as alredy bind, use `$sudo rmmod igb_uio`, and then perform `$sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko`. 
 
 1.3.3 bind the 10G ports to DPDK
@@ -66,6 +67,7 @@ then, to install it use:
 and then change the default compiler use update-alternatives:
 
 `$sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 40 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7`
+
 `$sudo update-alternatives --config gcc`
 
 
