@@ -23,13 +23,14 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
+
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
-
 # binary name
 APP = monitor
+RTE_OUTPUT=$(SRCDIR)/monitor
 
 # all source are stored in SRCS-y
 SRCS-y := monitor.c
