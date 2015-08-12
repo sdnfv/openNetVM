@@ -94,11 +94,11 @@ and then change the default compiler use update-alternatives:
 
 2.3 set up hugetable
 
-`./setup-hugetlbfs.sh`
+`$ sudo ./setup-hugetlbfs.sh`
 
 2.4 execute the test, configure the ***quality-of-service-test.lua*** with your destination ip address (ip address for the server you want to sent packets to) in line 60 and line 177, and your source ip address (ip address for the machine you are executing MoonGen on) in line 68 and line 165, and run with command: 
 
-`sudo ./build/MoonGen  ./examples/quality-of-service-test.lua 0 1`
+`$sudo ./build/MoonGen  ./examples/quality-of-service-test.lua 0 1`
 
 and if sample log showed up as following, you are fine, please use ***Ctrl+C*** to stop generating packets:
 
