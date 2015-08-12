@@ -15,6 +15,7 @@ This guide is assuming that you have already got openNetVM installed on your mac
 ===================
 
 1.1 check if you have free hugepages
+------------- 
 
 `$grep -i huge /proc/meminfo`
 
@@ -29,7 +30,10 @@ HugePages_Surp:        0
 Hugepagesize:       2048 kB
 ```
 
-1.2 check your current status of NIC binding and active status, if your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
+1.2 check your current status of NIC binding and active status
+------------- 
+
+if your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
 
 `$.../your_dpdk_directory/tools/dpdk_nic_bind.py  --status`
 
