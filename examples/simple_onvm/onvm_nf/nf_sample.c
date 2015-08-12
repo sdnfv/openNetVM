@@ -34,8 +34,10 @@
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
+#include <rte_ip.h>
 
 #include "onvm_nflib.h"
+#include "onvm_pkt_helper.h"
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
@@ -89,6 +91,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
         static int pkt_process = 0;
+	struct ipv4_hdr* ip;
 
         pkt_process += print_delay;
 
@@ -99,20 +102,28 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("Type : %d\n", pkt->packet_type);
-        printf("Number of packet processed : %d\n", pkt_process);
+        printf("N°   : %d\n", pkt_process);
         printf("\n\n");
+
+	ip = onvm_pkt_ipv4_hdr(pkt);
+        if(ip != NULL) {
+                onvm_pkt_print(pkt);
+        }
+        else {
+                printf("No IP4 header found\n");
+        }
+
 }
 
 static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         static uint32_t counter = 0;
-        if (counter++ == print_delay) {
+        if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_OUT;  // ONVM_NF_ACTION_TONF;  // ONVM_NF_ACTION_OUT;
+        action->action = ONVM_NF_ACTION_OUT;
         action->destination = 0;
 }
 

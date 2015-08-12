@@ -35,4 +35,6 @@ SRCS-y := nf_sample.c onvm_nflib.c
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(SRCDIR)/../shared
 
+LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
+ 
 include $(RTE_SDK)/mk/rte.extapp.mk
