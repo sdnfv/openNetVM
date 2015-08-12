@@ -1,4 +1,4 @@
-Pktgen Installation (DPDK-1.8.0 Version)
+Pktgen Installation 
 ===================
 
 
