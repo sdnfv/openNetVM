@@ -139,7 +139,8 @@ pktgen.set("all", "rate",100);
 pktgen.vlan_id("all", 5);
 ```
 
-8.3 executing the example:
+2.3 executing the example
+------------- 
 
 `$sudo bash doit.sh`
 
