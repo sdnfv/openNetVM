@@ -25,10 +25,10 @@
 
 #define MAX_CLIENTS             16
 
-#define ONVM_NF_ACTION_DROP 0 // drop packet
-#define ONVM_NF_ACTION_NEXT 1 // to whatever the next action is configured by the SDN controller in the flow table
-#define ONVM_NF_ACTION_TONF 2 // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3  // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_DROP 0  // drop packet
+#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
 
 struct onvm_pkt_action {
         uint8_t action;
@@ -59,8 +59,7 @@ extern struct client_tx_stats *clients_stats;
  * Given the rx queue name template above, get the queue name
  */
 static inline const char *
-get_rx_queue_name(unsigned id)
-{
+get_rx_queue_name(unsigned id) {
         /* buffer for return value. Size calculated by %u being replaced
          * by maximum 3 digits (plus an extra byte for safety) */
         static char buffer[sizeof(MP_CLIENT_RXQ_NAME) + 2];
@@ -73,8 +72,7 @@ get_rx_queue_name(unsigned id)
  * Given the tx queue name template above, get the queue name
  */
 static inline const char *
-get_tx_queue_name(unsigned id)
-{
+get_tx_queue_name(unsigned id) {
         /* buffer for return value. Size calculated by %u being replaced
          * by maximum 3 digits (plus an extra byte for safety) */
         static char buffer[sizeof(MP_CLIENT_TXQ_NAME) + 2];
@@ -85,4 +83,4 @@ get_tx_queue_name(unsigned id)
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
-#endif
+#endif  // _COMMON_H_

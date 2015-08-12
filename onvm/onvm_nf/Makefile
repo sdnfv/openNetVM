@@ -26,15 +26,14 @@ endif
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
-# binary name
-APP = onvm_nf
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # all source are stored in SRCS-y
-SRCS-y := nf_sample.c onvm_nflib.c
+SRCS-y := onvm_nflib.c
 
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(SRCDIR)/../shared
 
 LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
- 
-include $(RTE_SDK)/mk/rte.extapp.mk
+
+include $(RTE_SDK)/mk/rte.extobj.mk

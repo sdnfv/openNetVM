@@ -54,9 +54,9 @@
 #include <rte_string_fns.h>
 #include <rte_cycles.h>
 
-#include "common.h"
-#include "args.h"
-#include "init.h"
+#include "shared/common.h"
+#include "onvm_mgr/args.h"
+#include "onvm_mgr/init.h"
 
 #define MBUFS_PER_CLIENT 1536
 #define MBUFS_PER_PORT 1536
@@ -87,8 +87,7 @@ struct client_tx_stats *clients_stats;
  * buffer pools needed by the app - currently none.
  */
 static int
-init_mbuf_pools(void)
-{
+init_mbuf_pools(void) {
         const unsigned num_mbufs = (num_clients * MBUFS_PER_CLIENT) \
                         + (ports->num_ports * MBUFS_PER_PORT);
 
@@ -99,7 +98,7 @@ init_mbuf_pools(void)
         pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, num_mbufs,
                         MBUF_SIZE, MBUF_CACHE_SIZE,
                         sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init,
-                        NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS );
+                        NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
 
         return (pktmbuf_pool == NULL); /* 0  on success */
 }
@@ -112,8 +111,7 @@ init_mbuf_pools(void)
  * - start the port and report its status to stdout
  */
 static int
-init_port(uint8_t port_num)
-{
+init_port(uint8_t port_num) {
         /* for port configuration all features are off by default */
         const struct rte_eth_conf port_conf = {
                 .rxmode = {
@@ -143,7 +141,7 @@ init_port(uint8_t port_num)
                 if (retval < 0) return retval;
         }
 
-        for ( q = 0; q < tx_rings; q ++ ) {
+        for (q = 0; q < tx_rings; q++) {
                 retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
                                 NULL);
@@ -155,7 +153,7 @@ init_port(uint8_t port_num)
         retval  = rte_eth_dev_start(port_num);
         if (retval < 0) return retval;
 
-        printf( "done: \n");
+        printf("done: \n");
 
         return 0;
 }
@@ -166,8 +164,7 @@ init_port(uint8_t port_num)
  * Each client needs one RX queue.
  */
 static int
-init_shm_rings(void)
-{
+init_shm_rings(void) {
         unsigned i;
         unsigned socket_id;
         const char * rq_name;
@@ -184,13 +181,13 @@ init_shm_rings(void)
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
                 tq_name = get_tx_queue_name(i);
-		clients[i].client_id = i;
+                clients[i].client_id = i;
                 clients[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
-                                RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */
+                                RING_F_SP_ENQ | RING_F_SC_DEQ); /* single prod, single cons */
                 clients[i].tx_q = rte_ring_create(tq_name,
                                 ringsize, socket_id,
-                                RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */
+                                RING_F_SP_ENQ | RING_F_SC_DEQ); /* single prod, single cons */
 
                 if (clients[i].rx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
@@ -203,8 +200,7 @@ init_shm_rings(void)
 
 /* Check the link status of all ports in up to 9s, and print them finally */
 static void
-check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
-{
+check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
 #define CHECK_INTERVAL 100 /* 100ms */
 #define MAX_CHECK_TIME 90 /* 9s (90 * 100ms) in total */
         uint8_t portid, count, all_ports_up, print_flag = 0;
@@ -261,8 +257,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
  * calls subfunctions to do each stage of the initialisation.
  */
 int
-init(int argc, char *argv[])
-{
+init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz;
         uint8_t i, total_ports;
