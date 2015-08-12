@@ -100,7 +100,7 @@ and then change the default compiler use update-alternatives:
 
 `sudo ./build/MoonGen  ./examples/quality-of-service-test.lua 0 1`
 
-and if sample log showed up as following, you are fine, please use ***ctr+C*** to stop generating packets:
+and if sample log showed up as following, you are fine, please use ***Ctrl+C*** to stop generating packets:
 
 ```
 wenhui@nimbnode16:~/MoonGen$ sudo ./build/MoonGen ./examples/quality-of-service-test.lua 0 0
