@@ -4,7 +4,7 @@ OpenNetVM Installation
 
 
 
-#### Welcome to installation memo for [OpenNetVM](https://www.usenix.org/conference/nsdi14/technical-sessions/presentation/hwang), OpenNetVM is build with [Docker Container](https://www.docker.com/) and Intel [DPDK](http://dpdk.org/) library, which offers high bandwidth network functions. 
+#### Welcome to installation memo for [OpenNetVM](https://www.usenix.org/conference/nsdi14/technical-sessions/presentation/hwang), OpenNetVM is build with [Docker Container](https://www.docker.com/) and Intel [DPDK](http://dpdk.org/) library, which offers high bandwidth network functions.
 
 ----------
 
@@ -12,9 +12,9 @@ OpenNetVM Installation
 1. Check System
 -------------
 
-Before installation of OpenNetVM, please check your machine to see if it could meet the **minimum** requirements as following: 
+Before installation of OpenNetVM, please check your machine to see if it could meet the **minimum** requirements as following:
 
-1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/). 
+1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/).
 
  `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
@@ -31,7 +31,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
  `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
 
 
-2. Get Package 
+2. Get Package
 -------------
 2.1  install git
 
@@ -44,7 +44,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 2.3 switch to the branch of onvm
 
  `$cd  ./openNetVM/`
- 
+
  `$git checkout simple-onvm`
 
 2.4  enter working directory
@@ -52,8 +52,8 @@ Before installation of OpenNetVM, please check your machine to see if it could m
  `$cd  ~/openNetVM/dpdk-1.8.0/`
 
 
-3. Set	up Environment 
-------------- 
+3. Set	up Environment
+-------------
 3.1 check out current directory, and remember the output, e.g. /home/**your_name**/openNetVM/dpdk-1.8.0"
 
  `$pwd`
@@ -73,12 +73,12 @@ Before installation of OpenNetVM, please check your machine to see if it could m
  `$source ~/.bashrc`
 
 4.  Configure	and	compile	DPDK
-------------- 
-4.1 specify the configuration type the same as step 3.4,  e.g.  "x86_64-native-linuxapp-gcc" 
+-------------
+4.1 specify the configuration type the same as step 3.4,  e.g.  "x86_64-native-linuxapp-gcc"
 
  `$make config T=x86_64-native-linuxapp-gcc`
 
-4.2 install the exact same configuration you used in step 4.1, e.g.  "x86_64-native-linuxapp-gcc" 
+4.2 install the exact same configuration you used in step 4.1, e.g.  "x86_64-native-linuxapp-gcc"
 
  `$make install T=x86_64-native-linuxapp-gcc`
 
@@ -86,7 +86,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 
 5. Create	Hugepage Directory and Reserve	Memory
-------------- 
+-------------
 5.1  create a directory in your linux environment
 
  `$sudo mkdir -p /mnt/huge`
@@ -100,21 +100,21 @@ Before installation of OpenNetVM, please check your machine to see if it could m
  `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages"`
 
 6. Install Kernel Module
-------------- 
-6.1 after the installation, you will see a new folder appears in your directory, e.g  "x86_64-native-linuxapp-gcc" 
+-------------
+6.1 after the installation, you will see a new folder appears in your directory, e.g  "x86_64-native-linuxapp-gcc"
 
- `$ls` 
+ `$ls`
 
 6.2 load in your uio linux kernel module
 
  `$sudo modprobe uio`
 
-6.3 load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc 
+6.3 load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc
 
  `$sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko`
 
 7. Bind	NIC to DPDK igb_uio Kernel Module
-------------- 
+-------------
 7.1 check your current status of NIC binding and active status
 
  `$./tools/dpdk_nic_bind.py  --status`
@@ -129,7 +129,7 @@ Network devices using kernel driver
 ===================================
 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
 0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth2 drv=ixgbe unused=igb_uio *Active*
-0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio 
+0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
 ```
 
 7.2 as you could see, the 10G one is active now, so the next thing is to turn it down
@@ -160,7 +160,7 @@ Network devices using kernel driver
 ```
 
 8. Run	HelloWorld	Application
-------------- 
+-------------
 8.1 enter working directory, and compile the application
 
  `$cd ./examples/helloworld/`
@@ -179,10 +179,10 @@ hello from core 0
 ```
 
 9. Run	openNetVM
-------------- 
+-------------
 9.1 enter working directory, and compile the application
 
-`cd /home/**your_name**/openNetVM/examples/simple_onvm`
+`cd /home/**your_name**/openNetVM/onvm`
 
 `make`
 
@@ -190,13 +190,13 @@ hello from core 0
 
  ***onvm_mgr*** is a monitor for incoming packets, please execute using following command
 
-`sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -c 6 -n 4 -- -p 1 -n  1`
+`sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -c 6 -n 4 -- -p 1 -n 1`
 
 then ping this node with ***ping*** , ***httperf*** or ***pktgen***, the sample monitoring result looks like following, then you are all set, enjoy playing around with openNetVM!
 ```
 PORTS
 -----
-Port 0: '90:e2:ba:5e:73:6c'	
+Port 0: '90:e2:ba:5e:73:6c'
 
 Port 0 - rx:        12	tx:         0
 
@@ -205,9 +205,3 @@ CLIENTS
 Client  0 - rx:        12, rx_drop:         0
             tx:         0, tx_drop:         0
 ```
-
-
-
-
-
-
