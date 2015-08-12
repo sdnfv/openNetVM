@@ -17,6 +17,7 @@ If ***HugePages_Free*** 's value equals to 0, which means there is no free hugep
 1.2 check if you have available ports binded to DPDK
 
 `$cd dirctory_of_your_installed_dpdk`
+
 `$./tools/dpdk_nic_bind.py  --status`
 
 if you got the follwing binding information indicating that you have the two 10-Gigabit NIC ports binded with DPDK driver, then you are fine, please jump to step 1.4, otherwise, please jump to step 1.3.
@@ -48,11 +49,13 @@ if it showed up as alredy bind, use `$sudo rmmod igb_uio`, and then perform `$su
 1.3.3 bind the 10G ports to DPDK
 
 `$sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+
 `$sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.1`
 
 1.4 check if g++ and gcc are updated with version higher than 4.7
 
 `$g++ --version`
+
 `$gcc --version`
 
 if not, please add the repository using:
@@ -62,6 +65,7 @@ if not, please add the repository using:
 then, to install it use:
 
 `$sudo apt-get update`
+
 `$sudo apt-get install g++-4.7`
 
 and then change the default compiler use update-alternatives:
@@ -77,8 +81,11 @@ and then change the default compiler use update-alternatives:
 2.1 get the resource from github, and checkout the dpdk2.0 branch
 
 `$git clone https://github.com/emmericp/MoonGen`
+
 `$cd MoonGen`
+
 `$git checkout dpdk2.0`
+
 `$sudo git submodule update --init`
 
 2.2 build the resource
