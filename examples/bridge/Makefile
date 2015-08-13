@@ -30,12 +30,11 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # binary name
 APP = bridge
-RTE_OUTPUT=$(SRCDIR)/$(APP)
 
 # all source are stored in SRCS-y
 SRCS-y := bridge.c 
 
-ONVM= $(SRCDIR)/../../openNetVM/examples/simple_onvm
+ONVM= $(SRCDIR)/../../onvm
 
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(ONVM)/onvm_nf

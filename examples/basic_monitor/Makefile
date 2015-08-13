@@ -30,7 +30,6 @@ include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
 APP = monitor
-RTE_OUTPUT=$(SRCDIR)/$(APP)
 
 # all source are stored in SRCS-y
 SRCS-y := monitor.c
