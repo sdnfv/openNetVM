@@ -58,9 +58,9 @@
 #include <rte_fbk_hash.h>
 #include <rte_string_fns.h>
 
-#include "common.h"
-#include "args.h"
-#include "init.h"
+#include "shared/common.h"
+#include "onvm_mgr/args.h"
+#include "onvm_mgr/init.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -135,16 +135,17 @@ do_stats_display(void) {
         printf("\nCLIENTS\n");
         printf("-------\n");
         for (i = 0; i < num_clients; i++) {
-                const unsigned long long rx = clients[i].stats.rx;
-                const unsigned long long rx_drop = clients[i].stats.rx_drop;
+                const uint64_t rx = clients[i].stats.rx;
+                const uint64_t rx_drop = clients[i].stats.rx_drop;
                 const uint64_t tx = clients_stats->tx[i];
-                const unsigned long long act_drop = clients[i].stats.act_drop;
-                const unsigned long long act_next = clients[i].stats.act_next;
-                const unsigned long long act_out = clients[i].stats.act_out;
-                const unsigned long long act_tonf = clients[i].stats.act_tonf;
                 const uint64_t tx_drop = clients_stats->tx_drop[i];
-                printf("Client %2u - rx: %9llu, rx_drop: %9llu, next: %9llu, drop: %9llu\n"
-                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9llu, tonf: %9llu\n",
+                const uint64_t act_drop = clients[i].stats.act_drop;
+                const uint64_t act_next = clients[i].stats.act_next;
+                const uint64_t act_out = clients[i].stats.act_out;
+                const uint64_t act_tonf = clients[i].stats.act_tonf;
+
+                printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
+                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
                                 i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
         }
 
@@ -189,7 +190,7 @@ clear_stats(void) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
-	}
+        }
 }
 
 /*
@@ -317,22 +318,22 @@ process_tx_packets(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl
  */
 static void
 do_rx_tx(void) {
-	uint16_t i, rx_count, tx_count;
+        uint16_t i, rx_count, tx_count;
         struct rte_mbuf *rx_pkts[PACKET_READ_SIZE], *tx_pkts[PACKET_READ_SIZE];
         struct client *cl;
 
         for (;;) {
                 /* Read ports */
-		for (i = 0; i < ports->num_ports; i++) {
-			rx_count = rte_eth_rx_burst(ports->id[i], 0, \
-					rx_pkts, PACKET_READ_SIZE);
-			ports->rx_stats.rx[ports->id[i]] += rx_count;
+                for (i = 0; i < ports->num_ports; i++) {
+                        rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+                                        rx_pkts, PACKET_READ_SIZE);
+                        ports->rx_stats.rx[ports->id[i]] += rx_count;
 
-			/* Now process the NIC packets read */
-			if (likely(rx_count > 0)) {
-				process_rx_packets(rx_pkts, rx_count);
-			}
-		}
+                        /* Now process the NIC packets read */
+                        if (likely(rx_count > 0)) {
+                                process_rx_packets(rx_pkts, rx_count);
+                        }
+                }
 
                 /* Read packets from the client's tx queue and process them as needed */
                 for (i = 0; i < num_clients; i++) {
@@ -370,10 +371,10 @@ main(int argc, char *argv[]) {
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-	cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+        cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
         port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-	
-	/* clear statistics */
+
+        /* clear statistics */
         clear_stats();
 
         /* put all other cores to sleep bar master */

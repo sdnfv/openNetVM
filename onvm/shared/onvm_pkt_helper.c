@@ -43,7 +43,7 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         if (ipv4->next_proto_id != IP_PROTOCOL_TCP) {
                 return NULL;
         }
-        
+
         uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr);
         return (struct tcp_hdr*)pkt_data;
 }
@@ -59,7 +59,7 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
         if (ipv4->next_proto_id != IP_PROTOCOL_UDP) {
                 return NULL;
         }
-        
+
         uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr);
         return (struct udp_hdr*)pkt_data;
 }
