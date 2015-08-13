@@ -23,26 +23,24 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # binary name
-APP = monitor
+APP = bridge
 RTE_OUTPUT=$(SRCDIR)/$(APP)
 
 # all source are stored in SRCS-y
-SRCS-y := monitor.c
+SRCS-y := bridge.c 
 
-# OpenNetVM path
-ONVM= $(SRCDIR)/../../onvm
+ONVM= $(SRCDIR)/../../openNetVM/examples/simple_onvm
 
 CFLAGS += $(WERROR_FLAGS) -O3
-
 CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/shared
+
 LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
-
 include $(RTE_SDK)/mk/rte.extapp.mk
