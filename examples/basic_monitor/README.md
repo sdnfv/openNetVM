@@ -1,11 +1,12 @@
-## Simple OpenNetVM
+## Monitor
 
-This is a simplified version of onvm that only supports a single NF.
+This is a example using onvm that print information about packets whose go through.
 
 ### Execution
 To run the program.
 First run onvm manager and then :
 ```
 cd examples/basic_monitor
-sudo ./monitor/monitor -c 8 -n 4 --proc-type=auto -- -n 0
+sudo ./monitor/monitor -c 8 -n 4 --proc-type=auto -- -n 0 -- -p 100
 ```
+`-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
