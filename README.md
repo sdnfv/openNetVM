@@ -107,7 +107,7 @@ NFV-based services could easily be implemented by minor modifying or adding patc
 
 
 ```
-$sudo ./onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nf -c COREMASK -n NUM  [-proc-type=<auto|primary|secondary>] [-- [-n CLIENT_ID] [-- [-n NF_ID] [-p <print_delay>] ] ]
+$sudo ./examples/basic_monitor/basic_monitor/x86_64-native-linuxapp-gcc/monitor -c COREMASK -n NUM  [-proc-type=<auto|primary|secondary>] [-- [-n CLIENT_ID] [-- [-n NF_ID] [-p <print_delay>] ] ]
 
 
 Options: 
@@ -141,7 +141,7 @@ Options:
 
 
 ```
-$sudo ./onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nf -c COREMASK -n NUM -proc-type=<auto|primary|secondary> [-l CORELIST] [–lcores COREMAP] [-m MB] [-r NUM] [-v] [–syslog] [–socket-mem] [–huge-dir] [-- [-n CLIENT_ID] [-- -n NF_ID] [-p <print_delay>] ]
+$sudo ./examples/basic_monitor/basic_monitor/x86_64-native-linuxapp-gcc/monitor -c COREMASK -n NUM -proc-type=<auto|primary|secondary> [-l CORELIST] [–lcores COREMAP] [-m MB] [-r NUM] [-v] [–syslog] [–socket-mem] [–huge-dir] [-- [-n CLIENT_ID] [-- -n NF_ID] [-p <print_delay>] ]
 
 
 Options: 
@@ -242,6 +242,10 @@ To run bridge:
 `
 $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --proc-type=auto -- -n 0
 `
+
+:blue_book: 4. Implement your own Network Function Application
+------------- 
+
 
 
 
