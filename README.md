@@ -15,7 +15,7 @@ Network functions such as monitors, hubs, bridges, switches, WAN optimizers, gar
 
 
 
-#1. Execute openNetVM Manager 
+:pencil2: #1. Execute openNetVM Manager 
 -------------
 
 openNetVM Manager is a controller which shows all running network functions in containers and distributes packets. It also has a monitor shows where each and every packets arrives and whether it is dropped or passed on to which network function clients. 
@@ -95,7 +95,7 @@ Options:
 
 
 
-#2. Execute Network Function Clients
+:pencil2: #2. Execute Network Function Clients
 -------------
 
 Network operators like you might have a set of functions that should be performed on different types of packtes flows. Here by modifying existing NFs, you could easily decide which types of network functions a packet flow should be processed by, and in what order.
@@ -197,12 +197,12 @@ On another server run `pktgen`, `MoonGen`, `httperf` or `ping` to verify that it
 
 
 
-#3. Example 
+:pencil2: #3. Example 
 
 ------------- 
 
 
-##3.1 Application Monitor 
+:pushpin: ##3.1 Application Monitor 
 
 Monitor is an application build on openNetVM, which could show you the receive rate and drop rate from several clients. 
 	
@@ -226,7 +226,7 @@ $sudo ./examples/basic_monitor/basic_monitor/x86_64-native-linuxapp-gcc/monitor 
 
 
 
-##3.2 Application Bridge
+:pushpin: ##3.2 Application Bridge
 
 Bridge is an application example build on openNetVM, which sends every packets from one port to another on the same node.
 	
