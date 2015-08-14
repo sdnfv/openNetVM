@@ -98,7 +98,10 @@ Options:
 #2. Execute Network Function Clients
 -------------
 
-NFV-based services could easily be implemented by minor modifying or adding patches to ***onvm_nf***, which make  performing flow management simple. 
+Network operators like you might have a set of functions that should be performed on different types of packtes flows. Here by modifying existing NFs, you could easily decide which types of network functions a packet flow should be processed by, and in what order.
+
+
+NFV-based services could easily be implemented by minor modifying or adding patches to ***onvm_nf***, which make  performing flow management simple, and following are existing functions. 
 
 ##2.1 Concise Instruction
 
