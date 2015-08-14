@@ -5,9 +5,9 @@ openNetVM
 A high performance container-based NFV platform.
 This guide is assuming that you are currently under simple-onvm directory and have already got openNetVM installed. 
  
-As openNetVM is a container based Network Function platform, thus modifying and managing network functions for openNetVM is simple since the packets handling runs as user space processes inside Docker containers. 
+As openNetVM is a ***container based*** Network Function platform, thus modifying and managing network functions for openNetVM is simple since the packets handling runs as user space processes inside Docker containers. 
 
-Also, as Networ Function Manager automatically conducts load balance packets across threads, scalability is achieved for maximizing performance.
+Also, as Network Function Manager automatically conducts load balance packets across threads, ***scalability*** is achieved for maximizing performance.
 
 Network functions such as monitors, hubs, bridges, switches, WAN optimizers, gardenwalls, firewalls etc. could be easily deployed on openNetVM platform, and network controller could provide rules under which network functions need to process each packet flow. In this repository, we have implemented two sample network functions, the monitor and the bridge to walk you around with omnipotent scalable openNetVM platform.
 
