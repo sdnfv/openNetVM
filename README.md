@@ -18,7 +18,8 @@ Network functions such as monitors, hubs, bridges, switches, WAN optimizers, gar
 #1. Execute openNetVM Manager 
 -------------
 
-openNetVM Manager is a controller 
+openNetVM Manager is a controller which shows all running network functions in containers and distributes packets. It also has a monitor shows where each and every packets arrives and whether it is dropped or passed on to which network function clients. 
+
 
 ##1.1 Concise Instruction:
 
@@ -97,6 +98,7 @@ Options:
 #2. Execute Network Function Clients
 -------------
 
+NFV-based services could easily be implemented by minor modifying or adding patches to ***onvm_nf***, which make  performing flow management simple. 
 
 ##2.1 Concise Instruction
 
