@@ -9,7 +9,7 @@ As openNetVM is a ***container based*** Network Function platform, thus modifyin
 
 Also, as Network Function Manager automatically conducts load balance packets across threads, ***scalability*** is achieved for maximizing performance.
 
-Network functions such as monitors, hubs, bridges, switches, WAN optimizers, gardenwalls, firewalls etc. could be easily deployed on openNetVM platform, and network controller could provide rules under which network functions need to process each packet flow. In this repository, we have implemented two sample network functions, the monitor and the bridge to walk you around with omnipotent scalable openNetVM platform.
+Network functions such as monitors, hubs, bridges, switches, WAN optimizers, gardenwalls, firewalls etc. could be easily deployed on openNetVM platform, and network controller could provide rules under which network functions need to process each packet flow. In this repository, we have implemented two sample network functions, the monitor and the bridge to walk you through with omnipotent scalable openNetVM platform.
 
 ----------
 
