@@ -201,7 +201,7 @@ On another server run `pktgen`, `MoonGen`, `httperf` or `ping` to verify that it
 ------------- 
 
 
-:pushpin:##3.1 Application Monitor 
+:pushpin:3.1 Application Monitor 
 
 Monitor is an application build on openNetVM, which could show you the receive rate and drop rate from several clients. 
 	
@@ -225,7 +225,7 @@ $sudo ./examples/basic_monitor/basic_monitor/x86_64-native-linuxapp-gcc/monitor 
 
 
 
-:pushpin:##3.2 Application Bridge
+:pushpin:3.2 Application Bridge
 
 Bridge is an application example build on openNetVM, which sends every packets from one port to another on the same node.
 	
