@@ -193,7 +193,7 @@ Options:
 ```
 
 
-On another server run `pktgen`, `MoonGen`, `httperf` or `ping` to verify that it works, please refer to markdown diles located in docs directory if you are confused with running `MoonGen` and `pktgen`.
+On another server run `pktgen`, `MoonGen`, `httperf` or `ping` to verify that it works, please refer to markdown files located in docs directory if you are confused with running `MoonGen` and `pktgen`.
 
 
 
