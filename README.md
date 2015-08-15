@@ -246,6 +246,58 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 :blue_book: 4. Implement your own Network Function Application
 ------------- 
 
+:pushpin:4.1 
+
+:pushpin:4.2
+
+
+:pushpin:4.3
+
+:pushpin:4.4
+
+:pushpin:4.5 Reference: dependent libraries 
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <inttypes.h>
+#include <sys/queue.h>
+#include <errno.h>
+#include <netinet/ip.h>
+#include <stdbool.h>
+
+#include <rte_common.h>
+#include <rte_memory.h>
+#include <rte_memzone.h>
+#include <rte_tailq.h>
+#include <rte_eal.h>
+#include <rte_byteorder.h>
+#include <rte_launch.h>
+#include <rte_per_lcore.h>
+#include <rte_lcore.h>
+#include <rte_branch_prediction.h>
+#include <rte_atomic.h>
+#include <rte_ring.h>
+#include <rte_log.h>
+#include <rte_debug.h>
+#include <rte_mempool.h>
+#include <rte_memcpy.h>
+#include <rte_mbuf.h>
+#include <rte_ether.h>
+#include <rte_interrupts.h>
+#include <rte_pci.h>
+#include <rte_ethdev.h>
+#include <rte_malloc.h>
+#include <rte_fbk_hash.h>
+#include <rte_string_fns.h>
+```
+
+
+
 
 
 
