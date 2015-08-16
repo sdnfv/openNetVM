@@ -248,7 +248,9 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 
 :pushpin:4.1 usage library 
 
-***usage*** library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM packets. 
+***usage*** library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
+
+
 
 
 :pushpin:4.2
