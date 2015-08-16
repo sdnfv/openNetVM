@@ -263,7 +263,9 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 
 ***int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)*** supports initialize network functions. 
 
-:pushpin:4.4 
+:pushpin:4.4 packets handling library
+
+***int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))*** is a library which continuously receives and processes packets. 
 
 :pushpin:4.5 Reference: dependent libraries 
 
