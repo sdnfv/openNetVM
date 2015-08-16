@@ -247,30 +247,30 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 ------------- 
 
 
-The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in openNetVM/onvm/shared/common.h . 
+The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
 
 
 
 :pushpin:4.1 usage library 
 
-***static void usage(const char *progname)*** library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
+`static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
 
 
 
 
 :pushpin:4.2 options argument parsing library
 
-***static int parse_nflib_args(int argc, char *argv[])*** library supports the cunction of parsing the option inputs commands arguments.
+`static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
 
 
 
 :pushpin:4.3 initialize network functions library
 
-***int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)*** supports initialize network functions. 
+`int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
 
 :pushpin:4.4 packets handling library
 
-***int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))*** is a library which continuously receives and processes packets. 
+`int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
 
 :pushpin:4.5 Reference: dependent libraries 
 
