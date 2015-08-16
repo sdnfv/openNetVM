@@ -244,6 +244,9 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 `
 
 :blue_book: 4. Implement your own Network Function Application
+
+The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in openNetVM/onvm/shared/common.h . 
+
 ------------- 
 
 :pushpin:4.1 usage library 
