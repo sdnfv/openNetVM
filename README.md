@@ -253,13 +253,17 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 
 
 
-:pushpin:4.2 parsing library 
+:pushpin:4.2 options argument parsing library
+
+***static int parse_nflib_args(int argc, char *argv[])*** library supports the cunction of parsing the option inputs commands arguments.
 
 
 
-:pushpin:4.3
+:pushpin:4.3 initialize network functions library
 
-:pushpin:4.4
+***int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)*** supports initialize network functions. 
+
+:pushpin:4.4 
 
 :pushpin:4.5 Reference: dependent libraries 
 
