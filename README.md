@@ -325,7 +325,94 @@ Shared libraries are libraries shared by openNetVM manager and openNetVM network
 ###4.5 Template 
 
 
+```
+#include <unistd.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <sys/queue.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <string.h>
 
+#include <rte_common.h>
+#include <rte_mbuf.h>
+#include <rte_ip.h>
+
+#include "onvm_nflib.h"
+#include "onvm_pkt_helper.h"
+#include "common.h"
+#include "init.h"
+#include "args.h"
+
+
+/* number of package between each print */
+static uint32_t print_delay = 1000000;
+
+
+
+/*
+ * Please write your own packet monitoring function here 
+ */
+ 
+static void
+your_monitor(void){
+	printf("\n");
+}
+
+
+
+/*
+ * Please write your own packet handling function here 
+ */
+
+static void
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
+        static uint32_t counter = 0;
+        if (counter++ == print_delay) {
+                do_stats_display(pkt);
+                counter = 0;
+        }
+
+        if (pkt->port == 0) {
+                action->destination = 1;
+        }
+        else {
+                action->destination = 0;
+        }
+ 
+/*
+* Please chose your packet handling action here 
+*/
+        action->action = ONVM_NF_ACTION_OUT;
+        //action->action = ONVM_NF_ACTION_DROP;
+        //action->action = ONVM_NF_ACTION_TONF;
+        //action->action = ONVM_NF_ACTION_NEXT;
+        
+}
+
+
+int main(int argc, char *argv[]) {
+        struct onvm_nf_info info;
+        int retval;
+
+        if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
+                return -1;
+        argc -= retval;
+        argv += retval;
+
+        if (parse_app_args(argc, argv) < 0)
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+	
+	your_monitor();
+        onvm_nf_run(&info, &packet_handler);
+        printf("If we reach here, program is ending");
+        return 0;
+}
+
+```
 
 
 
