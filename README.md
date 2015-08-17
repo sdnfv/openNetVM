@@ -311,11 +311,19 @@ Shared libraries are libraries shared by openNetVM manager and openNetVM network
 
 :pushpin:parsing packets headers 
 
-There are three APIs located in `./openNetVM/onvm/shared/onvm_pkt_helper.h`, which when recalled, will return pointers to the tcp/udp/ip header in the packet, if it is not a tcp/udp/ipv4 packet, a NULL pointer will be returned. 
+There are three header pointer licator APIs located in `./openNetVM/onvm/shared/onvm_pkt_helper.h`, which when recalled, will return pointers to the tcp/udp/ip header in the packet, if it is not a tcp/udp/ipv4 packet, a NULL pointer will be returned. 
 
-+ struct tcp_hdr* onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);
++ `struct tcp_hdr* onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);`
 + struct udp_hdr* onvm_pkt_udp_hdr(struct rte_mbuf* pkt);
 + struct ipv4_hdr* onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt);
+
+There are three packet identifier APIs located in `./openNetVM/onvm/shared/onvm_pkt_helper.h`, they will help you check the type of a packet, whether the packet is a udp/tcp/ipv4 packet, which when recalled, will return 1 if packet is of the specified type, else 0.
+
++ int onvm_pkt_is_tcp(struct rte_mbuf* pkt);
++ int onvm_pkt_is_udp(struct rte_mbuf* pkt);
++ int onvm_pkt_is_ipv4(struct rte_mbuf* pkt);
+
+
 
 
 ```
