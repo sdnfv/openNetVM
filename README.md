@@ -335,9 +335,9 @@ There are four ***packet header printer*** APIs located in `./openNetVM/onvm/sha
 
 Three main packets handling actions are defined and one other packet handling action is predefined in header file `./openNetVM/onvm/shared/common.h`, which includes drop the packet action and also two packet forwarding actions, among which, one packet forwarding fucntion is to forward packets based on port number, while the other function is to forward packets based on network function client id, all four packets handling functions are listed as following: 
 + drop packet:	
-  `#define ONVM_NF_ACTION_DROP 0 ` 
-+ to whatever the next action is configured by the SDN controller in the flow table
-  `#define ONVM_NF_ACTION_NEXT 1 `  
+	`#define ONVM_NF_ACTION_DROP 0 ` 
++ forward to next action configured by the SDN controller in the flow table
+	`#define ONVM_NF_ACTION_NEXT 1 `  
 + #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
 + #define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
 
