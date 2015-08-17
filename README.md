@@ -263,7 +263,7 @@ This library supports various network function utilities, including usage printi
 
 :pushpin: options argument parsing function: ***static int parse_nflib_args()***
 
-`static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
+`static int parse_nflib_args(int argc, char *argv[])` library supports the function of parsing the option inputs commands arguments.
 
 
 
