@@ -252,7 +252,7 @@ The maxium number for network function cleints created and running concurrently 
 
 ###4.1 onvm_nf library
 
-This library supports various network function utilities, including usage printing, network function client initialization and packets handling, if you would like to recall this library, the header file is located at `openNetVM/onvm/onvm_nf/onvm_nflib.h`.
+This library supports various network function utilities, including usage printing, network function client initialization and packets handling, if you would like to recall this library, the header file is located at `./openNetVM/onvm/onvm_nf/onvm_nflib.h`.
 
 :pushpin: usage function: ***static void usage()***
 
