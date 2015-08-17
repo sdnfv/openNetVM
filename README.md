@@ -280,6 +280,12 @@ The maxium number for network function cleints created and running concurrently 
 
 ###4.2 onvm_mgr libraries
 
+:pushpin: parsing arguments library
+
+The application specific arguments follow the DPDK-specific arguments which are stripped by the DPDK init. `int parse_app_args(uint8_t max_ports, int argc, char *argv[])`  processes these application arguments, printing usage information on error.
+
+There are two specific options in this library, `-p`  envokes function `parse_portmask(max_ports, optarg)` , `-n` envokes `parse_num_clients(optarg)` function, and then, if the command typed by programmer does not match neither two, it prints out the usage error with anticipation. 
+
 
 
 
