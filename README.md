@@ -416,8 +416,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
 	* 
 	* ONVM_NF_ACTION_OUT is for forwarding packets with destination in form of another port; 
 	* ONVM_NF_ACTION_DROP is to drop the packets;
-	* ONVM_NF_ACTION_NEXT is forwarding packets to the next processing packets procedure, is to be implemented
-	*		by the programmer;
+	* ONVM_NF_ACTION_NEXT is forwarding packets to the next processing packets procedure,
+	*		which is to be implemented by the programmer;
 	*		e.g. in a Garden Wall application, the packets are matched first with block list, and then 
 	*		modified to be sent to a certain IP, then the packets are forwarded to the destination. 
 	* 
