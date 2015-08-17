@@ -300,8 +300,6 @@ In this function, bounch of initialization functions are recalled  sequentially 
 
 Ports information are set up by recalling `init_port(ports->id[i])`, which initializes a port, by configuring number of rx and tx rings, setting up each rx ring, to pull from the main mbuf pool, setting up each tx ring and then starting the port and report its status to stdout. `init_mbuf_pools()` is utilized and envoked to initialize mbuf pools. Last but not least, a function `init_shm_rings()` is recalled to initialize the client queues/rings for internal communications, each client has a RX queue, which passes packets, via pointers, between the multi-process server and client processes.
 
-:pushpin: parsing function: `int parse_app_args()`
-
 
      
 
@@ -318,6 +316,13 @@ Shared libraries are libraries shared by openNetVM manager and openNetVM network
 #define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
 ```
 
+
+###4.4 DPDK libraries
+
+
+
+
+###4.5 Template 
 
 
 
