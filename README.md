@@ -382,12 +382,34 @@ static uint32_t print_delay = 1000000;
 
 
 /*
- * Please write your own packet monitoring function here 
+ * Please write your own packet monitoring function here by modifying the template below
  */
  
 static void
 your_monitor(void){
-	printf("\n");
+        const char clr[] = { 27, '[', '2', 'J', '\0' };
+        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+        static int pkt_process = 0;
+        struct ipv4_hdr* ip;
+
+        pkt_process += print_delay;
+
+        /* Clear screen and move to top left */
+        printf("%s%s", clr, topLeft);
+
+        printf("PACKETS\n");
+        printf("-----\n");
+        printf("Port : %d\n", pkt->port);
+        printf("Size : %d\n", pkt->pkt_len);
+        printf("N°   : %d\n", pkt_process);
+        printf("\n\n");
+
+        ip = onvm_pkt_ipv4_hdr(pkt);
+        if (ip != NULL) {
+                onvm_pkt_print(pkt);
+        } else {
+                printf("No IP4 header found\n");
+        }
 }
 
 
