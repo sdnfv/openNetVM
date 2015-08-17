@@ -301,6 +301,13 @@ Ports information are set up by recalling `init_port(ports->id[i])`, which initi
 
 Shared libraries are libraries shared by openNetVM manager and openNetVM network functions. 
 
+```
+#define ONVM_NF_ACTION_DROP 0  // drop packet
+#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+```
+
 
 
 
