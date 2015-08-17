@@ -387,7 +387,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         }
  
 /*
-* Please chose your packet handling action here 
+* Please choose your packet handling action here 
 */
         action->action = ONVM_NF_ACTION_OUT;
         //action->action = ONVM_NF_ACTION_DROP;
