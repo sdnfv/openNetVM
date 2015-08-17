@@ -255,7 +255,7 @@ The maxium number for network function cleints created and running concurrently 
 
 
 
-:pushpin: usage function ***static void usage(const char *progname)***
+:pushpin: usage function: ***static void usage()***
 
 `static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
 
