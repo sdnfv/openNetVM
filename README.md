@@ -250,10 +250,9 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
 
 
-###4.1 onvm_nf libraries
+###4.1 onvm_nf library
 
-
-
+This library supports various network function utilities, including usage printing, network function client initialization and packets handling, if you would like to recall this library, the header file is located at `openNetVM/onvm/onvm_nf/onvm_nflib.h`.
 
 :pushpin: usage function: ***static void usage()***
 
@@ -262,17 +261,17 @@ The maxium number for network function cleints created and running concurrently 
 
 
 
-:pushpin: options argument parsing function
+:pushpin: options argument parsing function: ***static int parse_nflib_args()***
 
 `static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
 
 
 
-:pushpin: initialize network functions function
+:pushpin: initialize network functions function: ***int onvm_nf_init()***
 
 `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
 
-:pushpin: packets handling function
+:pushpin: packets handling function: ***int onvm_nf_run()***
 
 `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
 
@@ -280,14 +279,14 @@ The maxium number for network function cleints created and running concurrently 
 
 ###4.2 onvm_mgr libraries
 
-:pushpin: parsing arguments function
+:pushpin: parsing arguments function: ***int parse_app_args()***
 
 The application specific arguments follow the DPDK-specific arguments which are stripped by the DPDK init. `int parse_app_args(uint8_t max_ports, int argc, char *argv[])`  processes these application arguments, printing usage information on error.
 
 There are two specific options in this library, `-p`  envokes function `parse_portmask(max_ports, optarg)` , `-n` envokes `parse_num_clients(optarg)` function, and then, if the command typed by programmer does not match neither two, it prints out the usage error with anticipation. 
 
 
-:pushpin: initialization function
+:pushpin: initialization function: ***int init()***
 
 `int init(int argc, char *argv[])` function is the fucntion which supports multi-process server applications, which calls subfunctions to do each stage of the initialization. 
 
