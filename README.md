@@ -401,9 +401,9 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
                 counter = 0;
         }
 
-/* Below is an example Bridge to forwarding packets from port 0 to 1, and 1 to 0, 
-*  please modify this part to realize your own packet forwarding process.
-*/
+	/* Below is an example Bridge to forwarding packets from port 0 to 1, and 1 to 0, 
+	*  please modify this part to realize your own packet forwarding process.
+	*/
         if (pkt->port == 0) {
                 action->destination = 1;
         }
@@ -411,9 +411,18 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
                 action->destination = 0;
         }
  
-/*
-* Please choose your packet handling action here 
-*/
+	/*
+	* Please choose your packet handling action here:
+	* 
+	* ONVM_NF_ACTION_OUT is for forwarding packets with destination in form of another port; 
+	* ONVM_NF_ACTION_DROP is to drop the packets;
+	* ONVM_NF_ACTION_NEXT is forwarding packets to the next processing packets procedure, is to be implemented
+	*		by the programmer;
+	*		e.g. in a Garden Wall application, the packets are matched first with block list, and then 
+	*		modified to be sent to a certain IP, then the packets are forwarded to the destination. 
+	* 
+	* ONVM_NF_ACTION_TONF is for forwarding packets with destination in form of another client's id.	 
+	*/
         action->action = ONVM_NF_ACTION_OUT;
         //action->action = ONVM_NF_ACTION_DROP;
         //action->action = ONVM_NF_ACTION_TONF;
