@@ -254,19 +254,6 @@ The maxium number for network function cleints created and running concurrently 
 
 This library supports various network function utilities, including usage printing, network function client initialization and packets handling, if you would like to recall this library, the header file is located at `./openNetVM/onvm/onvm_nf/onvm_nflib.h`.
 
-:pushpin: usage function: ***static void usage()***
-
-`static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
-
-
-
-
-:pushpin: options argument parsing function: ***static int parse_nflib_args()***
-
-`static int parse_nflib_args(int argc, char *argv[])` library supports the function of parsing the option inputs commands arguments.
-
-
-
 :pushpin: initialize network functions function: ***int onvm_nf_init()***
 
 `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
@@ -345,12 +332,7 @@ Three main packets handling actions are defined and one other packet handling ac
 
 
 
-###4.4 DPDK libraries
-
-
-
-
-###4.5 Template 
+###4.4 Template 
 
 #### Your Source Code Template 
 
@@ -501,7 +483,8 @@ APP = XXX
 # all source are stored in SRCS-y
 SRCS-y := XXX.c 
 
-
+#------TODO: if you put custmized APP in example folder, then you don't have to modify------
+#if you put custmized APP in example folder, then you don't have to change anything below
 #library directories to link goes here
 ONVM= $(SRCDIR)/../../onvm
 
