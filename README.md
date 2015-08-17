@@ -309,6 +309,15 @@ Ports information are set up by recalling `init_port(ports->id[i])`, which initi
 
 Shared libraries are libraries shared by openNetVM manager and openNetVM network functions. 
 
+:pushpin:parsing packets headers 
+
+There are three APIs located in `./openNetVM/onvm/shared/onvm_pkt_helper.h`, which when recalled, will return pointers to the tcp/udp/ip header in the packet, if it is not a tcp/udp/ipv4 packet, a NULL pointer will be returned. 
+
++ struct tcp_hdr* onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);
++ struct udp_hdr* onvm_pkt_udp_hdr(struct rte_mbuf* pkt);
++ struct ipv4_hdr* onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt);
+
+
 ```
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
