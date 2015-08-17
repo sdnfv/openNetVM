@@ -338,8 +338,10 @@ Three main packets handling actions are defined and one other packet handling ac
 	`#define ONVM_NF_ACTION_DROP 0 ` 
 + forward to next action configured by the SDN controller in the flow table
 	`#define ONVM_NF_ACTION_NEXT 1 `  
-+ #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
-+ #define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
++ forwarding packets by specifying network function clients' id
+	`#define ONVM_NF_ACTION_TONF 2`  
++ forwarding packets by specifying destination port number 
+	`#define ONVM_NF_ACTION_OUT 3 `  
 
 
 
