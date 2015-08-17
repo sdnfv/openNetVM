@@ -372,10 +372,13 @@ static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
-                do_stats_display(pkt);
+                your_monitor(pkt);
                 counter = 0;
         }
 
+/* Below is an example Bridge to forwarding packets from port 0 to 1, and 1 to 0, 
+*  please modify this part to realize your own packet forwarding process.
+*/
         if (pkt->port == 0) {
                 action->destination = 1;
         }
@@ -406,7 +409,6 @@ int main(int argc, char *argv[]) {
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 	
-	your_monitor();
         onvm_nf_run(&info, &packet_handler);
         printf("If we reach here, program is ending");
         return 0;
