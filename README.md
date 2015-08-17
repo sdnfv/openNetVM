@@ -378,16 +378,18 @@ file: XXX.c
 #include "init.h"
 #include "args.h"
 
+#------TODO: please include your header files here ------
 
+
+
+
+#------TODO: please modify print_delay variable, to tell the system num of packets between each print  ------
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
 
+#------TODO: please write your own packet monitoring function here by modifying the template below ------ 
 
-/*
- * Please write your own packet monitoring function here by modifying the template below
- */
- 
 static void
 your_monitor(void){
         const char clr[] = { 27, '[', '2', 'J', '\0' };
@@ -416,10 +418,7 @@ your_monitor(void){
 }
 
 
-
-/*
- * Please write your own packet handling function here 
- */
+#------TODO: please write your own packet handling function here by modifying the template below ------ 
 
 static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
@@ -440,8 +439,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         }
  
 	/*
-	* Please choose your packet handling action here:
-	* 
 	* ONVM_NF_ACTION_OUT is for forwarding packets with destination in form of another port; 
 	* ONVM_NF_ACTION_DROP is to drop the packets;
 	* ONVM_NF_ACTION_NEXT is forwarding packets to the next processing packets procedure,
@@ -451,6 +448,9 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
 	* 
 	* ONVM_NF_ACTION_TONF is for forwarding packets with destination in form of another client's id.	 
 	*/
+
+	#------TODO: please choose your packet handling action here ------ 
+        
         action->action = ONVM_NF_ACTION_OUT;
         //action->action = ONVM_NF_ACTION_DROP;
         //action->action = ONVM_NF_ACTION_TONF;
