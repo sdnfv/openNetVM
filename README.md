@@ -353,6 +353,9 @@ Three main packets handling actions are defined and one other packet handling ac
 ###4.5 Template 
 
 #### Your Source Code Template 
+
+file: XXX.c
+
 ```
 #include <unistd.h>
 #include <stdint.h>
@@ -476,6 +479,8 @@ int main(int argc, char *argv[]) {
 ```
 
 ####Your Makefile Templete 
+
+file: Makefile
 
 ```
 ifeq ($(RTE_SDK),)
