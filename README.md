@@ -252,24 +252,27 @@ The maxium number for network function cleints created and running concurrently 
 
 ###4.1 onvm_nf libraries
 
-####:pushpin: usage library 
+
+
+
+:pushpin: usage library 
 
 `static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
 
 
 
 
-####:pushpin: options argument parsing library
+:pushpin: options argument parsing library
 
 `static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
 
 
 
-####:pushpin: initialize network functions library
+:pushpin: initialize network functions library
 
 `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
 
-####:pushpin: packets handling library
+:pushpin: packets handling library
 
 `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
 
