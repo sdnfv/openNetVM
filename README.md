@@ -250,71 +250,39 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
 
 
+###4.1 onvm_nf libraries
 
-###:pushpin:4.1 usage library 
+####:pushpin: usage library 
 
 `static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
 
 
 
 
-:pushpin:4.2 options argument parsing library
+####:pushpin: options argument parsing library
 
 `static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
 
 
 
-:pushpin:4.3 initialize network functions library
+####:pushpin: initialize network functions library
 
 `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
 
-:pushpin:4.4 packets handling library
+####:pushpin: packets handling library
 
 `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
 
-:pushpin:4.5 Reference: dependent libraries 
 
-```
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <stdarg.h>
-#include <inttypes.h>
-#include <sys/queue.h>
-#include <errno.h>
-#include <netinet/ip.h>
-#include <stdbool.h>
 
-#include <rte_common.h>
-#include <rte_memory.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
-#include <rte_eal.h>
-#include <rte_byteorder.h>
-#include <rte_launch.h>
-#include <rte_per_lcore.h>
-#include <rte_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_atomic.h>
-#include <rte_ring.h>
-#include <rte_log.h>
-#include <rte_debug.h>
-#include <rte_mempool.h>
-#include <rte_memcpy.h>
-#include <rte_mbuf.h>
-#include <rte_ether.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_ethdev.h>
-#include <rte_malloc.h>
-#include <rte_fbk_hash.h>
-#include <rte_string_fns.h>
-```
+###4.2 onvm_mgr libraries
 
 
 
+
+###4.3 shared libraries
+
+Shared libraries are libraries shared by openNetVM manager and openNetVM network functions. 
 
 
 
