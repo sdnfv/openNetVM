@@ -255,24 +255,24 @@ The maxium number for network function cleints created and running concurrently 
 
 
 
-:pushpin: usage library 
+:pushpin: usage function 
 
 `static void usage(const char *progname)` library provides an API for print a usage message, which will return guidance for options inputs when the formats are not recognizable by openNetVM. 
 
 
 
 
-:pushpin: options argument parsing library
+:pushpin: options argument parsing function
 
 `static int parse_nflib_args(int argc, char *argv[])` library supports the cunction of parsing the option inputs commands arguments.
 
 
 
-:pushpin: initialize network functions library
+:pushpin: initialize network functions function
 
 `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)` supports initialize network functions. 
 
-:pushpin: packets handling library
+:pushpin: packets handling function
 
 `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
 
@@ -280,12 +280,19 @@ The maxium number for network function cleints created and running concurrently 
 
 ###4.2 onvm_mgr libraries
 
-:pushpin: parsing arguments library
+:pushpin: parsing arguments function
 
 The application specific arguments follow the DPDK-specific arguments which are stripped by the DPDK init. `int parse_app_args(uint8_t max_ports, int argc, char *argv[])`  processes these application arguments, printing usage information on error.
 
 There are two specific options in this library, `-p`  envokes function `parse_portmask(max_ports, optarg)` , `-n` envokes `parse_num_clients(optarg)` function, and then, if the command typed by programmer does not match neither two, it prints out the usage error with anticipation. 
 
+
+:pushpin: initialization function
+
+`int init(int argc, char *argv[])` function is the fucntion which supports multi-process server applications, which calls subfunctions to do each stage of the initialization. 
+
+In this function, bounch of initialization functions are recalled  sequentially to envoke a new process, `rte_eal_init(argc, argv)` is recalled to initialize EAL, `rte_eth_dev_count()` is recalled to total number of ports, then `rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats), rte_socket_id(), NO_FLAGS)` is recalled to set up array for client tx data, and ports information are set up as well by recalling `init_port(ports->id[i])` and `init_mbuf_pools()` alternatively. Last but not least, a function `init_shm_rings()` is recalled to initialize the client queues/rings for internal communications. 
+     
 
 
 
