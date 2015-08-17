@@ -279,7 +279,11 @@ This library supports various network function utilities, including usage printi
 
 ###4.2 onvm_mgr libraries
 
+
+
 :pushpin: parsing arguments function: ***int parse_app_args()***
+
+The `parse_app_args()` function is located at `./openNetVM/onvm/onvm_mgr/args.h`. 
 
 The application specific arguments follow the DPDK-specific arguments which are stripped by the DPDK init. `int parse_app_args(uint8_t max_ports, int argc, char *argv[])`  processes these application arguments, printing usage information on error.
 
@@ -288,11 +292,17 @@ There are two specific options in this library, `-p`  envokes function `parse_po
 
 :pushpin: initialization function: ***int init()***
 
+If you would like to utilize this function, it could be recalled by including `./openNetVM/onvm/onvm_mgr/init.h`.
+
 `int init(int argc, char *argv[])` function is the fucntion which supports multi-process server applications, which calls subfunctions to do each stage of the initialization. 
 
 In this function, bounch of initialization functions are recalled  sequentially to envoke a new process, firstly `rte_eal_init(argc, argv)` is recalled to initialize EAL, `rte_eth_dev_count()` is recalled to total number of ports, then `rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats), rte_socket_id(), NO_FLAGS)` is recalled to set up array for client tx data. 
 
 Ports information are set up by recalling `init_port(ports->id[i])`, which initializes a port, by configuring number of rx and tx rings, setting up each rx ring, to pull from the main mbuf pool, setting up each tx ring and then starting the port and report its status to stdout. `init_mbuf_pools()` is utilized and envoked to initialize mbuf pools. Last but not least, a function `init_shm_rings()` is recalled to initialize the client queues/rings for internal communications, each client has a RX queue, which passes packets, via pointers, between the multi-process server and client processes.
+
+:pushpin: parsing function: `int parse_app_args()`
+
+
      
 
 
