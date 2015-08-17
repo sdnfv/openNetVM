@@ -496,12 +496,16 @@ APP = XXX
 # all source are stored in SRCS-y
 SRCS-y := XXX.c 
 
+
+#library directories to link goes here
 ONVM= $(SRCDIR)/../../onvm
 
+#optimize your code with the target version of compiler 
 CFLAGS += $(WERROR_FLAGS) -O3
 CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/shared
 
+#link openNetVM libraries 
 LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
 include $(RTE_SDK)/mk/rte.extapp.mk
