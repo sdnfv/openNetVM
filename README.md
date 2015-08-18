@@ -338,7 +338,7 @@ Three main packets handling actions are defined and one other packet handling ac
 
 file: XXX.c
 
-```
+```c
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
