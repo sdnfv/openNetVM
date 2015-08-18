@@ -41,13 +41,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$git clone https://github.com/sdnfv/openNetVM`
 
-2.3 switch to the branch of onvm
-
- `$cd  ./openNetVM/`
-
- `$git checkout simple-onvm`
-
-2.4  enter working directory
+2.3  enter dpdk working directory
 
  `$cd  ~/openNetVM/dpdk-1.8.0/`
 
