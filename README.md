@@ -247,8 +247,9 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 ------------- 
 
 
-The maxium number for network function cleints created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
+The maxium number for network function clients created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
 
+The tag to specify identity for each and every client is called client id, which is a simple sequence number 0, 1, 2 … etc. , and it is named when starting a new network function in command line, which is configured by “-n client_id"
 
 ###4.1 onvm_nf library
 
