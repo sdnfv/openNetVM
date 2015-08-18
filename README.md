@@ -283,7 +283,7 @@ If you would like to utilize this function, it could be recalled by including `.
 
 `int init(int argc, char *argv[])` function is the fucntion which supports multi-process server applications, which calls subfunctions to do each stage of the initialization. 
 
-In this function, a handful of initialization functions are recalled  sequentially to envoke a new process, firstly `rte_eal_init(argc, argv)` is recalled to initialize EAL, `rte_eth_dev_count()` is recalled to total number of ports, then `rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats), rte_socket_id(), NO_FLAGS)` is recalled to set up array for client tx data. 
+In this function, a bouquet of initialization functions are recalled  sequentially to envoke a new process, firstly `rte_eal_init(argc, argv)` is recalled to initialize EAL, `rte_eth_dev_count()` is recalled to total number of ports, then `rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats), rte_socket_id(), NO_FLAGS)` is recalled to set up array for client tx data. 
 
 Ports information are set up by recalling `init_port(ports->id[i])`, which initializes a port, by configuring number of rx and tx rings, setting up each rx ring, to pull from the main mbuf pool, setting up each tx ring and then starting the port and report its status to stdout. `init_mbuf_pools()` is utilized and envoked to initialize mbuf pools. Last but not least, a function `init_shm_rings()` is recalled to initialize the client queues/rings for internal communications, each client has a RX queue, which passes packets, via pointers, between the multi-process server and client processes.
 
