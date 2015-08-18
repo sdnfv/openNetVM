@@ -360,17 +360,17 @@ file: XXX.c
 #include "init.h"
 #include "args.h"
 
-#------TODO: please include your header files here ------
+//------TODO: please include your header files here ------
 
 
 
 
-#------TODO: please modify print_delay variable, to tell the system num of packets between each print  ------
+//------TODO: please modify print_delay variable, to tell the system num of packets between each print  ------
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
 
-#------TODO: please write your own packet monitoring function here by modifying the template below ------ 
+//------TODO: please write your own packet monitoring function here by modifying the template below ------ 
 
 static void
 your_monitor(void){
@@ -400,7 +400,7 @@ your_monitor(void){
 }
 
 
-#------TODO: please write your own packet handling function here by modifying the template below ------ 
+//------TODO: please write your own packet handling function here by modifying the template below ------ 
 
 static void
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
@@ -431,7 +431,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
 	* ONVM_NF_ACTION_TONF is for forwarding packets with destination in form of another client's id.	 
 	*/
 
-	#------TODO: please choose your packet handling action here ------ 
+	//------TODO: please choose your packet handling action here ------ 
         
         action->action = ONVM_NF_ACTION_OUT;
         //action->action = ONVM_NF_ACTION_DROP;
