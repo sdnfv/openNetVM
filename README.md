@@ -464,7 +464,7 @@ int main(int argc, char *argv[]) {
 
 file: Makefile
 
-```
+```make
 ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
