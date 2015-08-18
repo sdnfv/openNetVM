@@ -31,9 +31,9 @@
 #include <rte_memory.h>
 #include <rte_string_fns.h>
 
-#include "common.h"
-#include "args.h"
-#include "init.h"
+#include "shared/common.h"
+#include "onvm_mgr/args.h"
+#include "onvm_mgr/init.h"
 
 /* global var for number of clients - extern in header */
 uint8_t num_clients;
@@ -44,8 +44,7 @@ static const char *progname;
  * Prints out usage information to stdout
  */
 static void
-usage(void)
-{
+usage(void) {
         printf(
             "%s [EAL options] -- -p PORTMASK -n NUM_CLIENTS [-s NUM_SOCKETS]\n"
             " -p PORTMASK: hexadecimal bitmask of ports to use\n"
@@ -60,8 +59,7 @@ usage(void)
  * array variable
  */
 static int
-parse_portmask(uint8_t max_ports, const char *portmask)
-{
+parse_portmask(uint8_t max_ports, const char *portmask) {
         char *end = NULL;
         unsigned long pm;
         uint8_t count = 0;
@@ -75,8 +73,8 @@ parse_portmask(uint8_t max_ports, const char *portmask)
                 return -1;
 
         /* loop through bits of the mask and mark ports */
-        while (pm != 0){
-                if (pm & 0x01){ /* bit is set in mask, use port */
+        while (pm != 0) {
+                if (pm & 0x01) { /* bit is set in mask, use port */
                         if (count >= max_ports)
                                 printf("WARNING: requested port %u not present"
                                 " - ignoring\n", (unsigned)count);
@@ -95,8 +93,7 @@ parse_portmask(uint8_t max_ports, const char *portmask)
  * and convert to a number to store in the num_clients variable
  */
 static int
-parse_num_clients(const char *clients)
-{
+parse_num_clients(const char *clients) {
         char *end = NULL;
         unsigned long temp;
 
@@ -118,8 +115,7 @@ parse_num_clients(const char *clients)
  * on error.
  */
 int
-parse_app_args(uint8_t max_ports, int argc, char *argv[])
-{
+parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         int option_index, opt;
         char **argvopt = argv;
         static struct option lgopts[] = { /* no long options */
@@ -128,16 +124,16 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[])
         progname = argv[0];
 
         while ((opt = getopt_long(argc, argvopt, "n:p:", lgopts,
-                &option_index)) != EOF){
-                switch (opt){
+                &option_index)) != EOF) {
+                switch (opt) {
                         case 'p':
-                                if (parse_portmask(max_ports, optarg) != 0){
+                                if (parse_portmask(max_ports, optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
                                 break;
                         case 'n':
-                                if (parse_num_clients(optarg) != 0){
+                                if (parse_num_clients(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
@@ -149,7 +145,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[])
                 }
         }
 
-        if (ports->num_ports == 0 || num_clients == 0){
+        if (ports->num_ports == 0 || num_clients == 0) {
                 usage();
                 return -1;
         }

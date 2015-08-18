@@ -89,4 +89,4 @@ extern unsigned num_sockets;
 
 int init(int argc, char *argv[]);
 
-#endif /* ifndef _INIT_H_ */
+#endif  // _INIT_H_

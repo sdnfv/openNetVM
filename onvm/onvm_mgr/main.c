@@ -58,9 +58,9 @@
 #include <rte_fbk_hash.h>
 #include <rte_string_fns.h>
 
-#include "common.h"
-#include "args.h"
-#include "init.h"
+#include "shared/common.h"
+#include "onvm_mgr/args.h"
+#include "onvm_mgr/init.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -138,11 +138,12 @@ do_stats_display(void) {
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
                 const uint64_t tx = clients_stats->tx[i];
+                const uint64_t tx_drop = clients_stats->tx_drop[i];
                 const uint64_t act_drop = clients[i].stats.act_drop;
                 const uint64_t act_next = clients[i].stats.act_next;
                 const uint64_t act_out = clients[i].stats.act_out;
                 const uint64_t act_tonf = clients[i].stats.act_tonf;
-                const uint64_t tx_drop = clients_stats->tx_drop[i];
+
                 printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
                                 "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
                                 i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
@@ -380,7 +381,7 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-        port_tx_buf = calloc(ports->num_ports, sizeof(struct packet_buf));
+        port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
 
         /* clear statistics */
         clear_stats();

@@ -26,4 +26,4 @@
 
 int parse_app_args(uint8_t max_ports, int argc, char *argv[]);
 
-#endif /* ifndef _ARGS_H_ */
+#endif  // _ARGS_H_
