@@ -350,14 +350,14 @@ handle_client_packets(__attribute__((unused)) void *dummy) {
                         /* try dequeuing max possible packets first, if that fails, get the
                          * most we can. Loop body should only execute once, maximum */
                         while (tx_count > 0 &&
-                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) tx_pkts, tx_count) != 0)) {
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0)) {
                                 tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
                                         PACKET_READ_SIZE);
                         }
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
-                                process_tx_packets(tx_pkts, tx_count, cl);
+                                process_tx_packets(pkts, tx_count, cl);
                             }
                 }
 
