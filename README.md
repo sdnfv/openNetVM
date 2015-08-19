@@ -249,7 +249,13 @@ $sudo ./examples/bridge/bridge/x86_64-native-linuxapp-gcc/bridge -c 8 -n 4 --pro
 
 The maxium number for network function clients created and running concurrently on this released version of openNetVM platform is ***16***, which is defined in `./openNetVM/onvm/shared/common.h` . 
 
-The tag to specify identity for each and every client is called client id, which is a simple sequence number 0, 1, 2 … etc. , and it is named when starting a new network function in command line, which is configured by “-n client_id"
+The tag to specify identity for each and every client is called client id, which is a simple sequence number 0, 1, 2 … etc. , and it is named when starting a new network function in command line, which is configured by “-n client_id".
+
+There are mainly three main libraries in this released openNetVM version,  onvm_nf library, onvm_mgr library and a shared library for both openNetVM manager and network functions. 
+
+Below we will give you a walkthrough of all functions openNetVM platform supported and also how they could be recalled, after which, we will give you a templete set for both network function c file and also Makefile template for you to get started with, just modify several lines and you will get your own network function launched. 
+
+
 
 ###4.1 onvm_nf library
 
