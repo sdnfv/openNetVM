@@ -370,13 +370,13 @@ handle_client_packets(void *arg) {
                 }
 
                 /* Send a burst to every port */
-                for (i = 0; i < ports->num_ports; i++) {
-                        flush_tx_queue(i);
-                }
+                //for (i = 0; i < ports->num_ports; i++) {
+                //        flush_tx_queue(i);
+                //}
                 /* Send a burst to every client */
-                for (i = 0; i < num_clients; i++) {
-                        flush_rx_queue(i);
-                }
+                //for (i = 0; i < num_clients; i++) {
+                //        flush_rx_queue(i);
+                //}
         }
         return 0;
 }
