@@ -390,6 +390,21 @@ main(int argc, char *argv[]) {
         unsigned cur_lcore = rte_lcore_id();
         RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
 
+        unsigned nb_lcore = rte_lcore_count();
+
+        struct arg {
+                unsigned first_cl;
+                unsigned last_cl;
+        }
+
+        printf("Number of core available : %d\n", nb_lcore);
+        lcore = cur_lcore;
+        for (; nb_lcore == 1; nb_lcore--) {
+                unsigned lcore = rte_get_next_lcore(lcore, 1, 1);
+                printf("loop core available : %d\n", nb_lcore);
+                printf("     core get       : %d\n", lcore);
+        }
+
         unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         if (rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore) == -EBUSY) {
                 RTE_LOG(ERR, APP, "Core %d is already busy\n", tx_lcore);
