@@ -41,13 +41,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$git clone https://github.com/sdnfv/openNetVM`
 
-2.3 switch to the branch of onvm
-
- `$cd  ./openNetVM/`
-
- `$git checkout simple-onvm`
-
-2.4  enter working directory
+2.3  enter dpdk working directory
 
  `$cd  ~/openNetVM/dpdk-1.8.0/`
 
@@ -87,32 +81,17 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 5. Create	Hugepage Directory and Reserve	Memory
 -------------
-
-5.1 check if you have available hugepages
-
-`$grep -i huge /proc/meminfo`
-
-If ***HugePages_Free*** 's value equals to 0, which means there is no free hugepages available, you probably have to reboot your machine, by `$sudo reboot` to get some released hugepages. 
-
-5.2  create a directory in your linux environment
+5.1  create a directory in your linux environment
 
  `$sudo mkdir -p /mnt/huge`
 
-5.3 mount the directory you created in step 5.1  to memory formatted with huge table file system (hugetlbfs)
+5.2 mount the directory you created in step 5.1  to memory formatted with huge table file system (hugetlbfs)
 
  `$sudo mount -t hugetlbfs nodev /mnt/huge`
 
-5.4 create 32 hugepages
+5.3 create 1024 hugepages
 
- `$ls /sys/devices/system/node/node0/hugepages/`
- 
- If you have `hugepages-1048576kB` in directory, please use:
-
- `$sudo sh -c "echo 32 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages"`
- 
- Alternatively, if you have `hugepages-2048kB`, please use the command below, and things like that,
- 
- `$sudo sh -c "echo 32 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
+ `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages"`
 
 6. Install Kernel Module
 -------------
