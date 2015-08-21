@@ -348,7 +348,11 @@ handle_client_packets(void *arg) {
 	unsigned first_cl = ((struct arg*)arg)->first_cl;
 	unsigned last_cl  = ((struct arg*)arg)->last_cl;
 
-        RTE_LOG(INFO, APP, "Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
+	if (first_cl == last_cl - 1) {
+	        RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
+	} else if (first_cl < last_cl) {
+	        RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
+	}
 
         for (;;) {
                 /* Read packets from the client's tx queue and process them as needed */

@@ -1,3 +1,5 @@
+build
+x86_64-native-linuxapp-gcc/
 # ctags files
 tags
 .tags

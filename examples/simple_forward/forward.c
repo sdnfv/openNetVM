@@ -41,6 +41,9 @@
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+
+static uint32_t destination;
+
 /*
  * Print a usage message
  */
@@ -120,19 +123,20 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
                 counter = 0;
         }
 
-        action->action = ONVM_NF_ACTION_OUT;
-        action->destination = pkt->port;
+        action->action = ONVM_NF_ACTION_TONF;
+	action->destination = destination;
 }
 
 
 int main(int argc, char *argv[]) {
-        struct onvm_nf_info info;
+	struct onvm_nf_info info;
         int retval;
 
         if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
                 return -1;
         argc -= retval;
         argv += retval;
+	destination = info.client_id + 1;
 
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
