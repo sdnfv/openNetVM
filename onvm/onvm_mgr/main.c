@@ -385,6 +385,50 @@ handle_client_packets(void *arg) {
         return 0;
 }
 
+static int
+handle_last_client(__attribute__((unused)) void *dummy) {
+        struct client *cl;
+        unsigned i, tx_count;
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
+	unsigned first_cl = num_clients -1;
+	unsigned last_cl  = num_clients ;
+
+	if (first_cl == last_cl - 1) {
+	        RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
+	} else if (first_cl < last_cl) {
+	        RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
+	}
+
+        for (;;) {
+                /* Read packets from the client's tx queue and process them as needed */
+                for (i = first_cl; i < last_cl; i++) {
+                        tx_count = PACKET_READ_SIZE;
+                        cl = &clients[i];
+                        /* try dequeuing max possible packets first, if that fails, get the
+                         * most we can. Loop body should only execute once, maximum */
+                        while (tx_count > 0 &&
+                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0)) {
+                                tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
+                                        PACKET_READ_SIZE);
+                        }
+
+                        /* Now process the Client packets read */
+                        if (likely(tx_count > 0)) {
+                                process_tx_packets(pkts, tx_count, cl);
+                            }
+                }
+
+                /* Send a burst to every port */
+                //for (i = 0; i < ports->num_ports; i++) {
+                //        flush_tx_queue(i);
+                //}
+                /* Send a burst to every client */
+                //for (i = 0; i < num_clients; i++) {
+                //        flush_rx_queue(i);
+                //}
+        }
+        return 0;
+}
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
@@ -402,7 +446,7 @@ main(int argc, char *argv[]) {
         unsigned cur_lcore = rte_lcore_id();
         RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
 
-        unsigned nb_lcore = rte_lcore_count() - 2;
+        unsigned nb_lcore = rte_lcore_count() - 3;
         RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", nb_lcore);
 
 	unsigned next_client = 0;
@@ -417,6 +461,12 @@ main(int argc, char *argv[]) {
                 	return -1;
        	 	}
 	}
+
+        cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+        if (rte_eal_remote_launch(handle_last_client, NULL, cur_lcore) == -EBUSY) {
+                RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
+                return -1;
+        }
 
         //unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         //if (rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore) == -EBUSY) {
