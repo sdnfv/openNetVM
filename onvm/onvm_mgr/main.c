@@ -468,12 +468,6 @@ main(int argc, char *argv[]) {
                 return -1;
         }
 
-        //unsigned tx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        //if (rte_eal_remote_launch(handle_client_packets, NULL, tx_lcore) == -EBUSY) {
-        //        RTE_LOG(ERR, APP, "Core %d is already busy\n", tx_lcore);
-        //        return -1;
-        //}
-
         unsigned stat_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         if (rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore) == -EBUSY) {
                 RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
