@@ -447,13 +447,13 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
 
         unsigned nb_lcore = rte_lcore_count() - 3;
-        RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", nb_lcore);
+        RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", nb_lcore + 1);
 
 	unsigned next_client = 0;
 	for (; nb_lcore > 0; nb_lcore--) {
         	struct arg *arg_lcore = malloc(sizeof(struct arg));
 		arg_lcore->first_cl = next_client;
-		next_client += (num_clients - next_client)/nb_lcore + ((num_clients - next_client)%nb_lcore > 0);
+		next_client += (num_clients - 1 - next_client)/nb_lcore + ((num_clients - 1 - next_client)%nb_lcore > 0);
 		arg_lcore->last_cl = next_client;
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         	if (rte_eal_remote_launch(handle_client_packets, (void*)arg_lcore,  cur_lcore) == -EBUSY) {
@@ -464,7 +464,7 @@ main(int argc, char *argv[]) {
 
         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         if (rte_eal_remote_launch(handle_last_client, NULL, cur_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
+                RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
                 return -1;
         }
 
