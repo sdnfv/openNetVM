@@ -1,10 +1,7 @@
 OpenNetVM Installation
 ===================
 
-
-
-
-#### Welcome to installation memo for [OpenNetVM](https://www.usenix.org/conference/nsdi14/technical-sessions/presentation/hwang), OpenNetVM is build with [Docker Container](https://www.docker.com/) and Intel [DPDK](http://dpdk.org/) library, which offers high bandwidth network functions.
+Welcome to the installation guide for **[OpenNetVM](https://http://sdnfv.github.io/onvm/)**, OpenNetVM uses [Docker Containers](https://www.docker.com/) to isolate NFs and the Intel [DPDK](http://dpdk.org/) library for high performance network I/O.
 
 ----------
 
@@ -14,13 +11,15 @@ OpenNetVM Installation
 
 Before installation of OpenNetVM, please check your machine to see if it could meet the **minimum** requirements as following:
 
-1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/).
+1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/doc/nics/).
 
  `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
-1.2  check what operating system do you have by typing, your Kernel version should be higher than 2.6.33.
+1.2  check what operating system you have by typing:
 
  `$uname -a`
+
+ your Kernel version should be higher than 2.6.33.
 
 1.3  check if your system supports uio
 
@@ -43,7 +42,7 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 2.3  enter dpdk working directory
 
- `$cd  ~/openNetVM/dpdk-1.8.0/`
+ `$cd  openNetVM/dpdk-1.8.0/`
 
 
 3. Set	up Environment
@@ -60,6 +59,12 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$sudo sh -c "echo export RTE_SDK=/home/**your_name**/openNetVM/dpdk-1.8.0  >> ~/.bashrc"`
 
+ or if you are currently in the dpdk directory simply use:
+
+``
+ $sudo sh -c "echo export RTE_SDK=`pwd` >> ~/.bashrc"
+ ``
+
 3.4  set  environment variable RTE_TARGET as one of the list of config files you got from step 3.2, e.g.  "x86_64-native-linuxapp-gcc"
 
  `$sudo sh -c "echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc"`
@@ -72,13 +77,11 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$make config T=x86_64-native-linuxapp-gcc`
 
-4.2 install the exact same configuration you used in step 4.1, e.g.  "x86_64-native-linuxapp-gcc"
-
- `$make install T=x86_64-native-linuxapp-gcc`
-
- `$make`
-
-
+4.2 Make and install the exact same configuration you used in step 4.1, e.g.  "x86_64-native-linuxapp-gcc"
+```
+$make T=x86_64-native-linuxapp-gcc
+$make install T=x86_64-native-linuxapp-gcc
+```
 5. Create	Hugepage Directory and Reserve	Memory
 -------------
 5.1  create a directory in your linux environment
@@ -89,9 +92,11 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$sudo mount -t hugetlbfs nodev /mnt/huge`
 
-5.3 create 1024 hugepages
+5.3 create 1024 hugepages each of size 2MB
 
- `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-1048576kB/nr_hugepages"`
+ `$sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
+
+ **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported.
 
 6. Install Kernel Module
 -------------
@@ -198,4 +203,23 @@ CLIENTS
 -------
 Client  0 - rx:        12, rx_drop:         0
             tx:         0, tx_drop:         0
+```
+
+
+10. Setup on Future Reboots
+-------------
+Some of the settings just performed will not persist across reboots. You can edit some config files to automatically set them up, or you can run these commands after each boot:
+
+```
+# Setup huge pages:
+ sudo mount -t hugetlbfs nodev /mnt/huge
+ sudo sh -c "echo 4096 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
+# Start the UIO and IGB drivers
+ sudo modprobe uio
+ sudo insmod $RTE_SDK/x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
+# Find ID for DPDK NIC
+ $RTE_SDK/tools/dpdk_nic_bind.py --status
+# Fill the ID (like 0000:0a:00.0) into this command:
+ sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio <NIC ID>
+
 ```
