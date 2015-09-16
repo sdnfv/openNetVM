@@ -29,6 +29,12 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
 
+1.5 check if you have available hugepages, using:
+
+` $ grep -i huge /proc/meminfo` 
+
+if you have got 0 free hugepages, please `$ sudo reboot`  your system to release virtual memories. 
+
 
 2. Get Package
 -------------
