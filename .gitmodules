@@ -1,0 +1,3 @@
+[submodule "dpdk-1.8.0"]
+	path = dpdk-1.8.0
+	url = git@github.com:sdnfv/onvm-dpdk.git

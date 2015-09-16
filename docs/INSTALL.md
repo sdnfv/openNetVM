@@ -40,6 +40,10 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$git clone https://github.com/sdnfv/openNetVM`
 
+2.3 Initialize dpdk submodule
+
+  `$ git submodule init && git submodule update`
+
 2.3  enter dpdk working directory
 
  `$cd  openNetVM/dpdk-1.8.0/`
