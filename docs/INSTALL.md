@@ -29,12 +29,6 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
 
-1.5 check if you have available hugepages, using:
-
-` $ grep -i huge /proc/meminfo` 
-
-if you have got 0 free hugepages, please `$ sudo reboot`  your system to release virtual memories. 
-
 
 2. Get Package
 -------------
@@ -102,7 +96,13 @@ $ make install T=x$RTE_TARGET
 
  `$ sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
 
- **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported.
+ **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported
+    
+ if it returns not enough hugepages, then check how many available hugepages using:
+
+  ` $ grep -i huge /proc/meminfo` 
+
+ if you have got 0 free hugepages, please `$ sudo reboot`  your system to release virtual memories. 
 
 6. Install Kernel Module
 -------------
