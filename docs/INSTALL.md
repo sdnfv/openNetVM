@@ -11,7 +11,7 @@ Welcome to the installation guide for **[OpenNetVM](https://http://sdnfv.github.
 
 Before installation of OpenNetVM, please check your machine to see if it could meet the **minimum** requirements as following:
 
-1.1  check what NIC do you have by typing, see if your NIC belongs to one of [Supported NICs](http://dpdk.org/doc/nics/).
+1.1  check what NIC you have with command below and see if your NIC belongs to one of the [Supported NICs](http://dpdk.org/doc/nics/).
 
  `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
