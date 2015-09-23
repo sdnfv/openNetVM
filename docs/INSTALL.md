@@ -77,57 +77,15 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 4.  Configure	and	compile	DPDK
 -------------
-4.1 specify the configuration type the same as step 3.4,  e.g.  "x86_64-native-linuxapp-gcc"
 
- `$ make config T=$RTE_TARGET`
+Run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
 
-4.2 Make and install the exact same configuration you used in step 4.1, e.g.  "x86_64-native-linuxapp-gcc"
-```
-$ make T=$RTE_TARGET
-$ make install T=x$RTE_TARGET
-```
-5. Create	Hugepage Directory and Reserve	Memory
+The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver. Upon successful completion of this step, you can skip step 5, it is listed only as a reference.
+
+5. Bind	NIC to DPDK igb_uio Kernel Module
 -------------
-5.1  create a directory in your linux environment
-
- `$ sudo mkdir -p /mnt/huge`
-
-5.2 mount the directory you created in step 5.1  to memory formatted with huge table file system (hugetlbfs)
-
- `$ sudo mount -t hugetlbfs nodev /mnt/huge`
-
-5.3 create 1024 hugepages each of size 2MB
-
- `$ sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
-
- **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported
-    
- if you are not able to allocate any huge pages, then that means there may not be sufficient free memory. You can check the huge page usage statistics with command below: 
- 
-  ` $ grep -i huge /proc/meminfo` 
- 
-  You may need to reboot the machine to free memory and reserve the huge pages, if it returns not enough free hugepages, or even 0 free hugepagse left, please reboot the machine using command below to release virtual memories:
-
-  ` $ sudo reboot` 
-
-
-6. Install Kernel Module
--------------
-6.1 after the installation, you will see a new folder appears in your directory, e.g  "x86_64-native-linuxapp-gcc"
-
- `$ ls`
-
-6.2 load in your uio linux kernel module
-
- `$ sudo modprobe uio`
-
-6.3 load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc
-
- `$ sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko`
-
-7. Bind	NIC to DPDK igb_uio Kernel Module
--------------
-7.1 check your current status of NIC binding and active status
+This step 
+5.1 check your current status of NIC binding and active status
 
  `$ ./tools/dpdk_nic_bind.py  --status`
 
@@ -144,7 +102,7 @@ Network devices using kernel driver
 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
 ```
 
-7.2 as you could see, the 10G one is active now, so the next thing is to turn it down
+5.2 as you could see, the 10G one is active now, so the next thing is to turn it down
 
  `$ sudo ifconfig eth2 down`
 
@@ -152,11 +110,11 @@ now we could check the status again
 
  `$ ./tools/dpdk_nic_bind.py  --status`
 
-7.3 bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
+5.3 bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
 
  `$ sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
 
-7.4 check the status again, if it shows up as following, you are all set
+5.4 check the status again, if it shows up as following, you are all set
 
  `$ ./tools/dpdk_nic_bind.py  --status`
 
@@ -171,15 +129,15 @@ Network devices using kernel driver
 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
 ```
 
-8. Run	HelloWorld	Application
+6. Run	HelloWorld	Application
 -------------
-8.1 enter working directory, and compile the application
+6.1 enter working directory, and compile the application
 
  `$ cd ./examples/helloworld/`
 
  `$make`
 
-8.2 executing the example
+6.2 executing the example
 
   `$ sudo build/helloworld -c 3 -n 1`
 
@@ -190,15 +148,15 @@ hello from core 1
 hello from core 0
 ```
 
-9. Run	openNetVM
+7. Run	openNetVM
 -------------
-9.1 enter working directory, and compile the application
+7.1 enter working directory, and compile the application
 
 `cd /home/**your_name**/openNetVM/onvm`
 
 `make`
 
-9.2 executing openNetVM
+7.2 executing openNetVM
 
  ***onvm_mgr*** is a monitor for incoming packets, please execute using following command
 
@@ -218,21 +176,6 @@ Client  0 - rx:        12, rx_drop:         0
             tx:         0, tx_drop:         0
 ```
 
-
-10. Setup on Future Reboots
+8. Applying settings after reboot
 -------------
-Some of the settings just performed will not persist across reboots. You can edit some config files to automatically set them up, or you can run these commands after each boot:
-
-```
-# Setup huge pages:
- sudo mount -t hugetlbfs nodev /mnt/huge
- sudo sh -c "echo 4096 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
-# Start the UIO and IGB drivers
- sudo modprobe uio
- sudo insmod $RTE_SDK/x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
-# Find ID for DPDK NIC
- $RTE_SDK/tools/dpdk_nic_bind.py --status
-# Fill the ID (like 0000:0a:00.0) into this command:
- sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio <NIC ID>
-
-```
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
