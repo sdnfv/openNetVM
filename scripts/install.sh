@@ -3,9 +3,18 @@ set -e
 
 # A script to configure openNetVM
 # Expected to be run as scripts/install.sh
+# CONFIGURATION (via environment variable):
+#  - Make sure $RTE_TARGET and $RTE_SDK are correct (see install docs)
+#  - Set $ONVM_NUM_HUGEPAGES to control the number of pages created
+#  - Set $ONVM_SKIP_FSTAB to not add huge fs to /etc/fstab
 
-read -r -p "Have you configured \$RTE_TARGET and \$RTE_SDK in your environment? [y/N] " response
-if [[ ! $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+if [ -z "$RTE_TARGET" ]; then
+    echo "Please export \$RTE_TARGET"
+    exit 1
+fi
+
+if [ -z "$RTE_SDK" ]; then
+    echo "Please export \$RTE_SDK"
     exit 1
 fi
 
@@ -34,18 +43,25 @@ sudo -v
 cd $start_dir
 
 # Configure HugePages
-echo "Configuring hugepages"
+hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
+hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
+echo "Configuring $hp_count hugepages with size $hp_size"
 sleep 1
 sudo mkdir -p /mnt/huge
-echo "Adding huge fs to /etc/fstab"
-sleep 1
-sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"
+
+# Only add to /etc/fstab if user wants it
+if [ -z "$ONVM_SKIP_FSTAB" ]; then
+    echo "Adding huge fs to /etc/fstab"
+    sleep 1
+    sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"
+fi
+
 echo "Mounting hugepages"
 sleep 1
 sudo mount -t hugetlbfs nodev /mnt/huge
-echo "Creating 1024 hugepages"
+echo "Creating $hp_count hugepages"
 sleep 1
-sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
+sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
 
 # Configure local environment
 echo "Configuring environment"
