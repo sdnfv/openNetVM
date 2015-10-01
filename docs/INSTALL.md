@@ -96,7 +96,16 @@ $ make install T=x$RTE_TARGET
 
  `$ sudo sh -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"`
 
- **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported.
+ **Note:** Ideally the system should be using larger sized huge pages, e.g., 1048576kB. Check the `/sys/devices/system/node/node0/hugepages` directory to see what size pages are supported
+    
+ if you are not able to allocate any huge pages, then that means there may not be sufficient free memory. You can check the huge page usage statistics with command below: 
+ 
+  ` $ grep -i huge /proc/meminfo` 
+ 
+  You may need to reboot the machine to free memory and reserve the huge pages, if it returns not enough free hugepages, or even 0 free hugepagse left, please reboot the machine using command below to release virtual memories:
+
+  ` $ sudo reboot` 
+
 
 6. Install Kernel Module
 -------------
