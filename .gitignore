@@ -1,3 +1,9 @@
+# build directories
+**/build/**
+
+# dpdk built target
+dpdk-1.8.0/x86_64-native-linuxapp-gcc/*
+
 # ctags files
 tags
 .tags
