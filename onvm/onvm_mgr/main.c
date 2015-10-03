@@ -381,6 +381,14 @@ tx_thread_main(void *arg) {
                             }
                 }
 
+                /* TODO: figure out what the problem was with this code
+                 * I think we turned it off because of a consistency
+                 * problem between threads, but I may be misremembering.
+                 * Since we aren't flushing here, it is possible that
+                 * the last packets in a flow will never get flushed out.
+                 * (we only flush in proccess_batch if the queue is full)
+                 */
+
                 /* Send a burst to every port */
                 //for (i = 0; i < ports->num_ports; i++) {
                 //        flush_tx_queue(i);
