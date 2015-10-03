@@ -164,10 +164,7 @@ do_stats_display(void) {
 }
 
 /*
- * The function called from each non-master lcore used by the process.
- * The test_and_set function is used to randomly pick a single lcore on which
- * the code to display the statistics will run. Otherwise, the code just
- * repeatedly sleeps.
+ * Stats thread periodically prints per-port and per-NF stats.
  */
 static int
 stats_thread_main(__attribute__((unused)) void *dummy) {
@@ -185,7 +182,6 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
 
 /*
  * Function to set all the client statistic values to zero.
- * Called at program startup.
  */
 static void
 clear_stats(void) {
