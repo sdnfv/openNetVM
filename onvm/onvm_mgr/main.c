@@ -85,8 +85,9 @@ struct packet_buf {
 static struct packet_buf *cl_rx_buf;
 static struct packet_buf *port_tx_buf;
 
-/* Argument struct for client handler */
-struct arg {
+/* Argument struct for TX threads. The thread will handle TX for clients
+   with ids first_cl ... last_cl */
+struct tx_arg {
        unsigned first_cl;
        unsigned last_cl;
 };
@@ -165,7 +166,7 @@ do_stats_display(void) {
  * repeatedly sleeps.
  */
 static int
-sleep_lcore(__attribute__((unused)) void *dummy) {
+stats_lcore(__attribute__((unused)) void *dummy) {
         const unsigned sleeptime = 1;
         RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
 
@@ -345,14 +346,14 @@ handle_client_packets(void *arg) {
         struct client *cl;
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-	unsigned first_cl = ((struct arg*)arg)->first_cl;
-	unsigned last_cl  = ((struct arg*)arg)->last_cl;
+        unsigned first_cl = ((struct tx_arg*)arg)->first_cl;
+        unsigned last_cl  = ((struct tx_arg*)arg)->last_cl;
 
-	if (first_cl == last_cl - 1) {
-	        RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
-	} else if (first_cl < last_cl) {
-	        RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
-	}
+        if (first_cl == last_cl - 1) {
+                RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
+        } else if (first_cl < last_cl) {
+                RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
+        }
 
         for (;;) {
                 /* Read packets from the client's tx queue and process them as needed */
@@ -390,14 +391,14 @@ handle_last_client(__attribute__((unused)) void *dummy) {
         struct client *cl;
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-	unsigned first_cl = num_clients -1;
-	unsigned last_cl  = num_clients ;
+        unsigned first_cl = num_clients -1;
+        unsigned last_cl  = num_clients ;
 
-	if (first_cl == last_cl - 1) {
-	        RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
-	} else if (first_cl < last_cl) {
-	        RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
-	}
+        if (first_cl == last_cl - 1) {
+                RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", first_cl, rte_lcore_id());
+        } else if (first_cl < last_cl) {
+                RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", first_cl, last_cl - 1, rte_lcore_id());
+        }
 
         for (;;) {
                 /* Read packets from the client's tx queue and process them as needed */
@@ -449,18 +450,18 @@ main(int argc, char *argv[]) {
         unsigned nb_lcore = rte_lcore_count() - 3;
         RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", nb_lcore + 1);
 
-	unsigned next_client = 0;
-	for (; nb_lcore > 0; nb_lcore--) {
-        	struct arg *arg_lcore = malloc(sizeof(struct arg));
-		arg_lcore->first_cl = next_client;
-		next_client += (num_clients - 1 - next_client)/nb_lcore + ((num_clients - 1 - next_client)%nb_lcore > 0);
-		arg_lcore->last_cl = next_client;
+        unsigned next_client = 0;
+        for (; nb_lcore > 0; nb_lcore--) {
+                struct tx_arg *arg_lcore = malloc(sizeof(struct tx_arg));
+                arg_lcore->first_cl = next_client;
+                next_client += (num_clients - 1 - next_client)/nb_lcore + ((num_clients - 1 - next_client)%nb_lcore > 0);
+                arg_lcore->last_cl = next_client;
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        	if (rte_eal_remote_launch(handle_client_packets, (void*)arg_lcore,  cur_lcore) == -EBUSY) {
-                	RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
-                	return -1;
-       	 	}
-	}
+                if (rte_eal_remote_launch(handle_client_packets, (void*)arg_lcore,  cur_lcore) == -EBUSY) {
+                        RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
+                        return -1;
+                        }
+        }
 
         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         if (rte_eal_remote_launch(handle_last_client, NULL, cur_lcore) == -EBUSY) {
@@ -469,7 +470,7 @@ main(int argc, char *argv[]) {
         }
 
         unsigned stat_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        if (rte_eal_remote_launch(sleep_lcore, NULL, stat_lcore) == -EBUSY) {
+        if (rte_eal_remote_launch(stats_lcore, NULL, stat_lcore) == -EBUSY) {
                 RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
                 return -1;
         }
