@@ -26,7 +26,11 @@ fi
 
 start_dir=$(pwd)
 
-# Check for free HugePages
+# Setup/Check for free HugePages
+hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
+hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
+
+sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
 hp_free=$(cat /proc/meminfo | grep HugePages_Free | awk '{print $2}')
 if [ $hp_free == "0" ]; then
     echo "No free huge pages. Did you try turning it off and on again?"
@@ -52,7 +56,7 @@ nic_id=${ONVM_NIC_PCI:-07:00.0}
 read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
 if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo "Binding $nic_name to dpdk"
-    sudo ifconfig $nic_name down
+    sudo ifconfig $nic_name down || true
     $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
     $RTE_SDK/tools/dpdk_nic_bind.py --status
 fi
