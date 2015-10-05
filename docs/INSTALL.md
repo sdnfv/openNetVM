@@ -177,5 +177,66 @@ Client  0 - rx:        12, rx_drop:         0
 ```
 
 8. Applying settings after reboot
+<<<<<<< HEAD
 -------------
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
+=======
+------------
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
+
+Troubleshooting
+-------------
+
+### Huge Page Configuration
+
+You can get information about the huge page configuration with:
+
+ ` $ grep -i huge /proc/meminfo`
+
+ You may need to reboot the machine to free memory and reserve the huge pages, if it returns not enough free hugepages or 0 free hugepagse left.
+
+### Binding the NIC to the DPDK Driver
+You can check the current status of NIC binding with
+
+  `$ ./tools/dpdk_nic_bind.py  --status`
+
+ something as below will show up, in this case, the "82599EB 10-Gigabit" is the NIC we want to utilize for DPDK, notice that the one for log in the node should not be the "82599EB 10-Gigabit"
+ ```
+ Network devices using DPDK-compatible driver
+ ============================================
+ <none>
+
+ Network devices using kernel driver
+ ===================================
+ 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
+ 0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth2 drv=ixgbe unused=igb_uio *Active*
+ 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
+ ```
+
+ As you could see, the 10G one is active now, so the next thing is to turn it down
+
+  `$ sudo ifconfig eth2 down`
+
+ now we could check the status again
+
+  `$ ./tools/dpdk_nic_bind.py  --status`
+
+ To bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
+
+  `$ sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+
+ Check the status again, if it shows up as following, you are all set
+
+  `$ ./tools/dpdk_nic_bind.py  --status`
+
+ ```
+ Network devices using DPDK-compatible driver
+ ============================================
+ 0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' drv=igb_uio unused=ixgbe
+
+ Network devices using kernel driver
+ ===================================
+ 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
+ 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
+ ```
+>>>>>>> Finish merge conflicts
