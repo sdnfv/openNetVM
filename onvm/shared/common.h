@@ -30,9 +30,10 @@
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
 
-struct onvm_pkt_action {
-        uint8_t action;
-        uint16_t destination;
+struct onvm_pkt_meta {
+        uint8_t action; /* Action to be performed */
+        uint16_t destination; /* where to go next */
+        uint16_t src; /* who processed the packet last */
 };
 
 /*

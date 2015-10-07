@@ -67,6 +67,6 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info);
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action));
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action));
 
 #endif

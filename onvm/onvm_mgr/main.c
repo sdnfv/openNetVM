@@ -270,8 +270,19 @@ enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf, int to_client) {
  */
 static void
 process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
-        uint16_t j;
         struct client *cl;
+        uint16_t i, j;
+        struct onvm_pkt_meta *meta;
+
+        for (i = 0; i < tx_count; i++) {
+                meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                meta->src = 0; // FIXME: this should be an ID to represent the NIC port
+                /* PERF: this might hurt performance since it will cause cache
+                 * invalidations. Ideally the data modified by the NF manager
+                 * would be a different line than that modified/read by NFs.
+                 * That may not be possible.
+                 */
+        }
 
         cl = &clients[0];
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
@@ -290,25 +301,26 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
 static void
 process_tx_packet_batch(struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl) {
         uint16_t i;
-        struct onvm_pkt_action *action;
+        struct onvm_pkt_meta *meta;
 
         for (i = 0; i < tx_count; i++) {
-                action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                if (action->action == ONVM_NF_ACTION_DROP) {
+                meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                meta->src = cl->client_id;
+                if (meta->action == ONVM_NF_ACTION_DROP) {
                         rte_pktmbuf_free(pkts[i]);
                         cl->stats.act_drop++;
-                } else if (action->action == ONVM_NF_ACTION_NEXT) {
+                } else if (meta->action == ONVM_NF_ACTION_NEXT) {
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         cl->stats.act_next++;
                         rte_pktmbuf_free(pkts[i]);
                         printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
-                } else if (action->action == ONVM_NF_ACTION_TONF) {
+                } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         cl->stats.act_tonf++;
-                        enqueue_rx_packet(action->destination, pkts[i], TO_CLIENT);
-                } else if (action->action == ONVM_NF_ACTION_OUT) {
+                        enqueue_rx_packet(meta->destination, pkts[i], TO_CLIENT);
+                } else if (meta->action == ONVM_NF_ACTION_OUT) {
                         cl->stats.act_out++;
-                        enqueue_rx_packet(action->destination, pkts[i], TO_PORT);
+                        enqueue_rx_packet(meta->destination, pkts[i], TO_PORT);
                 } else {
                         rte_pktmbuf_free(pkts[i]);
                         return;
