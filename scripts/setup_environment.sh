@@ -57,7 +57,7 @@ read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
 if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo "Binding $nic_name to dpdk"
     sudo ifconfig $nic_name down || true
-    $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+    sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
     $RTE_SDK/tools/dpdk_nic_bind.py --status
 fi
 
