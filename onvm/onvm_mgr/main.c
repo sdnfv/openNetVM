@@ -80,6 +80,9 @@ struct packet_buf {
         uint16_t count;
 };
 
+/* ID to be assigned to the next NF that starts */
+static uint8_t next_client_id;
+
 /* One buffer per client rx queue - dynamically allocate array
  * and one buffer per port tx queue. */
 static struct packet_buf *cl_rx_buf;
@@ -134,7 +137,9 @@ do_stats_display(void) {
 
         printf("\nCLIENTS\n");
         printf("-------\n");
-        for (i = 0; i < num_clients; i++) {
+        for (i = 0; i < MAX_CLIENTS; i++) {
+                if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                        continue;
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
                 const uint64_t tx = clients_stats->tx[i];
@@ -150,6 +155,33 @@ do_stats_display(void) {
         }
 
         printf("\n");
+}
+
+static void
+do_check_new_nf(void) {
+        int i;
+        int added_clients;
+        void *new_nfs[MAX_CLIENTS];
+        struct onvm_nf_info *new_nf;
+        int num_new_nfs = rte_ring_count(nf_info_queue);
+        int dequeue_val = rte_ring_dequeue_bulk(nf_info_queue, new_nfs, num_new_nfs);
+
+        if (dequeue_val != 0)
+                return;
+
+        added_clients = 0;
+        for (i = 0; i < num_new_nfs && next_client_id < MAX_CLIENTS; i++) {
+                new_nf = (struct onvm_nf_info *)new_nfs[i];
+                //TODO this stuff - make rx/tx ring
+                // take code from init_shm_rings in init.c
+                // flush rx/tx queue at the this index to start clean?
+                clients[next_client_id].info = new_nf;
+                new_nf->client_id = next_client_id++;
+                added_clients++;
+        }
+        //TODO needs to wait for client to be ready
+        // needs spcial info thread to wait
+        num_clients += added_clients;
 }
 
 /*
@@ -172,8 +204,11 @@ sleep_lcore(__attribute__((unused)) void *dummy) {
                 sleep(sleeptime * 3);
 
                 /* Loop forever: sleep always returns 0 or <= param */
-                while (sleep(sleeptime) <= sleeptime)
+                while (sleep(sleeptime) <= sleeptime) {
+                        do_check_new_nf();
                         do_stats_display();
+                }
+                //TODO find a way to check for clients going NF_RUNNING -> NF_NOT_RUNNING
         }
         return 0;
 }
@@ -186,7 +221,7 @@ static void
 clear_stats(void) {
         unsigned i;
 
-        for (i = 0; i < num_clients; i++) {
+        for (i = 0; i < MAX_CLIENTS; i++) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
@@ -336,9 +371,11 @@ do_rx_tx(void) {
                 }
 
                 /* Read packets from the client's tx queue and process them as needed */
-                for (i = 0; i < num_clients; i++) {
+                for (i = 0; i < MAX_CLIENTS; i++) {
                         tx_count = PACKET_READ_SIZE;
                         cl = &clients[i];
+                        if (!cl->info || !cl->info->is_running == NF_RUNNING)
+                                continue;
                         /* try dequeuing max possible packets first, if that fails, get the
                          * most we can. Loop body should only execute once, maximum */
                         while (tx_count > 0 &&
@@ -358,7 +395,9 @@ do_rx_tx(void) {
                         flush_tx_queue(i);
                 }
                 /* Send a burst to every client */
-                for (i = 0; i < num_clients; i++) {
+                for (i = 0; i < MAX_CLIENTS; i++) {
+                        if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                                continue;
                         flush_rx_queue(i);
                 }
         }
@@ -367,11 +406,12 @@ do_rx_tx(void) {
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
+        next_client_id = 0;
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-        cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+        cl_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
         port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
 
         /* clear statistics */
