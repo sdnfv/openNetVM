@@ -80,64 +80,17 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 Run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
 
-The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver. Upon successful completion of this step, you can skip step 5, it is listed only as a reference.
+The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver.
 
-5. Bind	NIC to DPDK igb_uio Kernel Module
+5. Run	HelloWorld	Application
 -------------
-This step 
-5.1 check your current status of NIC binding and active status
-
- `$ ./tools/dpdk_nic_bind.py  --status`
-
-something as below will show up, in this case, the "82599EB 10-Gigabit" is the NIC we want to utilize for DPDK, notice that the one for log in the node should not be the "82599EB 10-Gigabit"
-```
-Network devices using DPDK-compatible driver
-============================================
-<none>
-
-Network devices using kernel driver
-===================================
-0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
-0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth2 drv=ixgbe unused=igb_uio *Active*
-0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
-```
-
-5.2 as you could see, the 10G one is active now, so the next thing is to turn it down
-
- `$ sudo ifconfig eth2 down`
-
-now we could check the status again
-
- `$ ./tools/dpdk_nic_bind.py  --status`
-
-5.3 bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
-
- `$ sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
-
-5.4 check the status again, if it shows up as following, you are all set
-
- `$ ./tools/dpdk_nic_bind.py  --status`
-
-```
-Network devices using DPDK-compatible driver
-============================================
-0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' drv=igb_uio unused=ixgbe
-
-Network devices using kernel driver
-===================================
-0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
-0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
-```
-
-6. Run	HelloWorld	Application
--------------
-6.1 enter working directory, and compile the application
+5.1 enter working directory, and compile the application
 
  `$ cd ./examples/helloworld/`
 
  `$make`
 
-6.2 executing the example
+5.2 executing the example
 
   `$ sudo build/helloworld -c 3 -n 1`
 
@@ -148,15 +101,15 @@ hello from core 1
 hello from core 0
 ```
 
-7. Run	openNetVM
+6. Run	openNetVM
 -------------
-7.1 enter working directory, and compile the application
+6.1 enter working directory, and compile the application
 
 `cd /home/**your_name**/openNetVM/onvm`
 
 `make`
 
-7.2 executing openNetVM
+6.2 executing openNetVM
 
  ***onvm_mgr*** is a monitor for incoming packets, please execute using following command
 
@@ -176,11 +129,7 @@ Client  0 - rx:        12, rx_drop:         0
             tx:         0, tx_drop:         0
 ```
 
-8. Applying settings after reboot
-<<<<<<< HEAD
--------------
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
-=======
+7. Applying settings after reboot
 ------------
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
 
@@ -239,4 +188,3 @@ You can check the current status of NIC binding with
  0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
  0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
  ```
->>>>>>> Finish merge conflicts
