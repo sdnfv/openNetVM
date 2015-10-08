@@ -217,7 +217,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         nf_info->is_running = NF_RUNNING;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-        return retval_eal;
+        return (retval_eal + retval_parse);
 }
 
 /**
