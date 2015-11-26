@@ -82,3 +82,31 @@ for c in cores:
         for s in sockets:
                 print str(core_map[(s,c)]).ljust(max_core_map_len),
         print "\n"
+
+# additions by nks5295
+
+# TODO: Assume 1 tx thread for mgr.  change to input based
+
+mgr_binary_core_mask = list("0" * len(cores))
+
+const_mgr_thread = 3;	# 1x rx, 1x tx, 1x stat
+# TODO: fix this one
+num_mgr_thread = 1;		# threads for each nf tx
+total_mgr_thread = const_mgr_thread + num_mgr_thread
+
+for i in range(len(cores)-1, len(cores)-1-total_mgr_thread, -1):
+	mgr_binary_core_mask[i] = "1"
+
+mgr_hex_core_mask = hex(int(''.join(mgr_binary_core_mask), 2))
+
+print mgr_binary_core_mask
+print mgr_hex_core_mask
+
+nf_count = 0
+for i in range(0, len(cores)-1-total_mgr_thread, 2):
+	nf_core_mask = list("0" * len(cores))
+	nf_core_mask[i] = "1"
+	nf_core_mask[i+1] = "1"
+
+	print nf_core_mask
+	print hex(int(''.join(nf_core_mask), 2))
