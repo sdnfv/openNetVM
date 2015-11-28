@@ -27,6 +27,7 @@ cores = []
 core_map = {}
 
 onvm_mgr_hex_coremask = ""
+onvm_mgr_bin_coremask = ""
 onvm_nfs_coremasks = {}
 
 ### Code from Intel DPDK ###
@@ -77,6 +78,13 @@ def dpdk_cpu_info_print():
 		max_core_map_len = max_processor_len * 2 + len('[, ]') + len('Socket ')
 		max_core_id_len = len(str(max(cores)))
 
+		print ""
+		print "============================================================"
+		print "Core and Socket Information (as reported by '/proc/cpuinfo')"
+		print "============================================================\n"
+		print "cores = ",cores
+		print "sockets = ", sockets
+		print ""
 		print " ".ljust(max_core_id_len + len('Core ')),
 		for s in sockets:
 		        print "Socket %s" % str(s).ljust(max_core_map_len - len('Socket ')),
@@ -92,16 +100,7 @@ def dpdk_cpu_info_print():
 		                print str(core_map[(s,c)]).ljust(max_core_map_len),
 		        print "\n"
 
-		print "============================================================"
-		print "Core and Socket Information (as reported by '/proc/cpuinfo')"
-		print "============================================================\n"
-		print "cores = ",cores
-		print "sockets = ", sockets
-		print ""
-
 ### End Intel DPDK Codeblock ###
-
-### Additions by @nks5295 ###
 
 """
 This function uses the information read from /proc/cpuinfo and determines
@@ -109,31 +108,31 @@ the coremasks for each openNetVM process: the manager and each NF.
 """
 def onvm_coremask():
 		global onvm_mgr_hex_coremask
-		# TODO: Assume 1 tx thread for mgr.  change to input based
+		global onvm_mgr_bin_coremask
 
 		# Run calculations for openNetVM coremasks
-		mgr_binary_core_mask = list("0" * len(cores))
-
-		const_mgr_thread = 3;	# 1x rx, 1x tx, 1x stat
-		# TODO: fix this one
-		num_mgr_thread = 1;		# threads for each nf tx
+		onvm_mgr_bin_coremask = list("0" * len(cores))
+		const_mgr_thread = 2;			# ONVM Manager defaults to two threads
+										#		1x rx, 1x stat
+		num_mgr_thread = args.mgr		# Default input is 1 tx thread
+										#		but can be more
 		total_mgr_thread = const_mgr_thread + num_mgr_thread
 
 		# Based on required openNetVM manager cores, assign binary values
 		for i in range(len(cores)-1, len(cores)-1-total_mgr_thread, -1):
-			mgr_binary_core_mask[i] = "1"
+			onvm_mgr_bin_coremask[i] = "1"
 
-		onvm_mgr_hex_coremask = hex(int(''.join(mgr_binary_core_mask), 2))
+		onvm_mgr_hex_coremask = hex(int(''.join(onvm_mgr_bin_coremask), 2))
 
 		# Using remaining free cores in binary string, assign free core to
-		# NF.  One core can handle two NFs.  Right now, there is a 1:1 NF:Core
-		# mapping.
+		#		NF.  One core can handle two NFs.  Right now, there is a
+		#		1:1 NF:Core mapping.
 		nf_id = 0
 		for i in range(0, len(cores)-total_mgr_thread, 1):
 			nf_core_mask = list("0" * len(cores))
 			nf_core_mask[i] = "1"
 
-			onvm_nfs_coremasks[str(nf_id)] = hex(int(''.join(nf_core_mask), 2))
+			onvm_nfs_coremasks[str(nf_id)] = (hex(int(''.join(nf_core_mask), 2)), nf_core_mask)
 
 			nf_id += 1
 
@@ -141,23 +140,96 @@ def onvm_coremask():
 Print out openNetVM coremask info
 """
 def onvm_coremask_print():
+		onvm_print_header()
+
+		print "openNetVM requires at least three cores for the manager."
+		print "After three cores, the manager can have more too.  Since"
+		print "NFs need a thread for TX, the manager can have many dedicated"
+		print "TX threads which would all need a dedicated core."
+		print ""
+		print "Each NF running on openNetVM needs its own core too.  One core"
+		print "can be used to handle two NFs, but any more becomes inefficient."
+		print ""
+
+		if len(onvm_nfs_coremasks) <= 0:
+			print "You cannot run openNetVM with %d threads for the manager." %(args.mgr)
+			print "With this configuration, there are no cores left for the NFs."
+			print ""
+
+			if args.verbose:
+				print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
+				print "\t\t+ %s" %(onvm_mgr_bin_coremask)
+				print "\t\t\t+ Bit index represents core number"
+				print "\t\t\t+ If 1, that core is used.  If 0, that core is not used."
+				print "\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
+		else:
+			print "Use the following information to run openNetVM on this system:"
+			print ""
+			print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
+
+			if args.verbose:
+				print "\t\t+ %s" %(onvm_mgr_bin_coremask)
+				print "\t\t\t+ Bit index represents core number"
+				print "\t\t\t+ If 1, that core is used.  If 0, that core is not used."
+				print "\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
+
+			print ""
+			print "\t- CPU Layout permits %d NFs with these coremasks:" %(len(onvm_nfs_coremasks))
+
+			for i in range(0, len(onvm_nfs_coremasks)):
+				print "\t\t+ NF %d -- coremask: %s" %(i, onvm_nfs_coremasks[str(i)][0])
+
+				if args.verbose:
+					print "\t\t\t+ %s" %(onvm_nfs_coremasks[str(i)][1])
+					print "\t\t\t\t+ Bit index represents core number"
+					print "\t\t\t\t+ If 1, that core is used.  If 0, that core is not used."
+					print "\t\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
+
+def onvm_print_header():
 		print "==============================================================="
 		print "\t\t openNetVM CPU Coremask Helper"
 		print "==============================================================="
 		print ""
 
-		print "Use this information to run openNetVM:"
-		print ""
+"""
+Function contains program execution sequence
+"""
+def run():
+		if args.all:
+				dpdk_cpu_info()
+				onvm_coremask()
+				dpdk_cpu_info_print()
+				onvm_coremask_print()
+		elif args.onvm:
+				dpdk_cpu_info()
+				onvm_coremask()
+				onvm_coremask_print()
+		elif args.cpu:
+				dpdk_cpu_info()
+				dpdk_cpu_info_print()
+		else:
+				parser.print_help()
 
-		print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
-		print ""
-		print "\t- CPU Layout permits %d NFs with these coremasks:" %(len(onvm_nfs_coremasks))
+### Set up arg parsing
+parser = argparse.ArgumentParser(description='openNetVM coremask helper script')
 
-		for i in range(0, len(onvm_nfs_coremasks)):
-			print "\t\t+ NF %d -- coremask: %s" %(i, onvm_nfs_coremasks[str(i)])
+parser.add_argument("-m", "--mgr",
+		type=int, default=1,
+		help="Specify number of TX threads for the manager to use. Defualts to 1.")
+parser.add_argument("-o", "--onvm",
+		action="store_true",
+		help="Display openNetVM coremask information.")
+parser.add_argument("-c", "--cpu",
+		action="store_true",
+		help="Display CPU architecture only.")
+parser.add_argument("-a", "--all",
+		action="store_true",
+		help="Display all CPU information.")
+parser.add_argument("-v", "--verbose",
+		action="store_true",
+		help="Verbose mode displays detailed coremask info.")
 
-### End additions by @nks5295 ###
+args = parser.parse_args()
 
-dpdk_cpu_info()
-onvm_coremask()
-onvm_coremask_print()
+# Function call to run program
+run()
