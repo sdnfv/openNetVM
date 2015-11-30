@@ -112,9 +112,9 @@ def onvm_coremask():
 
 		# Run calculations for openNetVM coremasks
 		onvm_mgr_bin_coremask = list("0" * len(cores))
-		const_mgr_thread = 2;			# ONVM Manager defaults to two threads
-										#		1x rx, 1x stat
-		num_mgr_thread = args.mgr		# Default input is 1 tx thread
+		const_mgr_thread = 3;			# ONVM Manager defaults to three threads
+										#		1x RX, 1x TX, 1x stat
+		num_mgr_thread = args.mgr		# Default input is 1 TX thread
 										#		but can be more
 		total_mgr_thread = const_mgr_thread + num_mgr_thread
 
