@@ -22,6 +22,8 @@
 import sys
 import argparse
 
+ONVM_CONST_MGR_THRD = 3
+
 sockets = []
 cores = []
 core_map = {}
@@ -110,24 +112,11 @@ def onvm_coremask():
 		global onvm_mgr_hex_coremask
 		global onvm_mgr_bin_coremask
 
-		num_mgr_thread = args.mgr		# If used, minimum requirement is 1 TX thread
-
 		# Run calculations for openNetVM coremasks
 		# ONVM Manager defaults to three threads 1x RX, 1x TX, 1x stat
-		const_mgr_thread = 3;
-		total_mgr_thread = const_mgr_thread + num_mgr_thread
+		total_mgr_thread = ONVM_CONST_MGR_THRD
 
 		rem_cores = len(cores) - total_mgr_thread
-
-		# Error checking
-		if num_mgr_thread < 0:
-			print "ERROR: You cannot run the manager with less than 0 TX threads for NFs"
-			parser.print_help()
-			raise SystemExit
-		elif num_mgr_thread >= rem_cores:
-			print "ERROR You cannot associate %d cores to the manager.  You will leave 0 cores to run the NFs" %(num_mgr_thread)
-			parser.print_help()
-			raise SystemExit
 
 		# Based on required openNetVM manager cores, assign binary values
 		onvm_mgr_bin_coremask = list("0" * len(cores))
@@ -187,39 +176,27 @@ def onvm_coremask_print():
 		print "inefficient."
 		print ""
 
-		if len(onvm_nfs_coremasks) <= 0:
-			print "You cannot run openNetVM with %d threads for the manager." %(args.mgr)
-			print "With this configuration, there are no cores left for the NFs."
-			print ""
+		print "Use the following information to run openNetVM on this system:"
+		print ""
+		print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
+
+		if args.verbose:
+			print "\t\t+ %s" %(onvm_mgr_bin_coremask)
+			print "\t\t\t+ Bit index represents core number"
+			print "\t\t\t+ If 1, that core is used.  If 0, that core is not used."
+			print "\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
+
+		print ""
+		print "\t- CPU Layout permits %d NFs with these coremasks:" %(len(onvm_nfs_coremasks))
+
+		for i in range(0, len(onvm_nfs_coremasks)):
+			print "\t\t+ NF %d -- coremask: %s" %(i, onvm_nfs_coremasks[str(i)][0])
 
 			if args.verbose:
-				print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
-				print "\t\t+ %s" %(onvm_mgr_bin_coremask)
-				print "\t\t\t+ Bit index represents core number"
-				print "\t\t\t+ If 1, that core is used.  If 0, that core is not used."
-				print "\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
-		else:
-			print "Use the following information to run openNetVM on this system:"
-			print ""
-			print "\t- openNetVM Manager -- coremask: %s" %(onvm_mgr_hex_coremask)
-
-			if args.verbose:
-				print "\t\t+ %s" %(onvm_mgr_bin_coremask)
-				print "\t\t\t+ Bit index represents core number"
-				print "\t\t\t+ If 1, that core is used.  If 0, that core is not used."
-				print "\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
-
-			print ""
-			print "\t- CPU Layout permits %d NFs with these coremasks:" %(len(onvm_nfs_coremasks))
-
-			for i in range(0, len(onvm_nfs_coremasks)):
-				print "\t\t+ NF %d -- coremask: %s" %(i, onvm_nfs_coremasks[str(i)][0])
-
-				if args.verbose:
-					print "\t\t\t+ %s" %(onvm_nfs_coremasks[str(i)][1])
-					print "\t\t\t\t+ Bit index represents core number"
-					print "\t\t\t\t+ If 1, that core is used.  If 0, that core is not used."
-					print "\t\t\t\t+ LSB is rightmost.  MGR should always use core n...core 0"
+				print "\t\t\t+ %s" %(onvm_nfs_coremasks[str(i)][1])
+				print "\t\t\t\t+ Bit index represents core number"
+				print "\t\t\t\t+ If 1, that core is used.  If 0, that core is not used."
+				print "\t\t\t\t+ LSB is rightmost.  MGR should always use core n...core 0"
 
 def onvm_print_header():
 		print "==============================================================="
@@ -244,17 +221,20 @@ def run():
 				dpdk_cpu_info()
 				dpdk_cpu_info_print()
 		else:
-				parser.print_help()
+				print "You supplied 0 arguments, running with flag --onvm"
+				print ""
+
+				dpdk_cpu_info()
+				onvm_coremask()
+				onvm_coremask_print()
+
 
 ### Set up arg parsing
 parser = argparse.ArgumentParser(description='openNetVM coremask helper script')
 
-parser.add_argument("-m", "--mgr",
-		type=int, default=0,
-		help="Specify number of TX threads for the manager to use. Defualts to 1.")
 parser.add_argument("-o", "--onvm",
 		action="store_true",
-		help="Display openNetVM coremask information.")
+		help="[Default option] Display openNetVM coremask information.")
 parser.add_argument("-c", "--cpu",
 		action="store_true",
 		help="Display CPU architecture only.")
