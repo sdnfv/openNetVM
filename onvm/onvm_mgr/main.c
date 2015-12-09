@@ -275,7 +275,7 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
         uint16_t i, j;
         struct onvm_pkt_meta *meta;
 
-        for (i = 0; i < tx_count; i++) {
+        for (i = 0; i < rx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 meta->src = 0; // FIXME: this should be an ID to represent the NIC port
                 /* PERF: this might hurt performance since it will cause cache
