@@ -80,12 +80,10 @@ struct packet_buf {
         uint16_t count;
 };
 
-/* One buffer per client rx queue - dynamically allocate array
- * and one buffer per port tx queue. */
-static struct packet_buf *cl_rx_buf;
-
-/* Argument struct for TX threads. The thread will handle TX for clients
-   with ids first_cl ... (last_cl - 1) */
+/** TX thread state. This specifies which NFs the thread will handle and
+ *  includes the packet buffers used by the thread for NFs and ports.
+ *  The thread will handle TX for clients with ids first_cl ... (last_cl - 1)
+ */
 struct tx_state {
        unsigned first_cl;
        unsigned last_cl;
@@ -200,31 +198,31 @@ clear_stats(void) {
  * available to be sent to this client
  */
 static void
-flush_rx_queue(uint16_t client) {
+flush_nf_queue(struct tx_state *tx, uint16_t client) {
         uint16_t i;
         struct client *cl;
 
-        if (cl_rx_buf[client].count == 0)
+        if (tx->nf_rx_buf[client].count == 0)
                 return;
 
         cl = &clients[client];
-        if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
-                        cl_rx_buf[client].count) != 0) {
-                for (i = 0; i < cl_rx_buf[client].count; i++) {
-                        rte_pktmbuf_free(cl_rx_buf[client].buffer[i]);
+        if (rte_ring_enqueue_bulk(cl->rx_q, (void **)tx->nf_rx_buf[client].buffer,
+                        tx->nf_rx_buf[client].count) != 0) {
+                for (i = 0; i < tx->nf_rx_buf[client].count; i++) {
+                        rte_pktmbuf_free(tx->nf_rx_buf[client].buffer[i]);
                 }
-                cl->stats.rx_drop += cl_rx_buf[client].count;
+                cl->stats.rx_drop += tx->nf_rx_buf[client].count;
         } else {
-                cl->stats.rx += cl_rx_buf[client].count;
+                cl->stats.rx += tx->nf_rx_buf[client].count;
         }
-        cl_rx_buf[client].count = 0;
+        tx->nf_rx_buf[client].count = 0;
 }
 
 /**
  * Send a burst of packets out a NIC port.
  */
 static void
-flush_tx_queue(struct tx_state *tx, uint16_t port) {
+flush_port_queue(struct tx_state *tx, uint16_t port) {
         uint16_t i, sent;
         volatile struct tx_stats *tx_stats;
 
@@ -248,10 +246,10 @@ flush_tx_queue(struct tx_state *tx, uint16_t port) {
  * Add a packet to a buffer destined for an NF's RX queue.
  */
 static inline void
-enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf) {
-        cl_rx_buf[id].buffer[cl_rx_buf[id].count++] = buf;
-        if (cl_rx_buf[id].count == PACKET_READ_SIZE) {
-                flush_rx_queue(id);
+enqueue_nf_packet(struct tx_state *tx, uint16_t id, struct rte_mbuf *buf) {
+        tx->nf_rx_buf[id].buffer[tx->nf_rx_buf[id].count++] = buf;
+        if (tx->nf_rx_buf[id].count == PACKET_READ_SIZE) {
+                flush_nf_queue(tx, id);
         }
 }
 
@@ -259,10 +257,10 @@ enqueue_rx_packet(uint16_t id, struct rte_mbuf *buf) {
  * Add a packet to a buffer destined for a port's TX queue.
  */
 static inline void
-enqueue_tx_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
+enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
         tx->port_tx_buf[port].buffer[tx->port_tx_buf[port].count++] = buf;
         if (tx->port_tx_buf[port].count == PACKET_READ_SIZE) {
-                flush_tx_queue(tx, port);
+                flush_port_queue(tx, port);
         }
 }
 
@@ -320,10 +318,10 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                         printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         cl->stats.act_tonf++;
-                        enqueue_rx_packet(meta->destination, pkts[i]);
+                        enqueue_nf_packet(tx, meta->destination, pkts[i]);
                 } else if (meta->action == ONVM_NF_ACTION_OUT) {
                         cl->stats.act_out++;
-                        enqueue_tx_packet(tx, meta->destination, pkts[i]);
+                        enqueue_port_packet(tx, meta->destination, pkts[i]);
                 } else {
                         rte_pktmbuf_free(pkts[i]);
                         return;
@@ -352,9 +350,6 @@ rx_thread_main(void) {
                                 process_rx_packet_batch(pkts, rx_count);
                         }
                 }
-
-                /* Send a burst to every client */
-                flush_rx_queue(0);
         }
 }
 
@@ -391,21 +386,15 @@ tx_thread_main(void *arg) {
                             }
                 }
 
-                /* TODO: figure out what the problem was with this code
-                 * I think we turned it off because of a consistency
-                 * problem between threads, but I may be misremembering.
-                 * Since we aren't flushing here, it is possible that
-                 * the last packets in a flow will never get flushed out.
-                 * (we only flush in proccess_batch if the queue is full)
-                 */
-
                 /* Send a burst to every port */
                 for (i = 0; i < ports->num_ports; i++) {
-                       flush_tx_queue(tx, i);
+                       flush_port_queue(tx, i);
                 }
+
+                // FIXME: Do we need this anymore?
                 /* Send a burst to every client */
                 //for (i = 0; i < num_clients; i++) {
-                //        flush_rx_queue(i);
+                //        flush_nf_queue(i);
                 //}
         }
         return 0;
@@ -417,9 +406,6 @@ main(int argc, char *argv[]) {
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-
-        cl_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-
 
         /* clear statistics */
         clear_stats();
@@ -436,6 +422,7 @@ main(int argc, char *argv[]) {
         for (; tx_lcores > 0; tx_lcores--) {
                 struct tx_state *tx = calloc(1,sizeof(struct tx_state));
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
+                tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
                 tx->first_cl = next_client;
                 next_client += (num_clients - 1 - next_client)/tx_lcores
                             + ((num_clients - 1 - next_client)%tx_lcores > 0);
@@ -454,6 +441,7 @@ main(int argc, char *argv[]) {
         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         struct tx_state *tx = calloc(1,sizeof(struct tx_state));
         tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
+        tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
         tx->first_cl = num_clients-1;
         tx->last_cl = num_clients;
         if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
