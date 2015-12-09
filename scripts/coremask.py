@@ -140,7 +140,7 @@ def onvm_coremask():
 		current_cpu = 0;
 
 		while(rem_cores > 0):
-			if rem_cores > 3:
+			if rem_cores >= 3:
 				nf_core_mask = list("0" * len(cores))
 				nf_core_mask2 = list("0" * len(cores))
 				nf_core_mask[current_cpu] = "1"
