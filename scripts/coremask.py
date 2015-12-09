@@ -110,31 +110,66 @@ def onvm_coremask():
 		global onvm_mgr_hex_coremask
 		global onvm_mgr_bin_coremask
 
+		num_mgr_thread = args.mgr		# If used, minimum requirement is 1 TX thread
+
 		# Run calculations for openNetVM coremasks
-		onvm_mgr_bin_coremask = list("0" * len(cores))
-		const_mgr_thread = 3;			# ONVM Manager defaults to three threads
-										#		1x RX, 1x TX, 1x stat
-		num_mgr_thread = args.mgr		# Default input is 1 TX thread
-										#		but can be more
+		# ONVM Manager defaults to three threads 1x RX, 1x TX, 1x stat
+		const_mgr_thread = 3;
 		total_mgr_thread = const_mgr_thread + num_mgr_thread
 
+		rem_cores = len(cores) - total_mgr_thread
+
+		# Error checking
+		if num_mgr_thread < 0:
+			print "ERROR: You cannot run the manager with less than 0 TX threads for NFs"
+			parser.print_help()
+			raise SystemExit
+		elif num_mgr_thread >= rem_cores:
+			print "ERROR You cannot associate %d cores to the manager.  You will leave 0 cores to run the NFs" %(num_mgr_thread)
+			parser.print_help()
+			raise SystemExit
+
 		# Based on required openNetVM manager cores, assign binary values
+		onvm_mgr_bin_coremask = list("0" * len(cores))
 		for i in range(len(cores)-1, len(cores)-1-total_mgr_thread, -1):
 			onvm_mgr_bin_coremask[i] = "1"
 
-		onvm_mgr_hex_coremask = hex(int(''.join(onvm_mgr_bin_coremask), 2))
-
 		# Using remaining free cores in binary string, assign free core to
-		#		NF.  One core can handle two NFs.  Right now, there is a
-		#		1:1 NF:Core mapping.
+		#		NF.  One core can handle two NFs.
 		nf_id = 0
-		for i in range(0, len(cores)-total_mgr_thread, 1):
-			nf_core_mask = list("0" * len(cores))
-			nf_core_mask[i] = "1"
+		current_cpu = 0;
 
-			onvm_nfs_coremasks[str(nf_id)] = (hex(int(''.join(nf_core_mask), 2)), nf_core_mask)
+		while(rem_cores > 0):
+			if rem_cores > 3:
+				nf_core_mask = list("0" * len(cores))
+				nf_core_mask2 = list("0" * len(cores))
+				nf_core_mask[current_cpu] = "1"
+				nf_core_mask2[(current_cpu+1)] = "1"
 
-			nf_id += 1
+				onvm_nfs_coremasks[str(nf_id)] = (hex(int(''.join(nf_core_mask), 2)), nf_core_mask)
+				onvm_nfs_coremasks[str((nf_id+1))] = (hex(int(''.join(nf_core_mask2), 2)), nf_core_mask2)
+				onvm_mgr_bin_coremask[(rem_cores+nf_id)-1] = "1"
+
+				current_cpu += 2
+				nf_id += 2
+				rem_cores -= 3
+			elif rem_cores == 2:
+				nf_core_mask = list("0" * len(cores))
+				nf_core_mask[current_cpu] = "1"
+
+				onvm_nfs_coremasks[str(nf_id)] = (hex(int(''.join(nf_core_mask), 2)), nf_core_mask)
+				onvm_mgr_bin_coremask[(rem_cores+nf_id)-1] = "1"
+
+				current_cpu += 1
+				nf_id += 1
+				rem_cores -= 2
+			else:
+				# We do not have enough cores if we're here.
+				# Don't do anything...
+				break
+
+		# Turn manager binary string to hex
+		onvm_mgr_hex_coremask = hex(int(''.join(onvm_mgr_bin_coremask), 2))
 
 """
 Print out openNetVM coremask info
@@ -147,8 +182,9 @@ def onvm_coremask_print():
 		print "NFs need a thread for TX, the manager can have many dedicated"
 		print "TX threads which would all need a dedicated core."
 		print ""
-		print "Each NF running on openNetVM needs its own core too.  One core"
-		print "can be used to handle two NFs, but any more becomes inefficient."
+		print "Each NF running on openNetVM needs its own core too.  One manager"
+		print "TX thread can be used to handle two NFs, but any more becomes"
+		print "inefficient."
 		print ""
 
 		if len(onvm_nfs_coremasks) <= 0:
@@ -183,7 +219,7 @@ def onvm_coremask_print():
 					print "\t\t\t+ %s" %(onvm_nfs_coremasks[str(i)][1])
 					print "\t\t\t\t+ Bit index represents core number"
 					print "\t\t\t\t+ If 1, that core is used.  If 0, that core is not used."
-					print "\t\t\t\t+ LSB is rightmost.  MGR should always use core 0...core n"
+					print "\t\t\t\t+ LSB is rightmost.  MGR should always use core n...core 0"
 
 def onvm_print_header():
 		print "==============================================================="
@@ -214,7 +250,7 @@ def run():
 parser = argparse.ArgumentParser(description='openNetVM coremask helper script')
 
 parser.add_argument("-m", "--mgr",
-		type=int, default=1,
+		type=int, default=0,
 		help="Specify number of TX threads for the manager to use. Defualts to 1.")
 parser.add_argument("-o", "--onvm",
 		action="store_true",
