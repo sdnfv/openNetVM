@@ -116,7 +116,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static void
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* action) {
         static uint32_t counter = 0;
         if (++counter == print_delay) {
                 do_stats_display(pkt);
