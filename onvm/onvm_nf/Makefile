@@ -31,9 +31,10 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 # all source are stored in SRCS-y
 SRCS-y := onvm_nflib.c
 
-CFLAGS += $(WERROR_FLAGS) -O3
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 CFLAGS += -I$(SRCDIR)/../shared
 
 LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
 
 include $(RTE_SDK)/mk/rte.extobj.mk
+
