@@ -34,7 +34,7 @@ struct ipv4_hdr;
 /**
  * Flip the source and destination mac address of a packet
  */
-void
+int
 onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port);
 
 /**

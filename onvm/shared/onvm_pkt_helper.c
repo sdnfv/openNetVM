@@ -28,21 +28,18 @@
 #include <rte_mbuf.h>
 
 #include <rte_ether.h>
+#include <rte_ethdev.h>
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
-void
+int
 onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
-	struct ether_hdr = *eth;
-	struct ether_addr = addr;
+	struct ether_hdr *eth;
+	struct ether_addr addr;
 
 	if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
-		return NULL;
-	}
-
-	if (unlikely(dst_port < 0)) { // We cannot have a negative port id
-		return NULL;
+		return -1;
 	}
 
 	/*
@@ -61,6 +58,8 @@ onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
 	 */
 	rte_eth_macaddr_get(dst_port, &eth->s_addr);
 	ether_addr_copy(&addr, &eth->s_addr);
+
+	return 0;
 }
 
 
