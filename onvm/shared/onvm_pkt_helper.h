@@ -32,6 +32,12 @@ struct ipv4_hdr;
 #define IP_PROTOCOL_UDP 17
 
 /**
+ * Flip the source and destination mac address of a packet
+ */
+void
+onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port);
+
+/**
  * Return a pointer to the tcp/udp/ip header in the packet, or NULL if not a TCP packet
  */
 struct tcp_hdr*
@@ -44,7 +50,7 @@ struct ipv4_hdr*
 onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt);
 
 /**
- * Check the type of a packet. Return 1 if packet is of the specified type, else 0.
+ * Check the type of a packet. Return 1 if packet is of the specified type, else 0
  */
 int
 onvm_pkt_is_tcp(struct rte_mbuf* pkt);
