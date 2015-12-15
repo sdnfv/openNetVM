@@ -391,11 +391,10 @@ tx_thread_main(void *arg) {
                        flush_port_queue(tx, i);
                 }
 
-                // FIXME: Do we need this anymore?
                 /* Send a burst to every client */
-                //for (i = 0; i < num_clients; i++) {
-                //        flush_nf_queue(i);
-                //}
+                for (i = 0; i < num_clients; i++) {
+                       flush_nf_queue(tx, i);
+                }
         }
         return 0;
 }
