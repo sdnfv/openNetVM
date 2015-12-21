@@ -267,7 +267,7 @@ This library supports various network function utilities, including usage printi
 
 :pushpin: packets handling function: ***int onvm_nf_run()***
 
-`int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action))` is a library which continuously receives and processes packets. 
+`int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action))` is a library which continuously receives and processes packets. 
 
 
 
@@ -410,7 +410,7 @@ your_monitor(void){
 //------TODO: please write your own packet handling function here by modifying the template below ------ 
 
 static void
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* action) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 your_monitor(pkt);
