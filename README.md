@@ -171,7 +171,7 @@ The first function, `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_inf
 
 The second function, `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta))`, is the communication protocol between NF and manager where the NF is providing a packet handler function pointer to the manager.  The manager uses this function pointer to pass packets to when they arrive for a specific NF.  It continuously loops and listens for new packets and passes them on to the packet handler function.
 
-###3.1 TCP/UDP Helper Library
+###3.2 TCP/UDP Helper Library
 
 openNetVM also provides a TCP/UDP Helper Library to provide an abstraction to extract information from the packets, which allow NFs to perform more complicated processing of packets.
 
@@ -208,7 +208,7 @@ Controlling packets in openNetVM is done with actions.  There are four actions, 
 + Forward packets by specifying destination NIC port number:
 	`#define ONVM_NF_ACTION_OUT 3 `
 
-###3.4 NF Template and Makefile
+###3.3 NF Template and Makefile
 
 ####File: CHANGE_ME.c
 
