@@ -41,7 +41,7 @@ SRCS-y := main.c init.c args.c
 
 INC := $(wildcard *.h)
 
-CFLAGS += $(WERROR_FLAGS) -O3
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 CFLAGS += -I$(SRCDIR)/../
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
@@ -49,3 +49,4 @@ CFLAGS += -I$(SRCDIR)/../
 EXTRA_CFLAGS += -fno-strict-aliasing
 
 include $(RTE_SDK)/mk/rte.extapp.mk
+

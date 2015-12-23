@@ -117,7 +117,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static void
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -125,12 +125,12 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_action* action) {
         }
 
         if (pkt->port == 0) {
-                action->destination = 1;
+                meta->destination = 1;
         }
         else {
-                action->destination = 0;
+                meta->destination = 0;
         }
-        action->action = ONVM_NF_ACTION_OUT;
+        meta->action = ONVM_NF_ACTION_OUT;
 }
 
 

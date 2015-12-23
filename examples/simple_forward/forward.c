@@ -41,6 +41,9 @@
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+
+static uint32_t destination;
+
 /*
  * Print a usage message
  */
@@ -113,30 +116,27 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static void
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* action) {
         static uint32_t counter = 0;
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        meta->action = ONVM_NF_ACTION_OUT;
-        meta->destination = pkt->port;
-
-	if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
-		printf("ERROR: MAC failed to swap!\n");
-	}
+        action->action = ONVM_NF_ACTION_TONF;
+	action->destination = destination;
 }
 
 
 int main(int argc, char *argv[]) {
-        struct onvm_nf_info info;
+	struct onvm_nf_info info;
         int retval;
 
         if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
                 return -1;
         argc -= retval;
         argv += retval;
+	destination = info.client_id + 1;
 
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");

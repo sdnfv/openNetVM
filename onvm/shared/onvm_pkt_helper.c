@@ -28,9 +28,40 @@
 #include <rte_mbuf.h>
 
 #include <rte_ether.h>
+#include <rte_ethdev.h>
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
+
+int
+onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
+	struct ether_hdr *eth;
+	struct ether_addr addr;
+
+	if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+		return -1;
+	}
+
+	/*
+	 * Get the ethernet header from the pkt
+	 */
+	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+
+	/*
+	 * Copy the source mac address to the destination field.
+	 */
+	ether_addr_copy(&eth->s_addr, &eth->d_addr);
+
+	/*
+	 * Get the mac address of the current port to send out of
+	 * and set the source field to it.
+	 */
+	rte_eth_macaddr_get(dst_port, &eth->s_addr);
+	ether_addr_copy(&addr, &eth->s_addr);
+
+	return 0;
+}
+
 
 struct tcp_hdr*
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
