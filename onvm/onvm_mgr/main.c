@@ -467,10 +467,10 @@ main(int argc, char *argv[]) {
         for (; tx_lcores > 0; tx_lcores--) {
                 struct tx_state *tx = calloc(1,sizeof(struct tx_state));
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-                tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+                tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
                 tx->first_cl = next_client;
-                next_client += (num_clients - 1 - next_client)/tx_lcores
-                            + ((num_clients - 1 - next_client)%tx_lcores > 0);
+                next_client += (MAX_CLIENTS - 1 - next_client)/tx_lcores
+                            + ((MAX_CLIENTS - 1 - next_client)%tx_lcores > 0);
                 tx->last_cl = next_client;
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
@@ -482,13 +482,15 @@ main(int argc, char *argv[]) {
         /* Assign one TX thread to handle the last client since sending
          * out is more expensive. This assumes you run a linear chain and
          * packets always leave the system from the last NF.
+         * TODO this is not ideal, since you'll need to have MAX_CLIENTS running
+         * in order to realize this benefit.
          */
         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         struct tx_state *tx = calloc(1,sizeof(struct tx_state));
         tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-        tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-        tx->first_cl = num_clients-1;
-        tx->last_cl = num_clients;
+        tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
+        tx->first_cl = MAX_CLIENTS-1;
+        tx->last_cl = MAX_CLIENTS;
         if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
                 RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
                 return -1;
