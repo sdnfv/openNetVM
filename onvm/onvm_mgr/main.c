@@ -167,6 +167,21 @@ do_stats_display(void) {
         printf("\n");
 }
 
+/**
+ * Verifies that the next client id the manager gives out is unused
+ * This lets us account for the case where an NF has a manually specified id and we overwrite it
+ * This function modifies next_client_id to be the proper value
+ */
+static int
+find_next_client_id(void) {
+        struct onvm_nf_info *info;
+        for (info = clients[next_client_id].info;
+             info && info->is_running == NF_RUNNING;
+             next_client_id++);
+        return next_client_id;
+
+}
+
 static void
 do_check_new_nf(void) {
         int i;
@@ -180,7 +195,7 @@ do_check_new_nf(void) {
                 return;
 
         added_clients = 0;
-        for (i = 0; i < num_new_nfs && next_client_id < MAX_CLIENTS; i++) {
+        for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
                 new_nf = (struct onvm_nf_info *)new_nfs[i];
                 //TODO this stuff - make rx/tx ring
                 // take code from init_shm_rings in init.c
