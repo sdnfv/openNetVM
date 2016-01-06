@@ -226,9 +226,9 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
  * receiving and processing packets. Never returns
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_action* action)) {
+onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)) {
         void *pkts[PKT_READ_SIZE];
-        struct onvm_pkt_action* action;
+        struct onvm_pkt_meta* meta;
 
         printf("\nClient process %d handling packets\n", info->client_id);
         printf("[Press Ctrl-C to quit ...]\n");
@@ -244,8 +244,8 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
 
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < nb_pkts; i++) {
-                        action = (struct onvm_pkt_action*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                        (*handler)((struct rte_mbuf*)pkts[i], action);
+                        meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                        (*handler)((struct rte_mbuf*)pkts[i], meta);
                 }
 
                 if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, nb_pkts) == -ENOBUFS)) {
