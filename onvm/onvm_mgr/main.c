@@ -241,6 +241,11 @@ flush_rx_queue(uint16_t client) {
                 return;
 
         cl = &clients[client];
+
+        // Ensure destination NF is running and ready to receive packets
+        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+                return;
+
         if (rte_ring_enqueue_bulk(cl->rx_q, (void **)cl_rx_buf[client].buffer,
                         cl_rx_buf[client].count) != 0) {
                 for (i = 0; i < cl_rx_buf[client].count; i++) {
