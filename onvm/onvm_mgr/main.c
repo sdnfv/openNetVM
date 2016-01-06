@@ -287,10 +287,17 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
  * Add a packet to a buffer destined for an NF's RX queue.
  */
 static inline void
-enqueue_nf_packet(struct tx_state *tx, uint16_t id, struct rte_mbuf *buf) {
-        tx->nf_rx_buf[id].buffer[tx->nf_rx_buf[id].count++] = buf;
-        if (tx->nf_rx_buf[id].count == PACKET_READ_SIZE) {
-                flush_nf_queue(tx, id);
+enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
+        struct client *cl;
+
+        // Ensure destination NF is running and ready to receive packets
+        cl = &clients[dst_id];
+        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+                return;
+
+        tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
+        if (tx->nf_rx_buf[dst_id].count == PACKET_READ_SIZE) {
+                flush_nf_queue(tx, dst_id);
         }
 }
 
@@ -426,7 +433,7 @@ tx_thread_main(void *arg) {
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
                                 process_tx_packet_batch(tx, pkts, tx_count, cl);
-                            }
+                        }
                 }
 
                 /* Send a burst to every port */
