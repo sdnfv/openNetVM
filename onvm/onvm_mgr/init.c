@@ -53,6 +53,7 @@
 #include <rte_fbk_hash.h>
 #include <rte_string_fns.h>
 #include <rte_cycles.h>
+#include <rte_errno.h>
 
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
@@ -66,7 +67,7 @@
 #define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
 
 #define NF_INFO_SIZE sizeof(struct onvm_nf_info)
-#define NF_INFO_CACHE 32
+#define NF_INFO_CACHE 8
 
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
@@ -343,8 +344,9 @@ init(int argc, char *argv[]) {
 
         /* initialise client info pool */
         retval = init_client_info_pool();
-        if (retval != 0)
-                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool\n");
+        if (retval != 0) {
+                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
+        }
 
         /* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
