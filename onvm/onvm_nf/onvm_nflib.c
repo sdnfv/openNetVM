@@ -94,7 +94,7 @@ parse_nflib_args(int argc, char *argv[]) {
         int c;
 
         opterr = 0;
-        while ((c = getopt (argc, argv, "n::")) != -1)
+        while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
                         initial_client_id = (uint8_t) strtoul(optarg, NULL, 10);
@@ -203,6 +203,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         for (; nf_info->client_id == (uint8_t)NF_NO_ID ;) {
                 sleep(3);
         }
+        RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
 
         /* Now, map rx and tx rings into client space */
         rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->client_id));

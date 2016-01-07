@@ -148,7 +148,7 @@ do_stats_display(void) {
         printf("\nCLIENTS\n");
         printf("-------\n");
         for (i = 0; i < MAX_CLIENTS; i++) {
-                if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                if (!clients[i].info || clients[i].info->is_running != NF_RUNNING)
                         continue;
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
@@ -161,7 +161,7 @@ do_stats_display(void) {
 
                 printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
                                 "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
-                                i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
+                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
         }
 
         printf("\n");
@@ -175,9 +175,12 @@ do_stats_display(void) {
 static int
 find_next_client_id(void) {
         struct onvm_nf_info *info;
-        for (info = clients[next_client_id].info;
-             info && info->is_running == NF_RUNNING;
-             next_client_id++);
+        while (next_client_id < MAX_CLIENTS) {
+                info = clients[next_client_id].info;
+                if (!info || info->is_running != NF_RUNNING)
+                        break;
+                next_client_id++;
+        }
         return next_client_id;
 
 }
@@ -197,12 +200,17 @@ do_check_new_nf(void) {
         added_clients = 0;
         for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
                 new_nf = (struct onvm_nf_info *)new_nfs[i];
+
                 //TODO this stuff - make rx/tx ring
                 // take code from init_shm_rings in init.c
                 // flush rx/tx queue at the this index to start clean?
                 clients[next_client_id].info = new_nf;
-                new_nf->client_id = next_client_id++;
                 added_clients++;
+
+                // if NF passed its own id on the command line, don't assign here
+                if (new_nf->client_id != (uint8_t)NF_NO_ID)
+                        continue;
+                new_nf->client_id = next_client_id++;
         }
         //TODO needs to wait for client to be ready
         // needs spcial info thread to wait
