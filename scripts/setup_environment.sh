@@ -6,7 +6,7 @@ set -e
 # CONFIGURATION (via environment variable):
 #  - Ensure that $RTE_SDK and $RTE_TARGET are set (see install docs)
 #  - Set ONVM_NIC to the name of the interface you want to bind (default p2p1)
-#  - Also set ONVM_NIC_PCI to the PCI address of the interface (default 07:00.0)
+#  - Can set ONVM_NIC_PCI to the PCI address of the interface (default 07:00.0)
 
 # Confirm environment variables
 if [ -z "$RTE_TARGET" ]; then
@@ -41,11 +41,16 @@ fi
 sudo -v
 
 # Load uio kernel modules
-echo "Loading uio kernel modules"
-sleep 1
-cd $RTE_SDK/$RTE_TARGET/kmod
-sudo modprobe uio
-sudo insmod igb_uio.ko
+grep "igb_uio" /proc/modules
+if [ $? != "0" ]; then
+    echo "Loading uio kernel modules"
+    sleep 1
+    cd $RTE_SDK/$RTE_TARGET/kmod
+    sudo modprobe uio
+    sudo insmod igb_uio.ko
+else
+    echo "IGB UIO module already loaded."
+fi
 
 echo "Checking NIC status"
 sleep 1
