@@ -121,8 +121,11 @@ get_printable_mac_addr(uint8_t port) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(void) {
+do_stats_display(unsigned sleeptime) {
         unsigned i;
+        /* Arrays to store last TX/RX count to calculate rate */
+        static uint64_t tx_last[RTE_MAX_ETHPORTS];
+        static uint64_t rx_last[RTE_MAX_ETHPORTS];
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
 
@@ -136,10 +139,15 @@ do_stats_display(void) {
                                 get_printable_mac_addr(ports->id[i]));
         printf("\n\n");
         for (i = 0; i < ports->num_ports; i++) {
-                printf("Port %u - rx: %9"PRIu64"\t"
-                                "tx: %9"PRIu64"\n",
-                                (unsigned)ports->id[i], ports->rx_stats.rx[ports->id[i]],
-                                ports->tx_stats.tx[ports->id[i]]);
+                printf("Port %u - rx: %9"PRIu64"  (%9"PRIu64" pps)\t"
+                                 "tx: %9"PRIu64"  (%9"PRIu64" pps)\n",
+                                (unsigned)ports->id[i],
+                                ports->rx_stats.rx[ports->id[i]],
+                                (ports->rx_stats.rx[ports->id[i]] - rx_last[i])/sleeptime,
+                                ports->tx_stats.tx[ports->id[i]],
+                                (ports->tx_stats.tx[ports->id[i]] - tx_last[i])/sleeptime);
+                rx_last[i] = ports->rx_stats.rx[ports->id[i]];
+                tx_last[i] = ports->tx_stats.tx[ports->id[i]];
         }
 
         printf("\nCLIENTS\n");
@@ -175,7 +183,7 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
 
         /* Loop forever: sleep always returns 0 or <= param */
         while (sleep(sleeptime) <= sleeptime)
-                do_stats_display();
+                do_stats_display(sleeptime);
         return 0;
 }
 
