@@ -28,6 +28,9 @@
  * #include "args.h"
  */
 
+#define DYNAMIC_CLIENTS 0
+#define STATIC_CLIENTS 1
+
 /*
  * Define a client structure with all needed info, including
  * stats from the clients.
@@ -35,6 +38,7 @@
 struct client {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
+        struct onvm_nf_info *info;
         unsigned client_id;
         /* these stats hold how many packets the client will actually receive,
          * and how many packets were dropped because the client's queue was full.
@@ -52,6 +56,8 @@ struct client {
 };
 
 extern struct client *clients;
+
+extern struct rte_ring *nf_info_queue;
 
 /*
  * Shared port info, including statistics information for display by server.

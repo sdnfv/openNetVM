@@ -53,6 +53,7 @@
 #include <rte_fbk_hash.h>
 #include <rte_string_fns.h>
 #include <rte_cycles.h>
+#include <rte_errno.h>
 
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
@@ -65,6 +66,9 @@
 #define RX_MBUF_DATA_SIZE 2048
 #define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
 
+#define NF_INFO_SIZE sizeof(struct onvm_nf_info)
+#define NF_INFO_CACHE 8
+
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
 #define CLIENT_QUEUE_RINGSIZE 128
@@ -73,6 +77,12 @@
 
 /* The mbuf pool for packet rx */
 struct rte_mempool *pktmbuf_pool;
+
+/* mbuf pool for nf info structs */
+struct rte_mempool *nf_info_pool;
+
+/* ring buffer for new clients coming up */
+struct rte_ring *nf_info_queue;
 
 /* array of info/queues for clients */
 struct client *clients = NULL;
@@ -88,7 +98,7 @@ struct client_tx_stats *clients_stats;
  */
 static int
 init_mbuf_pools(void) {
-        const unsigned num_mbufs = (num_clients * MBUFS_PER_CLIENT) \
+        const unsigned num_mbufs = (MAX_CLIENTS * MBUFS_PER_CLIENT) \
                         + (ports->num_ports * MBUFS_PER_PORT);
 
         /* don't pass single-producer/single-consumer flags to mbuf create as it
@@ -101,6 +111,22 @@ init_mbuf_pools(void) {
                         NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
 
         return (pktmbuf_pool == NULL); /* 0  on success */
+}
+
+/**
+ * Set up a mempool to store nf_info structs
+ */
+static int
+init_client_info_pool(void)
+{
+        /* don't pass single-producer/single-consumer flags to mbuf
+         * create as it seems faster to use a cache instead */
+        printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
+        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_CLIENTS,
+                        NF_INFO_SIZE, NF_INFO_CACHE,
+                        0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
+
+        return (nf_info_pool == NULL); /* 0 on success */
 }
 
 /**
@@ -118,7 +144,7 @@ init_port(uint8_t port_num) {
                         .mq_mode = ETH_MQ_RX_RSS
                 }
         };
-        const uint16_t rx_rings = 1, tx_rings = num_clients;
+        const uint16_t rx_rings = 1, tx_rings = MAX_CLIENTS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
 
@@ -171,12 +197,15 @@ init_shm_rings(void) {
         const char * tq_name;
         const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
 
-        clients = rte_malloc("client details",
-                sizeof(*clients) * num_clients, 0);
+        // use calloc since we allocate for all possible clients
+        // ensure that all fields are init to 0 to avoid reading garbage
+        // TODO plopreiato, move to creation when a NF starts
+        clients = rte_calloc("client details",
+                MAX_CLIENTS, sizeof(*clients), 0);
         if (clients == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
 
-        for (i = 0; i < num_clients; i++) {
+        for (i = 0; i < MAX_CLIENTS; i++) {
                 /* Create an RX queue for each client */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
@@ -195,6 +224,24 @@ init_shm_rings(void) {
                 if (clients[i].tx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for client %u\n", i);
         }
+        return 0;
+}
+
+/**
+ * Allocate a rte_ring for newly created NFs
+ */
+static int
+init_info_queue(void)
+{
+        nf_info_queue = rte_ring_create(
+                _NF_QUEUE_NAME,
+                MAX_CLIENTS,
+                rte_socket_id(),
+                RING_F_SC_DEQ); // MP enqueue (default), SC dequeue
+
+        if (nf_info_queue == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot create nf info queue\n");
+
         return 0;
 }
 
@@ -295,6 +342,12 @@ init(int argc, char *argv[]) {
         if (retval != 0)
                 rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
 
+        /* initialise client info pool */
+        retval = init_client_info_pool();
+        if (retval != 0) {
+                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
+        }
+
         /* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
                 retval = init_port(ports->id[i]);
@@ -307,6 +360,9 @@ init(int argc, char *argv[]) {
 
         /* initialise the client queues/rings for inter-eu comms */
         init_shm_rings();
+
+        /* initialise a queue for newly created NFs */
+        init_info_queue();
 
         return 0;
 }

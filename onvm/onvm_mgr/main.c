@@ -80,6 +80,9 @@ struct packet_buf {
         uint16_t count;
 };
 
+/* ID to be assigned to the next NF that starts */
+static uint8_t next_client_id;
+
 /** TX thread state. This specifies which NFs the thread will handle and
  *  includes the packet buffers used by the thread for NFs and ports.
  *  The thread will handle TX for clients with ids first_cl ... (last_cl - 1)
@@ -152,7 +155,9 @@ do_stats_display(unsigned sleeptime) {
 
         printf("\nCLIENTS\n");
         printf("-------\n");
-        for (i = 0; i < num_clients; i++) {
+        for (i = 0; i < MAX_CLIENTS; i++) {
+                if (!clients[i].info || clients[i].info->is_running != NF_RUNNING)
+                        continue;
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
                 const uint64_t tx = clients_stats->tx[i];
@@ -164,10 +169,60 @@ do_stats_display(unsigned sleeptime) {
 
                 printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
                                 "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
-                                i, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
+                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
         }
 
         printf("\n");
+}
+
+/**
+ * Verifies that the next client id the manager gives out is unused
+ * This lets us account for the case where an NF has a manually specified id and we overwrite it
+ * This function modifies next_client_id to be the proper value
+ */
+static int
+find_next_client_id(void) {
+        struct onvm_nf_info *info;
+        while (next_client_id < MAX_CLIENTS) {
+                info = clients[next_client_id].info;
+                if (!info || info->is_running != NF_RUNNING)
+                        break;
+                next_client_id++;
+        }
+        return next_client_id;
+
+}
+
+static void
+do_check_new_nf(void) {
+        int i;
+        int added_clients;
+        void *new_nfs[MAX_CLIENTS];
+        struct onvm_nf_info *new_nf;
+        int num_new_nfs = rte_ring_count(nf_info_queue);
+        int dequeue_val = rte_ring_dequeue_bulk(nf_info_queue, new_nfs, num_new_nfs);
+
+        if (dequeue_val != 0)
+                return;
+
+        added_clients = 0;
+        for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
+                new_nf = (struct onvm_nf_info *)new_nfs[i];
+
+                //TODO this stuff - make rx/tx ring
+                // take code from init_shm_rings in init.c
+                // flush rx/tx queue at the this index to start clean?
+                clients[next_client_id].info = new_nf;
+                added_clients++;
+
+                // if NF passed its own id on the command line, don't assign here
+                if (new_nf->client_id != (uint8_t)NF_NO_ID)
+                        continue;
+                new_nf->client_id = next_client_id++;
+        }
+        //TODO needs to wait for client to be ready
+        // needs spcial info thread to wait
+        num_clients += added_clients;
 }
 
 /*
@@ -182,8 +237,12 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
         sleep(sleeptime * 3);
 
         /* Loop forever: sleep always returns 0 or <= param */
-        while (sleep(sleeptime) <= sleeptime)
+        while (sleep(sleeptime) <= sleeptime) {
+                do_check_new_nf();
                 do_stats_display(sleeptime);
+        }
+        //TODO find a way to check for clients going NF_RUNNING -> NF_NOT_RUNNING
+
         return 0;
 }
 
@@ -194,7 +253,7 @@ static void
 clear_stats(void) {
         unsigned i;
 
-        for (i = 0; i < num_clients; i++) {
+        for (i = 0; i < MAX_CLIENTS; i++) {
                 clients[i].stats.rx = clients[i].stats.rx_drop = 0;
                 clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
                 clients[i].stats.act_next = clients[i].stats.act_out = 0;
@@ -214,6 +273,11 @@ flush_nf_queue(struct tx_state *tx, uint16_t client) {
                 return;
 
         cl = &clients[client];
+
+        // Ensure destination NF is running and ready to receive packets
+        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+                return;
+
         if (rte_ring_enqueue_bulk(cl->rx_q, (void **)tx->nf_rx_buf[client].buffer,
                         tx->nf_rx_buf[client].count) != 0) {
                 for (i = 0; i < tx->nf_rx_buf[client].count; i++) {
@@ -254,10 +318,17 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
  * Add a packet to a buffer destined for an NF's RX queue.
  */
 static inline void
-enqueue_nf_packet(struct tx_state *tx, uint16_t id, struct rte_mbuf *buf) {
-        tx->nf_rx_buf[id].buffer[tx->nf_rx_buf[id].count++] = buf;
-        if (tx->nf_rx_buf[id].count == PACKET_READ_SIZE) {
-                flush_nf_queue(tx, id);
+enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
+        struct client *cl;
+
+        // Ensure destination NF is running and ready to receive packets
+        cl = &clients[dst_id];
+        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+                return;
+
+        tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
+        if (tx->nf_rx_buf[dst_id].count == PACKET_READ_SIZE) {
+                flush_nf_queue(tx, dst_id);
         }
 }
 
@@ -380,6 +451,8 @@ tx_thread_main(void *arg) {
                 for (i = tx->first_cl; i < tx->last_cl; i++) {
                         tx_count = PACKET_READ_SIZE;
                         cl = &clients[i];
+                        if (!cl->info || !cl->info->is_running == NF_RUNNING)
+                                continue;
                         /* try dequeuing max possible packets first, if that fails, get the
                          * most we can. Loop body should only execute once, maximum */
                         while (tx_count > 0 &&
@@ -391,7 +464,7 @@ tx_thread_main(void *arg) {
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
                                 process_tx_packet_batch(tx, pkts, tx_count, cl);
-                            }
+                        }
                 }
 
                 /* Send a burst to every port */
@@ -400,7 +473,9 @@ tx_thread_main(void *arg) {
                 }
 
                 /* Send a burst to every client */
-                for (i = 0; i < num_clients; i++) {
+                for (i = 0; i < MAX_CLIENTS; i++) {
+                        if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                                continue;
                        flush_nf_queue(tx, i);
                 }
         }
@@ -410,6 +485,7 @@ tx_thread_main(void *arg) {
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
+        next_client_id = 0;
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
@@ -429,10 +505,10 @@ main(int argc, char *argv[]) {
         for (; tx_lcores > 0; tx_lcores--) {
                 struct tx_state *tx = calloc(1,sizeof(struct tx_state));
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-                tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
+                tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
                 tx->first_cl = next_client;
-                next_client += (num_clients - 1 - next_client)/tx_lcores
-                            + ((num_clients - 1 - next_client)%tx_lcores > 0);
+                next_client += (MAX_CLIENTS - 1 - next_client)/tx_lcores
+                            + ((MAX_CLIENTS - 1 - next_client)%tx_lcores > 0);
                 tx->last_cl = next_client;
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
@@ -444,13 +520,15 @@ main(int argc, char *argv[]) {
         /* Assign one TX thread to handle the last client since sending
          * out is more expensive. This assumes you run a linear chain and
          * packets always leave the system from the last NF.
+         * TODO this is not ideal, since you'll need to have MAX_CLIENTS running
+         * in order to realize this benefit.
          */
         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
         struct tx_state *tx = calloc(1,sizeof(struct tx_state));
         tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-        tx->nf_rx_buf = calloc(num_clients, sizeof(struct packet_buf));
-        tx->first_cl = num_clients-1;
-        tx->last_cl = num_clients;
+        tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
+        tx->first_cl = MAX_CLIENTS-1;
+        tx->last_cl = MAX_CLIENTS;
         if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
                 RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
                 return -1;

@@ -7,8 +7,7 @@
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
+ *  You may obtain a copy of the License at *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
@@ -26,12 +25,26 @@
 #include <rte_mbuf.h>
 #include "common.h"
 
-struct onvm_nf_info {
-        uint8_t client_id;
+/**
+ * Initialize a NF Info Struct.
+ * Allocates and returns a pointer to a struct that defines information
+ * about a new NF.
+ *
+ * @param tag
+ *   A buffer containing a uniquely-identifiable tag for this NF.
+ *   For example, can be the application name (e.g. "bridge_nf")
+ * @return
+ *   On success, a pointer to the created info struct. Will exit on error
+ */
+struct onvm_nf_info *
+onvm_nf_info_init(const char *tag);
 
-        // What to put there ?
-};
-
+/**
+ * Stop this NF
+ * Sets the info to be not running and exits this process gracefully
+ */
+void
+onvm_nf_stop(void);
 
 /**
  * Initialize the OpenNetVM container Library.
@@ -42,8 +55,9 @@ struct onvm_nf_info {
  *   The argc argument that was given to the main() function.
  * @argv
  *   The argv argument that was given to the main() function
- * @param info
- *   An info struct describing this NF app. Must be from a huge page memzone.
+ * @param tag
+ *   A uniquely identifiable string for this NF.
+ *   For example, can be the application name (e.g. "bridge_nf")
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
@@ -51,7 +65,7 @@ struct onvm_nf_info {
  *   On error, a negative value .
  */
 int
-onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info);
+onvm_nf_init(int argc, char *argv[], const char *nf_tag);
 
 
 /**

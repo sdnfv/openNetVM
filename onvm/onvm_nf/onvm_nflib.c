@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <rte_common.h>
 #include <rte_memory.h>
@@ -58,22 +59,30 @@
 /* Number of packets to attempt to read from queue */
 #define PKT_READ_SIZE  ((uint16_t)32)
 
+/* ring used to place new nf_info struct */
+static struct rte_ring *nf_info_ring;
+
 /* rings used to pass packets between NFlib and NFmgr */
 static struct rte_ring *tx_ring, *rx_ring;
 
 /* shared data from server. We update statistics here */
 static volatile struct client_tx_stats *tx_stats;
 
-/* our client id number - tells us which rx queue to read, and NIC TX
- * queue to write to. */
-static uint8_t client_id = 0;
+/* Shared data for client info */
+extern struct onvm_nf_info *nf_info;
+
+/* Shared pool for all clients info */
+static struct rte_mempool *nf_info_mp;
+
+/* User-given NF Client ID (defaults to manager assigned) */
+static uint8_t initial_client_id = NF_NO_ID;
 
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- -n <client_id>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [-n <client_id>]\n\n", progname);
 }
 
 /*
@@ -88,7 +97,7 @@ parse_nflib_args(int argc, char *argv[]) {
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
-                        client_id = (uint8_t) strtoul(optarg, NULL, 10);
+                        initial_client_id = (uint8_t) strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
@@ -105,31 +114,70 @@ parse_nflib_args(int argc, char *argv[]) {
         return optind;
 }
 
+/**
+ * CALLED BY NF:
+ * Create a new nf_info struct for this NF
+ * Pass a unique tag for this NF
+ */
+static struct onvm_nf_info *
+ovnm_nf_info_init(const char *tag)
+{
+        void *mempool_data;
+        struct onvm_nf_info *info;
+
+        if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to get client info memory");
+        }
+
+        if (mempool_data == NULL) {
+                rte_exit(EXIT_FAILURE, "Client Info struct not allocated");
+        }
+
+        info = (struct onvm_nf_info*) mempool_data;
+        info->client_id = initial_client_id;
+        info->is_running = NF_NOT_RUNNING;
+        info->tag = tag;
+
+        return info;
+}
+
+/**
+ * CALLED BY NF:
+ * Sets this NF to not runnings and exits with EXIT_SUCCESS
+ */
+void
+onvm_nf_stop(void) {
+        nf_info->is_running = NF_NOT_RUNNING;
+        rte_exit(EXIT_SUCCESS, "Done.");
+}
+
+/**
+ * CALLED BY NF:
+ * Initialises everything we need
+ */
 int
-onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
+onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         const struct rte_memzone *mz;
         struct rte_mempool *mp;
         int retval_eal, retval_parse;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
                 return -1;
-        argc -= retval_eal;
-        argv += retval_eal;
+        argc -= retval_eal; argv += retval_eal;
 
         if ((retval_parse = parse_nflib_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-        info->client_id = client_id;
+
+        /* Lookup mempool for nf_info struct */
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
+                rte_exit(EXIT_FAILURE, "No Client Info mempool - bye\n");
+
+        /* Initialize the info struct */
+        nf_info = ovnm_nf_info_init(nf_tag);
 
         if (rte_eth_dev_count() == 0)
                 rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
-
-        rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
-        if (rx_ring == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
-
-        tx_ring = rte_ring_lookup(get_tx_queue_name(client_id));
-        if (tx_ring == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
@@ -140,11 +188,41 @@ onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info) {
                 rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
         tx_stats = mz->addr;
 
+        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
+        if (nf_info_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
+
+        /* Put this NF's info struct onto queue for manager to process startup */
+        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager");
+        }
+
+        /* Wait for a client id to be assigned by the manager */
+        RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
+        for (; nf_info->client_id == (uint8_t)NF_NO_ID ;) {
+                sleep(3);
+        }
+        RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
+
+        /* Now, map rx and tx rings into client space */
+        rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->client_id));
+        if (rx_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
+
+        tx_ring = rte_ring_lookup(get_tx_queue_name(nf_info->client_id));
+        if (tx_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
+
+        /* Tell the manager we're ready to recieve packets */
+        nf_info->is_running = NF_RUNNING;
+
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-        return retval_eal;
+        return (retval_eal + retval_parse);
 }
 
-/*
+/**
+ * CALLED BY NF:
  * Application main function - loops through
  * receiving and processing packets. Never returns
  */
@@ -152,9 +230,8 @@ int
 onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
-        info->client_id = client_id;
 
-        printf("\nClient process %d handling packets\n", client_id);
+        printf("\nClient process %d handling packets\n", info->client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         for (;;) {
@@ -173,12 +250,12 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 }
 
                 if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, nb_pkts) == -ENOBUFS)) {
-                        tx_stats->tx_drop[client_id] += nb_pkts;
+                        tx_stats->tx_drop[info->client_id] += nb_pkts;
                         for (j = 0; j < nb_pkts; j++) {
                                 rte_pktmbuf_free(pkts[j]);
                         }
                 } else {
-                        tx_stats->tx[client_id] += nb_pkts;
+                        tx_stats->tx[info->client_id] += nb_pkts;
                 }
         }
 }
