@@ -41,8 +41,8 @@ fi
 sudo -v
 
 # Load uio kernel modules
-grep -m 1 "igb_uio" /proc/modules | tee t.txt
-if [ ${PIPESTATUS[0]} != 0]; then
+grep -m 1 "igb_uio" /proc/modules | cat  
+if [ ${PIPESTATUS[0]} != 0 ]; then
     echo "Loading uio kernel modules"
     sleep 1
     cd $RTE_SDK/$RTE_TARGET/kmod
