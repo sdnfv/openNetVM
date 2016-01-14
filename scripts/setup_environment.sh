@@ -56,7 +56,7 @@ echo "Checking NIC status"
 sleep 1
 $RTE_SDK/tools/dpdk_nic_bind.py --status
 
-nic_list ()
+: 'nic_list ()
 {
     echo "p2p1 p2p2"
 }
@@ -79,3 +79,19 @@ do
         $RTE_SDK/tools/dpdk_nic_bind.py --status
     fi
 done
+'
+# Auto bind all inactive NIC to igb_uio
+
+i=0
+for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep 10G | grep unused=igb_uio | cut -f 1 -d " ")
+do
+	echo "Binding interface $id to DPDK"
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py --bind=igb_uio $id
+	i=$(($i+1))
+done
+
+if [[ $i == 0 ]]
+then
+	echo "All inactive NIC are already binded to IGB_UIO"
+fi
+
