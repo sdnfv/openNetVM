@@ -73,12 +73,8 @@ if [ -z "$ONVM_NIC_PCI" ];then
     $RTE_SDK/tools/dpdk_nic_bind.py --status
 else
     # Manual bind NIC to igb_uio
-    nic_list ()
-    {
-        echo $ONVM_NIC_PCI
-    }
     i=0
-    for nic_id in $(nic_list)
+    for nic_id in $(ONVM_NIC_PCI)
     do
         binded=false
         nic_name=${ONVM_NIC:-p2p1}
