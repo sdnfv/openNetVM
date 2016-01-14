@@ -78,16 +78,15 @@ else
         echo $ONVM_NIC_PCI
     }
     i=0
-    for nic in $(nic_list)
+    for nic_id in $(nic_list)
     do
-        echo $nic
+        echo $nic_id
         nic_name=${ONVM_NIC:-p2p1}
-        nic_id=${ONVM_NIC_PCI[i]:-07:00.0}
         read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
         if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
             echo "Binding $nic_name to dpdk"
             sudo ifconfig $nic_name down || true
-            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic
             $RTE_SDK/tools/dpdk_nic_bind.py --status
         fi
 	i=$(($i+1))
