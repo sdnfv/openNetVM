@@ -80,14 +80,25 @@ else
     i=0
     for nic_id in $(nic_list)
     do
-        echo $nic_id
+        binded=false
         nic_name=${ONVM_NIC:-p2p1}
-        read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
-        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            echo "Binding $nic_name to dpdk"
-            sudo ifconfig $nic_name down || true
-            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic
-            $RTE_SDK/tools/dpdk_nic_bind.py --status
+        for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep drv=igb_uio | cut -f 1 -d " ")
+        do 
+            if [ $nic_id == $id ];then
+                binded=true
+            fi
+        done 
+       
+        if [ binded == false ];then
+            read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
+            if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+                echo "Binding $nic_name to dpdk"
+                sudo ifconfig $nic_name down || true
+                sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic
+                $RTE_SDK/tools/dpdk_nic_bind.py --status
+            fi
+        else
+            echo "Already Binded $nic_id to DPDK"
         fi
 	i=$(($i+1))
     done
