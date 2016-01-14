@@ -41,8 +41,8 @@ fi
 sudo -v
 
 # Load uio kernel modules
-grep "igb_uio" /proc/modules
-if [ $? != "0" ]; then
+grep -m 1 "igb_uio" /proc/modules | tee t.txt
+if [ ${PIPESTATUS[0]} != 0]; then
     echo "Loading uio kernel modules"
     sleep 1
     cd $RTE_SDK/$RTE_TARGET/kmod
@@ -56,13 +56,26 @@ echo "Checking NIC status"
 sleep 1
 $RTE_SDK/tools/dpdk_nic_bind.py --status
 
-nic_name=${ONVM_NIC:-p2p1}
-nic_id=${ONVM_NIC_PCI:-07:00.0}
-read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
-if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    echo "Binding $nic_name to dpdk"
-    sudo ifconfig $nic_name down || true
-    sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
-    $RTE_SDK/tools/dpdk_nic_bind.py --status
-fi
+nic_list ()
+{
+    echo "p2p1 p2p2"
+}
 
+for nic in $(nic_list)
+do
+    echo $nic
+    if [ "$nic" == "p2p1" ];then
+        nic_name=${ONVM_NIC:-p2p1}
+        nic_id=${ONVM_NIC_PCI:-07:00.0}
+    else
+        nic_name=${ONVM_NIC:-p2p2}
+        nic_id=${ONVM_NIC_PCI:-07:00.1}
+    fi
+    read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
+    if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        echo "Binding $nic_name to dpdk"
+        sudo ifconfig $nic_name down || true
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+        $RTE_SDK/tools/dpdk_nic_bind.py --status
+    fi
+done
