@@ -56,42 +56,40 @@ echo "Checking NIC status"
 sleep 1
 $RTE_SDK/tools/dpdk_nic_bind.py --status
 
-: 'nic_list ()
-{
-    echo "p2p1 p2p2"
-}
-
-for nic in $(nic_list)
-do
-    echo $nic
-    if [ "$nic" == "p2p1" ];then
-        nic_name=${ONVM_NIC:-p2p1}
-        nic_id=${ONVM_NIC_PCI:-07:00.0}
-    else
-        nic_name=${ONVM_NIC:-p2p2}
-        nic_id=${ONVM_NIC_PCI:-07:00.1}
-    fi
-    read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
-    if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        echo "Binding $nic_name to dpdk"
-        sudo ifconfig $nic_name down || true
-        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
-        $RTE_SDK/tools/dpdk_nic_bind.py --status
-    fi
-done
-'
-# Auto bind all inactive NIC to igb_uio
-
-i=0
-for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep 10G | grep unused=igb_uio | cut -f 1 -d " ")
-do
-	echo "Binding interface $id to DPDK"
+echo "Binding NIC status"
+if [ -z "$ONVM_NIC_PCI" ];then
+    # Auto bind all inactive NIC to igb_uio
+    i=0
+    for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep 10G | grep unused=igb_uio | cut -f 1 -d " ")
+    do
+        echo "Binding interface $id to DPDK"
         sudo $RTE_SDK/tools/dpdk_nic_bind.py --bind=igb_uio $id
 	i=$(($i+1))
-done
+    done
 
-if [[ $i == 0 ]]
-then
-	echo "All inactive NIC are already binded to IGB_UIO"
+    if [[ $i == 0 ]];then
+        echo "All inactive NIC are already binded to IGB_UIO"
+    fi
+    $RTE_SDK/tools/dpdk_nic_bind.py --status
+else
+    # Manual bind NIC to igb_uio
+    nic_list ()
+    {
+        echo $ONVM_NIC_PCI
+    }
+    i=0
+    for nic in $(nic_list)
+    do
+        echo $nic
+        nic_name=${ONVM_NIC:-p2p1}
+        nic_id=${ONVM_NIC_PCI[i]:-07:00.0}
+        read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
+        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            echo "Binding $nic_name to dpdk"
+            sudo ifconfig $nic_name down || true
+            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+            $RTE_SDK/tools/dpdk_nic_bind.py --status
+        fi
+	i=$(($i+1))
+    done
 fi
-
