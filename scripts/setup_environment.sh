@@ -64,7 +64,6 @@ if [ -z "$ONVM_NIC_PCI" ];then
         if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
             echo "Binding $id to dpdk"
             sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
-            $RTE_SDK/tools/dpdk_nic_bind.py --status
         fi
     done
 else
@@ -73,8 +72,8 @@ else
     do
         echo "Binding $nic_id to DPDK"
         sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
-        $RTE_SDK/tools/dpdk_nic_bind.py --status
     done
 fi
 
 echo "Finished Binding"
+$RTE_SDK/tools/dpdk_nic_bind.py --status
