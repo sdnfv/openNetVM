@@ -58,44 +58,23 @@ $RTE_SDK/tools/dpdk_nic_bind.py --status
 
 echo "Binding NIC status"
 if [ -z "$ONVM_NIC_PCI" ];then
-    # Auto bind all inactive NIC to igb_uio
-    i=0
     for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep 10G | grep unused=igb_uio | cut -f 1 -d " ")
     do
-        echo "Binding interface $id to DPDK"
-        sudo $RTE_SDK/tools/dpdk_nic_bind.py --bind=igb_uio $id
-	i=$(($i+1))
-    done
-
-    if [[ $i == 0 ]];then
-        echo "All inactive NIC are already binded to IGB_UIO"
-    fi
-    $RTE_SDK/tools/dpdk_nic_bind.py --status
-else
-    # Manual bind NIC to igb_uio
-    i=0
-    for nic_id in $(ONVM_NIC_PCI)
-    do
-        binded=false
-        nic_name=${ONVM_NIC:-p2p1}
-        for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep drv=igb_uio | cut -f 1 -d " ")
-        do 
-            if [ $nic_id == $id ];then
-                binded=true
-            fi
-        done 
-       
-        if [ binded == false ];then
-            read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
-            if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
-                echo "Binding $nic_name to dpdk"
-                sudo ifconfig $nic_name down || true
-                sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic
-                $RTE_SDK/tools/dpdk_nic_bind.py --status
-            fi
-        else
-            echo "Already Binded $nic_id to DPDK"
+        read -r -p "Bind interface $id to DPDK? [y/N] " response
+        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            echo "Binding $id to dpdk"
+            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
+            $RTE_SDK/tools/dpdk_nic_bind.py --status
         fi
-	i=$(($i+1))
+    done
+else
+    # Auto binding example format: export ONVM_NIC_PCI=" 07:00.0  07:00.1 "
+    for nic_id in $ONVM_NIC_PCI
+    do
+        echo "Binding $nic_id to DPDK"
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+        $RTE_SDK/tools/dpdk_nic_bind.py --status
     done
 fi
+
+echo "Finished Binding"
