@@ -61,7 +61,7 @@ if [ -z "$ONVM_NIC_PCI" ];then
     for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep 10G | grep unused=igb_uio | cut -f 1 -d " ")
     do
         read -r -p "Bind interface $id to DPDK? [y/N] " response
-        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]];then
             echo "Binding $id to dpdk"
             sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
         fi
@@ -71,7 +71,10 @@ else
     for nic_id in $ONVM_NIC_PCI
     do
         echo "Binding $nic_id to DPDK"
-        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id | grep -m 1 "modifying"
+        if [ $? != "0"  ];then
+             exit 1
+        fi
     done
 fi
 
