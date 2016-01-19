@@ -46,12 +46,12 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 2.3  enter dpdk working directory
 
- `$cd  openNetVM/dpdk-1.8.0/`
+ `$cd  openNetVM/dpdk/`
 
 
 3. Set	up Environment
 -------------
-3.1 check out current directory, and remember the output, e.g. /home/**your_name**/openNetVM/dpdk-1.8.0"
+3.1 check out current directory, and remember the output, e.g. "/home/**your_name**/openNetVM/dpdk"
 
  `$ pwd`
 
@@ -59,13 +59,13 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$ ls ./config/`
 
-3.3  set environment variable RTE_SDK as the output you got from step 3.1,   e.g. "/home/**your_name**/openNetVM/dpdk-1.8.0"
+3.3  set environment variable RTE_SDK as the output you got from step 3.1,   e.g. "/home/**your_name**/openNetVM/dpdk"
 
- `$ echo export RTE_SDK=/home/**your_name**/openNetVM/dpdk-1.8.0  >> ~/.bashrc`
+ `$ echo export RTE_SDK=/home/**your_name**/openNetVM/dpdk  >> ~/.bashrc`
 
  or if you are currently in the dpdk directory simply use:
 
-``
+ ``
  $ echo export RTE_SDK=`pwd` >> ~/.bashrc
  ``
 
@@ -77,8 +77,16 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
 4.  Configure	and	compile	DPDK
 -------------
+4.1 set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
+ONVM_NUM_HUEGPAGES is a variable specifies how many huge pages are reserved by the user, default value of this is 1024, which could be set using: 
 
-Run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
+ `$ echo export ONVM_NUM_HUEGPAGES=1024 >> ~/.bashrc`
+
+ONVM_NIC_PCI is a variable specifies NIC cards to be binded to DPDK, an example for this is as following, if user does not set ONVM_NIC_PCI, default is to bind all non-active 10G NIC cards to DPDK. 
+
+ `$ export ONVM_NIC_PCI=" 07:00.0  07:00.1 "`
+
+4.2 run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
 
 The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver.
 
