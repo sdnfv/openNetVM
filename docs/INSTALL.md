@@ -78,11 +78,11 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 4.  Configure	and	compile	DPDK
 -------------
 4.1 set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
-ONVM_NUM_HUEGPAGES is a variable specifies how many huge pages are reserved by the user, default value of this is 1024, which could be set using: 
+ONVM_NUM_HUEGPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using: 
 
  `$ echo export ONVM_NUM_HUEGPAGES=1024 >> ~/.bashrc`
 
-ONVM_NIC_PCI is a variable specifies NIC cards to be binded to DPDK, an example for this is as following, if user does not set ONVM_NIC_PCI, default is to bind all non-active 10G NIC cards to DPDK. 
+ONVM_NIC_PCI is a variable specifies NIC cards to be binded to DPDK, if user does not set ONVM_NIC_PCI, default is to bind all non-active 10G NIC cards to DPDK, an example for this is as following:
 
  `$ export ONVM_NIC_PCI=" 07:00.0  07:00.1 "`
 
