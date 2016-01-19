@@ -277,5 +277,6 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         }
 
         nf_info->is_running = NF_NOT_RUNNING;
+        rte_mempool_put(nf_info_mp, (void*)nf_info);
         return 0;
 }
