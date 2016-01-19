@@ -29,6 +29,7 @@
 #include <sys/queue.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -76,6 +77,9 @@ static struct rte_mempool *nf_info_mp;
 
 /* User-given NF Client ID (defaults to manager assigned) */
 static uint8_t initial_client_id = NF_NO_ID;
+
+/* True as long as the NF should keep processing packets */
+static uint8_t keep_running = 1;
 
 /*
  * Print a usage message
@@ -147,7 +151,6 @@ ovnm_nf_info_init(const char *tag)
  */
 void
 onvm_nf_stop(void) {
-        nf_info->is_running = NF_NOT_RUNNING;
         rte_exit(EXIT_SUCCESS, "Done.");
 }
 
@@ -222,6 +225,17 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 }
 
 /**
+ * Called for SIGINT, or ^C
+ * Tells the main loop it's time to exit and clean up
+ */
+static void
+handle_signal(int sig)
+{
+        if (sig == SIGINT)
+                keep_running = 0;
+}
+
+/**
  * CALLED BY NF:
  * Application main function - loops through
  * receiving and processing packets. Never returns
@@ -234,7 +248,10 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         printf("\nClient process %d handling packets\n", info->client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
-        for (;;) {
+        /* Listen for ^C so we can exit gracefully */
+        signal(SIGINT, handle_signal);
+
+        for (; keep_running;) {
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
 
                 /* try dequeuing max possible packets first, if that fails, get the
@@ -258,4 +275,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                         tx_stats->tx[info->client_id] += nb_pkts;
                 }
         }
+
+        nf_info->is_running = NF_NOT_RUNNING;
+        return 0;
 }
