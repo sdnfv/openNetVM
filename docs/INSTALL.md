@@ -73,11 +73,9 @@ Before installation of OpenNetVM, please check your machine to see if it could m
 
  `$ echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc`
 
- `$ source ~/.bashrc`
 
-4.  Configure	and	compile	DPDK
--------------
-4.1 set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
+3.5 set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
+
 ONVM_NUM_HUEGPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using: 
 
  `$ echo export ONVM_NUM_HUEGPAGES=1024 >> ~/.bashrc`
@@ -86,7 +84,15 @@ ONVM_NIC_PCI is a variable specifies NIC cards to be binded to DPDK, if user doe
 
  `$ export ONVM_NIC_PCI=" 07:00.0  07:00.1 "`
 
-4.2 run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
+
+3.6 activate the environment status using:
+
+ `$ source ~/.bashrc`
+
+
+4.  Configure	and	compile	DPDK
+-------------
+4.1 run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
 
 The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver.
 
@@ -140,6 +146,8 @@ Client  0 - rx:        12, rx_drop:         0
 7. Applying settings after reboot
 ------------
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
+Also, please double check if environment variables are activited using `$echo $Variable` , if not, please go to step 3 to set them. 
+
 
 Troubleshooting
 -------------
