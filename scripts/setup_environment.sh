@@ -41,8 +41,8 @@ fi
 sudo -v
 
 # Load uio kernel modules
-grep "igb_uio" /proc/modules
-if [ $? != "0" ]; then
+grep -m 1 "igb_uio" /proc/modules | cat  
+if [ ${PIPESTATUS[0]} != 0 ]; then
     echo "Loading uio kernel modules"
     sleep 1
     cd $RTE_SDK/$RTE_TARGET/kmod
@@ -56,13 +56,24 @@ echo "Checking NIC status"
 sleep 1
 $RTE_SDK/tools/dpdk_nic_bind.py --status
 
-nic_name=${ONVM_NIC:-p2p1}
-nic_id=${ONVM_NIC_PCI:-07:00.0}
-read -r -p "Bind interface $nic_name with address $nic_id? [y/N] " response
-if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    echo "Binding $nic_name to dpdk"
-    sudo ifconfig $nic_name down || true
-    sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
-    $RTE_SDK/tools/dpdk_nic_bind.py --status
+echo "Binding NIC status"
+if [ -z "$ONVM_NIC_PCI" ];then
+    for id in $($RTE_SDK/tools/dpdk_nic_bind.py --status | grep -v Active | grep -e "10G" -e "10-Gigabit" | grep unused=igb_uio | cut -f 1 -d " ")
+    do
+        read -r -p "Bind interface $id to DPDK? [y/N] " response
+        if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]];then
+            echo "Binding $id to dpdk"
+            sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
+        fi
+    done
+else
+    # Auto binding example format: export ONVM_NIC_PCI=" 07:00.0  07:00.1 "
+    for nic_id in $ONVM_NIC_PCI
+    do
+        echo "Binding $nic_id to DPDK"
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id 
+    done
 fi
 
+echo "Finished Binding"
+$RTE_SDK/tools/dpdk_nic_bind.py --status
