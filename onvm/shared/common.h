@@ -49,12 +49,28 @@ struct client_tx_stats {
 
 extern struct client_tx_stats *clients_stats;
 
+/*
+ * Define a structure to describe one NF
+ */
+struct onvm_nf_info {
+        uint8_t client_id;
+        uint8_t is_running;
+        const char *tag;
+};
+
 /* define common names for structures shared between server and client */
 #define MP_CLIENT_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_CLIENT_TXQ_NAME "MProc_Client_%u_TX"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CLIENT_INFO "MProc_client_info"
+
+/* common names for NF states */
+#define _NF_QUEUE_NAME "NF_INFO_QUEUE"
+#define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
+#define NF_NOT_RUNNING 0
+#define NF_RUNNING 1
+#define NF_NO_ID -1
 
 /*
  * Given the rx queue name template above, get the queue name

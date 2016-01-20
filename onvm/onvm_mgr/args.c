@@ -35,9 +35,13 @@
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
 
-/* global var for number of clients - extern in header */
+/* global var for number of clients - extern in header init.h */
 uint8_t num_clients;
 
+/* global var: did user directly specify num clients? */
+uint8_t is_static_clients;
+
+/* global var for program name */
 static const char *progname;
 
 /**
@@ -46,9 +50,9 @@ static const char *progname;
 static void
 usage(void) {
         printf(
-            "%s [EAL options] -- -p PORTMASK -n NUM_CLIENTS [-s NUM_SOCKETS]\n"
+            "%s [EAL options] -- -p PORTMASK [-n NUM_CLIENTS] [-s NUM_SOCKETS]\n"
             " -p PORTMASK: hexadecimal bitmask of ports to use\n"
-            " -n NUM_CLIENTS: number of client processes to use\n"
+            " -n NUM_CLIENTS: number of client processes to use (optional)\n"
             , progname);
 }
 
@@ -97,14 +101,16 @@ parse_num_clients(const char *clients) {
         char *end = NULL;
         unsigned long temp;
 
+        // If we want dynamic client numbering
         if (clients == NULL || *clients == '\0')
-                return -1;
+                return 0;
 
         temp = strtoul(clients, &end, 10);
         if (end == NULL || *end != '\0' || temp == 0)
                 return -1;
 
         num_clients = (uint8_t)temp;
+        is_static_clients = STATIC_CLIENTS;
         return 0;
 }
 
@@ -122,8 +128,9 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 {NULL, 0, 0, 0 }
         };
         progname = argv[0];
+        is_static_clients = DYNAMIC_CLIENTS;
 
-        while ((opt = getopt_long(argc, argvopt, "n:p:", lgopts,
+        while ((opt = getopt_long(argc, argvopt, "n::p:", lgopts,
                 &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
@@ -145,7 +152,9 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 }
         }
 
-        if (ports->num_ports == 0 || num_clients == 0) {
+        if (ports->num_ports == 0
+            || (is_static_clients == STATIC_CLIENTS
+               && num_clients == 0)) {
                 usage();
                 return -1;
         }

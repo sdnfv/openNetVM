@@ -38,6 +38,11 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
+#define NF_TAG "simple_forward"
+
+/* Struct that contains information about this NF */
+struct onvm_nf_info *nf_info;
+
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
@@ -129,19 +134,18 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* action) {
 
 
 int main(int argc, char *argv[]) {
-	struct onvm_nf_info info;
         int retval;
 
-        if ((retval = onvm_nf_init(argc, argv, &info)) < 0)
+        if ((retval = onvm_nf_init(argc, argv, NF_TAG)) < 0)
                 return -1;
         argc -= retval;
         argv += retval;
-	destination = info.client_id + 1;
+	destination = nf_info->client_id + 1;
 
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
-        onvm_nf_run(&info, &packet_handler);
+        onvm_nf_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
         return 0;
 }
