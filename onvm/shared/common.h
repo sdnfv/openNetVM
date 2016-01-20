@@ -25,10 +25,11 @@
 
 #define MAX_CLIENTS             16
 
-#define ONVM_NF_ACTION_DROP 0  // drop packet
-#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
-#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_DROP 0   // drop packet
+#define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_BUFFER 4 // manager will do nothing; NF must call onvm_nf_return_pkt() later
 
 struct onvm_pkt_meta {
         uint8_t action; /* Action to be performed */

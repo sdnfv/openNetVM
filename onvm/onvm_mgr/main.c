@@ -178,10 +178,11 @@ do_stats_display(unsigned sleeptime) {
                 const uint64_t act_next = clients[i].stats.act_next;
                 const uint64_t act_out = clients[i].stats.act_out;
                 const uint64_t act_tonf = clients[i].stats.act_tonf;
+                const uint64_t act_buffer = clients[i].stats.act_buffer;
 
-                printf("Client %2u - rx: %9"PRIu64", rx_drop: %9"PRIu64", next: %9"PRIu64", drop: %9"PRIu64"\n"
-                                "            tx: %9"PRIu64", tx_drop: %9"PRIu64", out : %9"PRIu64", tonf: %9"PRIu64"\n",
-                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf);
+                printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64"\n"
+                                "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out: %9"PRIu64"  tonf: %9"PRIu64" buf: %9"PRIu64" \n",
+                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf, act_buffer);
         }
 
         printf("\n");
@@ -468,7 +469,10 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                 } else if (meta->action == ONVM_NF_ACTION_OUT) {
                         cl->stats.act_out++;
                         enqueue_port_packet(tx, meta->destination, pkts[i]);
+                } else if (meta->action == ONVM_NF_ACTION_BUFFER) {
+                        cl->stats.act_buffer++;
                 } else {
+                        printf("ERROR invalid action : this shouldn't happen.\n");
                         rte_pktmbuf_free(pkts[i]);
                         return;
                 }

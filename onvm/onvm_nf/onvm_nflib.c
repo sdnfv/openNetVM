@@ -275,7 +275,6 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                         tx_stats->tx[info->client_id] += nb_pkts;
                 }
         }
-
         nf_info->is_running = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
@@ -289,6 +288,20 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
         }
+        return 0;
+}
 
+/*
+ * Return a buffered packet.
+ */
+int
+onvm_nf_return_pkt(struct rte_mbuf* pkt) {
+        /* FIXME: should we get a batch of buffered packets and then enqueue? */
+        if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
+                rte_pktmbuf_free(pkt);
+                /* FIXME: We need to know the client ID to be able to update stats here. How to get it? */
+                //tx_stats->tx[client_id]++;
+                return -ENOBUFS;
+        }
         return 0;
 }
