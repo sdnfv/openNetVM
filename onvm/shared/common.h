@@ -23,6 +23,8 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <rte_mbuf.h>
+
 #define MAX_CLIENTS             16
 
 #define ONVM_NF_ACTION_DROP 0   // drop packet
@@ -36,6 +38,9 @@ struct onvm_pkt_meta {
         uint16_t destination; /* where to go next */
         uint16_t src; /* who processed the packet last */
 };
+static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
+        return (struct onvm_pkt_meta*)&pkt->udata64;
+}
 
 /*
  * Define a structure with stats from the clients.
