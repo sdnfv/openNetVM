@@ -253,6 +253,8 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
 
         for (; keep_running;) {
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
+                void *pktsTX[PKT_READ_SIZE];
+                int tx_batch_size = 0;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
@@ -264,15 +266,23 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 for (i = 0; i < nb_pkts; i++) {
                         meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], meta);
+                        if(meta->action != ONVM_NF_ACTION_BUFFER) {
+                                pktsTX[tx_batch_size++] = pkts[i];
+                                printf("send pkt\n");
+                        }
+                        else {
+                                printf("Buffering pkt %d\n", i);
+                        }
                 }
 
-                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pkts, nb_pkts) == -ENOBUFS)) {
-                        tx_stats->tx_drop[info->client_id] += nb_pkts;
-                        for (j = 0; j < nb_pkts; j++) {
-                                rte_pktmbuf_free(pkts[j]);
+                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
+                        tx_stats->tx_drop[info->client_id] += tx_batch_size;
+                        for (j = 0; j < tx_batch_size; j++) {
+                                rte_pktmbuf_free(pktsTX[j]);
                         }
                 } else {
-                        tx_stats->tx[info->client_id] += nb_pkts;
+                        tx_stats->tx[info->client_id] += tx_batch_size;
+                        /* FIXME: doesn't count buffer stats */
                 }
         }
         nf_info->is_running = NF_STOPPED;
