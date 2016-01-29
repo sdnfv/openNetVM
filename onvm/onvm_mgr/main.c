@@ -116,6 +116,18 @@ get_printable_mac_addr(uint8_t port) {
         return addresses[port];
 }
 
+/**
+ * Helper function to determine if an item in the clients array represents a valid NF
+ * A "valid" NF consists of:
+ *  - A non-null index that also contains an associated info struct
+ *  - A status set to NF_RUNNING
+ */
+static inline int
+is_valid_nf(struct client *cl)
+{
+        return cl && cl->info && cl->info->is_running == NF_RUNNING;
+}
+
 /*
  * This function displays the recorded statistics for each port
  * and for each client. It uses ANSI terminal codes to clear
@@ -156,7 +168,7 @@ do_stats_display(unsigned sleeptime) {
         printf("\nCLIENTS\n");
         printf("-------\n");
         for (i = 0; i < MAX_CLIENTS; i++) {
-                if (!clients[i].info || clients[i].info->is_running != NF_RUNNING)
+                if (!is_valid_nf(&clients[i]))
                         continue;
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
@@ -182,10 +194,10 @@ do_stats_display(unsigned sleeptime) {
  */
 static int
 find_next_client_id(void) {
-        struct onvm_nf_info *info;
+        struct client *cl;
         while (next_client_id < MAX_CLIENTS) {
-                info = clients[next_client_id].info;
-                if (!info || info->is_running != NF_RUNNING)
+                cl = &clients[next_client_id];
+                if (!is_valid_nf(cl))
                         break;
                 next_client_id++;
         }
@@ -321,7 +333,7 @@ flush_nf_queue(struct tx_state *tx, uint16_t client) {
         cl = &clients[client];
 
         // Ensure destination NF is running and ready to receive packets
-        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+        if (!is_valid_nf(cl))
                 return;
 
         if (rte_ring_enqueue_bulk(cl->rx_q, (void **)tx->nf_rx_buf[client].buffer,
@@ -369,7 +381,7 @@ enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
 
         // Ensure destination NF is running and ready to receive packets
         cl = &clients[dst_id];
-        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+        if (!is_valid_nf(cl))
                 return;
 
         tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
@@ -497,7 +509,7 @@ tx_thread_main(void *arg) {
                 for (i = tx->first_cl; i < tx->last_cl; i++) {
                         tx_count = PACKET_READ_SIZE;
                         cl = &clients[i];
-                        if (!cl->info || !cl->info->is_running == NF_RUNNING)
+                        if (!is_valid_nf(cl))
                                 continue;
                         /* try dequeuing max possible packets first, if that fails, get the
                          * most we can. Loop body should only execute once, maximum */
@@ -520,7 +532,7 @@ tx_thread_main(void *arg) {
 
                 /* Send a burst to every client */
                 for (i = 0; i < MAX_CLIENTS; i++) {
-                        if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                        if (!is_valid_nf(&clients[i]))
                                 continue;
                        flush_nf_queue(tx, i);
                 }
