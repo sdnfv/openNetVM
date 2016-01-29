@@ -288,5 +288,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
-        }return 0;
+        }
+
+        return 0;
 }

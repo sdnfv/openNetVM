@@ -241,6 +241,7 @@ static inline void
 stop_running_nf(struct onvm_nf_info *nf_info)
 {
         int nf_id = nf_info->client_id;
+        struct rte_mempool *nf_info_mp;
 
         /* Clean up dangling pointers to info struct */
         clients[nf_id].info = NULL;
@@ -249,6 +250,14 @@ stop_running_nf(struct onvm_nf_info *nf_info)
         clients[nf_id].stats.rx = clients[nf_id].stats.rx_drop = 0;
         clients[nf_id].stats.act_drop = clients[nf_id].stats.act_tonf = 0;
         clients[nf_id].stats.act_next = clients[nf_id].stats.act_out = 0;
+
+        /* Free info struct */
+        /* Lookup mempool for nf_info struct */
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
+                return;
+
+        rte_mempool_put(nf_info_mp, (void*)nf_info);
 }
 
 static void
