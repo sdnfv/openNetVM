@@ -139,7 +139,7 @@ ovnm_nf_info_init(const char *tag)
 
         info = (struct onvm_nf_info*) mempool_data;
         info->client_id = initial_client_id;
-        info->is_running = NF_NOT_RUNNING;
+        info->is_running = NF_WAITING_FOR_ID;
         info->tag = tag;
 
         return info;
@@ -203,8 +203,8 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Wait for a client id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_info->client_id == (uint8_t)NF_NO_ID ;) {
-                sleep(3);
+        for (; nf_info->is_running == (uint8_t)NF_WAITING_FOR_ID ;) {
+                sleep(1);
         }
         RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
 
@@ -276,7 +276,17 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 }
         }
 
-        nf_info->is_running = NF_NOT_RUNNING;
-        rte_mempool_put(nf_info_mp, (void*)nf_info);
-        return 0;
+        nf_info->is_running = NF_STOPPED;
+
+        /* Put this NF's info struct back into queue for manager to ack shutdown */
+        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
+        if (nf_info_ring == NULL) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot get nf_info ring for shutdown");
+        }
+
+        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
+        }return 0;
 }

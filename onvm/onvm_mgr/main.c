@@ -193,12 +193,59 @@ find_next_client_id(void) {
 
 }
 
+/**
+ * Set up a newly started NF
+ * Assign it an ID (if it hasn't self-declared)
+ * Store info struct in our internal list of clients
+ */
+static inline void
+start_new_nf(struct onvm_nf_info *nf_info)
+{
+        //TODO dynamically allocate memory here - make rx/tx ring
+        // take code from init_shm_rings in init.c
+        // flush rx/tx queue at the this index to start clean?
+
+        // if NF passed its own id on the command line, don't assign here
+        // assume user is smart enough to avoid duplicates
+        int nf_id = nf_info->client_id == (uint8_t)NF_NO_ID
+                ? next_client_id++
+                : nf_info->client_id;
+
+        // Keep reference to this NF in the manager
+        nf_info->client_id = nf_id;
+        clients[nf_id].info = nf_info;
+        clients[nf_id].client_id = nf_id;
+
+        // Let the NF continue its init process
+        nf_info->is_running = NF_STARTING;
+}
+
+/**
+ * Clean up after an NF has stopped
+ * Remove references to soon-to-be-freed info struct
+ * Clean up stats values
+ */
+static inline void
+stop_running_nf(struct onvm_nf_info *nf_info)
+{
+        int nf_id = nf_info->client_id;
+
+        /* Clean up dangling pointers to info struct */
+        clients[nf_id].info = NULL;
+
+        /* Reset stats */
+        clients[nf_id].stats.rx = clients[nf_id].stats.rx_drop = 0;
+        clients[nf_id].stats.act_drop = clients[nf_id].stats.act_tonf = 0;
+        clients[nf_id].stats.act_next = clients[nf_id].stats.act_out = 0;
+}
+
 static void
-do_check_new_nf(void) {
+do_check_new_nf_status(void) {
         int i;
         int added_clients;
+        int removed_clients;
         void *new_nfs[MAX_CLIENTS];
-        struct onvm_nf_info *new_nf;
+        struct onvm_nf_info *nf;
         int num_new_nfs = rte_ring_count(nf_info_queue);
         int dequeue_val = rte_ring_dequeue_bulk(nf_info_queue, new_nfs, num_new_nfs);
 
@@ -206,23 +253,23 @@ do_check_new_nf(void) {
                 return;
 
         added_clients = 0;
+        removed_clients = 0;
         for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
-                new_nf = (struct onvm_nf_info *)new_nfs[i];
+                nf = (struct onvm_nf_info *)new_nfs[i];
 
-                //TODO this stuff - make rx/tx ring
-                // take code from init_shm_rings in init.c
-                // flush rx/tx queue at the this index to start clean?
-                clients[next_client_id].info = new_nf;
-                added_clients++;
-
-                // if NF passed its own id on the command line, don't assign here
-                if (new_nf->client_id != (uint8_t)NF_NO_ID)
-                        continue;
-                new_nf->client_id = next_client_id++;
+                if (nf->is_running == NF_WAITING_FOR_ID) {
+                        /* We're starting up a new NF */
+                        start_new_nf(nf);
+                        added_clients++;
+                } else if (nf->is_running == NF_STOPPED) {
+                        /* An existing NF is stopping */
+                        stop_running_nf(nf);
+                        removed_clients++;
+                }
         }
-        //TODO needs to wait for client to be ready
-        // needs spcial info thread to wait
+
         num_clients += added_clients;
+        num_clients -= removed_clients;
 }
 
 /*
@@ -238,10 +285,9 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
 
         /* Loop forever: sleep always returns 0 or <= param */
         while (sleep(sleeptime) <= sleeptime) {
-                do_check_new_nf();
+                do_check_new_nf_status();
                 do_stats_display(sleeptime);
         }
-        //TODO find a way to check for clients going NF_RUNNING -> NF_NOT_RUNNING
 
         return 0;
 }
