@@ -266,12 +266,8 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 for (i = 0; i < nb_pkts; i++) {
                         meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                         (*handler)((struct rte_mbuf*)pkts[i], meta);
-                        if(meta->action != ONVM_NF_ACTION_BUFFER) {
+                        if(likely(meta->action != ONVM_NF_ACTION_BUFFER)) {
                                 pktsTX[tx_batch_size++] = pkts[i];
-                                printf("send pkt\n");
-                        }
-                        else {
-                                printf("Buffering pkt %d\n", i);
                         }
                 }
 
