@@ -68,8 +68,13 @@ struct onvm_nf_info {
 /* common names for NF states */
 #define _NF_QUEUE_NAME "NF_INFO_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
-#define NF_NOT_RUNNING 0
-#define NF_RUNNING 1
+
+#define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_STARTING 1           // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2            // Running normally
+#define NF_PAUSED  3            // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4            // NF has stopped and in the shutdown process
+
 #define NF_NO_ID -1
 
 /*

@@ -116,6 +116,18 @@ get_printable_mac_addr(uint8_t port) {
         return addresses[port];
 }
 
+/**
+ * Helper function to determine if an item in the clients array represents a valid NF
+ * A "valid" NF consists of:
+ *  - A non-null index that also contains an associated info struct
+ *  - A status set to NF_RUNNING
+ */
+static inline int
+is_valid_nf(struct client *cl)
+{
+        return cl && cl->info && cl->info->is_running == NF_RUNNING;
+}
+
 /*
  * This function displays the recorded statistics for each port
  * and for each client. It uses ANSI terminal codes to clear
@@ -156,7 +168,7 @@ do_stats_display(unsigned sleeptime) {
         printf("\nCLIENTS\n");
         printf("-------\n");
         for (i = 0; i < MAX_CLIENTS; i++) {
-                if (!clients[i].info || clients[i].info->is_running != NF_RUNNING)
+                if (!is_valid_nf(&clients[i]))
                         continue;
                 const uint64_t rx = clients[i].stats.rx;
                 const uint64_t rx_drop = clients[i].stats.rx_drop;
@@ -182,10 +194,10 @@ do_stats_display(unsigned sleeptime) {
  */
 static int
 find_next_client_id(void) {
-        struct onvm_nf_info *info;
+        struct client *cl;
         while (next_client_id < MAX_CLIENTS) {
-                info = clients[next_client_id].info;
-                if (!info || info->is_running != NF_RUNNING)
+                cl = &clients[next_client_id];
+                if (!is_valid_nf(cl))
                         break;
                 next_client_id++;
         }
@@ -193,12 +205,68 @@ find_next_client_id(void) {
 
 }
 
+/**
+ * Set up a newly started NF
+ * Assign it an ID (if it hasn't self-declared)
+ * Store info struct in our internal list of clients
+ */
+static inline void
+start_new_nf(struct onvm_nf_info *nf_info)
+{
+        //TODO dynamically allocate memory here - make rx/tx ring
+        // take code from init_shm_rings in init.c
+        // flush rx/tx queue at the this index to start clean?
+
+        // if NF passed its own id on the command line, don't assign here
+        // assume user is smart enough to avoid duplicates
+        int nf_id = nf_info->client_id == (uint8_t)NF_NO_ID
+                ? next_client_id++
+                : nf_info->client_id;
+
+        // Keep reference to this NF in the manager
+        nf_info->client_id = nf_id;
+        clients[nf_id].info = nf_info;
+        clients[nf_id].client_id = nf_id;
+
+        // Let the NF continue its init process
+        nf_info->is_running = NF_STARTING;
+}
+
+/**
+ * Clean up after an NF has stopped
+ * Remove references to soon-to-be-freed info struct
+ * Clean up stats values
+ */
+static inline void
+stop_running_nf(struct onvm_nf_info *nf_info)
+{
+        int nf_id = nf_info->client_id;
+        struct rte_mempool *nf_info_mp;
+
+        /* Clean up dangling pointers to info struct */
+        clients[nf_id].info = NULL;
+
+        /* Reset stats */
+        clients[nf_id].stats.rx = clients[nf_id].stats.rx_drop = 0;
+        clients[nf_id].stats.act_drop = clients[nf_id].stats.act_tonf = 0;
+        clients[nf_id].stats.act_next = clients[nf_id].stats.act_out = 0;
+
+        /* Free info struct */
+        /* Lookup mempool for nf_info struct */
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
+                return;
+
+        rte_mempool_put(nf_info_mp, (void*)nf_info);
+}
+
 static void
-do_check_new_nf(void) {
+do_check_new_nf_status(void) {
         int i;
         int added_clients;
+        int removed_clients;
         void *new_nfs[MAX_CLIENTS];
-        struct onvm_nf_info *new_nf;
+        struct onvm_nf_info *nf;
         int num_new_nfs = rte_ring_count(nf_info_queue);
         int dequeue_val = rte_ring_dequeue_bulk(nf_info_queue, new_nfs, num_new_nfs);
 
@@ -206,23 +274,23 @@ do_check_new_nf(void) {
                 return;
 
         added_clients = 0;
+        removed_clients = 0;
         for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
-                new_nf = (struct onvm_nf_info *)new_nfs[i];
+                nf = (struct onvm_nf_info *)new_nfs[i];
 
-                //TODO this stuff - make rx/tx ring
-                // take code from init_shm_rings in init.c
-                // flush rx/tx queue at the this index to start clean?
-                clients[next_client_id].info = new_nf;
-                added_clients++;
-
-                // if NF passed its own id on the command line, don't assign here
-                if (new_nf->client_id != (uint8_t)NF_NO_ID)
-                        continue;
-                new_nf->client_id = next_client_id++;
+                if (nf->is_running == NF_WAITING_FOR_ID) {
+                        /* We're starting up a new NF */
+                        start_new_nf(nf);
+                        added_clients++;
+                } else if (nf->is_running == NF_STOPPED) {
+                        /* An existing NF is stopping */
+                        stop_running_nf(nf);
+                        removed_clients++;
+                }
         }
-        //TODO needs to wait for client to be ready
-        // needs spcial info thread to wait
+
         num_clients += added_clients;
+        num_clients -= removed_clients;
 }
 
 /*
@@ -238,10 +306,9 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
 
         /* Loop forever: sleep always returns 0 or <= param */
         while (sleep(sleeptime) <= sleeptime) {
-                do_check_new_nf();
+                do_check_new_nf_status();
                 do_stats_display(sleeptime);
         }
-        //TODO find a way to check for clients going NF_RUNNING -> NF_NOT_RUNNING
 
         return 0;
 }
@@ -275,7 +342,7 @@ flush_nf_queue(struct tx_state *tx, uint16_t client) {
         cl = &clients[client];
 
         // Ensure destination NF is running and ready to receive packets
-        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+        if (!is_valid_nf(cl))
                 return;
 
         if (rte_ring_enqueue_bulk(cl->rx_q, (void **)tx->nf_rx_buf[client].buffer,
@@ -323,7 +390,7 @@ enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
 
         // Ensure destination NF is running and ready to receive packets
         cl = &clients[dst_id];
-        if (!cl || !cl->info || cl->info->is_running != NF_RUNNING)
+        if (!is_valid_nf(cl))
                 return;
 
         tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
@@ -451,7 +518,7 @@ tx_thread_main(void *arg) {
                 for (i = tx->first_cl; i < tx->last_cl; i++) {
                         tx_count = PACKET_READ_SIZE;
                         cl = &clients[i];
-                        if (!cl->info || !cl->info->is_running == NF_RUNNING)
+                        if (!is_valid_nf(cl))
                                 continue;
                         /* try dequeuing max possible packets first, if that fails, get the
                          * most we can. Loop body should only execute once, maximum */
@@ -474,7 +541,7 @@ tx_thread_main(void *arg) {
 
                 /* Send a burst to every client */
                 for (i = 0; i < MAX_CLIENTS; i++) {
-                        if (!clients[i].info || !clients[i].info->is_running == NF_RUNNING)
+                        if (!is_valid_nf(&clients[i]))
                                 continue;
                        flush_nf_queue(tx, i);
                 }
