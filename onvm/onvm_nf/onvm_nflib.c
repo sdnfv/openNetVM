@@ -179,9 +179,6 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         /* Initialize the info struct */
         nf_info = ovnm_nf_info_init(nf_tag);
 
-        if (rte_eth_dev_count() == 0)
-                rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
-
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
