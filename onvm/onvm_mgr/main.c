@@ -536,14 +536,16 @@ tx_thread_main(void *arg) {
 
                 /* Send a burst to every port */
                 for (i = 0; i < ports->num_ports; i++) {
-                       flush_port_queue(tx, i);
+                       if (tx->port_tx_buf[i].count != 0) {
+                               flush_port_queue(tx, i);
+                       }
                 }
 
                 /* Send a burst to every client */
                 for (i = 0; i < MAX_CLIENTS; i++) {
-                        if (!is_valid_nf(&clients[i]))
-                                continue;
-                       flush_nf_queue(tx, i);
+                       if(tx->nf_rx_buf[i].count != 0) {
+                               flush_nf_queue(tx, i);
+                       }
                 }
         }
         return 0;
