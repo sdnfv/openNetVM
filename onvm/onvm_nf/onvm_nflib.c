@@ -29,6 +29,7 @@
 #include <sys/queue.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -76,6 +77,9 @@ static struct rte_mempool *nf_info_mp;
 
 /* User-given NF Client ID (defaults to manager assigned) */
 static uint8_t initial_client_id = NF_NO_ID;
+
+/* True as long as the NF should keep processing packets */
+static uint8_t keep_running = 1;
 
 /*
  * Print a usage message
@@ -135,7 +139,7 @@ ovnm_nf_info_init(const char *tag)
 
         info = (struct onvm_nf_info*) mempool_data;
         info->client_id = initial_client_id;
-        info->is_running = NF_NOT_RUNNING;
+        info->is_running = NF_WAITING_FOR_ID;
         info->tag = tag;
 
         return info;
@@ -147,7 +151,6 @@ ovnm_nf_info_init(const char *tag)
  */
 void
 onvm_nf_stop(void) {
-        nf_info->is_running = NF_NOT_RUNNING;
         rte_exit(EXIT_SUCCESS, "Done.");
 }
 
@@ -200,8 +203,8 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Wait for a client id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_info->client_id == (uint8_t)NF_NO_ID ;) {
-                sleep(3);
+        for (; nf_info->is_running == (uint8_t)NF_WAITING_FOR_ID ;) {
+                sleep(1);
         }
         RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
 
@@ -222,6 +225,17 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 }
 
 /**
+ * Called for SIGINT, or ^C
+ * Tells the main loop it's time to exit and clean up
+ */
+static void
+handle_signal(int sig)
+{
+        if (sig == SIGINT)
+                keep_running = 0;
+}
+
+/**
  * CALLED BY NF:
  * Application main function - loops through
  * receiving and processing packets. Never returns
@@ -234,7 +248,10 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
         printf("\nClient process %d handling packets\n", info->client_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
-        for (;;) {
+        /* Listen for ^C so we can exit gracefully */
+        signal(SIGINT, handle_signal);
+
+        for (; keep_running;) {
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
 
                 /* try dequeuing max possible packets first, if that fails, get the
@@ -258,4 +275,20 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                         tx_stats->tx[info->client_id] += nb_pkts;
                 }
         }
+
+        nf_info->is_running = NF_STOPPED;
+
+        /* Put this NF's info struct back into queue for manager to ack shutdown */
+        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
+        if (nf_info_ring == NULL) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot get nf_info ring for shutdown");
+        }
+
+        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
+        }
+
+        return 0;
 }
