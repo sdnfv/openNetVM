@@ -68,11 +68,15 @@ parse_portmask(uint8_t max_ports, const char *portmask) {
         unsigned long pm;
         uint8_t count = 0;
 
-        if (portmask == NULL || *portmask == '\0')
+        if (portmask == NULL)
                 return -1;
 
         /* convert parameter to a number and verify */
         pm = strtoul(portmask, &end, 16);
+        if (pm == 0) {
+                printf("WARNING: No ports are being used.\n");
+                return 0;
+        }
         if (end == NULL || *end != '\0' || pm == 0)
                 return -1;
 
@@ -152,9 +156,8 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 }
         }
 
-        if (ports->num_ports == 0
-            || (is_static_clients == STATIC_CLIENTS
-               && num_clients == 0)) {
+        if (is_static_clients == STATIC_CLIENTS
+               && num_clients == 0) {
                 usage();
                 return -1;
         }
