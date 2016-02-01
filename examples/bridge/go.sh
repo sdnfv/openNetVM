@@ -12,4 +12,4 @@ then
 fi
 
 
-sudo ./bridge/x86_64-native-linuxapp-gcc/bridge -l $cpu -n 4 --proc-type=auto -- -n $client -- #-p 1000000000
+sudo ./build/bridge -l $cpu -n 3 --proc-type=secondary -- -n $client -- #-p 1000000000
