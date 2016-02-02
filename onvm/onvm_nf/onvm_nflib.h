@@ -81,7 +81,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag);
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action));
+onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action));
 
 /**
  * Return a packet that has previously had the ONVM_NF_ACTION_BUFFER action

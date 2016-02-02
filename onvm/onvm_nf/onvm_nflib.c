@@ -238,7 +238,7 @@ handle_signal(int sig)
  * receiving and processing packets. Never returns
  */
 int
-onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)) {
+onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
 
@@ -252,6 +252,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
                 void *pktsTX[PKT_READ_SIZE];
                 int tx_batch_size = 0;
+                int ret_act;
 
                 /* try dequeuing max possible packets first, if that fails, get the
                  * most we can. Loop body should only execute once, maximum */
@@ -259,16 +260,21 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                                 unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, nb_pkts) != 0))
                         nb_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
 
+                if(nb_pkts == 0) {
+                        continue;
+                }
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                        (*handler)((struct rte_mbuf*)pkts[i], meta);
-                        if(likely(meta->action != ONVM_NF_ACTION_BUFFER)) {
+                        ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
+                        /* Need to use return value to avoid a race condition
+                         * with the meta->action variable */
+                        if(likely(ret_act != ONVM_NF_ACTION_BUFFER)) {
                                 pktsTX[tx_batch_size++] = pkts[i];
                         }
                 }
 
-                if (unlikely(rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
+                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
                         tx_stats->tx_drop[info->client_id] += tx_batch_size;
                         for (j = 0; j < tx_batch_size; j++) {
                                 rte_pktmbuf_free(pktsTX[j]);
@@ -299,11 +305,10 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
  */
 int
 onvm_nf_return_pkt(struct rte_mbuf* pkt) {
-        /* FIXME: should we get a batch of buffered packets and then enqueue? */
+        /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
         if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
-                /* FIXME: We need to know the client ID to be able to update stats here. How to get it? */
-                //tx_stats->tx[client_id]++;
+                tx_stats->tx_drop[nf_info->client_id]++;
                 return -ENOBUFS;
         }
         return 0;
