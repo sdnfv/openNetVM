@@ -121,7 +121,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("\n\n");
 }
 
-static void
+static int 
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
@@ -136,6 +136,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 meta->destination = 0;
         }
         meta->action = ONVM_NF_ACTION_OUT;
+        return meta->action;
 }
 
 
