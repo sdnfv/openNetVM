@@ -224,6 +224,12 @@ start_new_nf(struct onvm_nf_info *nf_info)
                 ? next_client_id++
                 : nf_info->client_id;
 
+        if (nf_id >= MAX_CLIENTS) {
+                // There are no more available IDs for this NF
+                nf_info->is_running = NF_NO_IDS;
+                return 0;
+        }
+
         if (is_valid_nf(&clients[nf_id])) {
                 // This NF is trying to declare an ID already in use
                 nf_info->is_running = NF_ID_CONFLICT;
@@ -283,8 +289,11 @@ do_check_new_nf_status(void) {
 
         added_clients = 0;
         removed_clients = 0;
-        for (i = 0; i < num_new_nfs && find_next_client_id() < MAX_CLIENTS; i++) {
+        for (i = 0; i < num_new_nfs; i++) {
                 nf = (struct onvm_nf_info *)new_nfs[i];
+
+                // Sets next_client_id variable to next available
+                find_next_client_id();
 
                 if (nf->is_running == NF_WAITING_FOR_ID) {
                         /* We're starting up a new NF.

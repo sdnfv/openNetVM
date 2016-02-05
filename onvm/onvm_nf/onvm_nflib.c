@@ -208,6 +208,9 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         if (nf_info->is_running == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Selected ID already in use. Exiting...\n");
+        } else if(nf_info->is_running == NF_NO_IDS) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(EXIT_FAILURE, "There are no ids available for this NF\n");
         } else if(nf_info->is_running != NF_STARTING) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
