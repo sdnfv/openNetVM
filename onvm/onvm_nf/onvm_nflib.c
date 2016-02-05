@@ -203,6 +203,15 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         for (; nf_info->is_running == (uint8_t)NF_WAITING_FOR_ID ;) {
                 sleep(1);
         }
+
+        /* This NF is trying to declare an ID already in use. */
+        if (nf_info->is_running == NF_ID_CONFLICT) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(EXIT_FAILURE, "Selected ID already in use. Exiting...\n");
+        } else if(nf_info->is_running != NF_STARTING) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
+        }
         RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
 
         /* Now, map rx and tx rings into client space */
