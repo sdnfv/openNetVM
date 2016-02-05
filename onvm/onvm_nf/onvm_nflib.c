@@ -139,7 +139,7 @@ ovnm_nf_info_init(const char *tag)
 
         info = (struct onvm_nf_info*) mempool_data;
         info->client_id = initial_client_id;
-        info->is_running = NF_WAITING_FOR_ID;
+        info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
 
         return info;
@@ -200,18 +200,18 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Wait for a client id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_info->is_running == (uint8_t)NF_WAITING_FOR_ID ;) {
+        for (; nf_info->status == (uint8_t)NF_WAITING_FOR_ID ;) {
                 sleep(1);
         }
 
         /* This NF is trying to declare an ID already in use. */
-        if (nf_info->is_running == NF_ID_CONFLICT) {
+        if (nf_info->status == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
-        } else if(nf_info->is_running == NF_NO_IDS) {
+        } else if(nf_info->status == NF_NO_IDS) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
-        } else if(nf_info->is_running != NF_STARTING) {
+        } else if(nf_info->status != NF_STARTING) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
@@ -227,7 +227,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
         /* Tell the manager we're ready to recieve packets */
-        nf_info->is_running = NF_RUNNING;
+        nf_info->status = NF_RUNNING;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
         return (retval_eal + retval_parse);
@@ -285,7 +285,7 @@ onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, stru
                 }
         }
 
-        nf_info->is_running = NF_STOPPED;
+        nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);

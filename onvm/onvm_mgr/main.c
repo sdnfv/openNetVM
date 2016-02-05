@@ -125,7 +125,7 @@ get_printable_mac_addr(uint8_t port) {
 static inline int
 is_valid_nf(struct client *cl)
 {
-        return cl && cl->info && cl->info->is_running == NF_RUNNING;
+        return cl && cl->info && cl->info->status == NF_RUNNING;
 }
 
 /*
@@ -226,13 +226,13 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         if (nf_id >= MAX_CLIENTS) {
                 // There are no more available IDs for this NF
-                nf_info->is_running = NF_NO_IDS;
+                nf_info->status = NF_NO_IDS;
                 return 0;
         }
 
         if (is_valid_nf(&clients[nf_id])) {
                 // This NF is trying to declare an ID already in use
-                nf_info->is_running = NF_ID_CONFLICT;
+                nf_info->status = NF_ID_CONFLICT;
                 return 0;
         }
 
@@ -242,7 +242,7 @@ start_new_nf(struct onvm_nf_info *nf_info)
         clients[nf_id].client_id = nf_id;
 
         // Let the NF continue its init process
-        nf_info->is_running = NF_STARTING;
+        nf_info->status = NF_STARTING;
         return 1;
 }
 
@@ -295,12 +295,12 @@ do_check_new_nf_status(void) {
                 // Sets next_client_id variable to next available
                 find_next_client_id();
 
-                if (nf->is_running == NF_WAITING_FOR_ID) {
+                if (nf->status == NF_WAITING_FOR_ID) {
                         /* We're starting up a new NF.
                          * Function returns TRUE on successful start */
                         if (start_new_nf(nf))
                                 added_clients++;
-                } else if (nf->is_running == NF_STOPPED) {
+                } else if (nf->status == NF_STOPPED) {
                         /* An existing NF is stopping */
                         stop_running_nf(nf);
                         removed_clients++;

@@ -54,7 +54,7 @@ extern struct client_tx_stats *clients_stats;
  */
 struct onvm_nf_info {
         uint8_t client_id;
-        uint8_t is_running;
+        uint8_t status;
         const char *tag;
 };
 
