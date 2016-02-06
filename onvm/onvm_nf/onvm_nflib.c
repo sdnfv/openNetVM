@@ -277,12 +277,14 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
                 }
                 /* Give each packet to the user proccessing function */
                 for (i = 0; i < nb_pkts; i++) {
-                        meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                        meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
                         ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
-                        /* Need to use return value to avoid a race condition
-                         * with the meta->action variable */
-                        if(likely(ret_act != ONVM_NF_ACTION_BUFFER)) {
+                        /* NF returns 0 to return packets or 1 to buffer */
+                        if(likely(ret_act == 0)) {
                                 pktsTX[tx_batch_size++] = pkts[i];
+                        }
+                        else {
+                                tx_stats->tx_buffer[info->client_id]++;
                         }
                 }
 
@@ -296,7 +298,7 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
                         /* FIXME: doesn't count buffer stats */
                 }
         }
-        
+
         nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
@@ -324,5 +326,6 @@ onvm_nf_return_pkt(struct rte_mbuf* pkt) {
                 tx_stats->tx_drop[nf_info->client_id]++;
                 return -ENOBUFS;
         }
+        else tx_stats->tx_returned[nf_info->client_id]++;
         return 0;
 }

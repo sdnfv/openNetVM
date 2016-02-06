@@ -31,7 +31,7 @@
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
-#define ONVM_NF_ACTION_BUFFER 4 // manager will do nothing; NF must call onvm_nf_return_pkt() later
+// #define ONVM_NF_ACTION_BUFFER 4 // manager will do nothing; NF must call onvm_nf_return_pkt() later
 
 struct onvm_pkt_meta {
         uint8_t action; /* Action to be performed */
@@ -51,6 +51,13 @@ struct client_tx_stats {
          */
         uint64_t tx[MAX_CLIENTS];
         uint64_t tx_drop[MAX_CLIENTS];
+        uint64_t tx_buffer[MAX_CLIENTS];
+        uint64_t tx_returned[MAX_CLIENTS];
+        /* FIXME: Why are these stats kept separately from the rest?
+         * Would it be better to have an array of struct client_tx_stats instead
+         * of putting the array inside the struct? How can we avoid cache
+         * invalidations from different NFs updating these stats?
+         */
 };
 
 extern struct client_tx_stats *clients_stats;

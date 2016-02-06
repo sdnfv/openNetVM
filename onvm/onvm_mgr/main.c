@@ -487,9 +487,6 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                 } else if (meta->action == ONVM_NF_ACTION_OUT) {
                         cl->stats.act_out++;
                         enqueue_port_packet(tx, meta->destination, pkts[i]);
-                } else if (meta->action == ONVM_NF_ACTION_BUFFER) {
-                        cl->stats.act_buffer++;
-                        printf("ERROR BUFFER action : this should have been handled in NF lib.\n");
                 } else {
                         printf("ERROR invalid action : this shouldn't happen.\n");
                         rte_pktmbuf_free(pkts[i]);

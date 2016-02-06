@@ -130,7 +130,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 
         meta->action = ONVM_NF_ACTION_TONF;
         meta->destination = destination;
-        return meta->action;
+        return 0;
 }
 
 
