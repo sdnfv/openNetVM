@@ -60,7 +60,7 @@ extern struct client_tx_stats *clients_stats;
  */
 struct onvm_nf_info {
         uint8_t client_id;
-        uint8_t is_running;
+        uint8_t status;
         const char *tag;
 };
 
@@ -80,6 +80,8 @@ struct onvm_nf_info {
 #define NF_RUNNING 2            // Running normally
 #define NF_PAUSED  3            // NF is not receiving packets, but may in the future
 #define NF_STOPPED 4            // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5        // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6             // There are no available IDs for this NF
 
 #define NF_NO_ID -1
 
