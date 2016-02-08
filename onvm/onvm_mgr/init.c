@@ -92,6 +92,18 @@ struct port_info *ports = NULL;
 
 struct client_tx_stats *clients_stats;
 
+static uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,
+                                     0x6d, 0x5a, 0x6d, 0x5a,};
+
+
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
  * buffer pools needed by the app - currently none.
@@ -142,8 +154,15 @@ init_port(uint8_t port_num) {
         const struct rte_eth_conf port_conf = {
                 .rxmode = {
                         .mq_mode = ETH_MQ_RX_RSS
-                }
+                },
+                .rx_adv_conf = {
+                        .rss_conf = {
+                                .rss_key = rss_symmetric_key,
+                                .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
+                        }
+                },
         };
+
         const uint16_t rx_rings = 1, tx_rings = MAX_CLIENTS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
