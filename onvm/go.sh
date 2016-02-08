@@ -1,5 +1,17 @@
-# run on cores 0,1,2 (first socket) and 6 (second socket)
-# this works well on our 2x6-core nodes
-sudo rm -rf /mnt/huge/*
-sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l 0,1,2,6 -n 3 --proc-type=primary  -- -p1
+#!/bin/bash
 
+cpu=$1
+ports=$2
+
+if [ -z $ports ]
+then
+        echo "$0 [cpu-list] [port-bitmask]"
+        # this works well on our 2x6-core nodes
+        echo "$0 0,1,2,6 3 --> cores 0, 1, 2 and 6 with ports 0 and 1"
+        echo "Cores will be used as follows in numerical order:"
+        echo "  RX thread, TX thread, ..., TX thread for last NF, Stats thread"
+        exit 1
+fi
+
+sudo rm -rf /mnt/huge/rtemap_*
+sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l $cpu -n 3 --proc-type=primary  -- -p${ports}
