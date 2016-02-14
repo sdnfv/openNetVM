@@ -14,4 +14,4 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l $cpu -n 3 --proc-type=primary  -- -p${ports}
+sudo ./onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 3 --proc-type=primary  -- -p${ports}
