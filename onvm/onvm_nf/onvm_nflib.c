@@ -295,7 +295,6 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
                         }
                 } else {
                         tx_stats->tx[info->client_id] += tx_batch_size;
-                        /* FIXME: doesn't count buffer stats */
                 }
         }
 
