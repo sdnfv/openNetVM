@@ -52,6 +52,7 @@ struct client {
                 volatile uint64_t act_tonf;
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
+                volatile uint64_t act_buffer;
         } stats;
 };
 

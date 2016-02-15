@@ -117,7 +117,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         }
 }
 
-static void
+static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         static uint32_t counter = 0;
         if (++counter == print_delay) {
@@ -128,9 +128,10 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         meta->action = ONVM_NF_ACTION_OUT;
         meta->destination = pkt->port;
 
-	if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
-		printf("ERROR: MAC failed to swap!\n");
-	}
+        if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
+                printf("ERROR: MAC failed to swap!\n");
+        }
+        return 0;
 }
 
 

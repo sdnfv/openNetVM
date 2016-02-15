@@ -23,18 +23,23 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <rte_mbuf.h>
+
 #define MAX_CLIENTS             16
 
-#define ONVM_NF_ACTION_DROP 0  // drop packet
-#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
-#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_DROP 0   // drop packet
+#define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
 struct onvm_pkt_meta {
         uint8_t action; /* Action to be performed */
         uint16_t destination; /* where to go next */
         uint16_t src; /* who processed the packet last */
 };
+static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
+        return (struct onvm_pkt_meta*)&pkt->udata64;
+}
 
 /*
  * Define a structure with stats from the clients.
@@ -45,6 +50,13 @@ struct client_tx_stats {
          */
         uint64_t tx[MAX_CLIENTS];
         uint64_t tx_drop[MAX_CLIENTS];
+        uint64_t tx_buffer[MAX_CLIENTS];
+        uint64_t tx_returned[MAX_CLIENTS];
+        /* FIXME: Why are these stats kept separately from the rest?
+         * Would it be better to have an array of struct client_tx_stats instead
+         * of putting the array inside the struct? How can we avoid cache
+         * invalidations from different NFs updating these stats?
+         */
 };
 
 extern struct client_tx_stats *clients_stats;
