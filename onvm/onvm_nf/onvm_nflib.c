@@ -76,7 +76,7 @@ extern struct onvm_nf_info *nf_info;
 static struct rte_mempool *nf_info_mp;
 
 /* User-given NF Client ID (defaults to manager assigned) */
-static uint8_t initial_client_id = NF_NO_ID;
+static uint8_t initial_instance_id = NF_NO_ID;
 
 /* True as long as the NF should keep processing packets */
 static uint8_t keep_running = 1;
@@ -86,7 +86,7 @@ static uint8_t keep_running = 1;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [-n <client_id>]\n\n", progname);
+        printf("Usage: %s [EAL args] -- [-n <instance_id>]\n\n", progname);
 }
 
 /*
@@ -101,7 +101,7 @@ parse_nflib_args(int argc, char *argv[]) {
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
-                        initial_client_id = (uint8_t) strtoul(optarg, NULL, 10);
+                        initial_instance_id = (uint8_t) strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
@@ -138,7 +138,7 @@ ovnm_nf_info_init(const char *tag)
         }
 
         info = (struct onvm_nf_info*) mempool_data;
-        info->client_id = initial_client_id;
+        info->instance_id = initial_instance_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
 
@@ -215,14 +215,14 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
-        RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->client_id);
+        RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->instance_id);
 
         /* Now, map rx and tx rings into client space */
-        rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->client_id));
+        rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->instance_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
 
-        tx_ring = rte_ring_lookup(get_tx_queue_name(nf_info->client_id));
+        tx_ring = rte_ring_lookup(get_tx_queue_name(nf_info->instance_id));
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
@@ -254,7 +254,7 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
 
-        printf("\nClient process %d handling packets\n", info->client_id);
+        printf("\nClient process %d handling packets\n", info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         /* Listen for ^C so we can exit gracefully */
@@ -284,17 +284,17 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
                                 pktsTX[tx_batch_size++] = pkts[i];
                         }
                         else {
-                                tx_stats->tx_buffer[info->client_id]++;
+                                tx_stats->tx_buffer[info->instance_id]++;
                         }
                 }
 
                 if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
-                        tx_stats->tx_drop[info->client_id] += tx_batch_size;
+                        tx_stats->tx_drop[info->instance_id] += tx_batch_size;
                         for (j = 0; j < tx_batch_size; j++) {
                                 rte_pktmbuf_free(pktsTX[j]);
                         }
                 } else {
-                        tx_stats->tx[info->client_id] += tx_batch_size;
+                        tx_stats->tx[info->instance_id] += tx_batch_size;
                 }
         }
 
@@ -322,9 +322,9 @@ onvm_nf_return_pkt(struct rte_mbuf* pkt) {
         /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
         if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
-                tx_stats->tx_drop[nf_info->client_id]++;
+                tx_stats->tx_drop[nf_info->instance_id]++;
                 return -ENOBUFS;
         }
-        else tx_stats->tx_returned[nf_info->client_id]++;
+        else tx_stats->tx_returned[nf_info->instance_id]++;
         return 0;
 }

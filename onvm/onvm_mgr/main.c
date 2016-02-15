@@ -81,7 +81,7 @@ struct packet_buf {
 };
 
 /* ID to be assigned to the next NF that starts */
-static uint8_t next_client_id;
+static uint8_t next_instance_id;
 
 /** TX thread state. This specifies which NFs the thread will handle and
  *  includes the packet buffers used by the thread for NFs and ports.
@@ -183,7 +183,7 @@ do_stats_display(unsigned sleeptime) {
 
                 printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
                                 "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
-                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, act_returned, tx, tx_drop, act_out, act_tonf, act_buffer);
+                                clients[i].info->instance_id, rx, rx_drop, act_next, act_drop, act_returned, tx, tx_drop, act_out, act_tonf, act_buffer);
         }
 
         printf("\n");
@@ -192,18 +192,18 @@ do_stats_display(unsigned sleeptime) {
 /**
  * Verifies that the next client id the manager gives out is unused
  * This lets us account for the case where an NF has a manually specified id and we overwrite it
- * This function modifies next_client_id to be the proper value
+ * This function modifies next_instance_id to be the proper value
  */
 static int
-find_next_client_id(void) {
+find_next_instance_id(void) {
         struct client *cl;
-        while (next_client_id < MAX_CLIENTS) {
-                cl = &clients[next_client_id];
+        while (next_instance_id < MAX_CLIENTS) {
+                cl = &clients[next_instance_id];
                 if (!is_valid_nf(cl))
                         break;
-                next_client_id++;
+                next_instance_id++;
         }
-        return next_client_id;
+        return next_instance_id;
 
 }
 
@@ -222,9 +222,9 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        int nf_id = nf_info->client_id == (uint8_t)NF_NO_ID
-                ? next_client_id++
-                : nf_info->client_id;
+        int nf_id = nf_info->instance_id == (uint8_t)NF_NO_ID
+                ? next_instance_id++
+                : nf_info->instance_id;
 
         if (nf_id >= MAX_CLIENTS) {
                 // There are no more available IDs for this NF
@@ -239,9 +239,9 @@ start_new_nf(struct onvm_nf_info *nf_info)
         }
 
         // Keep reference to this NF in the manager
-        nf_info->client_id = nf_id;
+        nf_info->instance_id = nf_id;
         clients[nf_id].info = nf_info;
-        clients[nf_id].client_id = nf_id;
+        clients[nf_id].instance_id = nf_id;
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
@@ -256,7 +256,7 @@ start_new_nf(struct onvm_nf_info *nf_info)
 static inline void
 stop_running_nf(struct onvm_nf_info *nf_info)
 {
-        int nf_id = nf_info->client_id;
+        int nf_id = nf_info->instance_id;
         struct rte_mempool *nf_info_mp;
 
         /* Clean up dangling pointers to info struct */
@@ -294,8 +294,8 @@ do_check_new_nf_status(void) {
         for (i = 0; i < num_new_nfs; i++) {
                 nf = (struct onvm_nf_info *)new_nfs[i];
 
-                // Sets next_client_id variable to next available
-                find_next_client_id();
+                // Sets next_instance_id variable to next available
+                find_next_instance_id();
 
                 if (nf->status == NF_WAITING_FOR_ID) {
                         /* We're starting up a new NF.
@@ -472,7 +472,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 
         for (i = 0; i < tx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = cl->client_id;
+                meta->src = cl->instance_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         rte_pktmbuf_free(pkts[i]);
                         cl->stats.act_drop++;
@@ -575,7 +575,7 @@ tx_thread_main(void *arg) {
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
-        next_client_id = 0;
+        next_instance_id = 0;
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");

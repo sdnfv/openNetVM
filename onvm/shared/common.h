@@ -65,7 +65,7 @@ extern struct client_tx_stats *clients_stats;
  * Define a structure to describe one NF
  */
 struct onvm_nf_info {
-        uint8_t client_id;
+        uint8_t instance_id;
         uint8_t status;
         const char *tag;
 };
