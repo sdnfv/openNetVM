@@ -33,9 +33,9 @@ start_dir=$(pwd)
 cd $RTE_SDK
 echo "Compiling and installing dpdk in $RTE_SDK"
 sleep 1
-make config T=$RTE_TARGET
-make T=$RTE_TARGET
-make install T=$RTE_TARGET
+make config T=$RTE_TARGET 
+make T=$RTE_TARGET -j 8
+make install T=$RTE_TARGET -j 8
 
 # Refresh sudo
 sudo -v
