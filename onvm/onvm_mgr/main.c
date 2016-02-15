@@ -179,10 +179,11 @@ do_stats_display(unsigned sleeptime) {
                 const uint64_t act_out = clients[i].stats.act_out;
                 const uint64_t act_tonf = clients[i].stats.act_tonf;
                 const uint64_t act_buffer = clients_stats->tx_buffer[i];
+                const uint64_t act_returned = clients_stats->tx_returned[i];
 
-                printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64"\n"
-                                "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out: %9"PRIu64"  tonf: %9"PRIu64" buf: %9"PRIu64" \n",
-                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, tx, tx_drop, act_out, act_tonf, act_buffer);
+                printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
+                                "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
+                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, act_returned, tx, tx_drop, act_out, act_tonf, act_buffer);
         }
 
         printf("\n");
