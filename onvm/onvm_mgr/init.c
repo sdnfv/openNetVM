@@ -87,6 +87,9 @@ struct rte_ring *nf_info_queue;
 /* array of info/queues for clients */
 struct client *clients = NULL;
 
+/* 2D array mapping services to NFs */
+struct onvm_nf_info **service_to_nf;
+
 /* the port details */
 struct port_info *ports = NULL;
 
@@ -223,6 +226,11 @@ init_shm_rings(void) {
                 MAX_CLIENTS, sizeof(*clients), 0);
         if (clients == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
+
+        service_to_nf = rte_calloc("service to nf map",
+                MAX_CLIENTS_PER_SERVICE * MAX_SERVICES, sizeof(*onvm_nf_info), 0);
+        if (service_to_nf == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
 
         for (i = 0; i < MAX_CLIENTS; i++) {
                 /* Create an RX queue for each client */
