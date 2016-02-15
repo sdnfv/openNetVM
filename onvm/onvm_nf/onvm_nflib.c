@@ -76,7 +76,7 @@ extern struct onvm_nf_info *nf_info;
 static struct rte_mempool *nf_info_mp;
 
 /* User-given NF Client ID (defaults to manager assigned) */
-static uint8_t initial_instance_id = NF_NO_ID;
+static uint16_t initial_instance_id = NF_NO_ID;
 
 /* True as long as the NF should keep processing packets */
 static uint8_t keep_running = 1;
@@ -101,7 +101,7 @@ parse_nflib_args(int argc, char *argv[]) {
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
-                        initial_instance_id = (uint8_t) strtoul(optarg, NULL, 10);
+                        initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
@@ -200,7 +200,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Wait for a client id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_info->status == (uint8_t)NF_WAITING_FOR_ID ;) {
+        for (; nf_info->status == (uint16_t)NF_WAITING_FOR_ID ;) {
                 sleep(1);
         }
 

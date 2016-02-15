@@ -81,7 +81,7 @@ struct packet_buf {
 };
 
 /* ID to be assigned to the next NF that starts */
-static uint8_t next_instance_id;
+static uint16_t next_instance_id;
 
 /** TX thread state. This specifies which NFs the thread will handle and
  *  includes the packet buffers used by the thread for NFs and ports.
@@ -222,7 +222,7 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        int nf_id = nf_info->instance_id == (uint8_t)NF_NO_ID
+        int nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID
                 ? next_instance_id++
                 : nf_info->instance_id;
 

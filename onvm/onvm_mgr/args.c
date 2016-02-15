@@ -36,7 +36,7 @@
 #include "onvm_mgr/init.h"
 
 /* global var for number of clients - extern in header init.h */
-uint8_t num_clients;
+uint16_t num_clients;
 
 /* global var: did user directly specify num clients? */
 uint8_t is_static_clients;
@@ -113,7 +113,7 @@ parse_num_clients(const char *clients) {
         if (end == NULL || *end != '\0' || temp == 0)
                 return -1;
 
-        num_clients = (uint8_t)temp;
+        num_clients = (uint16_t)temp;
         is_static_clients = STATIC_CLIENTS;
         return 0;
 }
