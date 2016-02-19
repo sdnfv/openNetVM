@@ -228,7 +228,7 @@ init_shm_rings(void) {
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
 
         service_to_nf = rte_calloc("service to nf map",
-                MAX_CLIENTS_PER_SERVICE * MAX_SERVICES, sizeof(*onvm_nf_info), 0);
+                MAX_CLIENTS_PER_SERVICE * num_services, sizeof(struct onvm_nf_info*), 0);
         if (service_to_nf == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
 

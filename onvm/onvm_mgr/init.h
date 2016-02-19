@@ -91,7 +91,8 @@ struct port_info {
 extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
-extern uint8_t num_clients;
+extern uint16_t num_clients;
+extern uint16_t num_services;
 extern unsigned num_sockets;
 
 int init(int argc, char *argv[]);

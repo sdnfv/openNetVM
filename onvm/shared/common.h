@@ -25,9 +25,9 @@
 
 #include <rte_mbuf.h>
 
-#define MAX_CLIENTS 16          // total number of NFs allowed
-#define MAX_SERVICES 16         // total number of unique services allowed
-#define MAX_CLIENTS_PER_SERVICE // max number of NFs per service.
+#define MAX_CLIENTS 16            // total number of NFs allowed
+#define MAX_SERVICES 16           // total number of unique services allowed
+#define MAX_CLIENTS_PER_SERVICE 8 // max number of NFs per service.
 
 #define ONVM_NF_ACTION_DROP 0   // drop packet
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
