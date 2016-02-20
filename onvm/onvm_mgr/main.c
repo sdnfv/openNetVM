@@ -431,10 +431,15 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
 /**
  * This function take a service id input and returns an instance id to route the packet to
  * This uses the packet's RSS Hash mod the number of available services to decide
+ * Returns 0 (manager reserved ID) if no NFs are available from the desired service
  */
 static inline uint16_t
 service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
         uint16_t num_nfs_available = nf_per_service_count[service_id];
+
+        if (num_nfs_available == 0)
+                return 0;
+
         uint16_t instance_index = pkt->hash.rss % num_nfs_available;
         struct onvm_nf_info *instance_info = service_to_nf[service_id][instance_index];
         return instance_info->instance_id;
@@ -448,9 +453,12 @@ enqueue_nf_packet(struct tx_state *tx, uint16_t dst_service_id, struct rte_mbuf 
         struct client *cl;
         uint16_t dst_instance_id;
 
+        // map service to instance and check one exists
+        dst_instance_id = service_to_nf_map(dst_service_id, pkt);
+        if (dst_instance_id == 0)
+                return;
 
         // Ensure destination NF is running and ready to receive packets
-        dst_instance_id = service_to_nf_map(dst_service_id, pkt);
         cl = &clients[dst_instance_id];
         if (!is_valid_nf(cl))
                 return;
