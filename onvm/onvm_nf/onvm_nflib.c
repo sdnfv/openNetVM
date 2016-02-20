@@ -78,6 +78,9 @@ static struct rte_mempool *nf_info_mp;
 /* User-given NF Client ID (defaults to manager assigned) */
 static uint16_t initial_instance_id = NF_NO_ID;
 
+/* User supplied service ID */
+static uint16_t service_id = -1;
+
 /* True as long as the NF should keep processing packets */
 static uint8_t keep_running = 1;
 
@@ -86,7 +89,7 @@ static uint8_t keep_running = 1;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [-n <instance_id>]\n\n", progname);
+        printf("Usage: %s [EAL args] -- [-n <instance_id>] [-r <service_id>]\n\n", progname);
 }
 
 /*
@@ -98,10 +101,13 @@ parse_nflib_args(int argc, char *argv[]) {
         int c;
 
         opterr = 0;
-        while ((c = getopt (argc, argv, "n:")) != -1)
+        while ((c = getopt (argc, argv, "n:r:")) != -1)
                 switch (c) {
                 case 'n':
                         initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
+                        break;
+                case 'r':
+                        service_id = (uint16_t) strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
@@ -115,6 +121,12 @@ parse_nflib_args(int argc, char *argv[]) {
                 default:
                         return -1;
                 }
+
+        if (service_id == (uint16_t)-1) {
+                /* Service ID is required */
+                fprintf(stderr, "You must provide a service ID with -r\n");
+                return -1;
+        }
         return optind;
 }
 
@@ -139,6 +151,7 @@ ovnm_nf_info_init(const char *tag)
 
         info = (struct onvm_nf_info*) mempool_data;
         info->instance_id = initial_instance_id;
+        info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
 
