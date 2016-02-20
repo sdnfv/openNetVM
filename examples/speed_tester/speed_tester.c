@@ -172,6 +172,7 @@ int main(int argc, char *argv[]) {
                 pmeta->destination = destination;
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pkts[i]->port = 3;
+                pkts[i]->hash.rss = i;
                 onvm_nf_return_pkt(pkts[i]);
         }
 
