@@ -602,7 +602,9 @@ tx_thread_main(void *arg) {
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
-        next_instance_id = 0;
+
+        /* Reserve ID 0 for internal manager things */
+        next_instance_id = 1;
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
