@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
-        destination = nf_info->client_id;
+        destination = nf_info->service_id;
         struct rte_mempool *pktmbuf_pool;
         struct rte_mbuf* pkts[NUM_PKTS];
         int i;
