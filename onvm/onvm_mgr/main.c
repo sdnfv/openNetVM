@@ -243,6 +243,10 @@ start_new_nf(struct onvm_nf_info *nf_info)
         clients[nf_id].info = nf_info;
         clients[nf_id].instance_id = nf_id;
 
+        // Register this NF running within its service
+        uint16_t service_count = nf_per_service_count[nf_info->service_id]++;
+        service_to_nf[nf_info->service_id][service_count] = nf_info;
+
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
         return 1;
@@ -256,7 +260,9 @@ start_new_nf(struct onvm_nf_info *nf_info)
 static inline void
 stop_running_nf(struct onvm_nf_info *nf_info)
 {
-        int nf_id = nf_info->instance_id;
+        uint16_t nf_id = nf_info->instance_id;
+        uint16_t service_id = nf_info->service_id;
+        int mapIndex;
         struct rte_mempool *nf_info_mp;
 
         /* Clean up dangling pointers to info struct */
@@ -266,6 +272,27 @@ stop_running_nf(struct onvm_nf_info *nf_info)
         clients[nf_id].stats.rx = clients[nf_id].stats.rx_drop = 0;
         clients[nf_id].stats.act_drop = clients[nf_id].stats.act_tonf = 0;
         clients[nf_id].stats.act_next = clients[nf_id].stats.act_out = 0;
+
+        /* Remove this NF from the service map.
+         * Need to shift all elements past it in the array left to avoid gaps */
+        for(mapIndex = 0; mapIndex < MAX_CLIENTS_PER_SERVICE; mapIndex++) {
+                if (service_to_nf[service_id][mapIndex] == nf_info) {
+                        break;
+                }
+        }
+
+        if (mapIndex < MAX_CLIENTS_PER_SERVICE) { // sanity error check
+                service_to_nf[service_id][mapIndex] = NULL;
+                for (mapIndex++; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
+                        // Shift the NULL to the end of the array
+                        if (service_to_nf[service_id][mapIndex + 1] == NULL) {
+                                // Short circuit when we reach the end of this service's list
+                                break;
+                        }
+                        service_to_nf[service_id][mapIndex] = service_to_nf[service_id][mapIndex + 1];
+                        service_to_nf[service_id][mapIndex + 1] = NULL;
+                }
+        }
 
         /* Free info struct */
         /* Lookup mempool for nf_info struct */
