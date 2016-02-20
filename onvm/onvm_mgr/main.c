@@ -429,20 +429,35 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
 }
 
 /**
+ * This function take a service id input and returns an instance id to route the packet to
+ * This uses the packet's RSS Hash mod the number of available services to decide
+ */
+static inline uint16_t
+service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
+        uint16_t num_nfs_available = nf_per_service_count[service_id];
+        uint16_t instance_index = pkt->hash.rss % num_nfs_available;
+        struct onvm_nf_info *instance_info = service_to_nf[service_id][instance_index];
+        return instance_info->instance_id;
+}
+
+/**
  * Add a packet to a buffer destined for an NF's RX queue.
  */
 static inline void
-enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
+enqueue_nf_packet(struct tx_state *tx, uint16_t dst_service_id, struct rte_mbuf *pkt) {
         struct client *cl;
+        uint16_t dst_instance_id;
+
 
         // Ensure destination NF is running and ready to receive packets
-        cl = &clients[dst_id];
+        dst_instance_id = service_to_nf_map(dst_service_id, pkt);
+        cl = &clients[dst_instance_id];
         if (!is_valid_nf(cl))
                 return;
 
-        tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
-        if (tx->nf_rx_buf[dst_id].count == PACKET_READ_SIZE) {
-                flush_nf_queue(tx, dst_id);
+        tx->nf_rx_buf[dst_instance_id].buffer[tx->nf_rx_buf[dst_instance_id].count++] = pkt;
+        if (tx->nf_rx_buf[dst_instance_id].count == PACKET_READ_SIZE) {
+                flush_nf_queue(tx, dst_instance_id);
         }
 }
 
