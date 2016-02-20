@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
                 return -1;
         argc -= retval;
         argv += retval;
-	destination = nf_info->client_id + 1;
+	destination = nf_info->instance_id + 1;
 
         if (parse_app_args(argc, argv) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
