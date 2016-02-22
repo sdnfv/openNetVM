@@ -98,6 +98,7 @@ parse_nflib_args(int argc, char *argv[]) {
         int c;
 
         opterr = 0;
+        optind = 1;
         while ((c = getopt (argc, argv, "n:")) != -1)
                 switch (c) {
                 case 'n':
