@@ -275,6 +275,7 @@ stop_running_nf(struct onvm_nf_info *nf_info)
 
         /* Remove this NF from the service map.
          * Need to shift all elements past it in the array left to avoid gaps */
+        nf_per_service_count[service_id]--;
         for(mapIndex = 0; mapIndex < MAX_CLIENTS_PER_SERVICE; mapIndex++) {
                 if (service_to_nf[service_id][mapIndex] == nf_info) {
                         break;
