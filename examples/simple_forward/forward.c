@@ -61,13 +61,13 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[]) {
-        const char *progname = argv[0];
+parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
         opterr = 0;
+        optind = 1;
 
-        while ((c = getopt (argc, argv, "p:")) != -1)
+        while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
@@ -75,15 +75,17 @@ parse_app_args(int argc, char *argv[]) {
                 case '?':
                         usage(progname);
                         if (optopt == 'p')
-                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
-                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
                         else
-                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
                         return -1;
                 default:
+                        usage(progname);
                         return -1;
                 }
+        }
         return optind;
 }
 
@@ -137,13 +139,15 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 int main(int argc, char *argv[]) {
         int retval;
 
+        const char *progname = argv[0];
+
         if ((retval = onvm_nf_init(argc, argv, NF_TAG)) < 0)
                 return -1;
-        argc -= retval;
-        argv += retval;
+        argc -= (retval-1);
+        argv += (retval-1);
 	destination = nf_info->client_id + 1;
 
-        if (parse_app_args(argc, argv) < 0)
+        if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         onvm_nf_run(nf_info, &packet_handler);
