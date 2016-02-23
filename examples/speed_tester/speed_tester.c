@@ -68,9 +68,6 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        opterr = 0;
-        optind = 1;
-
         while ((c = getopt (argc, argv, "d:p:")) != -1) {
                 switch (c) {
                 case 'd':
@@ -152,14 +149,14 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 
 
 int main(int argc, char *argv[]) {
-        int retval;
+        int arg_offset;
 
         const char *progname = argv[0];
 
-        if ((retval = onvm_nf_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
                 return -1;
-        argc -= (retval-1);
-        argv += (retval-1);
+        argc -= arg_offset;
+        argv += arg_offset;
 
         destination = nf_info->client_id;
 
