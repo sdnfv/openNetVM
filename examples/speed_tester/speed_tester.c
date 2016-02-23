@@ -58,7 +58,7 @@ static uint16_t destination;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay>\n\n", progname);
 }
 
 /*
@@ -71,14 +71,19 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         opterr = 0;
         optind = 1;
 
-        while ((c = getopt (argc, argv, "p:")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:")) != -1) {
                 switch (c) {
+                case 'd':
+                        destination = strtoul(optarg, NULL, 10);
+                        break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
-                        if (optopt == 'p')
+                        if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'p')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -156,10 +161,11 @@ int main(int argc, char *argv[]) {
         argc -= (retval-1);
         argv += (retval-1);
 
+        destination = nf_info->client_id;
+
         if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
-        destination = nf_info->client_id;
         struct rte_mempool *pktmbuf_pool;
         struct rte_mbuf* pkts[NUM_PKTS];
         int i;
