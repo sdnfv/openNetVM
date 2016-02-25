@@ -93,7 +93,7 @@ extern struct port_info *ports;
 extern struct rte_mempool *pktmbuf_pool;
 extern uint16_t num_clients;
 extern uint16_t num_services;
-extern struct onvm_nf_info ***service_to_nf;
+extern uint16_t **service_to_nf;
 extern uint16_t *nf_per_service_count;
 extern unsigned num_sockets;
 

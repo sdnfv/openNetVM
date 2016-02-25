@@ -222,7 +222,7 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        int nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID
+        uint16_t nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID
                 ? next_instance_id++
                 : nf_info->instance_id;
 
@@ -245,7 +245,7 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         // Register this NF running within its service
         uint16_t service_count = nf_per_service_count[nf_info->service_id]++;
-        service_to_nf[nf_info->service_id][service_count] = nf_info;
+        service_to_nf[nf_info->service_id][service_count] = nf_id;
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
@@ -277,21 +277,21 @@ stop_running_nf(struct onvm_nf_info *nf_info)
          * Need to shift all elements past it in the array left to avoid gaps */
         nf_per_service_count[service_id]--;
         for(mapIndex = 0; mapIndex < MAX_CLIENTS_PER_SERVICE; mapIndex++) {
-                if (service_to_nf[service_id][mapIndex] == nf_info) {
+                if (service_to_nf[service_id][mapIndex] == nf_id) {
                         break;
                 }
         }
 
         if (mapIndex < MAX_CLIENTS_PER_SERVICE) { // sanity error check
-                service_to_nf[service_id][mapIndex] = NULL;
+                service_to_nf[service_id][mapIndex] = 0;
                 for (mapIndex++; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
                         // Shift the NULL to the end of the array
-                        if (service_to_nf[service_id][mapIndex + 1] == NULL) {
+                        if (service_to_nf[service_id][mapIndex + 1] == 0) {
                                 // Short circuit when we reach the end of this service's list
                                 break;
                         }
                         service_to_nf[service_id][mapIndex] = service_to_nf[service_id][mapIndex + 1];
-                        service_to_nf[service_id][mapIndex + 1] = NULL;
+                        service_to_nf[service_id][mapIndex + 1] = 0;
                 }
         }
 
@@ -442,8 +442,8 @@ service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
                 return 0;
 
         uint16_t instance_index = pkt->hash.rss % num_nfs_available;
-        struct onvm_nf_info *instance_info = service_to_nf[service_id][instance_index];
-        return instance_info->instance_id;
+        uint16_t instance_id = service_to_nf[service_id][instance_index];
+        return instance_id;
 }
 
 /**
