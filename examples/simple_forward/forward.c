@@ -54,36 +54,40 @@ static uint32_t destination;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay>\n\n", progname);
 }
 
 /*
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[]) {
-        const char *progname = argv[0];
+parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        opterr = 0;
-
-        while ((c = getopt (argc, argv, "p:")) != -1)
+        while ((c = getopt(argc, argv, "d:p:")) != -1) {
                 switch (c) {
+                case 'd':
+                        destination = strtoul(optarg, NULL, 10);
+                        break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
-                        if (optopt == 'p')
-                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                        if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'p')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
-                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
                         else
-                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
                         return -1;
                 default:
+                        usage(progname);
                         return -1;
                 }
+        }
         return optind;
 }
 
@@ -135,15 +139,17 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 
 
 int main(int argc, char *argv[]) {
-        int retval;
+        int arg_offset;
 
-        if ((retval = onvm_nf_init(argc, argv, NF_TAG)) < 0)
+        const char *progname = argv[0];
+
+        if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
                 return -1;
-        argc -= retval;
-        argv += retval;
+        argc -= arg_offset;
+        argv += arg_offset;
 	destination = nf_info->service_id + 1;
 
-        if (parse_app_args(argc, argv) < 0)
+        if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         onvm_nf_run(nf_info, &packet_handler);

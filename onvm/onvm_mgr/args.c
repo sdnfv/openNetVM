@@ -41,6 +41,9 @@ uint16_t num_clients;
 /* global var for number of services - extern in header init.h */
 uint16_t num_services = MAX_SERVICES;
 
+/* global var for the default service id - extern in init.h */
+uint16_t default_service = DEFAULT_SERVICE_ID;
+
 /* global var: did user directly specify num clients? */
 uint8_t is_static_clients;
 
@@ -48,8 +51,7 @@ uint8_t is_static_clients;
 static const char *progname;
 
 /**
- * Prints out usage information to stdout
- */
+ * Prints out usage information to stdout */
 static void
 usage(void) {
         printf(
@@ -97,6 +99,22 @@ parse_portmask(uint8_t max_ports, const char *portmask) {
                 count++;
         }
 
+        return 0;
+}
+
+/**
+ * Parse the default service to send packets to
+ */
+static int
+parse_default_service(const char *services) {
+        char *end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(services, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        default_service = (uint16_t)temp;
         return 0;
 }
 
@@ -154,7 +172,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         progname = argv[0];
         is_static_clients = DYNAMIC_CLIENTS;
 
-        while ((opt = getopt_long(argc, argvopt, "n:r:p:", lgopts,
+        while ((opt = getopt_long(argc, argvopt, "n:r:p:d:", lgopts,
                 &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
@@ -171,6 +189,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 break;
                         case 'r':
                                 if (parse_num_services(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+                        case 'd':
+                                if (parse_default_service(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }

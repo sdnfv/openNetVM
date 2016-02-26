@@ -170,19 +170,42 @@ onvm_nf_stop(void) {
 /**
  * CALLED BY NF:
  * Initialises everything we need
+ *
+ * Returns the number of arguments parsed by both rte_eal_init and
+ * parse_nflib_args offset by 1.  This is used by getopt in the NF's
+ * code.  The offsetting by one accounts for getopt parsing "--" which
+ * increments optind by 1 each time.
  */
 int
 onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         const struct rte_memzone *mz;
         struct rte_mempool *mp;
-        int retval_eal, retval_parse;
+        int retval_eal, retval_parse, retval_final;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
                 return -1;
+
+        /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
         argc -= retval_eal; argv += retval_eal;
+
+        /* Reset getopt global variables opterr and optind to their default values */
+        opterr = 0; optind = 1;
 
         if ((retval_parse = parse_nflib_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+
+        /*
+         * Calculate the offset that the nf will use to modify argc and argv for its
+         * getopt call. This is the sum of the number of arguments parsed by
+         * rte_eal_init and parse_nflib_args. This will be decremented by 1 to assure
+         * getopt is looking at the correct index since optind is incremented by 1 each
+         * time "--" is parsed.
+         * This is the value that will be returned if initialization succeeds.
+         */
+        retval_final = (retval_eal + retval_parse) - 1;
+
+        /* Reset getopt global variables opterr and optind to their default values */
+        opterr = 0; optind = 1;
 
         /* Lookup mempool for nf_info struct */
         nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
@@ -243,7 +266,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         nf_info->status = NF_RUNNING;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
-        return (retval_eal + retval_parse);
+        return retval_final;
 }
 
 /**

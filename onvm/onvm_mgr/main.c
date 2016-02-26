@@ -502,7 +502,11 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
                  */
         }
 
-        cl = &clients[0];
+        dst_instance_id = service_to_nf_map(default_service, pkt);
+        if (dst_instance_id == 0)
+                return;
+
+        cl = &clients[dst_instance_id];
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -549,7 +553,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 
 /*
  * Function called by the master lcore of the DPDK process to receive packets
- * from NIC and distributed them to NF-0.
+ * from NIC and distributed them to the default service
  */
 static void
 rx_thread_main(void) {
