@@ -134,7 +134,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         progname = argv[0];
         is_static_clients = DYNAMIC_CLIENTS;
 
-        while ((opt = getopt_long(argc, argvopt, "n::p:", lgopts,
+        while ((opt = getopt_long(argc, argvopt, "n:p:", lgopts,
                 &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
