@@ -55,9 +55,15 @@ static const char *progname;
 static void
 usage(void) {
         printf(
-            "%s [EAL options] -- -p PORTMASK [-n NUM_CLIENTS] [-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
+            "%s [EAL options] -- -p PORTMASK "
+#ifdef USE_STATIC_IDS
+            "[-n NUM_CLIENTS] "
+#endif
+            "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
             " -p PORTMASK: hexadecimal bitmask of ports to use\n"
+#ifdef USE_STATIC_IDS
             " -n NUM_CLIENTS: number of client processes to use (optional)\n"
+#endif
             " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
             , progname);
 }
@@ -134,6 +140,7 @@ parse_num_services(const char *services) {
         return 0;
 }
 
+#ifdef USE_STATIC_IDS
 /**
  * Take the number of clients parameter passed to the app
  * and convert to a number to store in the num_clients variable
@@ -155,6 +162,7 @@ parse_num_clients(const char *clients) {
         is_static_clients = STATIC_CLIENTS;
         return 0;
 }
+#endif
 
 /**
  * The application specific arguments follow the DPDK-specific
@@ -172,8 +180,11 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         progname = argv[0];
         is_static_clients = DYNAMIC_CLIENTS;
 
-        while ((opt = getopt_long(argc, argvopt, "n:r:p:d:", lgopts,
-                &option_index)) != EOF) {
+#ifdef USE_STATIC_IDS
+        while ((opt = getopt_long(argc, argvopt, "n:r:p:d:", lgopts, &option_index)) != EOF) {
+#else
+        while ((opt = getopt_long(argc, argvopt, "r:p:d:", lgopts, &option_index)) != EOF) {
+#endif
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -181,12 +192,14 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                         return -1;
                                 }
                                 break;
+#ifdef USE_STATIC_IDS
                         case 'n':
                                 if (parse_num_clients(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
                                 break;
+#endif
                         case 'r':
                                 if (parse_num_services(optarg) != 0) {
                                         usage();
