@@ -489,7 +489,7 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
 static void
 process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
         struct client *cl;
-        uint16_t i, j;
+        uint16_t i, j, dst_instance_id;
         struct onvm_pkt_meta *meta;
 
         for (i = 0; i < rx_count; i++) {
@@ -500,11 +500,11 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
                  * would be a different line than that modified/read by NFs.
                  * That may not be possible.
                  */
-        }
 
-        dst_instance_id = service_to_nf_map(default_service, pkt);
-        if (dst_instance_id == 0)
-                return;
+                dst_instance_id = service_to_nf_map(default_service, pkts[i]);
+                if (dst_instance_id == 0)
+                        continue;
+        }
 
         cl = &clients[dst_instance_id];
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {

@@ -108,6 +108,8 @@ parse_nflib_args(int argc, char *argv[]) {
                         break;
                 case 'r':
                         service_id = (uint16_t) strtoul(optarg, NULL, 10);
+                        // Service id 0 is reserved
+                        if (service_id == 0) service_id = -1;
                         break;
                 case '?':
                         usage(progname);
@@ -124,7 +126,7 @@ parse_nflib_args(int argc, char *argv[]) {
 
         if (service_id == (uint16_t)-1) {
                 /* Service ID is required */
-                fprintf(stderr, "You must provide a service ID with -r\n");
+                fprintf(stderr, "You must provide a nonzero service ID with -r\n");
                 return -1;
         }
         return optind;
