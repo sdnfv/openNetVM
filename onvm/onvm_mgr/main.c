@@ -494,7 +494,7 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
 
         for (i = 0; i < rx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = 0; // FIXME: this should be an ID to represent the NIC port
+                meta->src = 0;
                 /* PERF: this might hurt performance since it will cause cache
                  * invalidations. Ideally the data modified by the NF manager
                  * would be a different line than that modified/read by NFs.
@@ -527,7 +527,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 
         for (i = 0; i < tx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = cl->instance_id;
+                meta->src = cl->service_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         rte_pktmbuf_free(pkts[i]);
                         cl->stats.act_drop++;
