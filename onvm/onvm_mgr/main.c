@@ -81,7 +81,7 @@ struct packet_buf {
 };
 
 /* ID to be assigned to the next NF that starts */
-static uint8_t next_client_id;
+static uint16_t next_instance_id;
 
 /** TX thread state. This specifies which NFs the thread will handle and
  *  includes the packet buffers used by the thread for NFs and ports.
@@ -183,7 +183,7 @@ do_stats_display(unsigned sleeptime) {
 
                 printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
                                 "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
-                                clients[i].info->client_id, rx, rx_drop, act_next, act_drop, act_returned, tx, tx_drop, act_out, act_tonf, act_buffer);
+                                clients[i].info->instance_id, rx, rx_drop, act_next, act_drop, act_returned, tx, tx_drop, act_out, act_tonf, act_buffer);
         }
 
         printf("\n");
@@ -192,18 +192,18 @@ do_stats_display(unsigned sleeptime) {
 /**
  * Verifies that the next client id the manager gives out is unused
  * This lets us account for the case where an NF has a manually specified id and we overwrite it
- * This function modifies next_client_id to be the proper value
+ * This function modifies next_instance_id to be the proper value
  */
 static int
-find_next_client_id(void) {
+find_next_instance_id(void) {
         struct client *cl;
-        while (next_client_id < MAX_CLIENTS) {
-                cl = &clients[next_client_id];
+        while (next_instance_id < MAX_CLIENTS) {
+                cl = &clients[next_instance_id];
                 if (!is_valid_nf(cl))
                         break;
-                next_client_id++;
+                next_instance_id++;
         }
-        return next_client_id;
+        return next_instance_id;
 
 }
 
@@ -222,9 +222,9 @@ start_new_nf(struct onvm_nf_info *nf_info)
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        int nf_id = nf_info->client_id == (uint8_t)NF_NO_ID
-                ? next_client_id++
-                : nf_info->client_id;
+        uint16_t nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID
+                ? next_instance_id++
+                : nf_info->instance_id;
 
         if (nf_id >= MAX_CLIENTS) {
                 // There are no more available IDs for this NF
@@ -239,9 +239,13 @@ start_new_nf(struct onvm_nf_info *nf_info)
         }
 
         // Keep reference to this NF in the manager
-        nf_info->client_id = nf_id;
+        nf_info->instance_id = nf_id;
         clients[nf_id].info = nf_info;
-        clients[nf_id].client_id = nf_id;
+        clients[nf_id].instance_id = nf_id;
+
+        // Register this NF running within its service
+        uint16_t service_count = nf_per_service_count[nf_info->service_id]++;
+        service_to_nf[nf_info->service_id][service_count] = nf_id;
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
@@ -256,7 +260,9 @@ start_new_nf(struct onvm_nf_info *nf_info)
 static inline void
 stop_running_nf(struct onvm_nf_info *nf_info)
 {
-        int nf_id = nf_info->client_id;
+        uint16_t nf_id = nf_info->instance_id;
+        uint16_t service_id = nf_info->service_id;
+        int mapIndex;
         struct rte_mempool *nf_info_mp;
 
         /* Clean up dangling pointers to info struct */
@@ -266,6 +272,28 @@ stop_running_nf(struct onvm_nf_info *nf_info)
         clients[nf_id].stats.rx = clients[nf_id].stats.rx_drop = 0;
         clients[nf_id].stats.act_drop = clients[nf_id].stats.act_tonf = 0;
         clients[nf_id].stats.act_next = clients[nf_id].stats.act_out = 0;
+
+        /* Remove this NF from the service map.
+         * Need to shift all elements past it in the array left to avoid gaps */
+        nf_per_service_count[service_id]--;
+        for(mapIndex = 0; mapIndex < MAX_CLIENTS_PER_SERVICE; mapIndex++) {
+                if (service_to_nf[service_id][mapIndex] == nf_id) {
+                        break;
+                }
+        }
+
+        if (mapIndex < MAX_CLIENTS_PER_SERVICE) { // sanity error check
+                service_to_nf[service_id][mapIndex] = 0;
+                for (mapIndex++; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
+                        // Shift the NULL to the end of the array
+                        if (service_to_nf[service_id][mapIndex + 1] == 0) {
+                                // Short circuit when we reach the end of this service's list
+                                break;
+                        }
+                        service_to_nf[service_id][mapIndex] = service_to_nf[service_id][mapIndex + 1];
+                        service_to_nf[service_id][mapIndex + 1] = 0;
+                }
+        }
 
         /* Free info struct */
         /* Lookup mempool for nf_info struct */
@@ -294,8 +322,8 @@ do_check_new_nf_status(void) {
         for (i = 0; i < num_new_nfs; i++) {
                 nf = (struct onvm_nf_info *)new_nfs[i];
 
-                // Sets next_client_id variable to next available
-                find_next_client_id();
+                // Sets next_instance_id variable to next available
+                find_next_instance_id();
 
                 if (nf->status == NF_WAITING_FOR_ID) {
                         /* We're starting up a new NF.
@@ -402,20 +430,43 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
 }
 
 /**
+ * This function take a service id input and returns an instance id to route the packet to
+ * This uses the packet's RSS Hash mod the number of available services to decide
+ * Returns 0 (manager reserved ID) if no NFs are available from the desired service
+ */
+static inline uint16_t
+service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
+        uint16_t num_nfs_available = nf_per_service_count[service_id];
+
+        if (num_nfs_available == 0)
+                return 0;
+
+        uint16_t instance_index = pkt->hash.rss % num_nfs_available;
+        uint16_t instance_id = service_to_nf[service_id][instance_index];
+        return instance_id;
+}
+
+/**
  * Add a packet to a buffer destined for an NF's RX queue.
  */
 static inline void
-enqueue_nf_packet(struct tx_state *tx, uint16_t dst_id, struct rte_mbuf *buf) {
+enqueue_nf_packet(struct tx_state *tx, uint16_t dst_service_id, struct rte_mbuf *pkt) {
         struct client *cl;
+        uint16_t dst_instance_id;
+
+        // map service to instance and check one exists
+        dst_instance_id = service_to_nf_map(dst_service_id, pkt);
+        if (dst_instance_id == 0)
+                return;
 
         // Ensure destination NF is running and ready to receive packets
-        cl = &clients[dst_id];
+        cl = &clients[dst_instance_id];
         if (!is_valid_nf(cl))
                 return;
 
-        tx->nf_rx_buf[dst_id].buffer[tx->nf_rx_buf[dst_id].count++] = buf;
-        if (tx->nf_rx_buf[dst_id].count == PACKET_READ_SIZE) {
-                flush_nf_queue(tx, dst_id);
+        tx->nf_rx_buf[dst_instance_id].buffer[tx->nf_rx_buf[dst_instance_id].count++] = pkt;
+        if (tx->nf_rx_buf[dst_instance_id].count == PACKET_READ_SIZE) {
+                flush_nf_queue(tx, dst_instance_id);
         }
 }
 
@@ -438,20 +489,24 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
 static void
 process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
         struct client *cl;
-        uint16_t i, j;
+        uint16_t i, j, dst_instance_id;
         struct onvm_pkt_meta *meta;
 
         for (i = 0; i < rx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = 0; // FIXME: this should be an ID to represent the NIC port
+                meta->src = 0;
                 /* PERF: this might hurt performance since it will cause cache
                  * invalidations. Ideally the data modified by the NF manager
                  * would be a different line than that modified/read by NFs.
                  * That may not be possible.
                  */
+
+                dst_instance_id = service_to_nf_map(default_service, pkts[i]);
+                if (dst_instance_id == 0)
+                        continue;
         }
 
-        cl = &clients[0];
+        cl = &clients[dst_instance_id];
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -472,7 +527,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 
         for (i = 0; i < tx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = cl->client_id;
+                meta->src = cl->service_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         rte_pktmbuf_free(pkts[i]);
                         cl->stats.act_drop++;
@@ -498,7 +553,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 
 /*
  * Function called by the master lcore of the DPDK process to receive packets
- * from NIC and distributed them to NF-0.
+ * from NIC and distributed them to the default service
  */
 static void
 rx_thread_main(void) {
@@ -575,7 +630,9 @@ tx_thread_main(void *arg) {
 int
 main(int argc, char *argv[]) {
         /* initialise the system */
-        next_client_id = 0;
+
+        /* Reserve ID 0 for internal manager things */
+        next_instance_id = 1;
         if (init(argc, argv) < 0 )
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");

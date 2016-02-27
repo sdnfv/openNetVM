@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
-	destination = nf_info->client_id + 1;
+	destination = nf_info->service_id + 1;
 
         if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");

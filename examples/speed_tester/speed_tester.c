@@ -158,11 +158,10 @@ int main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        destination = nf_info->client_id;
-
         if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
+        destination = nf_info->service_id;
         struct rte_mempool *pktmbuf_pool;
         struct rte_mbuf* pkts[NUM_PKTS];
         int i;
@@ -179,6 +178,7 @@ int main(int argc, char *argv[]) {
                 pmeta->destination = destination;
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pkts[i]->port = 3;
+                pkts[i]->hash.rss = i;
                 onvm_nf_return_pkt(pkts[i]);
         }
 
