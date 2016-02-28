@@ -28,20 +28,21 @@ int
 onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
 	int chain_length = chain->chain_length;
 	
-	if (chain_length >= ONVM_MAX_CHAIN_LENGTH) {
+	if (chain_length > ONVM_MAX_CHAIN_LENGTH) {
 		return 1;
 	}
-	
+	/*the first entry is reserved*/	
+	chain_length++;
+	(chain->chain_length)++;	
 	chain->sc[chain_length].action = action;
 	chain->sc[chain_length].destination = destination;
-	(chain->chain_length)++;	
 
 	return 0;
 }
 
 int
 onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination) {
-	if (entry >= chain->chain_length) {
+	if (entry > chain->chain_length) {
 		return 1;
 	}
 
@@ -54,7 +55,7 @@ onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, u
 void 
 onvm_sc_print(struct onvm_service_chain *chain) {
 	int i; 
-	for (i = 0; i < chain->chain_length; i++) {
+	for (i = 1; i <= chain->chain_length; i++) {
 		printf("cur_index:%d, action:%"PRIu8", destination:%"PRIu16"\n", 
 			i, chain->sc[i].action, chain->sc[i].destination);
 	}

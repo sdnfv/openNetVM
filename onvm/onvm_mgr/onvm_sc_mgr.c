@@ -49,11 +49,11 @@ onvm_sc_create(void)
 		printf("chain length can not be larger than the maximum chain length\n");
 		return NULL;
 	}
-        /*onvm_sc_append_entry(chain, ONVM_NF_ACTION_NEXT, 1);
+        onvm_sc_append_entry(chain, ONVM_NF_ACTION_NEXT, 1);
 	if (retval == 1) {
 		printf("chain length can not be larger than the maximum chain length\n");
 		return NULL;
-	}*/
+	}
         onvm_sc_append_entry(chain, ONVM_NF_ACTION_OUT, 0);
 	if (retval == 1) {
 		printf("chain length can not be larger than the maximum chain length\n");

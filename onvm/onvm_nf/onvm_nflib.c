@@ -56,6 +56,7 @@
 
 #include "common.h"
 #include "onvm_nflib.h"
+#include "onvm_sc_common.h"
 
 /* Number of packets to attempt to read from queue */
 #define PKT_READ_SIZE  ((uint16_t)32)
@@ -80,6 +81,9 @@ static uint8_t initial_client_id = NF_NO_ID;
 
 /* True as long as the NF should keep processing packets */
 static uint8_t keep_running = 1;
+
+/* Shared data for default service chain*/
+static struct onvm_service_chain *default_chain;
 
 /*
  * Print a usage message
@@ -161,8 +165,10 @@ onvm_nf_stop(void) {
 int
 onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         const struct rte_memzone *mz;
+	const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
         int retval_eal, retval_parse;
+	struct onvm_service_chain **scp;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
                 return -1;
@@ -187,6 +193,25 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         if (mz == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
         tx_stats = mz->addr;
+
+	mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
+	if (mz_scp == NULL) 
+		rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
+	scp = mz_scp->addr;
+	default_chain = *scp;
+
+	onvm_sc_print(default_chain);
+	/*just for test, this  should be called by the thread which contacts to the controller.*/
+	#if 0
+	int retval;
+	onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_NEXT, 3);
+	onvm_sc_print(default_chain);
+	retval = onvm_sc_set_entry(default_chain, 0, ONVM_NF_ACTION_OUT, 40);
+	if (retval == 1) {
+		printf("Change service chain entry fails\n");
+	}
+	onvm_sc_print(default_chain);
+	#endif
 
         nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
         if (nf_info_ring == NULL)

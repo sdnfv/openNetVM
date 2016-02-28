@@ -61,6 +61,7 @@
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
+#include "onvm_mgr/onvm_sc_mgr.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -431,6 +432,31 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
 }
 
 /*
+ * Process a packet with action NEXT
+ */
+static inline void
+process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt) {
+	struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
+	meta->action = onvm_sc_next_action(default_chain, pkt);
+	meta->destination = onvm_sc_next_destination(default_chain, pkt);
+	switch(meta->action) {
+		case ONVM_NF_ACTION_DROP:
+			rte_pktmbuf_free(pkt);
+			break;
+		case ONVM_NF_ACTION_TONF:
+		case ONVM_NF_ACTION_NEXT:	
+			enqueue_nf_packet(tx, meta->destination, pkt);
+			break;
+		case ONVM_NF_ACTION_OUT:
+			enqueue_port_packet(tx, meta->destination, pkt);
+			break;
+		default:
+			break;
+	}
+	(meta->chain_index)++;
+}
+
+/*
  * This function takes a group of packets and routes them
  * to the first client process. Simply forwarding the packets
  * without checking any of the packet contents.
@@ -449,9 +475,23 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
                  * would be a different line than that modified/read by NFs.
                  * That may not be possible.
                  */
+		meta->chain_index = 0;
+		meta->action = onvm_sc_next_action(default_chain, pkts[i]);
+		meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
+		(meta->chain_index)++;
         }
 
-        cl = &clients[0];
+        //cl = &clients[0];
+	/*FIXME: here assume all of the packets have the NEXT action. 
+	 * You should not use one specific pkt as the action and destination NF
+	 * Here just for test
+	 */
+	if (meta->action != ONVM_NF_ACTION_NEXT) {
+		printf("This test needs the ONVM_NF_ACTION_NEXT action\n");
+		printf("action=%"PRIu8"\n", meta->action);
+	}
+	cl = &clients[meta->destination];
+	
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -480,8 +520,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         cl->stats.act_next++;
-                        rte_pktmbuf_free(pkts[i]);
-                        printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
+			process_next_action_packet(tx, pkts[i]);
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         cl->stats.act_tonf++;
                         enqueue_nf_packet(tx, meta->destination, pkts[i]);
