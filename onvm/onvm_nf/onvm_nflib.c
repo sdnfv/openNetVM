@@ -263,7 +263,8 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
-        RTE_LOG(INFO, APP, "Using ID %d\n", nf_info->instance_id);
+        RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
+        RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
 
         /* Now, map rx and tx rings into client space */
         rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->instance_id));
