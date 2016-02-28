@@ -58,6 +58,8 @@
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
+#include "onvm_mgr/onvm_sc_mgr.h"
+#include "shared/onvm_sc_common.h"
 
 #define MBUFS_PER_CLIENT 1536
 #define MBUFS_PER_PORT 1536
@@ -91,6 +93,9 @@ struct client *clients = NULL;
 struct port_info *ports = NULL;
 
 struct client_tx_stats *clients_stats;
+
+struct onvm_service_chain *default_chain;
+struct onvm_service_chain **default_sc_p; 
 
 static uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
@@ -326,6 +331,7 @@ int
 init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz;
+	const struct rte_memzone *mz_scp;
         uint8_t i, total_ports;
 
         /* init EAL, parsing EAL args */
@@ -346,7 +352,7 @@ init(int argc, char *argv[]) {
         memset(mz->addr, 0, sizeof(*clients_stats));
         clients_stats = mz->addr;
 
-        /* set up ports info */
+	        /* set up ports info */
         ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
         if (ports == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
@@ -367,7 +373,7 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
         }
 
-        /* now initialise the ports we will use */
+	/* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
                 retval = init_port(ports->id[i]);
                 if (retval != 0)
@@ -382,6 +388,24 @@ init(int argc, char *argv[]) {
 
         /* initialise a queue for newly created NFs */
         init_info_queue();
+
+	/*initialize a default service chain*/
+	default_chain = onvm_sc_create();
+
+	if (default_chain == NULL) {
+		rte_exit(EXIT_FAILURE, "Can not create service chain\n");
+	}
+
+	/* set up service chain pointer shared to NFs*/
+	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *), 
+				   rte_socket_id(), NO_FLAGS);
+	if (mz_scp == NULL) 
+		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain\n");
+	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
+	default_sc_p = mz_scp->addr;
+	*default_sc_p = default_chain;
+
+	onvm_sc_print(default_chain);
 
         return 0;
 }

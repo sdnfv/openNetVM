@@ -93,6 +93,7 @@ extern struct port_info *ports;
 extern struct rte_mempool *pktmbuf_pool;
 extern uint8_t num_clients;
 extern unsigned num_sockets;
+extern struct onvm_service_chain *default_chain;
 
 int init(int argc, char *argv[]);
 

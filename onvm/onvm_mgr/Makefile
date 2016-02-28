@@ -37,12 +37,14 @@ endif
 APP = onvm_mgr
 
 # all source are stored in SRCS-y
-SRCS-y := main.c init.c args.c
+SRCS-y := main.c init.c args.c onvm_sc_mgr.c
 
 INC := $(wildcard *.h)
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+#CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -g -O0 $(USER_FLAGS)
 CFLAGS += -I$(SRCDIR)/../
+LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.
