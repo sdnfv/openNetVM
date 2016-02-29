@@ -435,19 +435,21 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
  * Process a packet with action NEXT
  */
 static inline void
-process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt) {
+process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt, struct client *cl) {
 	struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
 	meta->action = onvm_sc_next_action(default_chain, pkt);
 	meta->destination = onvm_sc_next_destination(default_chain, pkt);
 	switch(meta->action) {
 		case ONVM_NF_ACTION_DROP:
+                        cl->stats.act_drop++;
 			rte_pktmbuf_free(pkt);
 			break;
 		case ONVM_NF_ACTION_TONF:
-		case ONVM_NF_ACTION_NEXT:	
+                        cl->stats.act_tonf++;
 			enqueue_nf_packet(tx, meta->destination, pkt);
 			break;
 		case ONVM_NF_ACTION_OUT:
+                        cl->stats.act_out++;
 			enqueue_port_packet(tx, meta->destination, pkt);
 			break;
 		default:
@@ -478,19 +480,9 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
 		meta->chain_index = 0;
 		meta->action = onvm_sc_next_action(default_chain, pkts[i]);
 		meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
-		(meta->chain_index)++;
         }
 
-        //cl = &clients[0];
-	/*FIXME: here assume all of the packets have the NEXT action. 
-	 * You should not use one specific pkt as the action and destination NF
-	 * Here just for test
-	 */
-	if (meta->action != ONVM_NF_ACTION_NEXT) {
-		printf("This test needs the ONVM_NF_ACTION_NEXT action\n");
-		printf("action=%"PRIu8"\n", meta->action);
-	}
-	cl = &clients[meta->destination];
+        cl = &clients[0];
 	
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
@@ -520,7 +512,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         cl->stats.act_next++;
-			process_next_action_packet(tx, pkts[i]);
+			process_next_action_packet(tx, pkts[i], cl);
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         cl->stats.act_tonf++;
                         enqueue_nf_packet(tx, meta->destination, pkts[i]);

@@ -44,21 +44,21 @@ onvm_sc_create(void)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service chain\n");
         }
         /*init test: chain length is 4*/
-        retval = onvm_sc_append_entry(chain, ONVM_NF_ACTION_NEXT, 0);
+        retval = onvm_sc_append_entry(chain, ONVM_NF_ACTION_TONF, 1);
 	if (retval == 1) {
 		printf("chain length can not be larger than the maximum chain length\n");
 		return NULL;
 	}
-        onvm_sc_append_entry(chain, ONVM_NF_ACTION_NEXT, 1);
+/*        onvm_sc_append_entry(chain, ONVM_NF_ACTION_OUT, 0);
 	if (retval == 1) {
 		printf("chain length can not be larger than the maximum chain length\n");
 		return NULL;
 	}
-        onvm_sc_append_entry(chain, ONVM_NF_ACTION_OUT, 0);
+        onvm_sc_append_entry(chain, ONVM_NF_ACTION_DROP, 0);
 	if (retval == 1) {
 		printf("chain length can not be larger than the maximum chain length\n");
 		return NULL;
-	}
+	}*/
        	
 	return chain;
 }

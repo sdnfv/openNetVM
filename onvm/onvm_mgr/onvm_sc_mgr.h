@@ -29,10 +29,7 @@
 
 static inline uint8_t
 onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
-	if (cur_nf + 1 > chain->chain_length) {
-		return 0;
-	}
-	if (cur_nf == chain->chain_length) {
+	if (cur_nf >= chain->chain_length) {
 		return ONVM_NF_ACTION_DROP;
 	}
 	return chain->sc[cur_nf+1].action;
