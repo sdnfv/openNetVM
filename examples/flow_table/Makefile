@@ -32,7 +32,7 @@ include $(RTE_SDK)/mk/rte.vars.mk
 APP = flow_table
 
 # all source are stored in SRCS-y
-SRCS-y := flow_table.c sdn.c onvm_flow_table.c setupconn.c msgbuf.c
+SRCS-y := flow_table.c sdn.c setupconn.c msgbuf.c
 
 # OpenNetVM path
 ONVM ?= $(SRCDIR)/../../onvm
@@ -45,6 +45,8 @@ CFLAGS += -I$(ONVM)/shared
 LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_table.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_dir.o
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

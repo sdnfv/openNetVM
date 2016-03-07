@@ -63,7 +63,7 @@ int make_packet_in(int xid, uint32_t buffer_id, char *buf, struct rte_mbuf *pkt)
 int make_config_reply( int xid, char *buf, int buflen);
 int make_vendor_reply(int xid, char *buf,  unsigned int buflen);
 int make_stats_desc_reply(struct ofp_stats_request *req, char *buf);
-struct onvm_flow_key* flow_key_extract(struct ofp_match *match);
+struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match);
 struct onvm_service_chain* flow_action_extract(struct ofp_action_header *oah, size_t actions_len);
 void get_header(struct rte_mbuf  *pkt, struct ofp_packet_in *pi);
 int setup_securechannel(void *);

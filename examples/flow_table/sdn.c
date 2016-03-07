@@ -25,6 +25,7 @@
 #include "onvm_flow_table.h"
 #include "setupconn.h"
 #include "onvm_sc_common.h"
+#include "onvm_flow_dir.h"
 
 extern struct rte_ring* ring_to_sdn;
 extern struct rte_ring* ring_from_sdn;
@@ -106,8 +107,8 @@ void datapath_handle_read(struct datapath *dp)
 		else	{
 			fprintf(stderr, " closed connection ");
 		}
-		//fprintf(stderr, "... exiting\n");
-		//exit(1);
+		fprintf(stderr, "... exiting\n");
+		exit(1);
     }
     while((count= msgbuf_count_buffered(dp->inbuf)) >= (int)sizeof(struct ofp_header ))
     {
@@ -174,7 +175,7 @@ void datapath_handle_read(struct datapath *dp)
 			case OFPT_FLOW_MOD:
                                 fm = (struct ofp_flow_mod *) ofph;
                                 int ret;
-                                struct onvm_flow_key *fk;
+                                struct onvm_ft_ipv4_5tuple *fk;
                                 struct onvm_service_chain *sc;
                                 struct onvm_flow_entry *flow_entry;
                                 uint32_t buffer_id = ntohl(fm->buffer_id);
@@ -183,9 +184,11 @@ void datapath_handle_read(struct datapath *dp)
                                 fk = flow_key_extract(&fm->match);
                                 size_t actions_len = ntohs(fm->header.length) - sizeof(*fm);
                                 sc = flow_action_extract(&fm->actions[0], actions_len);
-                                ret = onvm_ft_lookup(sdn_ft, fk, (char**)&flow_entry);
+                                //ret = onvm_ft_lookup(sdn_ft, fk, (char**)&flow_entry);
+                                ret = onvm_flow_dir_get(sdn_ft, fk, &flow_entry);
                                 if (ret == -ENOENT) {
-                                        onvm_ft_add(sdn_ft, fk, (char**) &flow_entry);
+                                        //onvm_ft_add(sdn_ft, fk, (char**) &flow_entry);
+                                        onvm_flow_dir_add(sdn_ft, fk, &flow_entry);
                                 }
                                 memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                                 flow_entry->key = fk;
@@ -215,6 +218,7 @@ void datapath_handle_write(struct datapath *dp)
     char buf[BUFLEN];
     int count;
     int buffer_id;
+    static int sent_msg = 0; 
 
     if (dp->switch_status == READY_TO_SEND) {
         struct rte_mbuf* pkt;
@@ -224,19 +228,21 @@ void datapath_handle_write(struct datapath *dp)
         ret = rte_ring_dequeue(ring_to_sdn, (void**)&pkt);
         if (ret == 0) {
             struct sdn_pkt_list* flow;
-            ret = onvm_ft_lookup_with_hash(pkt_buf_ft, pkt, (char**) &flow, &buffer_id);
+            ret = onvm_ft_lookup_with_hash(pkt_buf_ft, pkt, (char**) &flow);
             if(ret == -ENOENT) {
                 #ifdef DEBUG_PRINT
                 printf("SDN: not in pkt buffer table, creating list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
                 #endif
-                ret = onvm_ft_add_with_hash(pkt_buf_ft, pkt, (char**) &flow, &buffer_id);
+                ret = onvm_ft_add_with_hash(pkt_buf_ft, pkt, (char**) &flow);
                 if (ret == -ENOSPC) {
                     #ifdef DEBUG_PRINT
                     printf("Pkt buffer table no space\n");
                     #endif
                     exit(1);
                 }
+		buffer_id = ret;
             }
+	    buffer_id = ret;
             #ifdef DEBUG_PRINT
             printf("SDN: in pkt buffer table, adding to list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
             #endif
@@ -250,6 +256,8 @@ void datapath_handle_write(struct datapath *dp)
             if (count > 0) {
                 msgbuf_push(dp->outbuf, buf, count);
             }
+	    sent_msg++;
+	    printf("sent_msg=%d\n", sent_msg);
     	}
 
     }
@@ -406,21 +414,17 @@ int make_packet_in(int xid, uint32_t buffer_id, char *buf, struct rte_mbuf *pkt)
         return len;
 }
 
-struct onvm_flow_key* flow_key_extract(struct ofp_match *match)
+struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
 {
-        struct onvm_flow_key* fk;
+        struct onvm_ft_ipv4_5tuple* fk;
         fk = rte_calloc("flow_key",
-                           1, sizeof(struct onvm_flow_key), 0);
+                           1, sizeof(struct onvm_ft_ipv4_5tuple), 0);
         if (fk == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for flow key\n");
         }
 
-        fk->in_port = ntohs(match->in_port);
-        memcpy(fk->src_eth, match->dl_src, ETH_ADDR_LEN);
-        memcpy(fk->dst_eth, match->dl_dst, ETH_ADDR_LEN);
-        fk->ether_type = match->dl_type;
-        fk->src_ip = match->nw_src;
-        fk->dst_ip = match->nw_dst;
+        fk->src_addr = match->nw_src;
+        fk->dst_addr = match->nw_dst;
         fk->proto = match->nw_proto;
         fk->src_port = match->tp_src;
         fk->dst_port = match->tp_dst;
