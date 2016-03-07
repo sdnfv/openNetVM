@@ -18,12 +18,10 @@ struct sdn_pkt_entry {
 // FIXME: These functions should have return codes to indicate errors.
 
 static inline void
-sdn_pkt_list_init(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
+sdn_pkt_list_init(struct sdn_pkt_list* list) {
         /* FIXME: check for malloc errors */
-        list->head = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
-        list->head->pkt = pkt;
-        list->head->next = NULL;
-        list->tail = list->head;
+        list->head = NULL;
+        list->tail = NULL;
         list->flag = 0;
 }
 
@@ -34,8 +32,14 @@ sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
         entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
         entry->pkt = pkt;
         entry->next = NULL;
-        list->tail->next = entry;
-        list->tail = entry;
+	if (list->head == NULL) {
+		list->head = entry; 
+		list->tail = list->head;
+	}
+	else {
+        	list->tail->next = entry;
+        	list->tail = entry;
+	}
 }
 
 static inline void

@@ -103,10 +103,11 @@ void datapath_handle_read(struct datapath *dp)
 		fprintf(stderr, "controller msgbuf_read() = %d:  ", count);
 		if(count < 0)	
 			perror("msgbuf_read");
-		else	
+		else	{
 			fprintf(stderr, " closed connection ");
-		fprintf(stderr, "... exiting\n");
-		exit(1);
+		}
+		//fprintf(stderr, "... exiting\n");
+		//exit(1);
     }
     while((count= msgbuf_count_buffered(dp->inbuf)) >= (int)sizeof(struct ofp_header ))
     {
@@ -224,7 +225,7 @@ void datapath_handle_write(struct datapath *dp)
         if (ret == 0) {
             struct sdn_pkt_list* flow;
             ret = onvm_ft_lookup_with_hash(pkt_buf_ft, pkt, (char**) &flow, &buffer_id);
-                if(ret == -ENOENT) {
+            if(ret == -ENOENT) {
                 #ifdef DEBUG_PRINT
                 printf("SDN: not in pkt buffer table, creating list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
                 #endif
@@ -235,14 +236,11 @@ void datapath_handle_write(struct datapath *dp)
                     #endif
                     exit(1);
                 }
-                sdn_pkt_list_init(flow, pkt);
             }
-            else if(ret == 0) {
-                #ifdef DEBUG_PRINT
-                printf("SDN: in pkt buffer table, adding to list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
-                #endif
-                sdn_pkt_list_add(flow, pkt);
-            }
+            #ifdef DEBUG_PRINT
+            printf("SDN: in pkt buffer table, adding to list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
+            #endif
+            sdn_pkt_list_add(flow, pkt);
             memset(buf, 0, BUFLEN);
             if (sdn_pkt_list_get_flag(flow) == 0) {
                 count = make_packet_in(dp->xid++, buffer_id, buf, pkt);
@@ -471,6 +469,8 @@ int setup_securechannel(void *ptr) {
     const char *controller_hostname = "localhost";
     int   controller_port = 6633;
     int   debug = 1;
+    struct sdn_pkt_list *sdn_list;
+    int i;
 
     printf("SDN Connection running on %d\n", rte_lcore_id());
 
@@ -498,6 +498,10 @@ int setup_securechannel(void *ptr) {
     pkt_buf_ft = onvm_ft_create(1024, sizeof(struct sdn_pkt_list));
     if(pkt_buf_ft == NULL) {
         rte_exit(EXIT_FAILURE, "Unable to create pkt buffer table\n");
+    }
+    for (i = 0; i < 1024; i++) {
+	sdn_list = (struct sdn_pkt_list *)onvm_ft_get_data(pkt_buf_ft, i);
+	sdn_pkt_list_init(sdn_list);
     }
     //TODO: create flow table
     if(debug) fprintf(stderr, "Creating flow table...\n");
