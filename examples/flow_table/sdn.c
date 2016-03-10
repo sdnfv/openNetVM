@@ -94,7 +94,6 @@ void datapath_handle_read(struct datapath *dp)
     struct ofp_header echo;
     struct ofp_header barrier;
     struct ofp_stats_request *stats_req;
-    struct ofp_flow_mod *fm;
     char buf[BUFLEN];
     int count;
 
@@ -173,6 +172,8 @@ void datapath_handle_read(struct datapath *dp)
 				}
 				break;
 			case OFPT_FLOW_MOD:
+                                debug_msg(dp, "got flow_mod");
+    				struct ofp_flow_mod *fm;
                                 fm = (struct ofp_flow_mod *) ofph;
                                 int ret;
                                 struct onvm_ft_ipv4_5tuple *fk;
@@ -180,7 +181,6 @@ void datapath_handle_read(struct datapath *dp)
                                 struct onvm_flow_entry *flow_entry;
                                 uint32_t buffer_id = ntohl(fm->buffer_id);
                                 struct sdn_pkt_list* sdn_list;
-                                debug_msg(dp, "got flow_mod");
                                 fk = flow_key_extract(&fm->match);
                                 size_t actions_len = ntohs(fm->header.length) - sizeof(*fm);
                                 sc = flow_action_extract(&fm->actions[0], actions_len);
@@ -216,9 +216,8 @@ void datapath_handle_read(struct datapath *dp)
 void datapath_handle_write(struct datapath *dp)
 {
     char buf[BUFLEN];
-    int count;
-    int buffer_id;
-    static int sent_msg = 0; 
+    int count = 0;
+    int buffer_id = 0;
 
     if (dp->switch_status == READY_TO_SEND) {
         struct rte_mbuf* pkt;
@@ -251,13 +250,10 @@ void datapath_handle_write(struct datapath *dp)
             if (sdn_pkt_list_get_flag(flow) == 0) {
                 count = make_packet_in(dp->xid++, buffer_id, buf, pkt);
                 sdn_pkt_list_set_flag(flow);
+            	if (count > 0) {
+                	msgbuf_push(dp->outbuf, buf, count);
+            	}
             }
-
-            if (count > 0) {
-                msgbuf_push(dp->outbuf, buf, count);
-            }
-	    sent_msg++;
-	    printf("sent_msg=%d\n", sent_msg);
     	}
 
     }

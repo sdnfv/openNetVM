@@ -8,6 +8,7 @@ struct sdn_pkt_list {
         struct sdn_pkt_entry *head;
         struct sdn_pkt_entry *tail;
         int flag;
+	int counter;
 };
 
 struct sdn_pkt_entry {
@@ -23,10 +24,12 @@ sdn_pkt_list_init(struct sdn_pkt_list* list) {
         list->head = NULL;
         list->tail = NULL;
         list->flag = 0;
+	list->counter = 0;
 }
 
 static inline void
 sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
+	list->counter++;
         /* FIXME: check for malloc errors */
         struct sdn_pkt_entry* entry;
         entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
@@ -58,6 +61,8 @@ sdn_pkt_list_flush(struct sdn_pkt_list* list) {
 	struct rte_mbuf *pkt;
 	struct onvm_pkt_meta* meta;
 
+	printf("list items:%d\n", list->counter);
+
 	while(list->head) {
 		entry = list->head;
 		list->head = entry->next;			
@@ -67,10 +72,12 @@ sdn_pkt_list_flush(struct sdn_pkt_list* list) {
 		meta->chain_index = 0; 
 		onvm_nf_return_pkt(pkt);
 		free(entry);
+		list->counter--;
 	}
 
 	list->flag = 0;
 	list->head = NULL;
 	list->tail = NULL;
+	list->counter = 0;
 }
 #endif
