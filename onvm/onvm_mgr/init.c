@@ -90,6 +90,12 @@ struct rte_ring *nf_info_queue;
 /* array of info/queues for clients */
 struct client *clients = NULL;
 
+/* 2D array mapping services to NFs, extern in init.h */
+uint16_t **service_to_nf;
+
+/* Array tracking number of NFs active per service, extern in init.h */
+uint16_t *nf_per_service_count;
+
 /* the port details */
 struct port_info *ports = NULL;
 
@@ -230,18 +236,29 @@ init_shm_rings(void) {
         if (clients == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
 
+        service_to_nf = rte_calloc("service to nf map",
+                num_services, sizeof(uint16_t*), 0);
+        for (i = 0; i < num_services; i++) {
+                service_to_nf[i] = rte_calloc("one service NFs",
+                        MAX_CLIENTS_PER_SERVICE, sizeof(uint16_t), 0);
+        }
+        nf_per_service_count = rte_calloc("count of NFs active per service",
+                num_services, sizeof(uint16_t), 0);
+        if (service_to_nf == NULL || nf_per_service_count == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
+
         for (i = 0; i < MAX_CLIENTS; i++) {
                 /* Create an RX queue for each client */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
                 tq_name = get_tx_queue_name(i);
-                clients[i].client_id = i;
+                clients[i].instance_id = i;
                 clients[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
-                                RING_F_SP_ENQ | RING_F_SC_DEQ); /* single prod, single cons */
+                                RING_F_SC_DEQ);                 /* multi prod, single cons */
                 clients[i].tx_q = rte_ring_create(tq_name,
-                                ringsize, socket_id, 0);
-                                /* multi prod, multi cons */
+                                ringsize, socket_id,
+                                RING_F_SC_DEQ);                 /* multi prod, single cons */
 
                 if (clients[i].rx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);

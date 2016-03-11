@@ -26,8 +26,10 @@
 #include <rte_mbuf.h>
 #include <stdint.h>
 
-#define MAX_CLIENTS             16
-#define ONVM_MAX_CHAIN_LENGTH 4
+#define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
+#define MAX_CLIENTS 16            // total number of NFs allowed
+#define MAX_SERVICES 16           // total number of unique services allowed
+#define MAX_CLIENTS_PER_SERVICE 8 // max number of NFs per service.
 
 #define ONVM_NF_ACTION_DROP 0   // drop packet
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
@@ -74,7 +76,8 @@ extern struct client_tx_stats *clients_stats;
  * Define a structure to describe one NF
  */
 struct onvm_nf_info {
-        uint8_t client_id;
+        uint16_t instance_id;
+        uint16_t service_id;
         uint8_t status;
         const char *tag;
 };

@@ -36,7 +36,13 @@
 #include "onvm_mgr/init.h"
 
 /* global var for number of clients - extern in header init.h */
-uint8_t num_clients;
+uint16_t num_clients;
+
+/* global var for number of services - extern in header init.h */
+uint16_t num_services = MAX_SERVICES;
+
+/* global var for the default service id - extern in init.h */
+uint16_t default_service = DEFAULT_SERVICE_ID;
 
 /* global var: did user directly specify num clients? */
 uint8_t is_static_clients;
@@ -45,14 +51,20 @@ uint8_t is_static_clients;
 static const char *progname;
 
 /**
- * Prints out usage information to stdout
- */
+ * Prints out usage information to stdout */
 static void
 usage(void) {
         printf(
-            "%s [EAL options] -- -p PORTMASK [-n NUM_CLIENTS] [-s NUM_SOCKETS]\n"
+            "%s [EAL options] -- -p PORTMASK "
+#ifdef USE_STATIC_IDS
+            "[-n NUM_CLIENTS] "
+#endif
+            "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
             " -p PORTMASK: hexadecimal bitmask of ports to use\n"
+#ifdef USE_STATIC_IDS
             " -n NUM_CLIENTS: number of client processes to use (optional)\n"
+#endif
+            " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
             , progname);
 }
 
@@ -97,6 +109,39 @@ parse_portmask(uint8_t max_ports, const char *portmask) {
 }
 
 /**
+ * Parse the default service to send packets to
+ */
+static int
+parse_default_service(const char *services) {
+        char *end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(services, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        default_service = (uint16_t)temp;
+        return 0;
+}
+
+/**
+ * Parse the number of services to allow from command line args
+ */
+static int
+parse_num_services(const char *services) {
+        char *end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(services, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        num_services = (uint16_t)temp;
+        return 0;
+}
+
+#ifdef USE_STATIC_IDS
+/**
  * Take the number of clients parameter passed to the app
  * and convert to a number to store in the num_clients variable
  */
@@ -113,10 +158,11 @@ parse_num_clients(const char *clients) {
         if (end == NULL || *end != '\0' || temp == 0)
                 return -1;
 
-        num_clients = (uint8_t)temp;
+        num_clients = (uint16_t)temp;
         is_static_clients = STATIC_CLIENTS;
         return 0;
 }
+#endif
 
 /**
  * The application specific arguments follow the DPDK-specific
@@ -134,8 +180,11 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         progname = argv[0];
         is_static_clients = DYNAMIC_CLIENTS;
 
-        while ((opt = getopt_long(argc, argvopt, "n::p:", lgopts,
-                &option_index)) != EOF) {
+#ifdef USE_STATIC_IDS
+        while ((opt = getopt_long(argc, argvopt, "n:r:p:d:", lgopts, &option_index)) != EOF) {
+#else
+        while ((opt = getopt_long(argc, argvopt, "r:p:d:", lgopts, &option_index)) != EOF) {
+#endif
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -143,8 +192,22 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                         return -1;
                                 }
                                 break;
+#ifdef USE_STATIC_IDS
                         case 'n':
                                 if (parse_num_clients(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+#endif
+                        case 'r':
+                                if (parse_num_services(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+                        case 'd':
+                                if (parse_default_service(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
