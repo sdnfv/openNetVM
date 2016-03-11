@@ -13,7 +13,7 @@ fi
 
 #  make ONVM=~/openNetVM/onvm/ USER_FLAGS="-g -O0 -DDEBUG_PRINT="
 
-sudo ./build/flow_table -c $cpu -n 4 --proc-type=auto -- -n $client -- $app
+sudo ./build/flow_table -c $cpu -n 4 --proc-type=auto -- -r $client -- $app
 #sudo ./flow_table/x86_64-native-linuxapp-gcc/flow_table -c $cpu -n 4 --proc-type=auto -- -n $client
 
 # sudo gdb ./build/flow_table -ex "run -c 10 -n 4 --proc-type=secondary -- -n 0"^C

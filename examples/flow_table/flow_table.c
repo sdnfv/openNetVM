@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
         }
         printf("Flow table running on %d\n", rte_lcore_id());
 
-        def_destination = nf_info->client_id + 1;
+	def_destination = nf_info->service_id + 1;
         printf("Setting up hash table with default destination: %d\n", def_destination);
         total_flows = 0;
 
