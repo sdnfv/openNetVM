@@ -39,7 +39,7 @@ struct client {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
         struct onvm_nf_info *info;
-        unsigned client_id;
+        uint16_t instance_id;
         /* these stats hold how many packets the client will actually receive,
          * and how many packets were dropped because the client's queue was full.
          * The port-info stats, in contrast, record how many packets were received
@@ -91,7 +91,11 @@ struct port_info {
 extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
-extern uint8_t num_clients;
+extern uint16_t num_clients;
+extern uint16_t num_services;
+extern uint16_t default_service;
+extern uint16_t **service_to_nf;
+extern uint16_t *nf_per_service_count;
 extern unsigned num_sockets;
 extern struct onvm_service_chain *default_chain;
 

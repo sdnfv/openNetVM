@@ -13,4 +13,4 @@ then
         exit 1
 fi
 
-sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -n $client -- #-p 1000000000
+sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $client -- #-p 1000000000
