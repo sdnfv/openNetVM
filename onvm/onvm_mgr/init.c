@@ -60,6 +60,7 @@
 #include "onvm_mgr/init.h"
 #include "onvm_mgr/onvm_sc_mgr.h"
 #include "shared/onvm_sc_common.h"
+#include "shared/onvm_flow_table.h"
 
 #define MBUFS_PER_CLIENT 1536
 #define MBUFS_PER_PORT 1536
@@ -97,7 +98,7 @@ struct client_tx_stats *clients_stats;
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p; 
 
-static uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
+/*uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
@@ -107,7 +108,7 @@ static uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,
                                      0x6d, 0x5a, 0x6d, 0x5a,};
-
+*/
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other

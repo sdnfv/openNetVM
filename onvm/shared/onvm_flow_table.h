@@ -29,8 +29,11 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
+#include <rte_thash.h>
 #include "onvm_pkt_helper.h"
 #include "common.h"
+
+extern uint8_t rss_symmetric_key[40];
 
 #ifdef RTE_MACHINE_CPUFLAG_SSE4_2
 #include <rte_hash_crc.h>
@@ -174,4 +177,26 @@ onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len,
 #endif /* RTE_MACHINE_CPUFLAG_SSE4_2 */
         return (init_val);
 }
+
+/*software caculate RSS*/
+static inline uint32_t
+onvm_softrss(struct onvm_ft_ipv4_5tuple *key)
+{
+	union rte_thash_tuple tuple;
+	uint8_t rss_key_be[RTE_DIM(rss_symmetric_key)];
+	uint32_t rss_l3l4;
+
+	rte_convert_rss_key((uint32_t *)rss_symmetric_key, (uint32_t *)rss_key_be, 
+				RTE_DIM(rss_symmetric_key));
+
+	tuple.v4.src_addr = key->src_addr;
+	tuple.v4.dst_addr = key->dst_addr;
+	tuple.v4.sport = key->src_port;
+	tuple.v4.dport = key->dst_port;
+	
+	rss_l3l4 = rte_softrss_be((uint32_t *)&tuple, RTE_THASH_V4_L3_LEN, rss_key_be);
+
+	return rss_l3l4;
+}
+
 #endif  // _ONVM_FLOW_TABLE_H_
