@@ -194,7 +194,7 @@ onvm_softrss(struct onvm_ft_ipv4_5tuple *key)
 	tuple.v4.sport = key->src_port;
 	tuple.v4.dport = key->dst_port;
 	
-	rss_l3l4 = rte_softrss_be((uint32_t *)&tuple, RTE_THASH_V4_L3_LEN, rss_key_be);
+	rss_l3l4 = rte_softrss_be((uint32_t *)&tuple, RTE_THASH_V4_L4_LEN, rss_key_be);
 
 	return rss_l3l4;
 }
