@@ -2,6 +2,7 @@
 #include <rte_hash.h>
 #include <rte_lcore.h>
 #include <rte_cycles.h>
+#include <rte_malloc.h>
 
 #include "onvm_flow_table.h"
 
@@ -39,7 +40,7 @@ onvm_ft_create(int cnt, int entry_size) {
         if (hash == NULL) {
                 return NULL;
         }
-        ft = (struct onvm_ft*) calloc(1, sizeof(struct onvm_ft));
+	ft = (struct onvm_ft*)rte_calloc("flow_table", 1, sizeof(struct onvm_ft), 0);
         if (ft == NULL) {
                 rte_hash_free(hash);
                 return NULL;
@@ -76,7 +77,6 @@ onvm_ft_add_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) 
         }
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
         // printf("added index %d rss %d port %d\n", tbl_index, pkt->hash.rss, pkt->port);
-        printf("hardware rss %d\n", pkt->hash.rss);
         // _onvm_ft_print_key(&key);
         if (tbl_index >= 0) {
         	*data = &table->data[tbl_index*table->entry_size];
@@ -96,6 +96,7 @@ onvm_ft_lookup_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** dat
         struct onvm_ft_ipv4_5tuple key;
         int ret;
 
+        printf("hardware rss %d\n", pkt->hash.rss);
         ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0) {
                 return ret;
@@ -132,7 +133,6 @@ onvm_ft_add(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data)
 	uint32_t softrss;
 
 	softrss = onvm_softrss(key);
-        printf("software rss %d\n", softrss);
 
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)key, softrss);
         if (tbl_index < 0) {
@@ -149,6 +149,7 @@ onvm_ft_lookup(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** da
 	uint32_t softrss;
 
 	softrss = onvm_softrss(key);
+        printf("software rss %d\n", softrss);
 
         tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)key, softrss);
         if (tbl_index >= 0) {

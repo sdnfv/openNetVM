@@ -103,6 +103,7 @@ struct onvm_service_chain {
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CLIENT_INFO "MProc_client_info"
 #define MZ_SCP_INFO "MProc_scp_info"
+#define MZ_FTP_INFO "MProc_ftp_info"
 
 /* common names for NF states */
 #define _NF_QUEUE_NAME "NF_INFO_QUEUE"

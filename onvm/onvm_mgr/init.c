@@ -61,6 +61,7 @@
 #include "onvm_mgr/onvm_sc_mgr.h"
 #include "shared/onvm_sc_common.h"
 #include "shared/onvm_flow_table.h"
+#include "shared/onvm_flow_dir.h"
 
 #define MBUFS_PER_CLIENT 1536
 #define MBUFS_PER_PORT 1536
@@ -104,17 +105,8 @@ struct client_tx_stats *clients_stats;
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p; 
 
-/*uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,};
-*/
+struct onvm_ft *sdn_ft;
+struct onvm_ft **sdn_ft_p;
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
@@ -350,6 +342,7 @@ init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz;
 	const struct rte_memzone *mz_scp;
+	const struct rte_memzone *mz_ftp;
         uint8_t i, total_ports;
 
         /* init EAL, parsing EAL args */
@@ -418,12 +411,24 @@ init(int argc, char *argv[]) {
 	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *), 
 				   rte_socket_id(), NO_FLAGS);
 	if (mz_scp == NULL) 
-		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain\n");
+		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
 	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
 	default_sc_p = mz_scp->addr;
 	*default_sc_p = default_chain;
-
 	onvm_sc_print(default_chain);
+
+	sdn_ft = onvm_ft_create(1024, sizeof(struct onvm_flow_entry));
+    	if(sdn_ft == NULL) {
+        	rte_exit(EXIT_FAILURE, "Unable to create flow table\n");
+    	}
+	mz_ftp = rte_memzone_reserve(MZ_FTP_INFO, sizeof(struct onvm_ft *),
+				  rte_socket_id(), NO_FLAGS);
+	if (mz_ftp == NULL) {
+		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for flow table pointer\n");
+	}
+	memset(mz_ftp->addr, 0, sizeof(struct onvm_ft *));
+	sdn_ft_p = mz_ftp->addr;
+	*sdn_ft_p = sdn_ft;
 
         return 0;
 }
