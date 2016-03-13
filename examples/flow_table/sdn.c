@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <poll.h>
 #include <rte_malloc.h>
+#include <rte_common.h>
 
 #include "sdn.h"
 #include "sdn_pkt_list.h"
@@ -32,7 +33,7 @@ extern struct rte_ring* ring_from_sdn;
 extern uint16_t def_destination;
 
 struct onvm_ft *pkt_buf_ft;
-struct onvm_ft *sdn_ft;
+extern struct onvm_ft *sdn_ft;
 
 static struct ofp_switch_config Switch_config = {
     .header = { OFP_VERSION,
@@ -178,17 +179,22 @@ void datapath_handle_read(struct datapath *dp)
                                 int ret;
                                 struct onvm_ft_ipv4_5tuple *fk;
                                 struct onvm_service_chain *sc;
-                                struct onvm_flow_entry *flow_entry;
+                                struct onvm_flow_entry *flow_entry = NULL;
                                 uint32_t buffer_id = ntohl(fm->buffer_id);
+				if (buffer_id == UINT32_MAX) {
+					break;
+				}
                                 struct sdn_pkt_list* sdn_list;
                                 fk = flow_key_extract(&fm->match);
                                 size_t actions_len = ntohs(fm->header.length) - sizeof(*fm);
                                 sc = flow_action_extract(&fm->actions[0], actions_len);
-                                //ret = onvm_ft_lookup(sdn_ft, fk, (char**)&flow_entry);
+                               // ret = onvm_ft_lookup(sdn_ft, fk, (char**)&flow_entry);
                                 ret = onvm_flow_dir_get(sdn_ft, fk, &flow_entry);
+				printf("lookup index:%d\n", ret);
                                 if (ret == -ENOENT) {
-                                        //onvm_ft_add(sdn_ft, fk, (char**) &flow_entry);
-                                        onvm_flow_dir_add(sdn_ft, fk, &flow_entry);
+                                        //ret = onvm_ft_add(sdn_ft, fk, (char**) &flow_entry);
+                                        ret = onvm_flow_dir_add(sdn_ft, fk, &flow_entry);
+					printf("add index:%d\n", ret);					
                                 }
                                 memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                                 flow_entry->key = fk;
@@ -410,6 +416,24 @@ int make_packet_in(int xid, uint32_t buffer_id, char *buf, struct rte_mbuf *pkt)
         return len;
 }
 
+/*struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
+{
+        struct onvm_ft_ipv4_5tuple* fk;
+        fk = rte_calloc("flow_key",
+                           1, sizeof(struct onvm_ft_ipv4_5tuple), 0);
+        if (fk == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot allocate memory for flow key\n");
+        }
+
+        fk->src_addr = RTE_MIN(match->nw_src, match->nw_dst);
+        fk->dst_addr = RTE_MAX(match->nw_src, match->nw_dst);
+        fk->proto = match->nw_proto;
+	fk->src_port = rte_be_to_cpu_16(RTE_MIN(match->tp_src, match->tp_dst));
+	fk->dst_port = rte_be_to_cpu_16(RTE_MAX(match->tp_src, match->tp_dst));
+
+        return fk;
+}*/
+
 struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
 {
         struct onvm_ft_ipv4_5tuple* fk;
@@ -422,8 +446,8 @@ struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
         fk->src_addr = match->nw_src;
         fk->dst_addr = match->nw_dst;
         fk->proto = match->nw_proto;
-        fk->src_port = match->tp_src;
-        fk->dst_port = match->tp_dst;
+	fk->src_port = match->tp_src;
+	fk->dst_port = match->tp_dst;
 
         return fk;
 }
@@ -503,12 +527,19 @@ int setup_securechannel(void *ptr) {
 	sdn_list = (struct sdn_pkt_list *)onvm_ft_get_data(pkt_buf_ft, i);
 	sdn_pkt_list_init(sdn_list);
     }
+
     //TODO: create flow table
+    #if 0
     if(debug) fprintf(stderr, "Creating flow table...\n");
     sdn_ft = onvm_ft_create(1024, sizeof(struct onvm_flow_entry));
     if(sdn_ft == NULL) {
         rte_exit(EXIT_FAILURE, "Unable to create flow table\n");
     }
+    if (sdn_ft == NULL) {
+	printf("flow talbe is NULL\n");
+	exit(1);
+    }
+    #endif
 
     if(debug) fprintf(stderr,"Running secure channel\n");
     run_securechannel(dp);

@@ -39,6 +39,7 @@
 #include <rte_hash.h>
 #include <rte_lcore.h>
 #include <rte_ring.h>
+#include <rte_memzone.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -46,10 +47,11 @@
 #include "sdn.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
+#include "onvm_sc_common.h"
 
 #define NF_TAG "flow_table"
 
-extern struct onvm_ft *sdn_ft;
+struct onvm_ft *sdn_ft;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -75,6 +77,21 @@ setup_rings(void) {
                 rte_exit(EXIT_FAILURE, "Unable to create SDN rings\n");
         }
 }
+
+/* Map flow table */
+#if 1
+static void
+map_flow_table(void) {
+	const struct rte_memzone *mz_ftp;
+	struct onvm_ft **ftp;
+	
+	mz_ftp = rte_memzone_lookup(MZ_FTP_INFO);
+        if (mz_ftp == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get flow table pointer\n");
+        ftp = mz_ftp->addr;
+	sdn_ft = *ftp;
+}
+#endif
 
 /* Clear out rings on exit. Requires DPDK v2.2.0+ */
 static void
@@ -150,48 +167,20 @@ do_stats_display(struct rte_mbuf* pkt, int32_t tbl_index) {
 }
 
 static int
-flow_table_hit(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta,
-               union ipv4_5tuple_host *key, int32_t tbl_index) {
+flow_table_hit(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         (void)pkt;
-        (void)key;
-	(void)meta;
-        #ifdef DEBUG_PRINT
-        printf("Found existing flow %d\n", tbl_index);
-        #endif
-      //  meta->action = sdn_ft->data[tbl_index]->scaction;
-      //  meta->destination = flow_table[tbl_index].destination;
-	struct onvm_flow_entry *flow_entry;
-	flow_entry = (struct onvm_flow_entry *)onvm_ft_get_data(sdn_ft, tbl_index);
-        flow_entry->packet_count++;
+       	meta->chain_index = 0;
+	meta->action = ONVM_NF_ACTION_NEXT;
+	meta->destination = 0;
+	
         return 0;
 }
 
 static int
-flow_table_miss(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta,
-                union ipv4_5tuple_host *key) {
-        // int32_t tbl_index;
-        (void)pkt;
-        (void)key;
+flow_table_miss(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         int ret;
 
-        #ifdef DEBUG_PRINT
-        printf("Unkown flow\n");
-        #endif
-
-        // This will go in the SDN thread
-        // tbl_index = rte_hash_add_key(flow_table_hash, (const void *)key);
-        // #ifdef DEBUG_PRINT
-        // printf("New flow %d\n", tbl_index);
-        // #endif
-        // if(tbl_index < 0) {
-        //         onvm_pkt_print(pkt);
-        //         rte_exit(EXIT_FAILURE, "Unable to add flow entry\n");
-        // }
-        // total_flows++;
-        // flow_table[tbl_index].count = 1;
-        // flow_table[tbl_index].action = ONVM_NF_ACTION_TONF;
-        // flow_table[tbl_index].destination = def_destination;
-
+                
         /* Buffer new flows until we get response from SDN controller. */
         ret = rte_ring_enqueue(ring_to_sdn, pkt);
         if(ret != 0) {
@@ -208,12 +197,9 @@ static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         static uint32_t counter = 0;
 
-        //struct ether_hdr *eth_hdr;
-        struct ipv4_hdr *ipv4_hdr;
-        struct tcp_hdr *tcp_hdr;
         int32_t tbl_index;
-        union ipv4_5tuple_host key;
         int action;
+	struct onvm_flow_entry *flow_entry;
 
         if(!onvm_pkt_is_ipv4(pkt)) {
                 printf("Non-ipv4 packet\n");
@@ -222,35 +208,20 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 return 0;
         }
 
-        /* Make a key to do flow table lookup */
-        ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-        tcp_hdr = onvm_pkt_tcp_hdr(pkt);
-        memset(&key, 0, sizeof(key));
-        key.proto = ipv4_hdr->type_of_service;
-        key.virt_port = meta->src;
-        key.ip_src = ipv4_hdr->src_addr;
-        key.ip_dst = ipv4_hdr->dst_addr;
-        /* FIXME: The L3 fwd example gets all of
-         * this information by using some mask functions that I don't really
-         * understand.  Perhaps we should do the same.
-         */
-        if(tcp_hdr != NULL) {
-                key.port_src = tcp_hdr->src_port;
-                key.port_dst = tcp_hdr->dst_port;
-        }
-        else {
-                key.port_src = 0;
-                key.port_dst = 0;
-        }
-
-        tbl_index = rte_hash_lookup(sdn_ft->hash, (const void *)&key);
+        tbl_index = onvm_flow_dir_get_with_hash(sdn_ft, pkt, &flow_entry);
         if(tbl_index >= 0) {
+		#ifdef DEBUG_PRINT
+        	printf("Found existing flow %d\n", tbl_index);
+        	#endif
                 /* Existing flow */
-                action = flow_table_hit(pkt, meta, &key, tbl_index);
+                action = flow_table_hit(pkt, meta);
         }
         else if (tbl_index == -ENOENT) {
+		#ifdef DEBUG_PRINT
+		printf("Unkown flow\n");
+		#endif
                 /* New flow */
-                action = flow_table_miss(pkt, meta, &key);
+                action = flow_table_miss(pkt, meta);
         }
         else {
                 #ifdef DEBUG_PRINT
@@ -261,8 +232,10 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         }
 
         if (++counter == print_delay && print_delay != 0) {
-                do_stats_display(pkt, tbl_index);
-                counter = 0;
+		if (tbl_index >= 0) {
+                	do_stats_display(pkt, tbl_index);
+                	counter = 0;
+		}
         }
 
         return action;
@@ -289,6 +262,7 @@ int main(int argc, char *argv[]) {
         /* Setup the SDN connection thread */
         printf("Setting up SDN rings and thread.\n");
         setup_rings();
+	map_flow_table();
         sdn_core = rte_lcore_id();
         sdn_core = rte_get_next_lcore(sdn_core, 1, 1);
         rte_eal_remote_launch(setup_securechannel, NULL, sdn_core);
