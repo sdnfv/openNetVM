@@ -25,6 +25,6 @@ The [NF Development][nfs] guide will provide what you need to start create your 
 [dpdk]: http://dpdk.org
 [docker]: https://www.docker.com/
 [nsdi04]: http://faculty.cs.gwu.edu/~timwood/papers/14-NSDI-netvm.pdf
-[install]: https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md
-[examples]: https://github.com/sdnfv/openNetVM/blob/master/docs/Examples.md
-[nfs]: https://github.com/sdnfv/openNetVM/blob/master/docs/NF_Dev.md
+[install]: docs/Install.md
+[examples]: docs/Examples.md
+[nfs]: docs/NF_Dev.md
