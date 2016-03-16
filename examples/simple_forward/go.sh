@@ -1,15 +1,21 @@
 #!/bin/bash
 
 cpu=$1
-client=$2
+service=$2
+dst=$3
+print=$4
 
-if [ -z $client ]
+if [ -z $dst ]
 then
-        echo "$0 [cpu-list] [ID]"
-        echo "$0 3 0 --> core 3 ID 0"
-        echo "$0 3,7,9 1 --> cores 3,7, and 9 with ID 1"
+        echo "$0 [cpu-list] [Service ID] [DST] [PRINT]"
+        echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
+        echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
         exit 1
 fi
 
-
-sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -n $client -- #-p 1000000000
+if [ -z $print ]
+then
+        sudo ./simple_forward/$RTE_TARGET/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
+else
+        sudo ./simple_forward/$RTE_TARGET/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
+fi
