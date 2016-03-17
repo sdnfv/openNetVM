@@ -30,13 +30,13 @@ Before installation of OpenNetVM, please check your machine to see if it could m
  `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
 
 
-2. Get Package
+2. Install Dependencies
 -------------
 2.1  install git
 
  `$sudo apt-get install git`
 
-2.2  download	source	code
+2.2  download source code
 
  `$git clone https://github.com/sdnfv/openNetVM`
 
@@ -113,34 +113,6 @@ if you got the last two line of your result as below, , then you are all set
 ```
 hello from core 1
 hello from core 0
-```
-
-6. Run	openNetVM
--------------
-6.1 enter working directory, and compile the application
-
-`cd /home/**your_name**/openNetVM/onvm`
-
-`make`
-
-6.2 executing openNetVM
-
- ***onvm_mgr*** is a monitor for incoming packets, please execute using following command
-
-`sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -c 6 -n 4 -- -p 1 -n 1`
-
-then ping this node with ***ping*** , ***httperf*** or ***pktgen***, the sample monitoring result looks like following, then you are all set, enjoy playing around with openNetVM!
-```
-PORTS
------
-Port 0: '90:e2:ba:5e:73:6c'
-
-Port 0 - rx:        12	tx:         0
-
-CLIENTS
--------
-Client  0 - rx:        12, rx_drop:         0
-            tx:         0, tx_drop:         0
 ```
 
 7. Applying settings after reboot
