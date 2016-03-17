@@ -185,8 +185,8 @@ def onvm_corelist_print():
 
 	print "\t- openNetVM can handle %d NFs on this system" %(len(onvm_nfs_corelist))
 
-	for i in range(0, len(onvm_nfs_corelist)):
-		print "\t\t- NF %d:" %(i),
+	for i in range(len(onvm_nfs_corelist)-1, -1, -1):
+		print "\t\t- NF %d:" %(len(onvm_nfs_corelist)-1-i),
 		for c in onvm_nfs_corelist[i]:
 			print "%s" %(c)
 
