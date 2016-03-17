@@ -6,43 +6,44 @@ Linear NF Chain
 In this example, we will be setting up a chain of NFs.  The length of the chain is determined by our system's CPU architecture.  Some of the commands used in this example are specific to our system; in the cases where we refer to core lists or number of NFs, please run the [Core Helper Script][cores] to get your numbers.
 
   1. Determine CPU architecture and running limits:
-    - Based on information provided by coremask script, use the appropriate core information to run the manager and each NF.
+    - Based on information provided by corehelper script, use the appropriate core information to run the manager and each NF.
 
-            # scripts/coremask.py
+            # scripts/corehelper.py
             You supplied 0 arguments, running with flag --onvm
 
-			===============================================================
-			                 openNetVM CPU Coremask Helper
-			===============================================================
+            ===============================================================
+                 openNetVM CPU Corelist Helper
+            ===============================================================
 
-			openNetVM requires at least three cores for the manager.
-			After three cores, the manager can have more too.  Since
-			NFs need a thread for TX, the manager can have many dedicated
-			TX threads which would all need a dedicated core.
+            ** MAKE SURE HYPERTHREADING IS DISABLED **
 
-			Each NF running on openNetVM needs its own core too.  One manager
-			TX thread can be used to handle two NFs, but any more becomes
-			inefficient.
+            openNetVM requires at least three cores for the manager.
+            After the three cores, the manager needs one core for every two NFs'
+            TX thread
 
-			Use the following information to run openNetVM on this system:
+            Each NF running on openNetVM needs its own core too.  One manager
+            TX thread can be used to handle two NFs, but any more becomes
+            inefficient.
 
-			        - openNetVM Manager -- coremask: 0x7f
+            Use the following information to run openNetVM on this system:
 
-			        - CPU Layout permits 7 NFs with these coremasks:
-			                + NF 0 -- coremask: 0x2000
-			                + NF 1 -- coremask: 0x1000
-			                + NF 2 -- coremask: 0x800
-			                + NF 3 -- coremask: 0x400
-			                + NF 4 -- coremask: 0x200
-			                + NF 5 -- coremask: 0x100
-			                + NF 6 -- coremask: 0x80
+                    - openNetVM Manager corelist: 0,2,4,6,8,10,12
+
+                    - openNetVM can handle 7 NFs on this system
+                            - NF 0: 14
+                            - NF 1: 16
+                            - NF 2: 18
+                            - NF 3: 20
+                            - NF 4: 22
+                            - NF 5: 24
+                            - NF 6: 26
 
     - Running the script on our machine shows that the system can handle 7 NFs efficiently.  The manager needs three cores and 4 more to handle NFs' TX.
   2. Run Manager:
     - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores and a portmask to decide which NIC ports to use:
       - `# onvm/go.sh 0,2,4,6,8,10,12 1`
   3. Start NFs:
-    - First, start `n-1` simple_forward NFs, where `n` corresponds to the total number of NFs that the system can handle.  This is determined from the `scripts/coremask.py` helper script.
+    - First, start at most `n-1` simple_forward NFs, where `n` corresponds to the total number of NFs that the system can handle.  This is determined from the `scripts/coremask.py` helper script.  We will only start two NFs for convenience.
       - `# examples/simple_forward/go.sh 14 1`
     - Second, start a basic_monitor NF as the last NF in the chain:
       - `# examples/basic_monitor/go.sh 26 6`
@@ -55,34 +56,35 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
   1. Determine CPU architecture and running limits:
     - Based on information provided by [Core Helper Script][cores], use the appropriate core information to run the manager and each NF.
 
-            # scripts/coremask.py
+            # scripts/corehelper.py
             You supplied 0 arguments, running with flag --onvm
 
-			===============================================================
-			                 openNetVM CPU Coremask Helper
-			===============================================================
+            ===============================================================
+                 openNetVM CPU Corelist Helper
+            ===============================================================
 
-			openNetVM requires at least three cores for the manager.
-			After three cores, the manager can have more too.  Since
-			NFs need a thread for TX, the manager can have many dedicated
-			TX threads which would all need a dedicated core.
+            ** MAKE SURE HYPERTHREADING IS DISABLED **
 
-			Each NF running on openNetVM needs its own core too.  One manager
-			TX thread can be used to handle two NFs, but any more becomes
-			inefficient.
+            openNetVM requires at least three cores for the manager.
+            After the three cores, the manager needs one core for every two NFs'
+            TX thread
 
-			Use the following information to run openNetVM on this system:
+            Each NF running on openNetVM needs its own core too.  One manager
+            TX thread can be used to handle two NFs, but any more becomes
+            inefficient.
 
-			        - openNetVM Manager -- coremask: 0x7f
+            Use the following information to run openNetVM on this system:
 
-			        - CPU Layout permits 7 NFs with these coremasks:
-			                + NF 0 -- coremask: 0x2000
-			                + NF 1 -- coremask: 0x1000
-			                + NF 2 -- coremask: 0x800
-			                + NF 3 -- coremask: 0x400
-			                + NF 4 -- coremask: 0x200
-			                + NF 5 -- coremask: 0x100
-			                + NF 6 -- coremask: 0x80
+                    - openNetVM Manager corelist: 0,2,4,6,8,10,12
+
+                    - openNetVM can handle 7 NFs on this system
+                            - NF 0: 14
+                            - NF 1: 16
+                            - NF 2: 18
+                            - NF 3: 20
+                            - NF 4: 22
+                            - NF 5: 24
+                            - NF 6: 26
 
     - Running the script on our machine shows that the system can handle 7 NFs efficiently.  The manager needs three cores and 4 more to handle NFs' TX.
   2. Run Manager:
@@ -97,5 +99,5 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
   4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
 
 
-[cores]: https://github.com/sdnfv/openNetVM/blob/master/scripts/coremask.py
+[cores]: scripts/corehelper.py
 [pktgen]: https://github.com/pktgen/Pktgen-DPDK
