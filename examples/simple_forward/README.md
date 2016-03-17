@@ -1,12 +1,21 @@
-## Monitor
+Simple Forward
+==
+Example NF that forwards packets to a specific destination.
 
-This is a example using onvm that print information about packets whose go through.
+Compilation and Execution
+--
+```
+cd examples
+make
+cd simple_forward
+./go.sh CORELIST SERVICE_ID DST [PRINT_DELAY]
 
-### Execution
-To run the program.
-First run onvm manager and then :
+OR
+
+sudo ./forward/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
-cd examples/basic_monitor
-sudo ./forward/x86_64-native-linuxapp-gcc/forward -c 8 -n 4 --proc-type=auto -- -n 0 -- -p 100
-```
+
+App Specific Arguments
+--
+`-d <dst>`: destination service ID to foward to
 `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
