@@ -37,8 +37,7 @@ SRCS-y := flow_table.c sdn.c setupconn.c msgbuf.c
 # OpenNetVM path
 ONVM ?= $(SRCDIR)/../../onvm
 
-#CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += $(WERROR_FLAGS) -g -O0 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/shared
