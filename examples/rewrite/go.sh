@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 cpu=$1
 client=$2
 
@@ -13,4 +11,5 @@ then
         exit 1
 fi
 
-sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $client -- -p 10000
+
+sudo ./build/rewrite -l $cpu -n 3 --proc-type=secondary -- -r $client -- #-p 1000000000

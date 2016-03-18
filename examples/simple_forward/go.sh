@@ -12,4 +12,4 @@ then
 fi
 
 
-sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -n $client -- #-p 1000000000
+sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $client -- #-p 1000000000
