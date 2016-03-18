@@ -402,10 +402,12 @@ init(int argc, char *argv[]) {
 
 	/*initialize a default service chain*/
 	default_chain = onvm_sc_create();
-
-	if (default_chain == NULL) {
-		rte_exit(EXIT_FAILURE, "Can not create service chain\n");
-	}
+	retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
+        if (retval == ENOSPC) {
+                printf("chain length can not be larger than the maximum chain length\n");
+                exit(1);
+        }
+	printf("Default service chain: send to sdn NF\n");
 
 	/* set up service chain pointer shared to NFs*/
 	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *), 

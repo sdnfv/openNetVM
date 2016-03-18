@@ -40,7 +40,7 @@ onvm_ft_create(int cnt, int entry_size) {
         if (hash == NULL) {
                 return NULL;
         }
-	ft = (struct onvm_ft*)rte_calloc("flow_table", 1, sizeof(struct onvm_ft), 0);
+	ft = (struct onvm_ft*)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
         if (ft == NULL) {
                 rte_hash_free(hash);
                 return NULL;
@@ -49,10 +49,10 @@ onvm_ft_create(int cnt, int entry_size) {
         ft->cnt = cnt;
         ft->entry_size = entry_size;
         /* Create data array for storing values */
-        ft->data = calloc(cnt, entry_size);
+        ft->data = rte_calloc("entry", cnt, entry_size, 0);
         if (ft->data == NULL) {
                 rte_hash_free(hash);
-                free(ft);
+                rte_free(ft);
                 return NULL;
         }
         return ft;
@@ -76,8 +76,6 @@ onvm_ft_add_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) 
                 return err;
         }
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
-        // printf("added index %d rss %d port %d\n", tbl_index, pkt->hash.rss, pkt->port);
-        // _onvm_ft_print_key(&key);
         if (tbl_index >= 0) {
         	*data = &table->data[tbl_index*table->entry_size];
         }
@@ -96,7 +94,6 @@ onvm_ft_lookup_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** dat
         struct onvm_ft_ipv4_5tuple key;
         int ret;
 
-        printf("hardware rss %d\n", pkt->hash.rss);
         ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0) {
                 return ret;
@@ -135,10 +132,9 @@ onvm_ft_add(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data)
 	softrss = onvm_softrss(key);
 
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)key, softrss);
-        if (tbl_index < 0) {
-                return tbl_index;
+        if (tbl_index >= 0) {
+		*data = onvm_ft_get_data(table, tbl_index);
         }
-        *data = &table->data[tbl_index * table->entry_size];
 
         return tbl_index;
 }
@@ -154,11 +150,9 @@ onvm_ft_lookup(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** da
         tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)key, softrss);
         if (tbl_index >= 0) {
                 *data = onvm_ft_get_data(table, tbl_index);
-                return 0;
         }
-        else {
-                return tbl_index;
-        }
+        
+	return tbl_index;
 }
 
 int32_t

@@ -41,12 +41,13 @@ SRCS-y := main.c init.c args.c onvm_sc_mgr.c
 
 INC := $(wildcard *.h)
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+#CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -g -O0 $(USER_FLAGS)
 CFLAGS += -I$(SRCDIR)/../
-LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
-LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_table.o
-LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
-LDFLAGS += $(SRCDIR)/../shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_dir.o
+LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_sc_common.o
+LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_flow_table.o
+LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
+LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_flow_dir.o
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.

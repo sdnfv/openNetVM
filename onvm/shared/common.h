@@ -86,8 +86,8 @@ struct onvm_nf_info {
  * Define a structure to describe a service chain entry 
  */
 struct onvm_service_chain_entry {
-	uint8_t action;
 	uint16_t destination;
+	uint8_t action;
 };
 
 struct onvm_service_chain {

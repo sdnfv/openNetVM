@@ -98,6 +98,7 @@ extern uint16_t **service_to_nf;
 extern uint16_t *nf_per_service_count;
 extern unsigned num_sockets;
 extern struct onvm_service_chain *default_chain;
+extern struct onvm_ft *sdn_ft;
 
 int init(int argc, char *argv[]);
 

@@ -21,6 +21,7 @@
  ********************************************************************/
 
 #include <inttypes.h>
+#include <errno.h>
 #include "common.h"
 #include "onvm_sc_common.h"
 
@@ -28,8 +29,8 @@ int
 onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
 	int chain_length = chain->chain_length;
 	
-	if (chain_length > ONVM_MAX_CHAIN_LENGTH) {
-		return 1;
+	if (unlikely(chain_length > ONVM_MAX_CHAIN_LENGTH)) {
+		return ENOSPC;
 	}
 	/*the first entry is reserved*/	
 	chain_length++;
@@ -42,8 +43,8 @@ onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t 
 
 int
 onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination) {
-	if (entry > chain->chain_length) {
-		return 1;
+	if (unlikely(entry > chain->chain_length)) {
+		return -1;
 	}
 
 	chain->sc[entry].action = action;

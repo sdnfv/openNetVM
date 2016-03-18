@@ -36,30 +36,13 @@ struct onvm_service_chain*
 onvm_sc_create(void)
 {
         struct onvm_service_chain *chain;
-	int retval; 
 
-        chain = rte_calloc("service chain",
+        chain = rte_calloc("ONVM_sercice_chain",
                         1, sizeof(struct onvm_service_chain), 0);
         if (chain == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service chain\n");
         }
-        /*init test: chain length is 4*/
-       /* retval = onvm_sc_append_entry(chain, ONVM_NF_ACTION_TONF, 1);
-	if (retval == 1) {
-		printf("chain length can not be larger than the maximum chain length\n");
-		return NULL;
-	}*/
-        retval = onvm_sc_append_entry(chain, ONVM_NF_ACTION_OUT, 0);
-	if (retval == 1) {
-		printf("chain length can not be larger than the maximum chain length\n");
-		return NULL;
-	}
-      /*  onvm_sc_append_entry(chain, ONVM_NF_ACTION_DROP, 0);
-	if (retval == 1) {
-		printf("chain length can not be larger than the maximum chain length\n");
-		return NULL;
-	}*/
-       	
+    	
 	return chain;
 }
 

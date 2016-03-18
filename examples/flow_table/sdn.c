@@ -18,6 +18,7 @@
 #include <poll.h>
 #include <rte_malloc.h>
 #include <rte_common.h>
+#include <rte_memory.h>
 
 #include "sdn.h"
 #include "sdn_pkt_list.h"
@@ -188,14 +189,17 @@ void datapath_handle_read(struct datapath *dp)
                                 fk = flow_key_extract(&fm->match);
                                 size_t actions_len = ntohs(fm->header.length) - sizeof(*fm);
                                 sc = flow_action_extract(&fm->actions[0], actions_len);
-                               // ret = onvm_ft_lookup(sdn_ft, fk, (char**)&flow_entry);
                                 ret = onvm_flow_dir_get(sdn_ft, fk, &flow_entry);
-				printf("lookup index:%d\n", ret);
                                 if (ret == -ENOENT) {
-                                        //ret = onvm_ft_add(sdn_ft, fk, (char**) &flow_entry);
                                         ret = onvm_flow_dir_add(sdn_ft, fk, &flow_entry);
-					printf("add index:%d\n", ret);					
                                 }
+				else if (ret >= 0) {
+					rte_free(flow_entry->key);
+					rte_free(flow_entry->sc);
+				}
+				else {
+					rte_exit(EXIT_FAILURE, "onvm_flow_dir_get parameters are invalid");
+				}
                                 memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                                 flow_entry->key = fk;
                                 flow_entry->sc = sc;
@@ -229,7 +233,6 @@ void datapath_handle_write(struct datapath *dp)
         struct rte_mbuf* pkt;
         int ret;
 
-        // get a packet from ring_to_sdn ring, buffer it into the pkt_buf_ft
         ret = rte_ring_dequeue(ring_to_sdn, (void**)&pkt);
         if (ret == 0) {
             struct sdn_pkt_list* flow;
@@ -245,7 +248,6 @@ void datapath_handle_write(struct datapath *dp)
                     #endif
                     exit(1);
                 }
-		buffer_id = ret;
             }
 	    buffer_id = ret;
             #ifdef DEBUG_PRINT
@@ -528,19 +530,6 @@ int setup_securechannel(void *ptr) {
 	sdn_pkt_list_init(sdn_list);
     }
 
-    //TODO: create flow table
-    #if 0
-    if(debug) fprintf(stderr, "Creating flow table...\n");
-    sdn_ft = onvm_ft_create(1024, sizeof(struct onvm_flow_entry));
-    if(sdn_ft == NULL) {
-        rte_exit(EXIT_FAILURE, "Unable to create flow table\n");
-    }
-    if (sdn_ft == NULL) {
-	printf("flow talbe is NULL\n");
-	exit(1);
-    }
-    #endif
-
     if(debug) fprintf(stderr,"Running secure channel\n");
     run_securechannel(dp);
     return 0;
@@ -562,7 +551,3 @@ void* run_securechannel(void *dp)
     }
     free(pollfds);
 }
-                                  
-
-
-

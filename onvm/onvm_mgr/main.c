@@ -62,6 +62,8 @@
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
 #include "onvm_mgr/onvm_sc_mgr.h"
+#include "shared/onvm_flow_table.h"
+#include "shared/onvm_flow_dir.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -487,9 +489,22 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
  */
 static inline void
 process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt, struct client *cl) {
+	struct onvm_flow_entry *flow_entry;
+	struct onvm_service_chain *sc;
 	struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
-	meta->action = onvm_sc_next_action(default_chain, pkt);
-	meta->destination = onvm_sc_next_destination(default_chain, pkt);
+	int ret;
+
+	ret = onvm_flow_dir_get_with_hash(sdn_ft, pkt, &flow_entry);
+	if (ret >= 0) {
+		sc = flow_entry->sc;
+		meta->action = onvm_sc_next_action(sc, pkt);
+		meta->destination = onvm_sc_next_destination(sc, pkt);
+	}
+	else {
+		meta->action = onvm_sc_next_action(default_chain, pkt);
+		meta->destination = onvm_sc_next_destination(default_chain, pkt);
+	}
+
 	switch(meta->action) {
 		case ONVM_NF_ACTION_DROP:
                         cl->stats.act_drop++;
@@ -519,23 +534,33 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
         struct client *cl;
         uint16_t i, j, dst_instance_id;
         struct onvm_pkt_meta *meta;
+	struct onvm_flow_entry *flow_entry;
+	struct onvm_service_chain *sc;
+	int ret;
 
         for (i = 0; i < rx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 meta->src = 0;
+                meta->chain_index = 0;
+		ret = onvm_flow_dir_get_with_hash(sdn_ft, pkts[i], &flow_entry);
+		if (ret >= 0) {
+			sc = flow_entry->sc;
+			meta->action = onvm_sc_next_action(sc, pkts[i]);
+			meta->destination = onvm_sc_next_destination(sc, pkts[i]);
+		}
+		else {
+			meta->action = onvm_sc_next_action(default_chain, pkts[i]);
+			meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
+		}
                 /* PERF: this might hurt performance since it will cause cache
                  * invalidations. Ideally the data modified by the NF manager
                  * would be a different line than that modified/read by NFs.
                  * That may not be possible.
                  */
-		
-                meta->chain_index = 0;
-		meta->action = onvm_sc_next_action(default_chain, pkts[i]);
-		meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
-
-                dst_instance_id = service_to_nf_map(default_service, pkts[i]);
-                if (dst_instance_id == 0)
-                        continue;
+	
+                (meta->chain_index)++;
+		printf("dst_instance_id=%d\n", dst_instance_id);	
+                dst_instance_id = service_to_nf_map(meta->destination, pkts[i]);
         }
 
         cl = &clients[dst_instance_id];

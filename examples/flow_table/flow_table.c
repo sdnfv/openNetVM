@@ -40,6 +40,7 @@
 #include <rte_lcore.h>
 #include <rte_ring.h>
 #include <rte_memzone.h>
+#include <rte_memory.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"

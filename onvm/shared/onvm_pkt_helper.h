@@ -28,7 +28,6 @@ struct tcp_hdr;
 struct udp_hdr;
 struct ipv4_hdr;
 
-
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
 
