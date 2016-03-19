@@ -163,7 +163,8 @@ def onvm_corelist_print():
 
 	print "** MAKE SURE HYPERTHREADING IS DISABLED **"
 	print ""
-	print "openNetVM requires at least three cores for the manager."
+	print "openNetVM requires at least three cores for the manager:"
+	print "one for NIC RX, one for statistics, and one for NIC TX."
 	print "After the three cores, the manager needs one core for every two NFs'"
 	print "TX thread"
 	print ""
