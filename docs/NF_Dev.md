@@ -3,7 +3,7 @@ NF Development
 
 Overview
 --
-Currently, our platform only supports 16 clients.  This limit is defined in [./openNetVM/onvm/shared/common.h].
+Currently, our platform supports 16 clients.  This limit is defined in [./openNetVM/onvm/shared/common.h].
 
 The tag to specify an NFs Service ID is `-r`, which is a number 0, 1, 2, ..., n.  This is what is used to route network traffic between NFs.  The manager automatically assigns an instance ID upon the NF's creation.
 
@@ -53,7 +53,7 @@ Controlling packets in openNetVM is done with actions.  There are four actions, 
 	`#define ONVM_NF_ACTION_DROP 0 `
 + Forward using the rule from the SDN controller stored in the flow table:
 	`#define ONVM_NF_ACTION_NEXT 1 `
-+ Forward packets by specifying network function IDs:
++ Forward packets to the specified network function service ID:
 	`#define ONVM_NF_ACTION_TONF 2`
 + Forward packets by specifying destination NIC port number:
 	`#define ONVM_NF_ACTION_OUT 3 `
