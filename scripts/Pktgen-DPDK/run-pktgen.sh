@@ -36,4 +36,4 @@
 BLACK_LIST="-b 0000:05:00.0 -b 0000:05:00.1"
 
 # Change this line to match your local directory structure
-sudo /home/neel/Pktgen-DPDK/dpdk/examples/pktgen/app/build/pktgen -c ffff -n 3 $BLACK_LIST -- -p 0x1 -P -m "[4:8].0" -f /home/neel/Pktgen-DPDK/dpdk/examples/pktgen/pktgen-config.lua
+sudo [...]/Pktgen-DPDK/dpdk/examples/pktgen/app/build/pktgen -c ffff -n 3 $BLACK_LIST -- -p 0x1 -P -m "[4:8].0" -f [...]/Pktgen-DPDK/dpdk/examples/pktgen/pktgen-config.lua

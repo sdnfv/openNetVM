@@ -1,21 +1,49 @@
-## OpenNetVM - Multi threads
+openNetVM
+==
+openNetVM is comprised of a manager, NF library, and a TCP/IP library.
 
-This is a version of onvm that supports multiple NFs and multiple ports.
-Also run manager with multi threads.
+Manager
+--
+The openNetVM manager is responsible for orchestrating traffic between NFs.  It handles all Rx/Tx traffic in and out of the system, dynamically manages NFs starting and stopping, and it displays statistics regarding all traffic.
 
-### Execution
-To run the program:
 ```
-cd onvm
-sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -c 1550 -n 4 -- -p 1 -n 1
-```
-`-c 1540` is a COREMASK, e.g. it will launch on core 6, 8, 10 and 12. Also 12 is
-still available as it sleep most of the time.
+$sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l CORELIST -n MEMORY_CHANNELS -- -p PORTMASK
 
-On an other terminal:
-```
-cd examples/basic_monitor
-sudo ./monitor/monitor -c 8 -n 4 --proc-type=auto -- -n 0
+Options:
+
+	-c	an hexadecimal bit mask of the cores to run on.
+
+	-n	number of memory channels per processor socket.
+
+	-l	comma deliniated list of cores to run on.
+
+	–lcores	map lcore set to physical cpu set.
+
+	-m	memory to allocate.
+
+	-r	set the number of memory ranks (auto-detected by default).
+
+	-v	display the version information on startup.
+
+	-syslog	set the syslog facility.
+
+	-socket_mem	set the memory to allocate on specific sockets.
+
+	-huge-dir	directory where the hugetlbfs is mounted.
+
+	–proc-type	set the type of the current process.
+
+	--	secondary commands
+
+		-p	a hexadecimal bit mask of the ports to use.
 ```
 
-On another server run `pktgen-dpdk` to verify that it works.
+NF Library
+--
+The NF Library is responsible for providing an interface for NFs to communicate with the manager.  It provides functions to initialize and send/receive packets to and from the manager.  This library provides the manager with a function pointer to the NF's `packet_handler`.
+
+Packet Helper Library
+--
+The Packet Helper Libary provides an interface to extract TCP/IP, UDP, and other packet headers that were lost due to [Intel DPDK][dpdk].  Since DPDK avoides the Linux Kernel to bring packet data into userspace, we lose the encapsulation and decapsulation that the Kernel provides.  DPDK wraps packet data inside its own structure, the `rte_mbuf`.
+
+[dpdk]: http://dpdk.org/
