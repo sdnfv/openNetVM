@@ -17,4 +17,4 @@ sudo ./basic_monitor/x86_64-native-linuxapp-gcc/monitor -l CORELIST -n NUM_MEMOR
 
 App Specific Arguments
 --
-`-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.

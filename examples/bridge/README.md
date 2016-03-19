@@ -17,4 +17,4 @@ sudo ./bridge/x86_64-native-linuxapp-gcc/bridge -l CORELIST -n 3 --proc-type=sec
 
 App Specific Arguments
 --
-`-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.

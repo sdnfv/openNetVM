@@ -17,5 +17,5 @@ sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_I
 
 App Specific Arguments
 --
-`-d DST`: Destination Service ID to foward to
-`-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.
+  - `-d DST`: Destination Service ID to foward to
+  - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.
