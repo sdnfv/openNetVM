@@ -1,178 +1,203 @@
-OpenNetVM Installation
-===================
+openNetVM Installation
+==
 
-Welcome to the installation guide for **[OpenNetVM](https://http://sdnfv.github.io/onvm/)**, OpenNetVM uses [Docker Containers](https://www.docker.com/) to isolate NFs and the Intel [DPDK](http://dpdk.org/) library for high performance network I/O.
-
-----------
-
+This guide helps you build and install openNetVM.
 
 1. Check System
--------------
+--
 
-Before installation of OpenNetVM, please check your machine to see if it could meet the **minimum** requirements as following:
+1. Make sure your NIC is supported by Intel DPDK by comparing the following command's ouptput against DPDK's [supported NIC list][nics].
 
-1.1  check what NIC you have with command below and see if your NIC belongs to one of the [Supported NICs](http://dpdk.org/doc/nics/).
+    `lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
 
- `$lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %`
+2.  Check what operating system you have by typing:
 
-1.2  check what operating system you have by typing:
+    `uname -a`
 
- `$uname -a`
+    your Kernel version should be higher than 2.6.33.
 
- your Kernel version should be higher than 2.6.33.
+3. Install dependencies
 
-1.3  check if your system supports uio
+    `sudo apt-get install build-essential linux-headers-$(uname -r) git`
 
- `$locate uio`
+4. Assure your kernel suppors uio
 
-1.4 if you could not locate uio in step 1.3, please install build-essential and  linux-headers, then try step 1.3 again
+    `locate uio`
 
- `$sudo apt-get install build-essential linux-headers-$(uname -r) git`
+2. Setup Repositories
+--
 
+1. Download source code
 
-2. Install Dependencies
--------------
-2.1  install git
+    `git clone https://github.com/sdnfv/openNetVM`
 
- `$sudo apt-get install git`
+2. Initialize DPDK submodule
 
-2.2  download source code
+    `git submodule init && git submodule update`
 
- `$git clone https://github.com/sdnfv/openNetVM`
+ **From this point forward, this guide assumes that you are working out of the openNetVM source directory.**
 
-2.3 Initialize dpdk submodule
+3. Set up Environment
+--
 
-  `$ git submodule init && git submodule update`
+1. List DPDK supported architectures:
 
-2.3  enter dpdk working directory
+    `ls dpdk/config/`
 
- `$cd  openNetVM/dpdk/`
+2. Set environment variable RTE_SDK to the path of the DPDK library.  Make sure that you are in the DPDK directory
 
+    `echo export RTE_SDK=$(pwd) >> ~/.bashrc`
 
-3. Set	up Environment
--------------
-3.1 check out current directory, and remember the output, e.g. "/home/**your_name**/openNetVM/dpdk"
+3. Set environment variable RTE_TARGET to the target architecture of your system.  This is found in step 3.1
 
- `$ pwd`
+    `echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc`
 
-3.2  list all possible configurations in dpdk
+4. Set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
 
- `$ ls ./config/`
+    ONVM_NUM_HUEGPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using: 
 
-3.3  set environment variable RTE_SDK as the output you got from step 3.1,   e.g. "/home/**your_name**/openNetVM/dpdk"
+    `echo export ONVM_NUM_HUEGPAGES=1024 >> ~/.bashrc`
 
- `$ echo export RTE_SDK=/home/**your_name**/openNetVM/dpdk  >> ~/.bashrc`
+    ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK.
 
- or if you are currently in the dpdk directory simply use:
+    `export ONVM_NIC_PCI=" 07:00.0 07:00.1 "`
 
- ``
- $ echo export RTE_SDK=`pwd` >> ~/.bashrc
- ``
+5. Source your shell rc file to set the environment variables:
 
-3.4  set  environment variable RTE_TARGET as one of the list of config files you got from step 3.2, e.g.  "x86_64-native-linuxapp-gcc"
+    `$ source ~/.bashrc`
 
- `$ echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc`
+4. Configure and compile DPDK
+--
 
+1. Run the [install script][install] to compile DPDK and configure hugepages.
 
-3.5 set environment variable ONVM_NUM_HUEGPAGES and ONVM_NIC_PCI. 
+    The [install script][install] will automatically run the [environment setup script][environment], which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 
-ONVM_NUM_HUEGPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using: 
+5. Run DPDK HelloWorld Application
+--
 
- `$ echo export ONVM_NUM_HUEGPAGES=1024 >> ~/.bashrc`
+1. Enter DPDK HelloWorld directory and compile the application:
 
-ONVM_NIC_PCI is a variable specifies NIC cards to be binded to DPDK, if user does not set ONVM_NIC_PCI, default is to bind all non-active 10G NIC cards to DPDK, an example for this is as following:
+    ```
+    cd dpdk/examples/helloworld
+    make
+    ```
 
- `$ export ONVM_NIC_PCI=" 07:00.0  07:00.1 "`
+2. Run the HelloWorld application
 
+    `sudo ./build/helloworld -l 0,1 -n 1`
 
-3.6 activate the environment status using:
+    If the last line of output is as such, then DPDK works
 
- `$ source ~/.bashrc`
+    ```
+    hello from core 1
+    hello from core 0
+    ```
 
+6. Make and test openNetVM
+--
 
-4.  Configure	and	compile	DPDK
--------------
-4.1 run `install.sh` in the `scripts` directory to compile dpdk and configure hugepages
+1. Compile openNetVM manager and libraries
+ 
+    ```
+    cd onvm
+    make
+    ```
 
-The install script will automatically run `scripts/setup_environment.sh`, which configures your local environment. This should be run on every reboot, as it loads the appropraite kernel modules and can bind your NIC to the dpdk driver.
+2. Compile example NFs
+ 
+ ```
+ cd examples
+ make
+ ```
 
-5. Run	HelloWorld	Application
--------------
-5.1 enter working directory, and compile the application
+3. Run openNetVM manager
 
- `$ cd ./examples/helloworld/`
+    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX) and to use 1 NIC port:
 
- `$make`
+    `./onvm/go.sh 0,1,2,3,4 1`
 
-5.2 executing the example
+    You should see information regarding the port that openNetVM is using, and some initial statistics will be displayed.
 
-  `$ sudo build/helloworld -c 3 -n 1`
+4. Run speed_tester NF
 
-if you got the last two line of your result as below, , then you are all set
+    To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-```
-hello from core 1
-hello from core 0
-```
+    In a new shell, run this command to start the speed_tester and giving it one core, and assigning it a Service ID of 1:
 
-7. Applying settings after reboot
-------------
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running `scripts/setup_environment.sh`.
-Also, please double check if environment variables are activited using `$echo $Variable` , if not, please go to step 3 to set them. 
+    `./examples/speed_tester/go.sh 5 1`
 
+    Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `client 0` is receiving data.  If this is the case, the openNetVM is working correctly.
+
+7. Configuring environment post reboot
+--
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script][environment].
+ 
+Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
 
 Troubleshooting
--------------
+--
 
-### Huge Page Configuration
+1. **Huge Page Configuration**
 
-You can get information about the huge page configuration with:
+    You can get information about the hugepage configuration with:
 
- ` $ grep -i huge /proc/meminfo`
+    `grep -i huge /proc/meminfo`
 
- You may need to reboot the machine to free memory and reserve the huge pages, if it returns not enough free hugepages or 0 free hugepagse left.
+    If there is not enough or no free memory, there are a few reasons why:
 
-### Binding the NIC to the DPDK Driver
-You can check the current status of NIC binding with
+     - The manager crashed, but an NF(s) is still running.
+         - In this case, either kill them manually by hitting Ctrl+C or run `sudo pkill NF_NAME` for every NF that you have ran.
+     - The manager and NFs are not running, but something crashed without freeing hugepages.
+         - To fix this, please run `sudo rm -rf /mnt/huge/*` to remove all files that contain hugepage data.
+     - The above two cases are not met, something weird is happening:
+         - A reboot might fix this problem and free memory
 
-  `$ ./tools/dpdk_nic_bind.py  --status`
+2. **Binding the NIC to the DPDK Driver**
 
- something as below will show up, in this case, the "82599EB 10-Gigabit" is the NIC we want to utilize for DPDK, notice that the one for log in the node should not be the "82599EB 10-Gigabit"
- ```
- Network devices using DPDK-compatible driver
- ============================================
- <none>
+    You can check the current status of NIC port bindings with
 
- Network devices using kernel driver
- ===================================
- 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
- 0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth2 drv=ixgbe unused=igb_uio *Active*
- 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
- ```
+    `sudo ./tools/dpdk_nic_bind.py  --status`
 
- As you could see, the 10G one is active now, so the next thing is to turn it down
+    Output similar to below will show what driver each NIC port is bound to.
+    
+    ```
+    Network devices using DPDK-compatible driver
+    ============================================
+    <none>
 
-  `$ sudo ifconfig eth2 down`
+    Network devices using kernel driver
+    ===================================
+    0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
+    0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
+    0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth2 drv=ixgbe unused=igb_uio *Active*
+    0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
+    ```
 
- now we could check the status again
+    In our example above, we see two 10G capable NIC ports that we could use with description `'82599EB 10-Gigabit SFI/SFP+ Network Connection'`.
 
-  `$ ./tools/dpdk_nic_bind.py  --status`
+    One of the two NIC ports, `07:00.0`, is active shown by the `*Active*` at the end of the line.  Since the Linux Kernel is currently using that port, network interface `eth2`, we will not be able to use it with openNetVM.  We must first disable the network interface in the Kernel, and then proceed to bind the NIC port to the DPDK Kernel module, `igb_uio`:
 
- To bind the 10G to DPDK, notice that only port 0 is wired, so you would like to bind 07:00.0
+    `sudo ifconfig eth2 down`
 
-  `$ sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+    Rerun the status command, `./tools/dpdk_nic_bind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
 
- Check the status again, if it shows up as following, you are all set
+    `sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
 
-  `$ ./tools/dpdk_nic_bind.py  --status`
+    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below: 
 
- ```
- Network devices using DPDK-compatible driver
- ============================================
- 0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' drv=igb_uio unused=ixgbe
+    ```
+    Network devices using DPDK-compatible driver
+    ============================================
+    0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' drv=igb_uio unused=ixgbe
+   
+    Network devices using kernel driver
+    ===================================
+    0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
+    0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
+    0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
+    ```
 
- Network devices using kernel driver
- ===================================
- 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
- 0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
- ```
+[nics]: http://dpdk.org/doc/nics
+[install]: scripts/install.sh
+[environment]: scripts/setup_environment.sh
