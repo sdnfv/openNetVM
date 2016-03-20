@@ -5,7 +5,7 @@ service=$2
 print=$3
 dst=$4
 
-if [ -z $service]
+if [ -z $service ]
 then
         echo "$0 [cpu-list] [Service ID] [PRINT] [DST]"
         echo "$0 3 1 --> core 3, service ID 1"
@@ -16,10 +16,10 @@ fi
 
 if [ -z $dst ] && [ -z $print ]
 then
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $client
+        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service
 elif [ -z $dst ]
 then
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $client -- -p $print
+        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
 else
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $client -- -d $dst -p $print
+        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
 fi
