@@ -640,12 +640,19 @@ main(int argc, char *argv[]) {
         /* clear statistics */
         clear_stats();
 
+        /* Reserve n cores for: 1 Stats, 1 final Tx out, and ONVM_NUM_RX_THREADS for Rx */
         unsigned cur_lcore = rte_lcore_id();
-        RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
+        unsigned rx_lcores = ONVM_NUM_RX_THREADS;
+        unsigned tx_lcores = rte_lcore_count() - 2 - rx_lcores;
 
-        /* Reserve 3 cores for: RX, stats, and final send out */
-        unsigned tx_lcores = rte_lcore_count() - 3;
-        RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", tx_lcores + 1);
+        /* Offset cur_lcore to start assigning TX cores */
+        cur_lcore += (rx_lcores-1);
+
+        RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
+        RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
+        RTE_LOG(INFO, APP, "%d cores available for handling client TX queues\n", tx_lcores);
+        RTE_LOG(INFO, APP, "%d cores available for handling TX out queue\n", 1);
+        RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
 
         /* Evenly assign clients to TX threads */
         unsigned next_client = 0;
