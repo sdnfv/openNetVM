@@ -98,6 +98,10 @@ struct tx_state {
        struct packet_buf *port_tx_buf;
 };
 
+struct rx_state {
+        uint16_t queue_id;
+};
+
 static const char *
 get_printable_mac_addr(uint8_t port) {
         static const char err_address[] = "00:00:00:00:00:00";
@@ -554,15 +558,17 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
  * and distribute them to the default service
  */
 static int
-rx_thread_main(__attribute__((unused)) void *args) {
-        RTE_LOG(INFO, APP, "Core %d handling RX\n", rte_lcore_id());
+rx_thread_main(void *arg) {
         uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
+        struct rx_state *rx = (struct rx_state*)arg;
+
+        RTE_LOG(INFO, APP, "Core %d handling RX for RX queue %d\n", rte_lcore_id(), rx->queue_id);
 
         for (;;) {
                 /* Read ports */
                 for (i = 0; i < ports->num_ports; i++) {
-                        rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+                        rx_count = rte_eth_rx_burst(ports->id[i], rx->queue_id, \
                                         pkts, PACKET_READ_SIZE);
                         ports->rx_stats.rx[ports->id[i]] += rx_count;
 
@@ -667,7 +673,7 @@ main(int argc, char *argv[]) {
                 tx->last_cl = next_client;
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for client %d TX\n", cur_lcore, tx->first_cl);
                         return -1;
                 }
         }
@@ -685,15 +691,19 @@ main(int argc, char *argv[]) {
         tx->first_cl = MAX_CLIENTS-1;
         tx->last_cl = MAX_CLIENTS;
         if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
+                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for client %d TX\n", cur_lcore, tx->first_cl);
                 return -1;
         }
 
-        /* Launch RX thread main function on cores */
-        unsigned rx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        if (rte_eal_remote_launch(rx_thread_main, NULL, rx_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", rx_lcore);
-                return -1;
+        /* Launch RX thread main function for each RX queue on cores */
+        for (; rx_lcores > 0; rx_lcores--) {
+                struct rx_state *rx = calloc(1, sizeof(struct rx_state));
+                rx->queue_id = rx_lcores-1;
+                cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+                if (rte_eal_remote_launch(rx_thread_main, (void *)rx, cur_lcore) == -EBUSY) {
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for RX queue id %d\n", cur_lcore, rx->queue_id);
+                        return -1;
+                }
         }
 
         /* Master thread handles statistics and NF management */
