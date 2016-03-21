@@ -344,10 +344,10 @@ do_check_new_nf_status(void) {
 /*
  * Stats thread periodically prints per-port and per-NF stats.
  */
-static int
-stats_thread_main(__attribute__((unused)) void *dummy) {
+static void
+master_thread_main(void) {
         const unsigned sleeptime = 1;
-        RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Core %d running master thread\n", rte_lcore_id());
 
         /* Longer initial pause so above printf is seen */
         sleep(sleeptime * 3);
@@ -357,8 +357,6 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
                 do_check_new_nf_status();
                 do_stats_display(sleeptime);
         }
-
-        return 0;
 }
 
 /*
@@ -552,11 +550,12 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 }
 
 /*
- * Function called by the master lcore of the DPDK process to receive packets
- * from NIC and distributed them to the default service
+ * Function to receive packets from the NIC
+ * and distribute them to the default service
  */
-static void
-rx_thread_main(void) {
+static int
+rx_thread_main(__attribute__((unused)) void *args) {
+        RTE_LOG(INFO, APP, "Core %d handling RX\n", rte_lcore_id());
         uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
@@ -573,6 +572,8 @@ rx_thread_main(void) {
                         }
                 }
         }
+
+        return 0;
 }
 
 
@@ -688,14 +689,14 @@ main(int argc, char *argv[]) {
                 return -1;
         }
 
-        /* Start the stats display function on another core. */
-        unsigned stat_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        if (rte_eal_remote_launch(stats_thread_main, NULL, stat_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
+        /* Launch RX thread main function on cores */
+        unsigned rx_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+        if (rte_eal_remote_launch(rx_thread_main, NULL, rx_lcore) == -EBUSY) {
+                RTE_LOG(ERR, APP, "Core %d is already busy\n", rx_lcore);
                 return -1;
         }
 
-        /* Master thread handles RX packets from NIC */
-        rx_thread_main();
+        /* Master thread handles statistics and NF management */
+        master_thread_main();
         return 0;
 }
