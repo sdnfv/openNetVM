@@ -418,24 +418,6 @@ int make_packet_in(int xid, uint32_t buffer_id, char *buf, struct rte_mbuf *pkt)
         return len;
 }
 
-/*struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
-{
-        struct onvm_ft_ipv4_5tuple* fk;
-        fk = rte_calloc("flow_key",
-                           1, sizeof(struct onvm_ft_ipv4_5tuple), 0);
-        if (fk == NULL) {
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for flow key\n");
-        }
-
-        fk->src_addr = RTE_MIN(match->nw_src, match->nw_dst);
-        fk->dst_addr = RTE_MAX(match->nw_src, match->nw_dst);
-        fk->proto = match->nw_proto;
-	fk->src_port = rte_be_to_cpu_16(RTE_MIN(match->tp_src, match->tp_dst));
-	fk->dst_port = rte_be_to_cpu_16(RTE_MAX(match->tp_src, match->tp_dst));
-
-        return fk;
-}*/
-
 struct onvm_ft_ipv4_5tuple* flow_key_extract(struct ofp_match *match)
 {
         struct onvm_ft_ipv4_5tuple* fk;
@@ -459,8 +441,9 @@ flow_action_extract(struct ofp_action_header *oah, size_t actions_len)
 {
     uint8_t *p = (uint8_t *)oah;
     struct onvm_service_chain *chain;
+
     chain = rte_calloc("service chain",
-                       1, sizeof(struct onvm_service_chain), 0);
+			1, sizeof(struct onvm_service_chain), 0);
     if (chain == NULL) {
         rte_exit(EXIT_FAILURE, "Cannot allocate memory for service chain\n");
     }

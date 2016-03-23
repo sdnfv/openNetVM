@@ -80,7 +80,6 @@ setup_rings(void) {
 }
 
 /* Map flow table */
-#if 1
 static void
 map_flow_table(void) {
 	const struct rte_memzone *mz_ftp;
@@ -92,7 +91,6 @@ map_flow_table(void) {
         ftp = mz_ftp->addr;
 	sdn_ft = *ftp;
 }
-#endif
 
 /* Clear out rings on exit. Requires DPDK v2.2.0+ */
 static void
