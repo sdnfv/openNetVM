@@ -7,8 +7,7 @@
 struct onvm_flow_entry {
         struct onvm_ft_ipv4_5tuple *key;
         struct onvm_service_chain *sc;
-        uint64_t used;
-        uint64_t created;
+        uint64_t ref_cnt;
         uint16_t idle_timeout;
         uint16_t hard_timeout;
         uint64_t packet_count;

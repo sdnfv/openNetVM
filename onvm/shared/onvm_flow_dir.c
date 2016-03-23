@@ -28,12 +28,12 @@ int
 onvm_flow_dir_del_with_hash(struct onvm_ft *table, struct rte_mbuf* pkt){
 	int ret; 
 	struct onvm_flow_entry *flow_entry;
-	int used;
+	int ref_cnt;
 
         ret = onvm_flow_dir_get_with_hash(table, pkt, &flow_entry);
 	if (ret >= 0) {
-		used = flow_entry->sc->used--;
-		if (used <= 0) {
+		ref_cnt = flow_entry->sc->ref_cnt--;
+		if (ref_cnt <= 0) {
 			ret = onvm_flow_dir_del_and_free_with_hash(table, pkt);
 		}
 	}
@@ -76,12 +76,12 @@ int
 onvm_flow_dir_del(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key){
         int ret;    
         struct onvm_flow_entry *flow_entry;
-        int used;
+        int ref_cnt;
 
         ret = onvm_flow_dir_get(table, key, &flow_entry);
         if (ret >= 0) {
-                used = flow_entry->sc->used--;
-                if (used <= 0) {
+                ref_cnt = flow_entry->sc->ref_cnt--;
+                if (ref_cnt <= 0) {
                         ret = onvm_flow_dir_del_and_free(table, key);
                 }
         }

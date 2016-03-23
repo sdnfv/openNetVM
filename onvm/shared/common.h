@@ -93,7 +93,7 @@ struct onvm_service_chain_entry {
 struct onvm_service_chain {
 	struct onvm_service_chain_entry sc[ONVM_MAX_CHAIN_LENGTH];
 	uint8_t chain_length;
-	int used;
+	int ref_cnt;
 };
 
 /* define common names for structures shared between server and client */
