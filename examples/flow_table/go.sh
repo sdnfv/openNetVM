@@ -1,19 +1,20 @@
 #!/bin/bash
 
 cpu=$1
-client=$2
-app=$3
+service=$2
+print=$3
 
-if [ -z $2 ]
+if [ -z $service ]
 then
-        echo "$0 cpu ID (APP-FLAGS)"
-        echo "$0 30 0 --> cores 4,5 ID 0"¬
+        echo "$0 [cpu-list] [Service ID] [PRINT]"
+        echo "$0 3,4 1 --> cores 3,4 with Service ID of 1"
+	echo "$0 3,4 1 10000 --> cores 3,4 with Service ID of 1 and print rate of 10000 packets"
         exit 1
 fi
 
-#  make ONVM=~/openNetVM/onvm/ USER_FLAGS="-g -O0 -DDEBUG_PRINT="
-
-sudo ./build/flow_table -c $cpu -n 4 --proc-type=auto -- -r $client -- $app
-#sudo ./flow_table/x86_64-native-linuxapp-gcc/flow_table -c $cpu -n 4 --proc-type=auto -- -n $client
-
-# sudo gdb ./build/flow_table -ex "run -c 10 -n 4 --proc-type=secondary -- -n 0"^C
+if [ -z $print ]
+then
+	sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service
+else
+	sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service -- $print
+fi

@@ -1,20 +1,20 @@
-## Simple Flow Table
-
+Simple Flow Table
+==
 This is a example with a simple flow table that matches a packet to a destination NF.  The lookup is based on the packet 5-tuple and the port (physical or NF) of where the packet came from.
 
-## Notes:
-
+Compilation and Exection
+--
 ```
-# compile with debug flags:
-make ONVM=~/openNetVM/onvm/ USER_FLAGS="-g -O0 -DDEBUG_PRINT"
+cd examples
+make
+cd flow_table
+./go.sh CORELIST SERVICE_ID [PRINT_DELAY]
 
-# Run with script:
-./go <CPU> <NF_ID>
+OR
 
-# run directly:
-sudo ./build/flow_table -c <CPU> -n 4 --proc-type=secondary -- -n <NF_ID>
-
-# run in gdb:
-sudo gdb ./build/flow_table -ex "run -c 10 -n 4 --proc-type=secondary -- -n 0"
-
+sudo ./flow_table/x86_64-native-linuxapp-gcc/flow_table -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
+
+App Specific Arguments
+--
+  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packet.
