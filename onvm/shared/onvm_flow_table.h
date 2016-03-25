@@ -78,22 +78,22 @@ struct onvm_ft*
 onvm_ft_create(int cnt, int entry_size);
 
 int
-onvm_ft_add_with_hash(struct onvm_ft *table, struct rte_mbuf *pkt, char **data);
+onvm_ft_add_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data);
 
 int
-onvm_ft_lookup_with_hash(struct onvm_ft *table, struct rte_mbuf *pkt, char **data);
+onvm_ft_lookup_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data);
 
 int32_t
-onvm_ft_remove_with_hash(struct onvm_ft *table, struct rte_mbuf *pkt);
+onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt);
 
 int
-onvm_ft_add(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
+onvm_ft_add_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
 
 int 
-onvm_ft_lookup(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
+onvm_ft_lookup_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
 
 int32_t
-onvm_ft_remove(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key);
+onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key);
 
 int32_t
 onvm_ft_iterate(struct onvm_ft *table, const void **key, void **data, uint32_t *next);
@@ -188,7 +188,7 @@ onvm_softrss(struct onvm_ft_ipv4_5tuple *key)
 
 	rte_convert_rss_key((uint32_t *)rss_symmetric_key, (uint32_t *)rss_key_be, 
 				RTE_DIM(rss_symmetric_key));
-
+	
 	tuple.v4.src_addr = rte_be_to_cpu_32(key->src_addr);
 	tuple.v4.dst_addr = rte_be_to_cpu_32(key->dst_addr);
 	tuple.v4.sport = rte_be_to_cpu_16(key->src_port);

@@ -494,7 +494,7 @@ process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt, struct cli
 	struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
 	int ret;
 
-	ret = onvm_flow_dir_get_with_hash(sdn_ft, pkt, &flow_entry);
+	ret = onvm_flow_dir_get_pkt(sdn_ft, pkt, &flow_entry);
 	if (ret >= 0) {
 		sc = flow_entry->sc;
 		meta->action = onvm_sc_next_action(sc, pkt);
@@ -542,7 +542,7 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 meta->src = 0;
                 meta->chain_index = 0;
-		ret = onvm_flow_dir_get_with_hash(sdn_ft, pkts[i], &flow_entry);
+		ret = onvm_flow_dir_get_pkt(sdn_ft, pkts[i], &flow_entry);
 		if (ret >= 0) {
 			sc = flow_entry->sc;
 			meta->action = onvm_sc_next_action(sc, pkts[i]);
@@ -560,7 +560,7 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
 	
                 (meta->chain_index)++;
                 dst_instance_id = service_to_nf_map(meta->destination, pkts[i]);
-		printf("dst_instance_id=%d\n", dst_instance_id);	
+		//printf("dst_instance_id=%d\n", dst_instance_id);	
         }
 
         cl = &clients[dst_instance_id];

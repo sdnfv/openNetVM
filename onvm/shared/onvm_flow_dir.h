@@ -19,15 +19,15 @@ struct onvm_flow_entry {
  *  0        on success. *flow_entry points to this packet flow's flow entry
  *  -ENOENT  if flow has not been added to table. *flow_entry points to flow entry
  */
-int onvm_flow_dir_get_with_hash(struct onvm_ft *table, struct rte_mbuf* pkt, struct onvm_flow_entry **flow_entry);
-int onvm_flow_dir_add_with_hash(struct onvm_ft *table, struct rte_mbuf* pkt, struct onvm_flow_entry **flow_entry);
+int onvm_flow_dir_get_pkt(struct onvm_ft *table, struct rte_mbuf* pkt, struct onvm_flow_entry **flow_entry);
+int onvm_flow_dir_add_pkt(struct onvm_ft *table, struct rte_mbuf* pkt, struct onvm_flow_entry **flow_entry);
 /* delete the flow dir entry, but do not free the service chain (useful if a service chain is pointed to by several different flows */
-int onvm_flow_dir_del_with_hash(struct onvm_ft *table, struct rte_mbuf* pkt);
+int onvm_flow_dir_del_pkt(struct onvm_ft *table, struct rte_mbuf* pkt);
 /* Delete the flow dir entry and free the service chain */
-int onvm_flow_dir_del_and_free_with_hash(struct onvm_ft *table, struct rte_mbuf* pkt);
-int onvm_flow_dir_get(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entry **flow_entry);
-int onvm_flow_dir_add(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entry **flow_entry);
-int onvm_flow_dir_del(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key);
-int onvm_flow_dir_del_and_free(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key);
+int onvm_flow_dir_del_and_free_pkt(struct onvm_ft *table, struct rte_mbuf* pkt);
+int onvm_flow_dir_get_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entry **flow_entry);
+int onvm_flow_dir_add_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entry **flow_entry);
+int onvm_flow_dir_del_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key);
+int onvm_flow_dir_del_and_free_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple* key);
 #endif // _ONVM_FLOW_DIR_H_
 

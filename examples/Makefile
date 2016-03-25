@@ -34,6 +34,7 @@ DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += basic_monitor
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += bridge
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += simple_forward
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += speed_tester
+DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += test_flow_dir
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
 

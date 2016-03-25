@@ -66,7 +66,7 @@ Returns:
  -ENOSPC if there is no space in the hash for this key.
 */
 int
-onvm_ft_add_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
+onvm_ft_add_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int err;
@@ -89,7 +89,7 @@ onvm_ft_add_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) 
     -EINVAL if the parameters are invalid.
 */
 int
-onvm_ft_lookup_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
+onvm_ft_lookup_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int ret;
@@ -112,7 +112,7 @@ onvm_ft_lookup_with_hash(struct onvm_ft* table, struct rte_mbuf *pkt, char** dat
     -EINVAL if the parameters are invalid.
 */
 int32_t
-onvm_ft_remove_with_hash(struct onvm_ft *table, struct rte_mbuf *pkt)
+onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt)
 {
         struct onvm_ft_ipv4_5tuple key;
         int ret;
@@ -125,7 +125,7 @@ onvm_ft_remove_with_hash(struct onvm_ft *table, struct rte_mbuf *pkt)
 }
 
 int
-onvm_ft_add(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
+onvm_ft_add_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
         int32_t tbl_index;
 	uint32_t softrss;
 
@@ -140,15 +140,14 @@ onvm_ft_add(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data)
 }
 
 int
-onvm_ft_lookup(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
+onvm_ft_lookup_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
         int32_t tbl_index;
 	uint32_t softrss;
 
 	softrss = onvm_softrss(key);
-        printf("software rss %d\n", softrss);
 
         tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)key, softrss);
-        if (tbl_index >= 0) {
+	if (tbl_index >= 0) {
                 *data = onvm_ft_get_data(table, tbl_index);
         }
         
@@ -156,7 +155,7 @@ onvm_ft_lookup(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** da
 }
 
 int32_t
-onvm_ft_remove(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key)
+onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key)
 {
         return rte_hash_del_key(table->hash, (const void *)key);
 }

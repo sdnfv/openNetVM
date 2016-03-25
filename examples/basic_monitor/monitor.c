@@ -44,7 +44,7 @@
 struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
-static uint32_t print_delay = 1000000;
+static uint32_t print_delay = 100;
 
 /*
  * Print a usage message
@@ -106,7 +106,8 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("N°   : %d\n", pkt_process);
+        printf("Hash : %u\n", pkt->hash.rss);
+	printf("N°   : %d\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
