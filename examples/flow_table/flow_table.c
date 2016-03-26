@@ -52,8 +52,6 @@
 
 #define NF_TAG "flow_table"
 
-struct onvm_ft *sdn_ft;
-
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
 
@@ -77,19 +75,6 @@ setup_rings(void) {
         if(ring_to_sdn == NULL || ring_from_sdn == NULL) {
                 rte_exit(EXIT_FAILURE, "Unable to create SDN rings\n");
         }
-}
-
-/* Map flow table */
-static void
-map_flow_table(void) {
-	const struct rte_memzone *mz_ftp;
-	struct onvm_ft **ftp;
-	
-	mz_ftp = rte_memzone_lookup(MZ_FTP_INFO);
-        if (mz_ftp == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get flow table pointer\n");
-        ftp = mz_ftp->addr;
-	sdn_ft = *ftp;
 }
 
 /* Clear out rings on exit. Requires DPDK v2.2.0+ */
@@ -207,7 +192,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 return 0;
         }
 
-        tbl_index = onvm_flow_dir_get_with_hash(sdn_ft, pkt, &flow_entry);
+        tbl_index = onvm_flow_dir_get_pkt(pkt, &flow_entry);
         if(tbl_index >= 0) {
 		#ifdef DEBUG_PRINT
         	printf("Found existing flow %d\n", tbl_index);
@@ -261,11 +246,12 @@ int main(int argc, char *argv[]) {
         /* Setup the SDN connection thread */
         printf("Setting up SDN rings and thread.\n");
         setup_rings();
-	map_flow_table();
         sdn_core = rte_lcore_id();
         sdn_core = rte_get_next_lcore(sdn_core, 1, 1);
         rte_eal_remote_launch(setup_securechannel, NULL, sdn_core);
-
+	
+	/* Map sdn_ft table */	
+	onvm_flow_dir_nf_init();
         printf("Starting packet handler.\n");
         onvm_nf_run(nf_info, &packet_handler);
         printf("NF exiting...");

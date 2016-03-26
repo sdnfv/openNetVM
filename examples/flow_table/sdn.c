@@ -34,7 +34,6 @@ extern struct rte_ring* ring_from_sdn;
 extern uint16_t def_destination;
 
 struct onvm_ft *pkt_buf_ft;
-extern struct onvm_ft *sdn_ft;
 
 static struct ofp_switch_config Switch_config = {
     .header = { OFP_VERSION,
@@ -189,9 +188,9 @@ void datapath_handle_read(struct datapath *dp)
                                 fk = flow_key_extract(&fm->match);
                                 size_t actions_len = ntohs(fm->header.length) - sizeof(*fm);
                                 sc = flow_action_extract(&fm->actions[0], actions_len);
-                                ret = onvm_flow_dir_get(sdn_ft, fk, &flow_entry);
+                                ret = onvm_flow_dir_get_key(fk, &flow_entry);
                                 if (ret == -ENOENT) {
-                                        ret = onvm_flow_dir_add(sdn_ft, fk, &flow_entry);
+                                        ret = onvm_flow_dir_add_key(fk, &flow_entry);
                                 }
 				else if (ret >= 0) {
 					rte_free(flow_entry->key);
@@ -236,12 +235,12 @@ void datapath_handle_write(struct datapath *dp)
         ret = rte_ring_dequeue(ring_to_sdn, (void**)&pkt);
         if (ret == 0) {
             struct sdn_pkt_list* flow;
-            ret = onvm_ft_lookup_with_hash(pkt_buf_ft, pkt, (char**) &flow);
+            ret = onvm_ft_lookup_pkt(pkt_buf_ft, pkt, (char**) &flow);
             if(ret == -ENOENT) {
                 #ifdef DEBUG_PRINT
                 printf("SDN: not in pkt buffer table, creating list. RSS=%d port=%d\n", pkt->hash.rss, pkt->port);
                 #endif
-                ret = onvm_ft_add_with_hash(pkt_buf_ft, pkt, (char**) &flow);
+                ret = onvm_ft_add_pkt(pkt_buf_ft, pkt, (char**) &flow);
                 if (ret == -ENOSPC) {
                     #ifdef DEBUG_PRINT
                     printf("Pkt buffer table no space\n");

@@ -105,9 +105,6 @@ struct client_tx_stats *clients_stats;
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p; 
 
-struct onvm_ft *sdn_ft;
-struct onvm_ft **sdn_ft_p;
-
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
  * buffer pools needed by the app - currently none.
@@ -342,7 +339,6 @@ init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz;
 	const struct rte_memzone *mz_scp;
-	const struct rte_memzone *mz_ftp;
         uint8_t i, total_ports;
 
         /* init EAL, parsing EAL args */
@@ -363,7 +359,7 @@ init(int argc, char *argv[]) {
         memset(mz->addr, 0, sizeof(*clients_stats));
         clients_stats = mz->addr;
 
-	        /* set up ports info */
+	/* set up ports info */
         ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
         if (ports == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
@@ -418,19 +414,8 @@ init(int argc, char *argv[]) {
 	default_sc_p = mz_scp->addr;
 	*default_sc_p = default_chain;
 	onvm_sc_print(default_chain);
+	
+	onvm_flow_dir_init();
 
-	sdn_ft = onvm_ft_create(1024, sizeof(struct onvm_flow_entry));
-    	if(sdn_ft == NULL) {
-        	rte_exit(EXIT_FAILURE, "Unable to create flow table\n");
-    	}
-	mz_ftp = rte_memzone_reserve(MZ_FTP_INFO, sizeof(struct onvm_ft *),
-				  rte_socket_id(), NO_FLAGS);
-	if (mz_ftp == NULL) {
-		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for flow table pointer\n");
-	}
-	memset(mz_ftp->addr, 0, sizeof(struct onvm_ft *));
-	sdn_ft_p = mz_ftp->addr;
-	*sdn_ft_p = sdn_ft;
-
-        return 0;
+	return 0;
 }
