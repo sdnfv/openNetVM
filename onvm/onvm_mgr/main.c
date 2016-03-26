@@ -560,7 +560,6 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
 	
                 (meta->chain_index)++;
                 dst_instance_id = service_to_nf_map(meta->destination, pkts[i]);
-		//printf("dst_instance_id=%d\n", dst_instance_id);	
         }
 
         cl = &clients[dst_instance_id];
