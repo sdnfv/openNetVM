@@ -15,7 +15,7 @@ fi
 
 if [ -z $print ]
 then
-        sudo ./simple_forward/$RTE_TARGET/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
+        sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
 else
-        sudo ./simple_forward/$RTE_TARGET/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
+        sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
 fi

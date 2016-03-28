@@ -15,7 +15,7 @@ fi
 
 if [ -z $print ]
 then
-        sudo ./bridge/$RTE_TARGET/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service
+        sudo ./build/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service
 else
-        sudo ./bridge/$RTE_TARGET/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
+        sudo ./build/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
 fi
