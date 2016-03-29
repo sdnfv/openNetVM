@@ -15,7 +15,7 @@ fi
 
 if [ -z $print ]
 then
-        sudo ./basic_monitor/$RTE_TARGET/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service
+        sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service
 else
-        sudo ./basic_monitor/$RTE_TARGET/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
+        sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
 fi

@@ -12,7 +12,7 @@ cd basic_monitor
 
 OR
 
-sudo ./basic_monitor/x86_64-native-linuxapp-gcc/monitor -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+sudo ./build/monitor -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
