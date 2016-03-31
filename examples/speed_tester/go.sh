@@ -16,10 +16,10 @@ fi
 
 if [ -z $dst ] && [ -z $print ]
 then
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service
+        sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service
 elif [ -z $dst ]
 then
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
+        sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
 else
-        sudo ./speed_tester/$RTE_TARGET/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
+        sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
 fi

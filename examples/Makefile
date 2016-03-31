@@ -24,16 +24,18 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-# Default target, can be overriden by command line or environment
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
+# To add new examples, append the directory name to this variable
+examples = bridge basic_monitor simple_forward speed_tester flow_table
+clean_examples=$(addprefix clean_,$(examples))
 
-include $(RTE_SDK)/mk/rte.vars.mk
+.PHONY: $(examples) $(clean_examples)
 
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += flow_table
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += basic_monitor
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += bridge
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += simple_forward
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += speed_tester
+all : $(examples)
+clean: $(clean_examples)
 
-include $(RTE_SDK)/mk/rte.extsubdir.mk
+$(examples):
+	cd $@ && $(MAKE)
+
+$(clean_examples):
+	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
 
