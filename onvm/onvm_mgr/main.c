@@ -89,6 +89,7 @@ static uint16_t next_instance_id;
  *  The thread will handle TX for clients with ids first_cl ... (last_cl - 1)
  */
 struct tx_state {
+       unsigned queue_id;
        unsigned first_cl;
        unsigned last_cl;
        /* FIXME: This is confusing since it is non-inclusive. It would be
@@ -421,7 +422,7 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
                 return;
 
         tx_stats = &(ports->tx_stats);
-        sent = rte_eth_tx_burst(port, 0, tx->port_tx_buf[port].buffer, tx->port_tx_buf[port].count);
+        sent = rte_eth_tx_burst(port, tx->queue_id, tx->port_tx_buf[port].buffer, tx->port_tx_buf[port].count);
         if (unlikely(sent < tx->port_tx_buf[port].count)) {
                 for (i = sent; i < tx->port_tx_buf[port].count; i++) {
                         rte_pktmbuf_free(tx->port_tx_buf[port].buffer[i]);
@@ -675,11 +676,12 @@ main(int argc, char *argv[]) {
          * We want to distribute the number of running NFs across available
          * TX threads
          */
-        if (num_clients == 0) clients_per_tx = floor((float)MAX_CLIENTS/tx_lcores), temp_num_clients = (unsigned)MAX_CLIENTS;
-        else clients_per_tx = floor((float)num_clients/tx_lcores), temp_num_clients = (unsigned)num_clients;
+        if (num_clients == 0) clients_per_tx = ceil((float)MAX_CLIENTS/tx_lcores), temp_num_clients = (unsigned)MAX_CLIENTS;
+        else clients_per_tx = ceil((float)num_clients/tx_lcores), temp_num_clients = (unsigned)num_clients;
 
         for (i = 0; i < tx_lcores; i++) {
                 struct tx_state *tx = calloc(1,sizeof(struct tx_state));
+                tx->queue_id = i;
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
                 tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
                 tx->first_cl = RTE_MIN(i * clients_per_tx + 1, temp_num_clients);
