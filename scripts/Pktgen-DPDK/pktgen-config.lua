@@ -31,9 +31,9 @@
 
 -- Change any of the settings below to configure Pktgen-DPDK
 
-pktgen.set_mac("0", "68:05:ca:30:52:f4"); -- set_mac is destination mac
-pktgen.set_ipaddr("0", "dst", "11.10.1.33"); -- set_ipaddr is destination ip
-pktgen.set_ipaddr("0", "src", "11.10.1.1/24"); -- set_ipaddr is source ip range
+pktgen.set_mac("0", " "); -- TODO: set_mac is destination mac
+pktgen.set_ipaddr("0", "dst", " "); -- TODO: set_ipaddr is destination ip
+pktgen.set_ipaddr("0", "src", " "); -- TODO: set_ipaddr is source ip range
 
 -- applied to all configurations
 pktgen.set_proto("all", "tcp");

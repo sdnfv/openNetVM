@@ -1,12 +1,20 @@
-## Monitor
+Basic Monitor
+==
+Basic Monitor is an NF which prints information regarding incoming packets and then sends it out of the system.
 
-This is a example using onvm that print information about packets whose go through.
+Compilation and Execution
+--
+```
+cd examples
+make
+cd basic_monitor
+./go.sh CORELIST SERVICE_ID [PRINT_DELAY]
 
-### Execution
-To run the program.
-First run onvm manager and then :
+OR
+
+sudo ./build/monitor -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
-cd examples/basic_monitor
-sudo ./basic_monitor/x86_64-native-linuxapp-gcc/monitor -c 8 -n 4 --proc-type=auto -- -n 0 -- -p 100
-```
-`-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+
+App Specific Arguments
+--
+  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
