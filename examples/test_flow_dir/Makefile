@@ -32,7 +32,7 @@ include $(RTE_SDK)/mk/rte.vars.mk
 APP = test_flow_dir
 
 # all source are stored in SRCS-y
-SRCS-y := test_flow_dir.c onvm_sc_mgr.c
+SRCS-y := test_flow_dir.c 
 
 # OpenNetVM path
 ONVM= $(SRCDIR)/../../onvm
@@ -43,9 +43,9 @@ CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/onvm_mgr
 CFLAGS += -I$(ONVM)/shared
 LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
-//LDFLAGS += $(ONVM)/onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_sc_mgr.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_mgr.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_table.o
 LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_dir.o
 

@@ -58,7 +58,7 @@
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
-#include "onvm_mgr/onvm_sc_mgr.h"
+#include "shared/onvm_sc_mgr.h"
 #include "shared/onvm_sc_common.h"
 #include "shared/onvm_flow_table.h"
 #include "shared/onvm_flow_dir.h"
