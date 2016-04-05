@@ -47,7 +47,6 @@
 #include "onvm_sc_mgr.h"
 
 #define NF_TAG "test_flow_dir"
-#define NEXT_SERVICE_ID 2
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -72,14 +71,19 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt(argc, argv, "p:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:")) != -1) {
                 switch (c) {
+		case 'd':
+			destination = strtoul(optarg, NULL, 10);
+			break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
                 case '?':
                         usage(progname);
-                        if (optopt == 'p')
+                        if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'p')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -149,14 +153,13 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 
 	ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
 	if (ret >= 0) {
-        	meta->action = onvm_sc_next_action(flow_entry->sc, pkt);
-        	meta->destination = onvm_sc_next_destination(flow_entry->sc, pkt);
+        	meta->action = ONVM_NF_ACTION_NEXT;
 	}
 	else {
 		ret = onvm_flow_dir_add_pkt(pkt, &flow_entry);
 		memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
 		flow_entry->sc = onvm_sc_create();
-		onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, NEXT_SERVICE_ID);
+		onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
 		//onvm_sc_print(flow_entry->sc);
 	}
        	return 0;
