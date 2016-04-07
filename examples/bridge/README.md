@@ -12,7 +12,7 @@ cd bridge
 
 OR
 
-sudo ./bridge/x86_64-native-linuxapp-gcc/bridge -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+sudo ./build/bridge -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
