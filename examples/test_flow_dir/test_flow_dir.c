@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * monitor.c - an example using onvm. Print a message each p package received
+ *  test_flow_dir.c - an example using onvm_flow_dir_* APIs.
  ********************************************************************/
 
 #include <unistd.h>
@@ -30,15 +30,23 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <assert.h>
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_malloc.h>
+#include <rte_memzone.h>
+#include <rte_memory.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_flow_table.h"
+#include "onvm_sc_common.h"
+#include "onvm_flow_dir.h"
+#include "onvm_sc_mgr.h"
 
-#define NF_TAG "basic_monitor"
+#define NF_TAG "test_flow_dir"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -46,12 +54,14 @@ struct onvm_nf_info *nf_info;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+static uint32_t destination;
+
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay>\n\n", progname);
 }
 
 /*
@@ -61,15 +71,19 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt (argc, argv, "p:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:")) != -1) {
                 switch (c) {
+		case 'd':
+			destination = strtoul(optarg, NULL, 10);
+			break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
-                        RTE_LOG(INFO, APP, "print_delay = %d\n", print_delay);
                         break;
                 case '?':
                         usage(progname);
-                        if (optopt == 'p')
+                        if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'p')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -106,8 +120,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("Hash : %u\n", pkt->hash.rss);
-	printf("N°   : %d\n", pkt_process);
+        printf("N°   : %d\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -120,21 +133,37 @@ do_stats_display(struct rte_mbuf* pkt) {
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
-        static uint32_t counter = 0;
-        if (++counter == print_delay) {
+        static uint32_t counter = 0;        
+	struct onvm_flow_entry *flow_entry = NULL;
+	int ret;	
+
+	if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
+	
+	/* The system may crash when receiving a packet with hash.rss=0 
+	 * we should find out the reason.
+	 */
+	if (pkt->hash.rss == 0) {
+		meta->action = ONVM_NF_ACTION_DROP;
+		meta->destination = 0;
+		return 0;
+	}
 
-        meta->action = ONVM_NF_ACTION_OUT;
-        meta->destination = pkt->port;
-
-        if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
-                printf("ERROR: MAC failed to swap!\n");
-        }
-        return 0;
+	ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
+	if (ret >= 0) {
+        	meta->action = ONVM_NF_ACTION_NEXT;
+	}
+	else {
+		ret = onvm_flow_dir_add_pkt(pkt, &flow_entry);
+		memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
+		flow_entry->sc = onvm_sc_create();
+		onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
+		//onvm_sc_print(flow_entry->sc);
+	}
+       	return 0;
 }
-
 
 int main(int argc, char *argv[]) {
         int arg_offset;
@@ -145,11 +174,16 @@ int main(int argc, char *argv[]) {
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
+	destination = nf_info->service_id + 1;
 
         if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-
-        onvm_nf_run(nf_info, &packet_handler);
+	
+	/* Map the sdn_ft table */	
+	onvm_flow_dir_nf_init();	
+        
+	onvm_nf_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
-        return 0;
+        
+	return 0;
 }

@@ -23,7 +23,7 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
+RTE_TARGET ?= $(RTE_TARGET)
 
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
@@ -41,7 +41,8 @@ CFLAGS += $(WERROR_FLAGS) -O3
 
 CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/shared
-LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
+LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/$(RTE_TARGET)/onvm_nflib.o
+LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
+LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_sc_common.o
 
 include $(RTE_SDK)/mk/rte.extapp.mk

@@ -24,7 +24,9 @@
 #define _COMMON_H_
 
 #include <rte_mbuf.h>
+#include <stdint.h>
 
+#define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
 #define MAX_CLIENTS 16            // total number of NFs allowed
 #define MAX_SERVICES 16           // total number of unique services allowed
 #define MAX_CLIENTS_PER_SERVICE 8 // max number of NFs per service.
@@ -34,13 +36,20 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
+//extern uint8_t rss_symmetric_key[40];
+
 struct onvm_pkt_meta {
         uint8_t action; /* Action to be performed */
         uint16_t destination; /* where to go next */
         uint16_t src; /* who processed the packet last */
+	uint8_t chain_index; /*index of the current step in the service chain*/
 };
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
         return (struct onvm_pkt_meta*)&pkt->udata64;
+}
+
+static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
+        return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
 }
 
 /*
@@ -73,12 +82,28 @@ struct onvm_nf_info {
         const char *tag;
 };
 
+/*
+ * Define a structure to describe a service chain entry 
+ */
+struct onvm_service_chain_entry {
+	uint16_t destination;
+	uint8_t action;
+};
+
+struct onvm_service_chain {
+	struct onvm_service_chain_entry sc[ONVM_MAX_CHAIN_LENGTH];
+	uint8_t chain_length;
+	int ref_cnt;
+};
+
 /* define common names for structures shared between server and client */
 #define MP_CLIENT_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_CLIENT_TXQ_NAME "MProc_Client_%u_TX"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CLIENT_INFO "MProc_client_info"
+#define MZ_SCP_INFO "MProc_scp_info"
+#define MZ_FTP_INFO "MProc_ftp_info"
 
 /* common names for NF states */
 #define _NF_QUEUE_NAME "NF_INFO_QUEUE"

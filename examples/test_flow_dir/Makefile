@@ -23,15 +23,36 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
+
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
+# binary name
+APP = test_flow_dir
 
 # all source are stored in SRCS-y
-SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c
+SRCS-y := test_flow_dir.c 
 
-CFLAGS += $(WERROR_FLAGS) -O3
-CFLAGS += -I$(SRCDIR)/../shared
+# OpenNetVM path
+ONVM= $(SRCDIR)/../../onvm
 
-include $(RTE_SDK)/mk/rte.extobj.mk
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+
+CFLAGS += -I$(ONVM)/onvm_nf
+CFLAGS += -I$(ONVM)/onvm_mgr
+CFLAGS += -I$(ONVM)/shared
+LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/x86_64-native-linuxapp-gcc/onvm_nflib.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_mgr.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_table.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_dir.o
+
+# workaround for a gcc bug with noreturn attribute
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
+ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
+CFLAGS_main.o += -Wno-return-type
+endif
+
+include $(RTE_SDK)/mk/rte.extapp.mk

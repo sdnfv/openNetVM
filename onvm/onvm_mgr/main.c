@@ -62,6 +62,9 @@
 #include "shared/common.h"
 #include "onvm_mgr/args.h"
 #include "onvm_mgr/init.h"
+#include "shared/onvm_sc_mgr.h"
+#include "shared/onvm_flow_table.h"
+#include "shared/onvm_flow_dir.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -487,6 +490,46 @@ enqueue_port_packet(struct tx_state *tx, uint16_t port, struct rte_mbuf *buf) {
 }
 
 /*
+ * Process a packet with action NEXT
+ */
+static inline void
+process_next_action_packet(struct tx_state *tx, struct rte_mbuf *pkt, struct client *cl) {
+	struct onvm_flow_entry *flow_entry;
+	struct onvm_service_chain *sc;
+	struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
+	int ret;
+
+	ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
+	if (ret >= 0) {
+		sc = flow_entry->sc;
+		meta->action = onvm_sc_next_action(sc, pkt);
+		meta->destination = onvm_sc_next_destination(sc, pkt);
+	}
+	else {
+		meta->action = onvm_sc_next_action(default_chain, pkt);
+		meta->destination = onvm_sc_next_destination(default_chain, pkt);
+	}
+
+	switch(meta->action) {
+		case ONVM_NF_ACTION_DROP:
+                        cl->stats.act_drop++;
+			rte_pktmbuf_free(pkt);
+			break;
+		case ONVM_NF_ACTION_TONF:
+                        cl->stats.act_tonf++;
+			enqueue_nf_packet(tx, meta->destination, pkt);
+			break;
+		case ONVM_NF_ACTION_OUT:
+                        cl->stats.act_out++;
+			enqueue_port_packet(tx, meta->destination, pkt);
+			break;
+		default:
+			break;
+	}
+	(meta->chain_index)++;
+}
+
+/*
  * This function takes a group of packets and routes them
  * to the first client process. Simply forwarding the packets
  * without checking any of the packet contents.
@@ -496,22 +539,36 @@ process_rx_packet_batch(struct rte_mbuf *pkts[], uint16_t rx_count) {
         struct client *cl;
         uint16_t i, j, dst_instance_id;
         struct onvm_pkt_meta *meta;
+	struct onvm_flow_entry *flow_entry;
+	struct onvm_service_chain *sc;
+	int ret;
 
         for (i = 0; i < rx_count; i++) {
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 meta->src = 0;
+                meta->chain_index = 0;
+		ret = onvm_flow_dir_get_pkt(pkts[i], &flow_entry);
+		if (ret >= 0) {
+			sc = flow_entry->sc;
+			meta->action = onvm_sc_next_action(sc, pkts[i]);
+			meta->destination = onvm_sc_next_destination(sc, pkts[i]);
+		}
+		else {
+			meta->action = onvm_sc_next_action(default_chain, pkts[i]);
+			meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
+		}
                 /* PERF: this might hurt performance since it will cause cache
                  * invalidations. Ideally the data modified by the NF manager
                  * would be a different line than that modified/read by NFs.
                  * That may not be possible.
                  */
-
-                dst_instance_id = service_to_nf_map(default_service, pkts[i]);
-                if (dst_instance_id == 0)
-                        continue;
+	
+                (meta->chain_index)++;
+                dst_instance_id = service_to_nf_map(meta->destination, pkts[i]);
         }
 
         cl = &clients[dst_instance_id];
+
         if (unlikely(rte_ring_enqueue_bulk(cl->rx_q, (void**) pkts, rx_count) != 0)) {
                 for (j = 0; j < rx_count; j++)
                         rte_pktmbuf_free(pkts[j]);
@@ -540,8 +597,7 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         cl->stats.act_next++;
-                        rte_pktmbuf_free(pkts[i]);
-                        printf("Select ONVM_NF_ACTION_NEXT : this shouldn't happen.\n");
+			process_next_action_packet(tx, pkts[i], cl);
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         cl->stats.act_tonf++;
                         enqueue_nf_packet(tx, meta->destination, pkts[i]);
