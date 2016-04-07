@@ -249,18 +249,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
 	default_chain = *scp;
 
 	onvm_sc_print(default_chain);
-	/*just for test, this  should be called by the thread which contacts to the controller.*/
-	#if 0
-	int retval;
-	onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_NEXT, 3);
-	onvm_sc_print(default_chain);
-	retval = onvm_sc_set_entry(default_chain, 0, ONVM_NF_ACTION_OUT, 40);
-	if (retval == 1) {
-		printf("Change service chain entry fails\n");
-	}
-	onvm_sc_print(default_chain);
-	#endif
-
+	
         nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
         if (nf_info_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
