@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <netinet/ip.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include <rte_common.h>
 #include <rte_memory.h>
@@ -88,6 +89,7 @@ static uint16_t next_instance_id;
  *  The thread will handle TX for clients with ids first_cl ... (last_cl - 1)
  */
 struct tx_state {
+       unsigned queue_id;
        unsigned first_cl;
        unsigned last_cl;
        /* FIXME: This is confusing since it is non-inclusive. It would be
@@ -96,6 +98,10 @@ struct tx_state {
         */
        struct packet_buf *nf_rx_buf;
        struct packet_buf *port_tx_buf;
+};
+
+struct rx_state {
+        uint16_t queue_id;
 };
 
 static const char *
@@ -344,10 +350,11 @@ do_check_new_nf_status(void) {
 /*
  * Stats thread periodically prints per-port and per-NF stats.
  */
-static int
-stats_thread_main(__attribute__((unused)) void *dummy) {
+static void
+master_thread_main(void) {
         const unsigned sleeptime = 1;
-        RTE_LOG(INFO, APP, "Core %d displaying statistics\n", rte_lcore_id());
+
+        RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
         /* Longer initial pause so above printf is seen */
         sleep(sleeptime * 3);
@@ -357,8 +364,6 @@ stats_thread_main(__attribute__((unused)) void *dummy) {
                 do_check_new_nf_status();
                 do_stats_display(sleeptime);
         }
-
-        return 0;
 }
 
 /*
@@ -417,7 +422,7 @@ flush_port_queue(struct tx_state *tx, uint16_t port) {
                 return;
 
         tx_stats = &(ports->tx_stats);
-        sent = rte_eth_tx_burst(port, 0, tx->port_tx_buf[port].buffer, tx->port_tx_buf[port].count);
+        sent = rte_eth_tx_burst(port, tx->queue_id, tx->port_tx_buf[port].buffer, tx->port_tx_buf[port].count);
         if (unlikely(sent < tx->port_tx_buf[port].count)) {
                 for (i = sent; i < tx->port_tx_buf[port].count; i++) {
                         rte_pktmbuf_free(tx->port_tx_buf[port].buffer[i]);
@@ -552,18 +557,21 @@ process_tx_packet_batch(struct tx_state *tx, struct rte_mbuf *pkts[], uint16_t t
 }
 
 /*
- * Function called by the master lcore of the DPDK process to receive packets
- * from NIC and distributed them to the default service
+ * Function to receive packets from the NIC
+ * and distribute them to the default service
  */
-static void
-rx_thread_main(void) {
+static int
+rx_thread_main(void *arg) {
         uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
+        struct rx_state *rx = (struct rx_state*)arg;
+
+        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", rte_lcore_id(), rx->queue_id);
 
         for (;;) {
                 /* Read ports */
                 for (i = 0; i < ports->num_ports; i++) {
-                        rx_count = rte_eth_rx_burst(ports->id[i], 0, \
+                        rx_count = rte_eth_rx_burst(ports->id[i], rx->queue_id, \
                                         pkts, PACKET_READ_SIZE);
                         ports->rx_stats.rx[ports->id[i]] += rx_count;
 
@@ -573,6 +581,8 @@ rx_thread_main(void) {
                         }
                 }
         }
+
+        return 0;
 }
 
 
@@ -584,9 +594,9 @@ tx_thread_main(void *arg) {
         struct tx_state* tx = (struct tx_state*)arg;
 
         if (tx->first_cl == tx->last_cl - 1) {
-                RTE_LOG(INFO, APP, "  Handle client %d TX queue with core %d\n", tx->first_cl, rte_lcore_id());
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", rte_lcore_id(), tx->first_cl);
         } else if (tx->first_cl < tx->last_cl) {
-                RTE_LOG(INFO, APP, "  Handle clients %d to %d TX queue with core %d\n", tx->first_cl, tx->last_cl - 1, rte_lcore_id());
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", rte_lcore_id(), tx->first_cl, tx->last_cl-1);
         }
 
         for (;;) {
@@ -629,6 +639,10 @@ tx_thread_main(void *arg) {
 
 int
 main(int argc, char *argv[]) {
+        unsigned cur_lcore, rx_lcores, tx_lcores;
+        unsigned clients_per_tx, temp_num_clients;
+        unsigned i;
+
         /* initialise the system */
 
         /* Reserve ID 0 for internal manager things */
@@ -640,55 +654,57 @@ main(int argc, char *argv[]) {
         /* clear statistics */
         clear_stats();
 
-        unsigned cur_lcore = rte_lcore_id();
-        RTE_LOG(INFO, APP, "Master core running on core %d\n", cur_lcore);
+        /* Reserve n cores for: 1 Stats, 1 final Tx out, and ONVM_NUM_RX_THREADS for Rx */
+        cur_lcore = rte_lcore_id();
+        rx_lcores = ONVM_NUM_RX_THREADS;
+        tx_lcores = rte_lcore_count() - rx_lcores - 1;
 
-        /* Reserve 3 cores for: RX, stats, and final send out */
-        unsigned tx_lcores = rte_lcore_count() - 3;
-        RTE_LOG(INFO, APP, "%d cores available for handling client TX queue\n", tx_lcores + 1);
+        /* Offset cur_lcore to start assigning TX cores */
+        cur_lcore += (rx_lcores-1);
 
-        /* Evenly assign clients to TX threads */
-        unsigned next_client = 0;
-        for (; tx_lcores > 0; tx_lcores--) {
+        RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
+        RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
+        RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
+        RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
+
+        /* Evenly assign NFs to TX threads */
+
+        /*
+         * If num clients is zero, then we are running in dynamic NF mode.
+         * We do not have a way to tell the total number of NFs running so
+         * we have to calculate clients_per_tx using MAX_CLIENTS then.
+         * We want to distribute the number of running NFs across available
+         * TX threads
+         */
+        if (num_clients == 0) clients_per_tx = ceil((float)MAX_CLIENTS/tx_lcores), temp_num_clients = (unsigned)MAX_CLIENTS;
+        else clients_per_tx = ceil((float)num_clients/tx_lcores), temp_num_clients = (unsigned)num_clients;
+
+        for (i = 0; i < tx_lcores; i++) {
                 struct tx_state *tx = calloc(1,sizeof(struct tx_state));
+                tx->queue_id = i;
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
                 tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
-                tx->first_cl = next_client;
-                next_client += (MAX_CLIENTS - 1 - next_client)/tx_lcores
-                            + ((MAX_CLIENTS - 1 - next_client)%tx_lcores > 0);
-                tx->last_cl = next_client;
+                tx->first_cl = RTE_MIN(i * clients_per_tx + 1, temp_num_clients);
+                tx->last_cl = RTE_MIN((i+1) * clients_per_tx + 1, temp_num_clients);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for client %d TX\n", cur_lcore, tx->first_cl);
                         return -1;
                 }
         }
 
-        /* Assign one TX thread to handle the last client since sending
-         * out is more expensive. This assumes you run a linear chain and
-         * packets always leave the system from the last NF.
-         * TODO this is not ideal, since you'll need to have MAX_CLIENTS running
-         * in order to realize this benefit.
-         */
-        cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        struct tx_state *tx = calloc(1,sizeof(struct tx_state));
-        tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-        tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
-        tx->first_cl = MAX_CLIENTS-1;
-        tx->last_cl = MAX_CLIENTS;
-        if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", cur_lcore);
-                return -1;
+        /* Launch RX thread main function for each RX queue on cores */
+        for (i = 0; i < rx_lcores; i++) {
+                struct rx_state *rx = calloc(1, sizeof(struct rx_state));
+                rx->queue_id = i;
+                cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+                if (rte_eal_remote_launch(rx_thread_main, (void *)rx, cur_lcore) == -EBUSY) {
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for RX queue id %d\n", cur_lcore, rx->queue_id);
+                        return -1;
+                }
         }
 
-        /* Start the stats display function on another core. */
-        unsigned stat_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-        if (rte_eal_remote_launch(stats_thread_main, NULL, stat_lcore) == -EBUSY) {
-                RTE_LOG(ERR, APP, "Core %d is already busy\n", stat_lcore);
-                return -1;
-        }
-
-        /* Master thread handles RX packets from NIC */
-        rx_thread_main();
+        /* Master thread handles statistics and NF management */
+        master_thread_main();
         return 0;
 }

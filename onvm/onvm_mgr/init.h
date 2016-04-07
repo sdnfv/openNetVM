@@ -28,6 +28,8 @@
  * #include "args.h"
  */
 
+#define ONVM_NUM_RX_THREADS 1
+
 #define DYNAMIC_CLIENTS 0
 #define STATIC_CLIENTS 1
 
