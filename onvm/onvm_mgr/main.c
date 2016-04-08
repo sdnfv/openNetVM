@@ -560,7 +560,6 @@ process_rx_packet_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint16_
 	
                 (meta->chain_index)++;
 		enqueue_nf_packet(rx, meta->destination, pkts[i]);
-		//enqueue_nf_packet(rx, 1, pkts[i]);
         }
 
 	for (i = 0; i < MAX_CLIENTS; i++) {
