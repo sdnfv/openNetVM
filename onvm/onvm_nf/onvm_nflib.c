@@ -56,6 +56,7 @@
 
 #include "common.h"
 #include "onvm_nflib.h"
+#include "onvm_sc_common.h"
 
 /* Number of packets to attempt to read from queue */
 #define PKT_READ_SIZE  ((uint16_t)32)
@@ -83,6 +84,9 @@ static uint16_t service_id = -1;
 
 /* True as long as the NF should keep processing packets */
 static uint8_t keep_running = 1;
+
+/* Shared data for default service chain*/
+static struct onvm_service_chain *default_chain;
 
 /*
  * Print a usage message
@@ -191,7 +195,9 @@ onvm_nf_stop(void) {
 int
 onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         const struct rte_memzone *mz;
+	const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
+	struct onvm_service_chain **scp;
         int retval_eal, retval_parse, retval_final;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
@@ -236,6 +242,14 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
                 rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
         tx_stats = mz->addr;
 
+	mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
+	if (mz_scp == NULL) 
+		rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
+	scp = mz_scp->addr;
+	default_chain = *scp;
+
+	onvm_sc_print(default_chain);
+	
         nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
         if (nf_info_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
