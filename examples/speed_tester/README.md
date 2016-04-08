@@ -8,11 +8,11 @@ Compilation and Execution
 cd examples
 make
 cd speed_tester
-./go.sh CORELIST SERVICE_ID [DST] [PRINT_DELAY]
+./go.sh CORELIST SERVICE_ID DST_ID [PRINT_DELAY]
 
 OR
 
-sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-d DST] [-p PRINT_DELAY]
+sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

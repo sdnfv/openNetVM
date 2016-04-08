@@ -66,12 +66,13 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c;
+        int c, dst_flag = 0;
 
         while ((c = getopt (argc, argv, "d:p:")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
+                        dst_flag = 1;
                         break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
@@ -91,7 +92,14 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         usage(progname);
                         return -1;
                 }
+
         }
+
+        if !(dst_flag) {
+                RTE_LOG(INFO, APP, "Speed tester NF requires a destination NF with the -d flag.\n");
+                return -1;
+        }
+
         return optind;
 }
 
