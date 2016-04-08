@@ -26,6 +26,9 @@ fi
 
 start_dir=$(pwd)
 
+# Disable ASLR
+sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
+
 # Setup/Check for free HugePages
 hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
 hp_count="${ONVM_NUM_HUGEPAGES:-1024}"

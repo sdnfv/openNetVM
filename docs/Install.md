@@ -66,6 +66,10 @@ This guide helps you build and install openNetVM.
 
     `$ source ~/.bashrc`
 
+6. Disable ASLR since it makes sharing memory with NFs harder:
+
+    `sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"`
+
 4. Configure and compile DPDK
 --
 
