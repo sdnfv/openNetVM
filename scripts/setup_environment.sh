@@ -44,7 +44,7 @@ fi
 sudo -v
 
 # Load uio kernel modules
-grep -m 1 "igb_uio" /proc/modules | cat  
+grep -m 1 "igb_uio" /proc/modules | cat
 if [ ${PIPESTATUS[0]} != 0 ]; then
     echo "Loading uio kernel modules"
     sleep 1
@@ -74,7 +74,7 @@ else
     for nic_id in $ONVM_NIC_PCI
     do
         echo "Binding $nic_id to DPDK"
-        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id 
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
     done
 fi
 

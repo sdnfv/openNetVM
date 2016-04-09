@@ -1,6 +1,11 @@
+--                    openNetVM
+--      https://github.com/sdnfv/openNetVM
+--
 -- BSD LICENSE
-
--- Copyright(c) 2015 George Washington University
+--
+-- Copyright(c)
+--          2015-2016 George Washington University
+--          2015-2016 University of California Riverside
 -- All rights reserved.
 
 -- Redistribution and use in source and binary forms, with or without
@@ -45,4 +50,4 @@ pktgen.set("all", "dport", 1234);
 
 pktgen.set("all", "rate",100);
 
-pktgen.vlan_id("all", 5);
+pktgen.vlanid("all", 5);

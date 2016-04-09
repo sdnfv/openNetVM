@@ -1,21 +1,39 @@
 /*********************************************************************
  *                     openNetVM
- *       https://github.com/sdnfv/openNetVM
+ *              https://sdnfv.github.io
  *
- *  Copyright 2015 George Washington University
- *            2015 University of California Riverside
+ *   BSD LICENSE
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *   Copyright(c)
+ *            2015-2016 George Washington University
+ *            2015-2016 University of California Riverside
+ *   All rights reserved.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * onvm_flow_table.h - a generic flow table
  ********************************************************************/
@@ -89,7 +107,7 @@ onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt);
 int
 onvm_ft_add_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
 
-int 
+int
 onvm_ft_lookup_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data);
 
 int32_t
@@ -186,14 +204,14 @@ onvm_softrss(struct onvm_ft_ipv4_5tuple *key)
 	uint8_t rss_key_be[RTE_DIM(rss_symmetric_key)];
 	uint32_t rss_l3l4;
 
-	rte_convert_rss_key((uint32_t *)rss_symmetric_key, (uint32_t *)rss_key_be, 
+	rte_convert_rss_key((uint32_t *)rss_symmetric_key, (uint32_t *)rss_key_be,
 				RTE_DIM(rss_symmetric_key));
-	
+
 	tuple.v4.src_addr = rte_be_to_cpu_32(key->src_addr);
 	tuple.v4.dst_addr = rte_be_to_cpu_32(key->dst_addr);
 	tuple.v4.sport = rte_be_to_cpu_16(key->src_port);
 	tuple.v4.dport = rte_be_to_cpu_16(key->dst_port);
-	
+
 	rss_l3l4 = rte_softrss_be((uint32_t *)&tuple, RTE_THASH_V4_L4_LEN, rss_key_be);
 
 	return rss_l3l4;
