@@ -42,6 +42,7 @@ CFLAGS += -I$(ONVM)/onvm_nf
 CFLAGS += -I$(ONVM)/shared
 LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/$(RTE_TARGET)/onvm_nflib.o
 LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
+LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_sc_common.o
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
