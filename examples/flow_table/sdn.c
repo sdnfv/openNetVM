@@ -1,3 +1,43 @@
+/*********************************************************************
+ *                     openNetVM
+ *              https://sdnfv.github.io
+ *
+ *   BSD LICENSE
+ *
+ *   Copyright(c)
+ *            2015-2016 George Washington University
+ *            2015-2016 University of California Riverside
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * sdn.c - contact the controller, send request and parse response
+ ********************************************************************/
+
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
 #include <assert.h>
@@ -65,7 +105,7 @@ void datapath_init(struct datapath *dp, int sock, int bufsize, int debug)
     dp->outbuf = msgbuf_new(bufsize);
     dp->xid = 1;
     dp->switch_status = START;
-  
+
     ofph.version = OFP_VERSION;
     ofph.type = OFPT_HELLO;
     ofph.length = htons(sizeof(ofph));
@@ -102,7 +142,7 @@ void datapath_handle_read(struct datapath *dp)
     if (count <= 0)
     {
 		fprintf(stderr, "controller msgbuf_read() = %d:  ", count);
-		if(count < 0)	
+		if(count < 0)
 			perror("msgbuf_read");
 		else	{
 			fprintf(stderr, " closed connection ");
@@ -113,7 +153,7 @@ void datapath_handle_read(struct datapath *dp)
     while((count= msgbuf_count_buffered(dp->inbuf)) >= (int)sizeof(struct ofp_header ))
     {
 		ofph = msgbuf_peek(dp->inbuf);
-		if(count < ntohs(ofph->length)) 
+		if(count < ntohs(ofph->length))
 			return;     // msg not all there yet
 		msgbuf_pull(dp->inbuf, NULL, ntohs(ofph->length));
 		switch(ofph->type)
@@ -122,7 +162,7 @@ void datapath_handle_read(struct datapath *dp)
 				debug_msg(dp, "got hello");
 				// we already sent our own HELLO; don't respond
 				datapath_change_status(dp, READY_TO_SEND);
-				break;	
+				break;
 			case OFPT_FEATURES_REQUEST:
 				debug_msg(dp, "got feature_req");
 				count = make_features_reply(dp->id, ofph->xid, buf, BUFLEN);
@@ -216,7 +256,7 @@ void datapath_handle_read(struct datapath *dp)
 			case OFPT_ERROR:
 				debug_msg(dp, "got error");
 				break;
-			default: 
+			default:
 				fprintf(stderr, "Ignoring OpenFlow message type %d\n", ofph->type);
 		}
     }
@@ -277,9 +317,9 @@ void datapath_change_status(struct datapath *dp, int new_status)
         debug_msg(dp, "next status %d", new_status);
 }
 
-int parse_set_config(struct ofp_header *msg) 
+int parse_set_config(struct ofp_header *msg)
 {
-    struct ofp_switch_config *sc; 
+    struct ofp_switch_config *sc;
     assert(msg->type == OFPT_SET_CONFIG);
     sc = (struct ofp_switch_config *) msg;
     memcpy(&Switch_config, sc, sizeof(struct ofp_switch_config));
@@ -287,7 +327,7 @@ int parse_set_config(struct ofp_header *msg)
     return 0;
 }
 
-int make_config_reply( int xid, char *buf, int buflen) 
+int make_config_reply( int xid, char *buf, int buflen)
 {
     int len = sizeof(struct ofp_switch_config);
     assert(buflen >= len);
@@ -327,13 +367,13 @@ int make_features_reply(int id, int xid, char *buf, unsigned int buflen)
     features->header.version = OFP_VERSION;
     features->header.xid = xid;
     features->datapath_id = htonll(id);
-    
+
     return sizeof(fake);
 }
 
-int make_stats_desc_reply(struct ofp_stats_request *req, char *buf) 
+int make_stats_desc_reply(struct ofp_stats_request *req, char *buf)
 {
-    static struct ofp_desc_stats cbench_desc = { 
+    static struct ofp_desc_stats cbench_desc = {
 		.mfr_desc = "Cbench - controller I/O benchmark",
 		.hw_desc  = "this is actually software...",
 		//.sw_desc  = "version " VERSION,
@@ -343,7 +383,7 @@ int make_stats_desc_reply(struct ofp_stats_request *req, char *buf)
     };
     struct ofp_stats_reply *reply;
     int len = sizeof(struct ofp_stats_reply) + sizeof(struct ofp_desc_stats);
-    
+
     assert(BUFLEN > len);
     assert(ntohs(req->type) == OFPST_DESC);
     memcpy( buf, req, sizeof(*req));
@@ -359,7 +399,7 @@ int make_stats_desc_reply(struct ofp_stats_request *req, char *buf)
 int make_vendor_reply(int xid, char *buf, unsigned int buflen)
 {
     struct ofp_error_msg *e;
-    
+
     assert(buflen> sizeof(struct ofp_error_msg));
     e = (struct ofp_error_msg *) buf;
     e->header.type = OFPT_ERROR;
@@ -368,14 +408,14 @@ int make_vendor_reply(int xid, char *buf, unsigned int buflen)
     e->header.xid = xid;
     e->type = htons(OFPET_BAD_REQUEST);
     e->code = htons(OFPBRC_BAD_VENDOR);
-    
+
     return sizeof(struct ofp_error_msg);
 }
 int debug_msg(struct datapath *dp, const char *msg, ...)
 {
     va_list aq;
-    
-    if(dp->debug == 0 ) 
+
+    if(dp->debug == 0 )
     	return 0;
     fprintf(stderr,"-------Switch %d: ", dp->id);
     va_start(aq,msg);
@@ -383,7 +423,7 @@ int debug_msg(struct datapath *dp, const char *msg, ...)
     if(msg[strlen(msg)-1] != '\n')
 		fprintf(stderr, "\n");
     // fflush(stderr);     // should be redundant, but often isn't :-(
-    
+
     return 1;
 }
 
@@ -454,7 +494,7 @@ flow_action_extract(struct ofp_action_header *oah, size_t actions_len)
         while (actions_len > 0) {
             struct ofp_action_header *ah = (struct ofp_action_header *)p;
             size_t len = htons(ah->len);
-            if (ah->type == htons(OFPAT_OUTPUT)) { //OFPAT_OUTPUT action        
+            if (ah->type == htons(OFPAT_OUTPUT)) { //OFPAT_OUTPUT action
                 struct ofp_action_output *oao = (struct ofp_action_output *)p;
                 onvm_sc_append_entry(chain, ONVM_NF_ACTION_OUT, ntohs(oao->port));
             }

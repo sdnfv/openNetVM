@@ -1,3 +1,43 @@
+/*********************************************************************
+ *                     openNetVM
+ *              https://sdnfv.github.io
+ *
+ *   BSD LICENSE
+ *
+ *   Copyright(c)
+ *            2015-2016 George Washington University
+ *            2015-2016 University of California Riverside
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * setupconn.c - set up the connection to sdn controller
+ ********************************************************************/
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -59,14 +99,14 @@ int timeout_connect(int fd, const char *hostname, int port, int mstimeout) {
     FD_ZERO(&fds);
     FD_SET(fd, &fds);
 
-    if(mstimeout >= 0) 
+    if(mstimeout >= 0)
     {
 		tv.tv_sec = mstimeout / 1000;
 		tv.tv_usec = (mstimeout % 1000) * 1000;
 
 		errno = 0;
 
-		if(connect(fd, res->ai_addr, res->ai_addrlen) < 0) 
+		if(connect(fd, res->ai_addr, res->ai_addrlen) < 0)
 		{
 			if((errno != EWOULDBLOCK) && (errno != EINPROGRESS))
 			{
@@ -79,7 +119,7 @@ int timeout_connect(int fd, const char *hostname, int port, int mstimeout) {
     }
     freeaddrinfo(res);
 
-    if(ret != 1) 
+    if(ret != 1)
     {
 		if(ret == 0)
 			return -1;
@@ -121,4 +161,3 @@ int make_tcp_connection(const char *hostname, unsigned short port)
     }
     return s;
 }
-	
