@@ -1,6 +1,9 @@
 Simple Flow Table
 ==
-This is a example with a simple flow table that matches a packet to a destination NF.  The lookup is based on the packet 5-tuple and the port (physical or NF) of where the packet came from.
+
+This NF demonstrates how flow_table follow rules set by SDN controller, and send packets to their destination based on the packet 5-tuple and the port (physical or NF) of where the packet came from and the rules set by SDN controller.
+
+When a packet arrives,  the NF checks whether it is from a flow that already has a service chain rule. If not, it contacts SDN controller for a rule to follow, so the packet will be sent to the destination NF. Packets that match a rule are processed with the ONVM_NF_ACTION_NEXT action.
 
 Compilation and Exection
 --
