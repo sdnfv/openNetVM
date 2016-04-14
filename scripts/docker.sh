@@ -40,12 +40,13 @@ RAW_DEVICES=$1
 HUGE=$2
 ONVM=$3
 NAME=$4
+DIR=$5
 
 DEVICES=()
 
 if [ -z $NAME ]
 then
-        echo -e "sudo ./docker.sh DEVICES HUGEPAGES ONVM NAME\n"
+        echo -e "sudo ./docker.sh DEVICES HUGEPAGES ONVM NAME [DIRECTORY]\n"
         echo -e "\te.g. sudo ./docker.sh /dev/uio0,/dev/uio1 /hugepages /root/openNetVM Basic_Monitor_NF"
         echo -e "\t\tThis will create a container with two NIC devices, uio0 and uio1,"
         echo -e "\t\thugepages mapped from the host's /hugepage directory and openNetVM"
@@ -60,4 +61,9 @@ do
         DEVICES+=("--device=$DEV:$DEV")
 done
 
-sudo docker run -it --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM --name=$NAME ubuntu /bin/bash
+if [ -z $DIR ]
+then
+	sudo docker run -it --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM --name=$NAME ubuntu /bin/bash
+else
+	sudo docker run -it --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -v $DIR:/$(basename $DIR) --name=$NAME ubuntu /bin/bash
+fi
