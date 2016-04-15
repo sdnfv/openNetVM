@@ -74,7 +74,7 @@ else
     for nic_id in $ONVM_NIC_PCI
     do
         echo "Binding $nic_id to DPDK"
-        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $id
+        sudo $RTE_SDK/tools/dpdk_nic_bind.py -b igb_uio $nic_id
     done
 fi
 
