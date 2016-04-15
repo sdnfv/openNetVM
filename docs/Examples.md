@@ -99,5 +99,5 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
   4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
 
 
-[cores]: scripts/corehelper.py
+[cores]: ../scripts/corehelper.py
 [pktgen]: https://github.com/pktgen/Pktgen-DPDK
