@@ -7,9 +7,11 @@ This guide helps you build and install openNetVM.
 --
 
 1. Make sure your NIC is supported by Intel DPDK by comparing the following command's ouptput against DPDK's [supported NIC list][nics].
+
     ```sh
     lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %
     ```
+
 2.  Check what operating system you have by typing:
     ```sh
     uname -a
@@ -66,9 +68,9 @@ This guide helps you build and install openNetVM.
     ```
 
     ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK.
-```sh
-export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
-```
+    ```sh
+    export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
+    ```
 5. Source your shell rc file to set the environment variables:
     ```sh
     source ~/.bashrc
@@ -212,6 +214,7 @@ Troubleshooting
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
     ```
+
 
 [nics]: http://dpdk.org/doc/nics
 [install]: ../scripts/install.sh
