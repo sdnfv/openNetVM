@@ -5,7 +5,7 @@ This guide helps you build and install openNetVM.
 1. Check System
 --
 
-1. Make sure your NIC is supported by Intel DPDK by comparing the following command's ouptput against DPDK's [supported NIC list][nics].
+1. Make sure your NIC is supported by Intel DPDK by comparing the following command's ouptput against DPDK's [supported NIC list](http://dpdk.org/doc/nics).
 
     ```sh
     lspci | awk '/net/ {print $1}' | xargs -i% lspci -ks %
@@ -83,9 +83,9 @@ This guide helps you build and install openNetVM.
 4. Configure and compile DPDK
 --
 
-1. Run the [install script][install] to compile DPDK and configure hugepages.
+1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
 
-    The [install script][install] will automatically run the [environment setup script][environment], which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
+    The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/enviroment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 
 5. Run DPDK HelloWorld Application
 --
@@ -147,7 +147,7 @@ This guide helps you build and install openNetVM.
 
 7. Configuring environment post reboot
 --
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script][environment].
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/enviroment.sh).
  
 Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
 
@@ -213,8 +213,4 @@ Troubleshooting
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
     ```
-    
 
-[nics]: http://dpdk.org/doc/nics
-[install]: ../scripts/install.sh
-[environment]: ../scripts/setup_environment.sh
