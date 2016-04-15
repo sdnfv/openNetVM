@@ -1,5 +1,4 @@
-openNetVM Installation
-==
+# openNetVM Installation
 
 This guide helps you build and install openNetVM.
 
@@ -148,9 +147,9 @@ This guide helps you build and install openNetVM.
 
 7. Configuring environment post reboot
 --
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script][environment].
- 
-Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
+    After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script][environment].
+
+    Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
 
 Troubleshooting
 --
@@ -215,7 +214,7 @@ Troubleshooting
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
     ```
 
-
-[nics]: http://dpdk.org/doc/nics
-[install]: ../scripts/install.sh
-[environment]: ../scripts/setup_environment.sh
+  
+[nics]: http://dpdk.org/doc/nics 
+[install]: ../scripts/install.sh 
+[environment]: ../scripts/setup_environment.sh 
