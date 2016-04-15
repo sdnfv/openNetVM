@@ -85,7 +85,7 @@ This guide helps you build and install openNetVM.
 
 1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
 
-    The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/setup_enviroment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
+    The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/setup_environment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 
 5. Run DPDK HelloWorld Application
 --
@@ -147,7 +147,7 @@ This guide helps you build and install openNetVM.
 
 7. Configuring environment post reboot
 --
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/setup_enviroment.sh).
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/setup_environment.sh).
  
 Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
 
