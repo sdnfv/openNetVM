@@ -38,4 +38,46 @@
  * l2fw.c - layer 2 forwarding switch
  ********************************************************************/
 
+#include <unistd.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <sys/queue.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <string.h>
 
+#include <rte_common.h>
+#include <rte_mbuf.h>
+#include <rte_ip.h>
+
+#include "onvm_nflib.h"
+#include "onvm_pkt_helper.h"
+
+#define NF_TAG "l2fw"
+
+static int
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+        return 0;
+}
+
+int
+main(int argc, char *argv[]) {
+        int arg_offset;
+
+        const char *progname = argv[0];
+
+        if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
+                return -1;
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0)
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+
+        onvm_nf_run(nf_info, &packet_handler);
+        printf("If we reach here, program is ending");
+        return 0;
+}
