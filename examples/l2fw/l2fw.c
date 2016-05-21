@@ -60,6 +60,10 @@
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+	struct ether_hdr *eth;
+
+	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+
         return 0;
 }
 
