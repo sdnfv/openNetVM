@@ -58,6 +58,9 @@
 
 #define NF_TAG "l2fw"
 
+/* Struct that contains information about this NF */
+struct onvm_nf_info *nf_info;
+
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 	struct ether_hdr *eth;
