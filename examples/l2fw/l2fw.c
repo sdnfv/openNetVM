@@ -61,11 +61,18 @@
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
 
+/* Ethernet addresses of ports */
+static struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 	struct ether_hdr *eth;
+	uint16_t ingress;
 
+	ingress = meta->src;
 	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+
+	ether_addr_copy(&l2fwd_ports_eth_addr[ingress], &eth->s_addr);
 
         return 0;
 }
