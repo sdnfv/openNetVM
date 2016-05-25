@@ -73,11 +73,23 @@ static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 	struct ether_hdr *eth;
 	uint16_t ingress;
+	int i;
+
+	/* store and update src mac */
 
 	ingress = meta->src;
 	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
 	ether_addr_copy(&l2fwd_ports_eth_addr[ingress], &eth->s_addr);
+
+	/* find destination mac */
+
+	for (i = 0; i < nb_ports; i++) {
+		if (is_same_ether_addr(&l2fwd_ports_eth_addr[i], &eth->s_addr)) {
+			meta->destination = i;
+			break;
+		}
+	}
 
         return 0;
 }
