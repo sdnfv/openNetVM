@@ -63,6 +63,9 @@
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
 
+/* Number of eth ports */
+static uint8_t nb_ports;
+
 /* Ethernet addresses of ports */
 static struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 
@@ -87,6 +90,10 @@ main(int argc, char *argv[]) {
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
+
+	nb_ports = rte_eth_dev_count();
+	if (nb_ports == 0)
+		rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
         onvm_nf_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
