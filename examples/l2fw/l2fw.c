@@ -98,8 +98,9 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
 
-        if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
-                return -1;
+        arg_offset = onvm_nf_init(argc, argv, NF_TAG);
+	if (arg_offset < 0)
+		rte_exit(EXIT_FAILURE, "Invalid EAL arguments\n");
         argc -= arg_offset;
         argv += arg_offset;
 
