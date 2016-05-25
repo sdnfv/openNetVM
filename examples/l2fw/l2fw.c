@@ -83,8 +83,6 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
 
-        const char *progname = argv[0];
-
         if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
                 return -1;
         argc -= arg_offset;
