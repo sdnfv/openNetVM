@@ -52,6 +52,8 @@
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_ether.h>
+#include <rte_ethdev.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -87,9 +89,6 @@ main(int argc, char *argv[]) {
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
-
-        if (parse_app_args(argc, argv, progname) < 0)
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         onvm_nf_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
