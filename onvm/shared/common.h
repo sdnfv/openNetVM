@@ -53,8 +53,7 @@
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
-
-#define ONVM_PORT_BROADCAST ((1<<16) - 1) // broadcast port
+#define ONVM_NF_ACTION_FLOOD 4  // flood packets through all ports
 
 //extern uint8_t rss_symmetric_key[40];
 
