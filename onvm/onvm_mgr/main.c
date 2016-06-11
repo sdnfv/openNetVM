@@ -496,10 +496,21 @@ enqueue_nf_packet(struct thread_info *thread, uint16_t dst_service_id, struct rt
  */
 static inline void
 enqueue_port_packet(struct thread_info *tx, uint16_t port, struct rte_mbuf *buf) {
-        tx->port_tx_buf[port].buffer[tx->port_tx_buf[port].count++] = buf;
-        if (tx->port_tx_buf[port].count == PACKET_READ_SIZE) {
-                flush_port_queue(tx, port);
-        }
+	if (port != ONVM_PORT_BROADCAST) {
+        	tx->port_tx_buf[port].buffer[tx->port_tx_buf[port].count++] = buf;
+        	if (tx->port_tx_buf[port].count == PACKET_READ_SIZE) {
+        	        flush_port_queue(tx, port);
+        	}
+	} else {
+		int i;
+
+		for (i = 0; i < rte_eth_dev_count(); i++) {
+        		tx->port_tx_buf[i].buffer[tx->port_tx_buf[i].count++] = buf;
+        		if (tx->port_tx_buf[i].count == PACKET_READ_SIZE) {
+        	        	flush_port_queue(tx, i);
+        		}
+		}
+	}
 }
 
 /*
