@@ -72,12 +72,12 @@ static struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 	struct ether_hdr *eth;
-	uint16_t ingress;
+	uint8_t ingress;
 	int i;
 
 	/* store and update src mac */
 
-	ingress = meta->src;
+	ingress = pkt->port;
 	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
 	ether_addr_copy(&l2fwd_ports_eth_addr[ingress], &eth->s_addr);
