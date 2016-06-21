@@ -1,6 +1,6 @@
 # CloudLab Coding Style Guide
 
-*Updated May 15, 2015*
+*Updated June 21, 2016*
 
 As a student, you have spent years writing code that was read by at most two or three people. This has allowed you to get away with terrible coding habits. In the real world, writing good code is **important**, but writing readable code is **critical**.
 
@@ -28,23 +28,45 @@ Your project is likely to include multiple files, so you need to think about how
 /*********************************************************************
  *                     openNetVM
  *       https://github.com/sdnfv/openNetVM
- *
- *  Copyright 2015 George Washington University
- *            2015 University of California Riverside
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *  
- *      http://www.apache.org/licenses/LICENSE-2.0
- *  
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- * filename.c - brief description of this file
+ * 
+ * BSD LICENSE
+ * 
+ * Copyright (c) 
+ *	2015-2016 George Washington University
+ *	2015-2016 University of California Riverside
+ *	2010-2014 Intel Corporation.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions 
+ * are met:
+ * 
+ * 	Redistributions of source code must retain the above copyright 
+ *	notice, this list of conditions and the following disclaimer.
+ * 
+ * 	Redistributions in binary form must reproduce the above 
+ *	copyright notice, this list of conditions and the following 
+ *	disclaimer in the documentation and/or other materials 
+ * 	provided with the distribution.
+ * 
+ * 	Neither the name of the Intel Corporation nor the names of its
+ * 	contributors may be used to endorse or promote products
+ * 	derived from this software without specific prior written
+ * 	permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+
  ********************************************************************/
 ````
 
@@ -195,6 +217,9 @@ The contents of this guide are largely stolen from the [Composite Style Guide](h
 [Google's C++ Style Guide](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Header_Files) also provides many reasonable style choices, and is used by many different companies. Where not discussed here or in the Composite guide, follow Google's.
 
 # History
+6/21/16:
+  * Updated license to New BSD 
+
 5/15/15: 
   * Updated license to Apache v2
 
