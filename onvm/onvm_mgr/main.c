@@ -120,6 +120,20 @@ struct thread_info {
        struct packet_buf *port_tx_buf;
 };
 
+
+/**
+ Helper function that drop a packet and uses the success return convention
+ (a 0).
+ */
+static int
+drop_packet(struct rte_mbuf *pkt) {
+        rte_pktmbuf_free(pkt);
+        if (pkt != NULL) {
+                return 1;
+        }
+        return 0;
+}
+
 static const char *
 get_printable_mac_addr(uint8_t port) {
         static const char err_address[] = "00:00:00:00:00:00";
@@ -417,7 +431,7 @@ flush_nf_queue(struct thread_info *thread, uint16_t client) {
         if (rte_ring_enqueue_bulk(cl->rx_q, (void **)thread->nf_rx_buf[client].buffer,
                         thread->nf_rx_buf[client].count) != 0) {
                 for (i = 0; i < thread->nf_rx_buf[client].count; i++) {
-                        rte_pktmbuf_free(thread->nf_rx_buf[client].buffer[i]);
+                        drop_packet(thread->nf_rx_buf[client].buffer[i]);
                 }
                 cl->stats.rx_drop += thread->nf_rx_buf[client].count;
         } else {
@@ -441,7 +455,7 @@ flush_port_queue(struct thread_info *tx, uint16_t port) {
         sent = rte_eth_tx_burst(port, tx->queue_id, tx->port_tx_buf[port].buffer, tx->port_tx_buf[port].count);
         if (unlikely(sent < tx->port_tx_buf[port].count)) {
                 for (i = sent; i < tx->port_tx_buf[port].count; i++) {
-                        rte_pktmbuf_free(tx->port_tx_buf[port].buffer[i]);
+                        drop_packet(tx->port_tx_buf[port].buffer[i]);
                 }
                 tx_stats->tx_drop[port] += (tx->port_tx_buf[port].count - sent);
         }
@@ -477,13 +491,17 @@ enqueue_nf_packet(struct thread_info *thread, uint16_t dst_service_id, struct rt
 
         // map service to instance and check one exists
         dst_instance_id = service_to_nf_map(dst_service_id, pkt);
-        if (dst_instance_id == 0)
+        if (dst_instance_id == 0) {
+                drop_packet(pkt);
                 return;
+        }
 
         // Ensure destination NF is running and ready to receive packets
         cl = &clients[dst_instance_id];
-        if (!is_valid_nf(cl))
+        if (!is_valid_nf(cl)) {
+                drop_packet(pkt);
                 return;
+        }
 
         thread->nf_rx_buf[dst_instance_id].buffer[thread->nf_rx_buf[dst_instance_id].count++] = pkt;
         if (thread->nf_rx_buf[dst_instance_id].count == PACKET_READ_SIZE) {
@@ -525,8 +543,9 @@ process_next_action_packet(struct thread_info *tx, struct rte_mbuf *pkt, struct 
 
 	switch(meta->action) {
 		case ONVM_NF_ACTION_DROP:
-                        cl->stats.act_drop++;
-			rte_pktmbuf_free(pkt);
+                        // if the packet is drop, then <return value> is 0
+                        // and !<return value> is 1.
+                        cl->stats.act_drop += !drop_packet(pkt);
 			break;
 		case ONVM_NF_ACTION_TONF:
                         cl->stats.act_tonf++;
@@ -600,8 +619,9 @@ process_tx_packet_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_
                 meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
                 meta->src = cl->instance_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
-                        rte_pktmbuf_free(pkts[i]);
-                        cl->stats.act_drop++;
+                        // if the packet is drop, then <return value> is 0
+                        // and !<return value> is 1.
+                        cl->stats.act_drop += !drop_packet(pkts[i]);
                 } else if (meta->action == ONVM_NF_ACTION_NEXT) {
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
@@ -615,7 +635,7 @@ process_tx_packet_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_
                         enqueue_port_packet(tx, meta->destination, pkts[i]);
                 } else {
                         printf("ERROR invalid action : this shouldn't happen.\n");
-                        rte_pktmbuf_free(pkts[i]);
+                        drop_packet(pkts[i]);
                         return;
                 }
         }
@@ -627,7 +647,7 @@ process_tx_packet_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_
  */
 static int
 rx_thread_main(void *arg) {
-        uint16_t i, rx_count;
+        uint16_t i, j, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct thread_info *rx = (struct thread_info*)arg;
 
@@ -642,7 +662,14 @@ rx_thread_main(void *arg) {
 
                         /* Now process the NIC packets read */
                         if (likely(rx_count > 0)) {
-                                process_rx_packet_batch(rx, pkts, rx_count);
+                                // If there is no running NF, we drop all the packets of the batch.
+                                if(!num_clients) {
+                                        for(j = 0; j < rx_count; j++) {
+                                                drop_packet(pkts[j]);
+                                        }
+                                } else {
+                                        process_rx_packet_batch(rx, pkts, rx_count);
+                                }
                         }
                 }
         }
