@@ -320,7 +320,7 @@ stop_running_nf(struct onvm_nf_info *nf_info)
 
         if (mapIndex < MAX_CLIENTS_PER_SERVICE) { // sanity error check
                 service_to_nf[service_id][mapIndex] = 0;
-                for (mapIndex++; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
+                for (; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
                         // Shift the NULL to the end of the array
                         if (service_to_nf[service_id][mapIndex + 1] == 0) {
                                 // Short circuit when we reach the end of this service's list
