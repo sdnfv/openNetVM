@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
         int retval;
         unsigned sdn_core = 0;
 
-        if ((retval = onvm_nf_init(argc, argv, NF_TAG)) < 0)
+        if ((retval = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
                 return -1;
         argc -= retval;
         argv += retval;
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
 	/* Map sdn_ft table */
 	onvm_flow_dir_nf_init();
         printf("Starting packet handler.\n");
-        onvm_nf_run(nf_info, &packet_handler);
+        onvm_nflib_run(nf_info, &packet_handler);
         printf("NF exiting...");
         cleanup();
         return 0;

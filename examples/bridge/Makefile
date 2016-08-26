@@ -53,9 +53,9 @@ ONVM= $(SRCDIR)/../../onvm
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
-CFLAGS += -I$(ONVM)/onvm_nf
+CFLAGS += -I$(ONVM)/onvm_nflib
 CFLAGS += -I$(ONVM)/shared
-LDFLAGS += $(ONVM)/onvm_nf/onvm_nf/$(RTE_TARGET)/onvm_nflib.o
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_nflib.o
 LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
 LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_sc_common.o
 

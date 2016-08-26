@@ -36,22 +36,24 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * args.c - argument processing for simple onvm
  ********************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <getopt.h>
-#include <stdarg.h>
-#include <errno.h>
 
-#include <rte_memory.h>
-#include <rte_string_fns.h>
+/******************************************************************************
 
-#include "shared/common.h"
-#include "onvm_mgr/args.h"
-#include "onvm_mgr/init.h"
+                                  onvm_args.c
+
+    File containing the function parsing all DPDK and ONVM arguments.
+
+
+******************************************************************************/
+
+
+#include "onvm_mgr/onvm_args.h"
+
+
+/******************************Global variables*******************************/
+
 
 /* global var for number of clients - extern in header init.h */
 uint16_t num_clients;
@@ -68,126 +70,37 @@ uint8_t is_static_clients;
 /* global var for program name */
 static const char *progname;
 
-/**
- * Prints out usage information to stdout */
+
+/***********************Internal Functions prototypes*************************/
+
+
 static void
-usage(void) {
-        printf(
-            "%s [EAL options] -- -p PORTMASK "
-#ifdef USE_STATIC_IDS
-            "[-n NUM_CLIENTS] "
-#endif
-            "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
-            " -p PORTMASK: hexadecimal bitmask of ports to use\n"
-#ifdef USE_STATIC_IDS
-            " -n NUM_CLIENTS: number of client processes to use (optional)\n"
-#endif
-            " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
-            , progname);
-}
+usage(void);
 
-/**
- * The ports to be used by the application are passed in
- * the form of a bitmask. This function parses the bitmask
- * and places the port numbers to be used into the port[]
- * array variable
- */
+
 static int
-parse_portmask(uint8_t max_ports, const char *portmask) {
-        char *end = NULL;
-        unsigned long pm;
-        uint8_t count = 0;
+parse_portmask(uint8_t max_ports, const char *portmask);
 
-        if (portmask == NULL)
-                return -1;
 
-        /* convert parameter to a number and verify */
-        pm = strtoul(portmask, &end, 16);
-        if (pm == 0) {
-                printf("WARNING: No ports are being used.\n");
-                return 0;
-        }
-        if (end == NULL || *end != '\0' || pm == 0)
-                return -1;
-
-        /* loop through bits of the mask and mark ports */
-        while (pm != 0) {
-                if (pm & 0x01) { /* bit is set in mask, use port */
-                        if (count >= max_ports)
-                                printf("WARNING: requested port %u not present"
-                                " - ignoring\n", (unsigned)count);
-                        else
-                            ports->id[ports->num_ports++] = count;
-                }
-                pm = (pm >> 1);
-                count++;
-        }
-
-        return 0;
-}
-
-/**
- * Parse the default service to send packets to
- */
 static int
-parse_default_service(const char *services) {
-        char *end = NULL;
-        unsigned long temp;
+parse_default_service(const char *services);
 
-        temp = strtoul(services, &end, 10);
-        if (end == NULL || *end != '\0' || temp == 0)
-                return -1;
 
-        default_service = (uint16_t)temp;
-        return 0;
-}
-
-/**
- * Parse the number of services to allow from command line args
- */
 static int
-parse_num_services(const char *services) {
-        char *end = NULL;
-        unsigned long temp;
+parse_num_services(const char *services);
 
-        temp = strtoul(services, &end, 10);
-        if (end == NULL || *end != '\0' || temp == 0)
-                return -1;
-
-        num_services = (uint16_t)temp;
-        return 0;
-}
 
 #ifdef USE_STATIC_IDS
-/**
- * Take the number of clients parameter passed to the app
- * and convert to a number to store in the num_clients variable
- */
+
 static int
-parse_num_clients(const char *clients) {
-        char *end = NULL;
-        unsigned long temp;
+parse_num_clients(const char *clients);
 
-        // If we want dynamic client numbering
-        if (clients == NULL || *clients == '\0')
-                return 0;
-
-        temp = strtoul(clients, &end, 10);
-        if (end == NULL || *end != '\0' || temp == 0)
-                return -1;
-
-        num_clients = (uint16_t)temp;
-        is_static_clients = STATIC_CLIENTS;
-        return 0;
-}
 #endif
 
-/**
- * The application specific arguments follow the DPDK-specific
- * arguments which are stripped by the DPDK init. This function
- * processes these application arguments, printing usage info
- * on error.
- */
+
+/*********************************Interfaces**********************************/
+
+
 int
 parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         int option_index, opt;
@@ -245,3 +158,107 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
 
         return 0;
 }
+
+
+/*****************************Internal functions******************************/
+
+
+static void
+usage(void) {
+        printf(
+            "%s [EAL options] -- -p PORTMASK "
+#ifdef USE_STATIC_IDS
+            "[-n NUM_CLIENTS] "
+#endif
+            "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
+            " -p PORTMASK: hexadecimal bitmask of ports to use\n"
+#ifdef USE_STATIC_IDS
+            " -n NUM_CLIENTS: number of client processes to use (optional)\n"
+#endif
+            " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
+            , progname);
+}
+
+
+static int
+parse_portmask(uint8_t max_ports, const char *portmask) {
+        char *end = NULL;
+        unsigned long pm;
+        uint8_t count = 0;
+
+        if (portmask == NULL)
+                return -1;
+
+        /* convert parameter to a number and verify */
+        pm = strtoul(portmask, &end, 16);
+        if (pm == 0) {
+                printf("WARNING: No ports are being used.\n");
+                return 0;
+        }
+        if (end == NULL || *end != '\0' || pm == 0)
+                return -1;
+
+        /* loop through bits of the mask and mark ports */
+        while (pm != 0) {
+                if (pm & 0x01) { /* bit is set in mask, use port */
+                        if (count >= max_ports)
+                                printf("WARNING: requested port %u not present"
+                                " - ignoring\n", (unsigned)count);
+                        else
+                            ports->id[ports->num_ports++] = count;
+                }
+                pm = (pm >> 1);
+                count++;
+        }
+
+        return 0;
+}
+
+
+static int
+parse_default_service(const char *services) {
+        char *end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(services, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        default_service = (uint16_t)temp;
+        return 0;
+}
+
+
+static int
+parse_num_services(const char *services) {
+        char *end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(services, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        num_services = (uint16_t)temp;
+        return 0;
+}
+
+
+#ifdef USE_STATIC_IDS
+static int
+parse_num_clients(const char *clients) {
+        char *end = NULL;
+        unsigned long temp;
+
+        // If we want dynamic client numbering
+        if (clients == NULL || *clients == '\0')
+                return 0;
+
+        temp = strtoul(clients, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        num_clients = (uint16_t)temp;
+        is_static_clients = STATIC_CLIENTS;
+        return 0;
+}
+#endif

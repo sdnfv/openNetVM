@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,89 +36,67 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * sdn_pkt_list.h - list operations
  ********************************************************************/
 
-#ifndef _SDN_PKT_LIST_H_
-#define _SDN_PKT_LIST_H_
 
-#include <rte_mbuf.h>
-#include "onvm_nflib.h"
+/******************************************************************************
 
-struct sdn_pkt_list {
-        struct sdn_pkt_entry *head;
-        struct sdn_pkt_entry *tail;
-        int flag;
-	int counter;
-};
+                                 onvm_nf.h
 
-struct sdn_pkt_entry {
-        struct rte_mbuf *pkt;
-        struct sdn_pkt_entry *next;
-};
+     This file contains the prototypes for all functions related to packet
+     processing.
 
-// FIXME: These functions should have return codes to indicate errors.
+******************************************************************************/
 
-static inline void
-sdn_pkt_list_init(struct sdn_pkt_list* list) {
-        /* FIXME: check for malloc errors */
-        list->head = NULL;
-        list->tail = NULL;
-        list->flag = 0;
-	list->counter = 0;
-}
 
-static inline void
-sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
-	list->counter++;
-        /* FIXME: check for malloc errors */
-        struct sdn_pkt_entry* entry;
-        entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
-        entry->pkt = pkt;
-        entry->next = NULL;
-	if (list->head == NULL) {
-		list->head = entry;
-		list->tail = list->head;
-	}
-	else {
-        	list->tail->next = entry;
-        	list->tail = entry;
-	}
-}
+#ifndef _ONVM_NF_H_
+#define _ONVM_NF_H_
 
-static inline void
-sdn_pkt_list_set_flag(struct sdn_pkt_list* list) {
-    	list->flag = 1;
-}
+extern uint16_t next_instance_id;
 
-static inline int
-sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
-    	return list->flag;
-}
 
-static inline void
-sdn_pkt_list_flush(struct sdn_pkt_list* list) {
-	struct sdn_pkt_entry* entry;
-	struct rte_mbuf *pkt;
-	struct onvm_pkt_meta* meta;
+/********************************Interfaces***********************************/
 
-	printf("list items:%d\n", list->counter);
 
-	while(list->head) {
-		entry = list->head;
-		list->head = entry->next;
-		pkt = entry->pkt;
-		meta = onvm_get_pkt_meta(pkt);
-		meta->action = ONVM_NF_ACTION_NEXT;
-		meta->chain_index = 0;
-		onvm_nflib_return_pkt(pkt);
-		free(entry);
-		list->counter--;
-	}
+/*
+ * Interface checking if a given nf is "valid", meaning if it's running.
+ *
+ * Input  : a pointer to the nf
+ * Output : a boolean answer 
+ *
+ */
+inline int
+onvm_nf_is_valid(struct client *cl);
 
-	list->flag = 0;
-	list->head = NULL;
-	list->tail = NULL;
-	list->counter = 0;
-}
-#endif
+
+/*
+ * Interface giving the smallest unsigned integer unused for a NF instance.
+ *
+ * Output : the unsigned integer 
+ *
+ */
+uint16_t
+onvm_nf_next_instance_id(void);
+
+
+/*
+ * Interface looking through all registered NFs if one needs to start or stop.
+ *
+ */
+void
+onvm_nf_check_status(void);
+
+
+/*
+ * Interface giving a NF for a specific server id, depending on the flow.
+ *
+ * Inputs  : the service id
+             a pointer to the packet whose flow help steer it. 
+ * Output  : a NF instance id
+ *
+ */
+inline uint16_t
+onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt);
+
+
+#endif  // _ONVM_NF_H_

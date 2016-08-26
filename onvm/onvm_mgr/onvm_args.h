@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,89 +36,29 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * sdn_pkt_list.h - list operations
  ********************************************************************/
 
-#ifndef _SDN_PKT_LIST_H_
-#define _SDN_PKT_LIST_H_
 
-#include <rte_mbuf.h>
-#include "onvm_nflib.h"
+/******************************************************************************
 
-struct sdn_pkt_list {
-        struct sdn_pkt_entry *head;
-        struct sdn_pkt_entry *tail;
-        int flag;
-	int counter;
-};
+                                 onvm_args.h
 
-struct sdn_pkt_entry {
-        struct rte_mbuf *pkt;
-        struct sdn_pkt_entry *next;
-};
+    Header file with functions for parsing DPDK and ONVM command-line arguments
 
-// FIXME: These functions should have return codes to indicate errors.
 
-static inline void
-sdn_pkt_list_init(struct sdn_pkt_list* list) {
-        /* FIXME: check for malloc errors */
-        list->head = NULL;
-        list->tail = NULL;
-        list->flag = 0;
-	list->counter = 0;
-}
+******************************************************************************/
 
-static inline void
-sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
-	list->counter++;
-        /* FIXME: check for malloc errors */
-        struct sdn_pkt_entry* entry;
-        entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
-        entry->pkt = pkt;
-        entry->next = NULL;
-	if (list->head == NULL) {
-		list->head = entry;
-		list->tail = list->head;
-	}
-	else {
-        	list->tail->next = entry;
-        	list->tail = entry;
-	}
-}
 
-static inline void
-sdn_pkt_list_set_flag(struct sdn_pkt_list* list) {
-    	list->flag = 1;
-}
+#ifndef _ONVM_ARGS_H_
+#define _ONVM_ARGS_H_
 
-static inline int
-sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
-    	return list->flag;
-}
+#include "getopt.h"
 
-static inline void
-sdn_pkt_list_flush(struct sdn_pkt_list* list) {
-	struct sdn_pkt_entry* entry;
-	struct rte_mbuf *pkt;
-	struct onvm_pkt_meta* meta;
+#include "shared/onvm_includes.h"
+#include "onvm_mgr/onvm_init.h"
 
-	printf("list items:%d\n", list->counter);
+#define DEFAULT_SERVICE_ID 1
 
-	while(list->head) {
-		entry = list->head;
-		list->head = entry->next;
-		pkt = entry->pkt;
-		meta = onvm_get_pkt_meta(pkt);
-		meta->action = ONVM_NF_ACTION_NEXT;
-		meta->chain_index = 0;
-		onvm_nflib_return_pkt(pkt);
-		free(entry);
-		list->counter--;
-	}
+int parse_app_args(uint8_t max_ports, int argc, char *argv[]);
 
-	list->flag = 0;
-	list->head = NULL;
-	list->tail = NULL;
-	list->counter = 0;
-}
-#endif
+#endif  // _ONVM_ARGS_H_

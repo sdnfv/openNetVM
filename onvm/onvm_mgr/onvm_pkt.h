@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,89 +36,81 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * sdn_pkt_list.h - list operations
  ********************************************************************/
 
-#ifndef _SDN_PKT_LIST_H_
-#define _SDN_PKT_LIST_H_
 
-#include <rte_mbuf.h>
-#include "onvm_nflib.h"
+/******************************************************************************
 
-struct sdn_pkt_list {
-        struct sdn_pkt_entry *head;
-        struct sdn_pkt_entry *tail;
-        int flag;
-	int counter;
-};
+                                 onvm_pkt.h
 
-struct sdn_pkt_entry {
-        struct rte_mbuf *pkt;
-        struct sdn_pkt_entry *next;
-};
 
-// FIXME: These functions should have return codes to indicate errors.
+      Header file containing all prototypes of packet processing functions
 
-static inline void
-sdn_pkt_list_init(struct sdn_pkt_list* list) {
-        /* FIXME: check for malloc errors */
-        list->head = NULL;
-        list->tail = NULL;
-        list->flag = 0;
-	list->counter = 0;
-}
 
-static inline void
-sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
-	list->counter++;
-        /* FIXME: check for malloc errors */
-        struct sdn_pkt_entry* entry;
-        entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
-        entry->pkt = pkt;
-        entry->next = NULL;
-	if (list->head == NULL) {
-		list->head = entry;
-		list->tail = list->head;
-	}
-	else {
-        	list->tail->next = entry;
-        	list->tail = entry;
-	}
-}
+******************************************************************************/
 
-static inline void
-sdn_pkt_list_set_flag(struct sdn_pkt_list* list) {
-    	list->flag = 1;
-}
 
-static inline int
-sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
-    	return list->flag;
-}
+#ifndef _ONVM_PKT_H_
+#define _ONVM_PKT_H_
 
-static inline void
-sdn_pkt_list_flush(struct sdn_pkt_list* list) {
-	struct sdn_pkt_entry* entry;
-	struct rte_mbuf *pkt;
-	struct onvm_pkt_meta* meta;
 
-	printf("list items:%d\n", list->counter);
+/*********************************Interfaces**********************************/
 
-	while(list->head) {
-		entry = list->head;
-		list->head = entry->next;
-		pkt = entry->pkt;
-		meta = onvm_get_pkt_meta(pkt);
-		meta->action = ONVM_NF_ACTION_NEXT;
-		meta->chain_index = 0;
-		onvm_nflib_return_pkt(pkt);
-		free(entry);
-		list->counter--;
-	}
 
-	list->flag = 0;
-	list->head = NULL;
-	list->tail = NULL;
-	list->counter = 0;
-}
-#endif
+/*
+ * Interface to process packets in a given RX queue.
+ *
+ * Inputs : a pointer to the rx queue
+ *          an array of packets
+ *          the size of the array
+ *
+ */
+void
+onvm_pkt_process_rx_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint16_t rx_count);
+
+
+/*
+ * Interface to process packets in a given TX queue.
+ *
+ * Inputs : a pointer to the tx queue
+ *          an array of packets
+ *          the size of the array
+ *          a pointer to the client possessing the TX queue.
+ *
+ */
+void
+onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl);
+
+
+/*
+ * Interface to send packets to all ports after processing them.
+ *
+ * Input : a pointer to the tx queue
+ *
+ */
+void
+onvm_pkt_flush_all_ports(struct thread_info *tx);
+
+
+/*
+ * Interface to send packets to all NFs after processing them.
+ *
+ * Input : a pointer to the tx queue
+ *
+ */
+void
+onvm_pkt_flush_all_nfs(struct thread_info *tx);
+
+
+/*
+ * Interface to drop a batch of packets.
+ *
+ * Inputs : the array of packets
+ *          the size of the array
+ *
+ */
+void
+onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size);
+
+
+#endif  // _ONVM_PKT_H_

@@ -36,93 +36,141 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * init.c - initialization for simple onvm
  ********************************************************************/
 
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/queue.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <inttypes.h>
 
-#include <rte_common.h>
-#include <rte_memory.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
-#include <rte_eal.h>
-#include <rte_byteorder.h>
-#include <rte_atomic.h>
-#include <rte_launch.h>
-#include <rte_per_lcore.h>
-#include <rte_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_debug.h>
-#include <rte_ring.h>
-#include <rte_log.h>
-#include <rte_mempool.h>
-#include <rte_memcpy.h>
-#include <rte_mbuf.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_ether.h>
-#include <rte_ethdev.h>
-#include <rte_malloc.h>
-#include <rte_fbk_hash.h>
-#include <rte_string_fns.h>
-#include <rte_cycles.h>
-#include <rte_errno.h>
+/******************************************************************************
 
-#include "shared/common.h"
-#include "onvm_mgr/args.h"
-#include "onvm_mgr/init.h"
-#include "shared/onvm_sc_mgr.h"
-#include "shared/onvm_sc_common.h"
-#include "shared/onvm_flow_table.h"
-#include "shared/onvm_flow_dir.h"
+                                  onvm_init.c
 
-#define MBUFS_PER_CLIENT 1536
-#define MBUFS_PER_PORT 1536
-#define MBUF_CACHE_SIZE 512
-#define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
-#define RX_MBUF_DATA_SIZE 2048
-#define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
+                  File containing initialization functions.
 
-#define NF_INFO_SIZE sizeof(struct onvm_nf_info)
-#define NF_INFO_CACHE 8
 
-#define RTE_MP_RX_DESC_DEFAULT 512
-#define RTE_MP_TX_DESC_DEFAULT 512
-#define CLIENT_QUEUE_RINGSIZE 128
+******************************************************************************/
 
-#define NO_FLAGS 0
 
-/* The mbuf pool for packet rx */
-struct rte_mempool *pktmbuf_pool;
+#include "onvm_mgr/onvm_init.h"
 
-/* mbuf pool for nf info structs */
-struct rte_mempool *nf_info_pool;
 
-/* ring buffer for new clients coming up */
-struct rte_ring *nf_info_queue;
+/********************************Global variables*****************************/
 
-/* array of info/queues for clients */
+
 struct client *clients = NULL;
-
-/* 2D array mapping services to NFs, extern in init.h */
-uint16_t **service_to_nf;
-
-/* Array tracking number of NFs active per service, extern in init.h */
-uint16_t *nf_per_service_count;
-
-/* the port details */
 struct port_info *ports = NULL;
 
+struct rte_mempool *pktmbuf_pool;
+struct rte_mempool *nf_info_pool;
+struct rte_ring *nf_info_queue;
+uint16_t **services;
+uint16_t *nf_per_service_count;
 struct client_tx_stats *clients_stats;
-
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p;
+
+
+/*************************Internal Functions Prototypes***********************/
+
+
+static int init_mbuf_pools(void);
+static int init_client_info_pool(void);
+static int init_port(uint8_t port_num);
+static int init_shm_rings(void);
+static int init_info_queue(void);
+static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
+
+
+/*********************************Interfaces**********************************/
+
+
+int
+init(int argc, char *argv[]) {
+        int retval;
+        const struct rte_memzone *mz;
+	const struct rte_memzone *mz_scp;
+        uint8_t i, total_ports;
+
+        /* init EAL, parsing EAL args */
+        retval = rte_eal_init(argc, argv);
+        if (retval < 0)
+                return -1;
+        argc -= retval;
+        argv += retval;
+
+        /* get total number of ports */
+        total_ports = rte_eth_dev_count();
+
+        /* set up array for client tx data */
+        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
+                                rte_socket_id(), NO_FLAGS);
+        if (mz == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for client information\n");
+        memset(mz->addr, 0, sizeof(*clients_stats));
+        clients_stats = mz->addr;
+
+	/* set up ports info */
+        ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
+        if (ports == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
+
+        /* parse additional, application arguments */
+        retval = parse_app_args(total_ports, argc, argv);
+        if (retval != 0)
+                return -1;
+
+        /* initialise mbuf pools */
+        retval = init_mbuf_pools();
+        if (retval != 0)
+                rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
+
+        /* initialise client info pool */
+        retval = init_client_info_pool();
+        if (retval != 0) {
+                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
+        }
+
+	/* now initialise the ports we will use */
+        for (i = 0; i < ports->num_ports; i++) {
+                retval = init_port(ports->id[i]);
+                if (retval != 0)
+                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n",
+                                        (unsigned)i);
+        }
+
+        check_all_ports_link_status(ports->num_ports, (~0x0));
+
+        /* initialise the client queues/rings for inter-eu comms */
+        init_shm_rings();
+
+        /* initialise a queue for newly created NFs */
+        init_info_queue();
+
+	/*initialize a default service chain*/
+	default_chain = onvm_sc_create();
+	retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
+        if (retval == ENOSPC) {
+                printf("chain length can not be larger than the maximum chain length\n");
+                exit(1);
+        }
+	printf("Default service chain: send to sdn NF\n");
+
+	/* set up service chain pointer shared to NFs*/
+	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
+				   rte_socket_id(), NO_FLAGS);
+	if (mz_scp == NULL)
+		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
+	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
+	default_sc_p = mz_scp->addr;
+	*default_sc_p = default_chain;
+	onvm_sc_print(default_chain);
+
+	onvm_flow_dir_init();
+
+	return 0;
+}
+
+
+/*****************************Internal functions******************************/
+
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
@@ -246,15 +294,15 @@ init_shm_rings(void) {
         if (clients == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
 
-        service_to_nf = rte_calloc("service to nf map",
+        services = rte_calloc("service to nf map",
                 num_services, sizeof(uint16_t*), 0);
         for (i = 0; i < num_services; i++) {
-                service_to_nf[i] = rte_calloc("one service NFs",
+                services[i] = rte_calloc("one service NFs",
                         MAX_CLIENTS_PER_SERVICE, sizeof(uint16_t), 0);
         }
         nf_per_service_count = rte_calloc("count of NFs active per service",
                 num_services, sizeof(uint16_t), 0);
-        if (service_to_nf == NULL || nf_per_service_count == NULL)
+        if (services == NULL || nf_per_service_count == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
 
         for (i = 0; i < MAX_CLIENTS; i++) {
@@ -355,88 +403,3 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
  * Main init function for the multi-process server app,
  * calls subfunctions to do each stage of the initialisation.
  */
-int
-init(int argc, char *argv[]) {
-        int retval;
-        const struct rte_memzone *mz;
-	const struct rte_memzone *mz_scp;
-        uint8_t i, total_ports;
-
-        /* init EAL, parsing EAL args */
-        retval = rte_eal_init(argc, argv);
-        if (retval < 0)
-                return -1;
-        argc -= retval;
-        argv += retval;
-
-        /* get total number of ports */
-        total_ports = rte_eth_dev_count();
-
-        /* set up array for client tx data */
-        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
-                                rte_socket_id(), NO_FLAGS);
-        if (mz == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for client information\n");
-        memset(mz->addr, 0, sizeof(*clients_stats));
-        clients_stats = mz->addr;
-
-	/* set up ports info */
-        ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
-        if (ports == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
-
-        /* parse additional, application arguments */
-        retval = parse_app_args(total_ports, argc, argv);
-        if (retval != 0)
-                return -1;
-
-        /* initialise mbuf pools */
-        retval = init_mbuf_pools();
-        if (retval != 0)
-                rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
-
-        /* initialise client info pool */
-        retval = init_client_info_pool();
-        if (retval != 0) {
-                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
-        }
-
-	/* now initialise the ports we will use */
-        for (i = 0; i < ports->num_ports; i++) {
-                retval = init_port(ports->id[i]);
-                if (retval != 0)
-                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n",
-                                        (unsigned)i);
-        }
-
-        check_all_ports_link_status(ports->num_ports, (~0x0));
-
-        /* initialise the client queues/rings for inter-eu comms */
-        init_shm_rings();
-
-        /* initialise a queue for newly created NFs */
-        init_info_queue();
-
-	/*initialize a default service chain*/
-	default_chain = onvm_sc_create();
-	retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
-        if (retval == ENOSPC) {
-                printf("chain length can not be larger than the maximum chain length\n");
-                exit(1);
-        }
-	printf("Default service chain: send to sdn NF\n");
-
-	/* set up service chain pointer shared to NFs*/
-	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
-				   rte_socket_id(), NO_FLAGS);
-	if (mz_scp == NULL)
-		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
-	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
-	default_sc_p = mz_scp->addr;
-	*default_sc_p = default_chain;
-	onvm_sc_print(default_chain);
-
-	onvm_flow_dir_init();
-
-	return 0;
-}

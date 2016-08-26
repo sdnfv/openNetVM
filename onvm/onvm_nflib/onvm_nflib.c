@@ -35,182 +35,131 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_nflib.c - client lib NF for simple onvm
  ********************************************************************/
 
-#include <stdint.h>
-#include <stdio.h>
-#include <inttypes.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
-#include <stdlib.h>
+/******************************************************************************
+
+                                  onvm_nflib.c
+
+
+                  File containing all functions of the NF API
+
+
+******************************************************************************/
+
+
+/***************************Standard C library********************************/
+
+
 #include <getopt.h>
 #include <signal.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <rte_common.h>
-#include <rte_memory.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
-#include <rte_eal.h>
-#include <rte_atomic.h>
-#include <rte_branch_prediction.h>
-#include <rte_log.h>
-#include <rte_per_lcore.h>
-#include <rte_launch.h>
-#include <rte_lcore.h>
-#include <rte_ring.h>
-#include <rte_debug.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_ether.h>
-#include <rte_ethdev.h>
-#include <rte_string_fns.h>
 
-#include "common.h"
+/*****************************Internal headers********************************/
+
+
 #include "onvm_nflib.h"
+#include "onvm_includes.h"
 #include "onvm_sc_common.h"
 
-/* Number of packets to attempt to read from queue */
-#define PKT_READ_SIZE  ((uint16_t)32)
 
-/* ring used to place new nf_info struct */
+/**********************************Macros*************************************/
+
+
+// Number of packets to attempt to read from queue
+#define PKT_READ_SIZE  ((uint16_t)32) 
+
+
+/******************************Global Variables*******************************/
+
+
+// ring used to place new nf_info struct
 static struct rte_ring *nf_info_ring;
 
-/* rings used to pass packets between NFlib and NFmgr */
+
+// rings used to pass packets between NFlib and NFmgr
 static struct rte_ring *tx_ring, *rx_ring;
 
-/* shared data from server. We update statistics here */
+
+// shared data from server. We update statistics here
 static volatile struct client_tx_stats *tx_stats;
 
-/* Shared data for client info */
+
+// Shared data for client info
 extern struct onvm_nf_info *nf_info;
 
-/* Shared pool for all clients info */
+
+// Shared pool for all clients info
 static struct rte_mempool *nf_info_mp;
 
-/* User-given NF Client ID (defaults to manager assigned) */
+
+// User-given NF Client ID (defaults to manager assigned)
 static uint16_t initial_instance_id = NF_NO_ID;
 
-/* User supplied service ID */
+
+// User supplied service ID
 static uint16_t service_id = -1;
 
-/* True as long as the NF should keep processing packets */
+
+// True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
 
-/* Shared data for default service chain*/
+
+// Shared data for default service chain
 static struct onvm_service_chain *default_chain;
 
-/*
- * Print a usage message
- */
-static void
-usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- "
-#ifdef USE_STATIC_IDS
-               "[-n <instance_id>]"
-#endif
-               "[-r <service_id>]\n\n", progname);
-}
+
+/***********************Internal Functions Prototypes*************************/
+
 
 /*
- * Parse the library arguments.
- */
-static int
-parse_nflib_args(int argc, char *argv[]) {
-        const char *progname = argv[0];
-        int c;
-
-        opterr = 0;
-#ifdef USE_STATIC_IDS
-        while ((c = getopt (argc, argv, "n:r:")) != -1)
-#else
-        while ((c = getopt (argc, argv, "r:")) != -1)
-#endif
-                switch (c) {
-#ifdef USE_STATIC_IDS
-                case 'n':
-                        initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
-                        break;
-#endif
-                case 'r':
-                        service_id = (uint16_t) strtoul(optarg, NULL, 10);
-                        // Service id 0 is reserved
-                        if (service_id == 0) service_id = -1;
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'n')
-                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-                        else
-                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        return -1;
-                }
-
-        if (service_id == (uint16_t)-1) {
-                /* Service ID is required */
-                fprintf(stderr, "You must provide a nonzero service ID with -r\n");
-                return -1;
-        }
-        return optind;
-}
-
-/**
- * CALLED BY NF:
- * Create a new nf_info struct for this NF
- * Pass a unique tag for this NF
+ * Function that initialize a nf info data structure.
+ *
+ * Input  : the tag to name the NF
+ * Output : the data structure initialized
+ *
  */
 static struct onvm_nf_info *
-ovnm_nf_info_init(const char *tag)
-{
-        void *mempool_data;
-        struct onvm_nf_info *info;
+onvm_nflib_info_init(const char *tag);
 
-        if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
-                rte_exit(EXIT_FAILURE, "Failed to get client info memory");
-        }
 
-        if (mempool_data == NULL) {
-                rte_exit(EXIT_FAILURE, "Client Info struct not allocated");
-        }
-
-        info = (struct onvm_nf_info*) mempool_data;
-        info->instance_id = initial_instance_id;
-        info->service_id = service_id;
-        info->status = NF_WAITING_FOR_ID;
-        info->tag = tag;
-
-        return info;
-}
-
-/**
- * CALLED BY NF:
- * Sets this NF to not runnings and exits with EXIT_SUCCESS
- */
-void
-onvm_nf_stop(void) {
-        rte_exit(EXIT_SUCCESS, "Done.");
-}
-
-/**
- * CALLED BY NF:
- * Initialises everything we need
+/*
+ * Function printing an explanation of command line instruction for a NF.
  *
- * Returns the number of arguments parsed by both rte_eal_init and
- * parse_nflib_args offset by 1.  This is used by getopt in the NF's
- * code.  The offsetting by one accounts for getopt parsing "--" which
- * increments optind by 1 each time.
+ * Input : name of the executable containing the NF
+ *
  */
+static void
+onvm_nflib_usage(const char *progname);
+
+
+/*
+ * Function that parses the global arguments common to all NFs.
+ *
+ * Input  : the number of arguments (following C standard library convention)
+ *          an array of strings representing these arguments
+ * Output : an error code
+ *
+ */
+static int
+onvm_nflib_parse_args(int argc, char *argv[]);
+
+
+/*
+* Signal handler to catch SIGINT.
+*
+* Input : int corresponding to the signal catched
+*
+*/
+static void
+onvm_nflib_handle_signal(int sig);
+
+
+/************************************API**************************************/
+
+
 int
-onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         const struct rte_memzone *mz;
 	const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
@@ -226,7 +175,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         /* Reset getopt global variables opterr and optind to their default values */
         opterr = 0; optind = 1;
 
-        if ((retval_parse = parse_nflib_args(argc, argv)) < 0)
+        if ((retval_parse = onvm_nflib_parse_args(argc, argv)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         /*
@@ -248,7 +197,7 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
                 rte_exit(EXIT_FAILURE, "No Client Info mempool - bye\n");
 
         /* Initialize the info struct */
-        nf_info = ovnm_nf_info_init(nf_tag);
+        nf_info = onvm_nflib_info_init(nf_tag);
 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
@@ -313,24 +262,12 @@ onvm_nf_init(int argc, char *argv[], const char *nf_tag) {
         return retval_final;
 }
 
-/**
- * Called for SIGINT, or ^C
- * Tells the main loop it's time to exit and clean up
- */
-static void
-handle_signal(int sig)
-{
-        if (sig == SIGINT)
-                keep_running = 0;
-}
 
-/**
- * CALLED BY NF:
- * Application main function - loops through
- * receiving and processing packets. Never returns
- */
 int
-onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)) {
+onvm_nflib_run(
+        struct onvm_nf_info* info,
+        int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)
+        ) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
 
@@ -338,7 +275,7 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
         printf("[Press Ctrl-C to quit ...]\n");
 
         /* Listen for ^C so we can exit gracefully */
-        signal(SIGINT, handle_signal);
+        signal(SIGINT, onvm_nflib_handle_signal);
 
         for (; keep_running;) {
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
@@ -394,11 +331,9 @@ onvm_nf_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struc
         return 0;
 }
 
-/*
- * Return a buffered packet.
- */
+
 int
-onvm_nf_return_pkt(struct rte_mbuf* pkt) {
+onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
         /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
         if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
@@ -407,4 +342,99 @@ onvm_nf_return_pkt(struct rte_mbuf* pkt) {
         }
         else tx_stats->tx_returned[nf_info->instance_id]++;
         return 0;
+}
+
+
+void
+onvm_nflib_stop(void) {
+        rte_exit(EXIT_SUCCESS, "Done.");
+}
+
+
+/******************************Helper functions*******************************/
+
+
+static struct onvm_nf_info *
+onvm_nflib_info_init(const char *tag)
+{
+        void *mempool_data;
+        struct onvm_nf_info *info;
+
+        if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to get client info memory");
+        }
+
+        if (mempool_data == NULL) {
+                rte_exit(EXIT_FAILURE, "Client Info struct not allocated");
+        }
+
+        info = (struct onvm_nf_info*) mempool_data;
+        info->instance_id = initial_instance_id;
+        info->service_id = service_id;
+        info->status = NF_WAITING_FOR_ID;
+        info->tag = tag;
+
+        return info;
+}
+
+
+static void
+onvm_nflib_usage(const char *progname) {
+        printf("Usage: %s [EAL args] -- "
+#ifdef USE_STATIC_IDS
+               "[-n <instance_id>]"
+#endif
+               "[-r <service_id>]\n\n", progname);
+}
+
+
+static int
+onvm_nflib_parse_args(int argc, char *argv[]) {
+        const char *progname = argv[0];
+        int c;
+
+        opterr = 0;
+#ifdef USE_STATIC_IDS
+        while ((c = getopt (argc, argv, "n:r:")) != -1)
+#else
+        while ((c = getopt (argc, argv, "r:")) != -1)
+#endif
+                switch (c) {
+#ifdef USE_STATIC_IDS
+                case 'n':
+                        initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
+                        break;
+#endif
+                case 'r':
+                        service_id = (uint16_t) strtoul(optarg, NULL, 10);
+                        // Service id 0 is reserved
+                        if (service_id == 0) service_id = -1;
+                        break;
+                case '?':
+                        onvm_nflib_usage(progname);
+                        if (optopt == 'n')
+                                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                        else if (isprint(optopt))
+                                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                        else
+                                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+                        return -1;
+                default:
+                        return -1;
+                }
+
+        if (service_id == (uint16_t)-1) {
+                /* Service ID is required */
+                fprintf(stderr, "You must provide a nonzero service ID with -r\n");
+                return -1;
+        }
+        return optind;
+}
+
+
+static void
+onvm_nflib_handle_signal(int sig)
+{
+        if (sig == SIGINT)
+                keep_running = 0;
 }

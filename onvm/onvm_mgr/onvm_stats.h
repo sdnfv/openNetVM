@@ -36,14 +36,54 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * args.h - argument processing for simple onvm
  ********************************************************************/
 
-#ifndef _ARGS_H_
-#define _ARGS_H_
 
-#define DEFAULT_SERVICE_ID 1
+/******************************************************************************
+                                 onvm_stats.h
 
-int parse_app_args(uint8_t max_ports, int argc, char *argv[]);
+            This file contains all function prototypes related to
+            statistics display.
 
-#endif  // _ARGS_H_
+******************************************************************************/
+
+
+#ifndef _ONVM_STATS_H_
+#define _ONVM_STATS_H_
+
+
+/*********************************Interfaces**********************************/
+
+
+/*
+ * Interface called by the ONVM Manager to display all statistics
+ * available.
+ *
+ * Input : time passed since last display (to compute packet rate)
+ *
+ */
+void onvm_stats_display_all(unsigned difftime);
+
+
+/*
+ * Interface called by the ONVM Manager to clear all clients statistics
+ * available.
+ *
+ * Note : this function doesn't use onvm_stats_clear_client for each client,
+ * since with a huge number of clients, the additional functions calls would
+ * incur a visible slowdown.
+ *
+ */
+void onvm_stats_clear_all_clients(void);
+
+
+/*
+ * Interface called by the ONVM Manager to clear one client's statistics.
+ *
+ * Input : the client id
+ *
+ */
+void onvm_stats_clear_client(uint16_t id);
+
+
+#endif  // _ONVM_STATS_H_

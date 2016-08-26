@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
 
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nf_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
 	/* Map the sdn_ft table */
 	onvm_flow_dir_nf_init();
 
-	onvm_nf_run(nf_info, &packet_handler);
+	onvm_nflib_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
 
 	return 0;

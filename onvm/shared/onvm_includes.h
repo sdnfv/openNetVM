@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,89 +36,66 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * sdn_pkt_list.h - list operations
  ********************************************************************/
 
-#ifndef _SDN_PKT_LIST_H_
-#define _SDN_PKT_LIST_H_
 
+/******************************************************************************
+
+                               onvm_includes.h
+
+
+         Header file containing all shared headers and data structures
+
+
+******************************************************************************/
+
+
+#ifndef _ONVM_INCLUDES_H_
+#define _ONVM_INCLUDES_H_
+
+
+/******************************Standard C library*****************************/
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <inttypes.h>
+#include <sys/queue.h>
+#include <errno.h>
+
+
+/********************************DPDK library*********************************/
+
+
+#include <rte_common.h>
+#include <rte_memory.h>
+#include <rte_memzone.h>
+#include <rte_tailq.h>
+#include <rte_eal.h>
+#include <rte_launch.h>
+#include <rte_per_lcore.h>
+#include <rte_lcore.h>
+#include <rte_branch_prediction.h>
+#include <rte_atomic.h>
+#include <rte_ring.h>
+#include <rte_log.h>
+#include <rte_debug.h>
+#include <rte_mempool.h>
 #include <rte_mbuf.h>
-#include "onvm_nflib.h"
+#include <rte_ether.h>
+#include <rte_interrupts.h>
+#include <rte_pci.h>
+#include <rte_ethdev.h>
+#include <rte_string_fns.h>
 
-struct sdn_pkt_list {
-        struct sdn_pkt_entry *head;
-        struct sdn_pkt_entry *tail;
-        int flag;
-	int counter;
-};
 
-struct sdn_pkt_entry {
-        struct rte_mbuf *pkt;
-        struct sdn_pkt_entry *next;
-};
+/******************************Internal headers*******************************/
 
-// FIXME: These functions should have return codes to indicate errors.
 
-static inline void
-sdn_pkt_list_init(struct sdn_pkt_list* list) {
-        /* FIXME: check for malloc errors */
-        list->head = NULL;
-        list->tail = NULL;
-        list->flag = 0;
-	list->counter = 0;
-}
+#include "common.h"
 
-static inline void
-sdn_pkt_list_add(struct sdn_pkt_list* list, struct rte_mbuf *pkt) {
-	list->counter++;
-        /* FIXME: check for malloc errors */
-        struct sdn_pkt_entry* entry;
-        entry = (struct sdn_pkt_entry*) calloc(1, sizeof(struct sdn_pkt_entry));
-        entry->pkt = pkt;
-        entry->next = NULL;
-	if (list->head == NULL) {
-		list->head = entry;
-		list->tail = list->head;
-	}
-	else {
-        	list->tail->next = entry;
-        	list->tail = entry;
-	}
-}
-
-static inline void
-sdn_pkt_list_set_flag(struct sdn_pkt_list* list) {
-    	list->flag = 1;
-}
-
-static inline int
-sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
-    	return list->flag;
-}
-
-static inline void
-sdn_pkt_list_flush(struct sdn_pkt_list* list) {
-	struct sdn_pkt_entry* entry;
-	struct rte_mbuf *pkt;
-	struct onvm_pkt_meta* meta;
-
-	printf("list items:%d\n", list->counter);
-
-	while(list->head) {
-		entry = list->head;
-		list->head = entry->next;
-		pkt = entry->pkt;
-		meta = onvm_get_pkt_meta(pkt);
-		meta->action = ONVM_NF_ACTION_NEXT;
-		meta->chain_index = 0;
-		onvm_nflib_return_pkt(pkt);
-		free(entry);
-		list->counter--;
-	}
-
-	list->flag = 0;
-	list->head = NULL;
-	list->tail = NULL;
-	list->counter = 0;
-}
-#endif
+#endif  // _ONVM_INCLUDES_H_

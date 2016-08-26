@@ -47,6 +47,6 @@ include $(RTE_SDK)/mk/rte.vars.mk
 
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += shared
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_mgr
-DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_nf
+DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_nflib
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
