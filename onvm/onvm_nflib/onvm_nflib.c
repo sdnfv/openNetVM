@@ -274,8 +274,9 @@ onvm_nflib_run(
         printf("\nClient process %d handling packets\n", info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
-        /* Listen for ^C so we can exit gracefully */
+        /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, onvm_nflib_handle_signal);
+        signal(SIGTERM, onvm_nflib_handle_signal);
 
         for (; keep_running;) {
                 uint16_t i, j, nb_pkts = PKT_READ_SIZE;
@@ -435,6 +436,6 @@ onvm_nflib_parse_args(int argc, char *argv[]) {
 static void
 onvm_nflib_handle_signal(int sig)
 {
-        if (sig == SIGINT)
+        if (sig == SIGINT || sig == SIGTERM)
                 keep_running = 0;
 }

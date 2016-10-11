@@ -15,7 +15,7 @@ fi
 
 if [ -z $print ]
 then
-        sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service
+        exec sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service
 else
-        sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
+        exec sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service -- -p $print
 fi

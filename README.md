@@ -19,6 +19,11 @@ Creating NFs
 --
 The [NF Development][nfs] guide will provide what you need to start create your own NFs.
 
+Dockerize NFs
+--
+NFs can be run inside docker containers, with the NF being automatically or hand started. For more informations, see our [Docker guide][docker-nf].
+
+
 
 [onvm]: http://sdnfv.github.io/onvm/
 [license]: LICENSE
@@ -28,3 +33,4 @@ The [NF Development][nfs] guide will provide what you need to start create your 
 [install]: docs/Install.md
 [examples]: docs/Examples.md
 [nfs]: docs/NF_Dev.md
+[docker-nf]: docs/Docker.md

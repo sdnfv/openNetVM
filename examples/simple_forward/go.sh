@@ -15,7 +15,7 @@ fi
 
 if [ -z $print ]
 then
-        sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
+        exec sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
 else
-        sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
+        exec sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
 fi

@@ -14,7 +14,7 @@ fi
 
 if [ -z $print ]
 then
-	sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service
+	exec sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service
 else
-	sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service -- $print
+	exec sudo ./flow_table/$RTE_TARGET/flow_table -l $cpu -n 3 --proc-type=secondary -- -r $service -- $print
 fi
