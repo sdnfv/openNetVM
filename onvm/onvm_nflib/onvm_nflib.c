@@ -382,9 +382,7 @@ onvm_nflib_info_init(const char *tag)
 static void
 onvm_nflib_usage(const char *progname) {
         printf("Usage: %s [EAL args] -- "
-#ifdef USE_STATIC_IDS
                "[-n <instance_id>]"
-#endif
                "[-r <service_id>]\n\n", progname);
 }
 
@@ -395,17 +393,11 @@ onvm_nflib_parse_args(int argc, char *argv[]) {
         int c;
 
         opterr = 0;
-#ifdef USE_STATIC_IDS
         while ((c = getopt (argc, argv, "n:r:")) != -1)
-#else
-        while ((c = getopt (argc, argv, "r:")) != -1)
-#endif
                 switch (c) {
-#ifdef USE_STATIC_IDS
                 case 'n':
                         initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
                         break;
-#endif
                 case 'r':
                         service_id = (uint16_t) strtoul(optarg, NULL, 10);
                         // Service id 0 is reserved

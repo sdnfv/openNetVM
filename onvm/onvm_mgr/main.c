@@ -176,7 +176,7 @@ tx_thread_main(void *arg) {
 int
 main(int argc, char *argv[]) {
         unsigned cur_lcore, rx_lcores, tx_lcores;
-        unsigned clients_per_tx, temp_num_clients;
+        unsigned clients_per_tx;
         unsigned i;
 
         /* initialise the system */
@@ -212,21 +212,18 @@ main(int argc, char *argv[]) {
          * We want to distribute the number of running NFs across available
          * TX threads
          */
-        if (num_clients == 0) {
-                clients_per_tx = ceil((float)MAX_CLIENTS/tx_lcores);
-                temp_num_clients = (unsigned)MAX_CLIENTS;
-        } else {
-                clients_per_tx = ceil((float)num_clients/tx_lcores);
-                temp_num_clients = (unsigned)num_clients;
-        }
+        clients_per_tx = ceil((float)MAX_CLIENTS/tx_lcores);
+
+        // We start the system with 0 NFs active
+        num_clients = 0;
 
         for (i = 0; i < tx_lcores; i++) {
                 struct thread_info *tx = calloc(1, sizeof(struct thread_info));
                 tx->queue_id = i;
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
                 tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
-                tx->first_cl = RTE_MIN(i * clients_per_tx + 1, temp_num_clients);
-                tx->last_cl = RTE_MIN((i+1) * clients_per_tx + 1, temp_num_clients);
+                tx->first_cl = RTE_MIN(i * clients_per_tx + 1, (unsigned)MAX_CLIENTS);
+                tx->last_cl = RTE_MIN((i+1) * clients_per_tx + 1, (unsigned)MAX_CLIENTS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR,

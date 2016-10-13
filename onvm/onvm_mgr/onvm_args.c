@@ -55,7 +55,7 @@
 /******************************Global variables*******************************/
 
 
-/* global var for number of clients - extern in header init.h */
+/* global var for number of currently active clients - extern in header init.h */
 uint16_t num_clients;
 
 /* global var for number of services - extern in header init.h */
@@ -63,9 +63,6 @@ uint16_t num_services = MAX_SERVICES;
 
 /* global var for the default service id - extern in init.h */
 uint16_t default_service = DEFAULT_SERVICE_ID;
-
-/* global var: did user directly specify num clients? */
-uint8_t is_static_clients;
 
 /* global var for program name */
 static const char *progname;
@@ -90,14 +87,6 @@ static int
 parse_num_services(const char *services);
 
 
-#ifdef USE_STATIC_IDS
-
-static int
-parse_num_clients(const char *clients);
-
-#endif
-
-
 /*********************************Interfaces**********************************/
 
 
@@ -109,13 +98,8 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 {NULL, 0, 0, 0 }
         };
         progname = argv[0];
-        is_static_clients = DYNAMIC_CLIENTS;
 
-#ifdef USE_STATIC_IDS
-        while ((opt = getopt_long(argc, argvopt, "n:r:p:d:", lgopts, &option_index)) != EOF) {
-#else
         while ((opt = getopt_long(argc, argvopt, "r:p:d:", lgopts, &option_index)) != EOF) {
-#endif
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -123,14 +107,6 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                         return -1;
                                 }
                                 break;
-#ifdef USE_STATIC_IDS
-                        case 'n':
-                                if (parse_num_clients(optarg) != 0) {
-                                        usage();
-                                        return -1;
-                                }
-                                break;
-#endif
                         case 'r':
                                 if (parse_num_services(optarg) != 0) {
                                         usage();
@@ -150,12 +126,6 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 }
         }
 
-        if (is_static_clients == STATIC_CLIENTS
-               && num_clients == 0) {
-                usage();
-                return -1;
-        }
-
         return 0;
 }
 
@@ -167,14 +137,8 @@ static void
 usage(void) {
         printf(
             "%s [EAL options] -- -p PORTMASK "
-#ifdef USE_STATIC_IDS
-            "[-n NUM_CLIENTS] "
-#endif
             "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
             " -p PORTMASK: hexadecimal bitmask of ports to use\n"
-#ifdef USE_STATIC_IDS
-            " -n NUM_CLIENTS: number of client processes to use (optional)\n"
-#endif
             " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
             , progname);
 }
@@ -242,23 +206,3 @@ parse_num_services(const char *services) {
         return 0;
 }
 
-
-#ifdef USE_STATIC_IDS
-static int
-parse_num_clients(const char *clients) {
-        char *end = NULL;
-        unsigned long temp;
-
-        // If we want dynamic client numbering
-        if (clients == NULL || *clients == '\0')
-                return 0;
-
-        temp = strtoul(clients, &end, 10);
-        if (end == NULL || *end != '\0' || temp == 0)
-                return -1;
-
-        num_clients = (uint16_t)temp;
-        is_static_clients = STATIC_CLIENTS;
-        return 0;
-}
-#endif

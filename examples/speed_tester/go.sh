@@ -1,21 +1,29 @@
 #!/bin/bash
 
-cpu=$1
-service=$2
-dst=$3
-print=$4
-
-if [ -z $dst ]
-then
-        echo "$0 [cpu-list] [Service ID] [DST] [PRINT]"
+function usage {
+        echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID]"
         echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
         echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
         exit 1
+}
+
+cpu=$1
+service=$2
+dst=$3
+shift 3
+
+if [ -z $service ]
+then
+    usage
 fi
 
-if [ -z $print ]
-then
-        exec sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst
-else
-        exec sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst -p $print
-fi
+while getopts ":p:n:" opt; do
+  case $opt in
+    p) print="-p $OPTARG";;
+    n) instance="-n $OPTARG";;
+    \?) echo "Unknown option -$OPTARG" && usage
+    ;;
+  esac
+done
+
+exec sudo ./build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print
