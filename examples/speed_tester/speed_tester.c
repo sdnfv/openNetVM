@@ -184,8 +184,10 @@ int main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0)
+        if (parse_app_args(argc, argv, progname) < 0) {
+                onvm_nflib_stop();
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        }
 
         struct rte_mempool *pktmbuf_pool;
         struct rte_mbuf* pkts[NUM_PKTS];
@@ -193,6 +195,7 @@ int main(int argc, char *argv[]) {
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if(pktmbuf_pool == NULL) {
+                onvm_nflib_stop();
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
         printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);

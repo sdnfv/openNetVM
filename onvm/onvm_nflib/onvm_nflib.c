@@ -154,6 +154,13 @@ onvm_nflib_parse_args(int argc, char *argv[]);
 static void
 onvm_nflib_handle_signal(int sig);
 
+/*
+ * Set this NF's status to not running and release memory
+ *
+ * Input: Info struct corresponding to this NF
+ */
+static void
+onvm_nflib_cleanup(void);
 
 /************************************API**************************************/
 
@@ -316,19 +323,9 @@ onvm_nflib_run(
                 }
         }
 
-        nf_info->status = NF_STOPPED;
+        // Stop and free
+        onvm_nflib_cleanup();
 
-        /* Put this NF's info struct back into queue for manager to ack shutdown */
-        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
-        if (nf_info_ring == NULL) {
-                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
-                rte_exit(EXIT_FAILURE, "Cannot get nf_info ring for shutdown");
-        }
-
-        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
-                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
-                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
-        }
         return 0;
 }
 
@@ -345,10 +342,9 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
         return 0;
 }
 
-
 void
 onvm_nflib_stop(void) {
-        rte_exit(EXIT_SUCCESS, "Done.");
+        onvm_nflib_cleanup();
 }
 
 
@@ -430,4 +426,23 @@ onvm_nflib_handle_signal(int sig)
 {
         if (sig == SIGINT || sig == SIGTERM)
                 keep_running = 0;
+}
+
+static void
+onvm_nflib_cleanup(void)
+{
+        nf_info->status = NF_STOPPED;
+
+        /* Put this NF's info struct back into queue for manager to ack shutdown */
+        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
+        if (nf_info_ring == NULL) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot get nf_info ring for shutdown");
+        }
+
+        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
+        }
+
 }

@@ -106,13 +106,10 @@ onvm_nflib_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, st
 int
 onvm_nflib_return_pkt(struct rte_mbuf* pkt);
 
-
 /**
- * Stop this NF
- * Sets the info to be not running and exits this process gracefully
+ * Stop this NF and clean up its memory
  */
 void
 onvm_nflib_stop(void);
-
 
 #endif  // _ONVM_NFLIB_H_
