@@ -7,26 +7,26 @@ function usage {
         exit 1
 }
 
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
 cpu=$1
 service=$2
 dst=$3
+
 shift 3
+
+if [ -z $dst ]
+then
+    usage
+fi
 
 while getopts ":p:n:" opt; do
   case $opt in
-    p) print="-p $OPTARG"
-    ;;
-    n) instance="-n $OPTARG"
-    ;;
+    p) print="-p $OPTARG";;
+    n) instance="-n $OPTARG";;
     \?) echo "Unknown option -$OPTARG" && usage
     ;;
   esac
 done
 
-if [ -z $service ]
-then
-    usage
-fi
-
-exec sudo ./build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print
-
+exec sudo $SCRIPTPATH/build/forward -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print

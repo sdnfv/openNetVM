@@ -8,8 +8,11 @@ function usage {
         exit 1
 }
 
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
 cpu=$1
 service=$2
+
 shift 2
 
 if [ -z $service ]
@@ -26,4 +29,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo ./build/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print
+exec sudo $SCRIPTPATH/build/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print

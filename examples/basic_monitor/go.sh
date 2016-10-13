@@ -8,9 +8,17 @@ function usage {
         exit 1
 }
 
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
 cpu=$1
 service=$2
+
 shift 2
+
+if [ -z $service ]
+then
+    usage
+fi
 
 while getopts ":p:n:" opt; do
   case $opt in
@@ -21,9 +29,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-if [ -z $service ]
-then
-    usage
-fi
-
-exec sudo ./build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print
+exec sudo $SCRIPTPATH/build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print

@@ -3,6 +3,9 @@
 cpu=$1
 ports=$2
 
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
 if [ -z $ports ]
 then
         echo "$0 [cpu-list] [port-bitmask]"
@@ -14,4 +17,4 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo ./onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary  -- -p${ports}
+sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary  -- -p${ports}
