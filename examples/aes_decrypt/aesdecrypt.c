@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2016 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * forward.c - an example using onvm. Forwards packets to a DST NF.
+ * aesdecrypt.c - Decrypts UDP packets encrypted with AES 
  ********************************************************************/
 
 #include <unistd.h>
@@ -52,11 +53,14 @@
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_udp.h>
+#include <rte_ether.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "aes.h"
 
-#define NF_TAG "simple_forward"
+#define NF_TAG "aes_encrypt"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -66,6 +70,15 @@ static uint32_t print_delay = 1000000;
 
 
 static uint32_t destination;
+
+/* AES encryption parameters */
+BYTE key[1][32] = {
+  {0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
+};
+BYTE iv[1][16] = {
+  {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}
+};
+WORD key_schedule[60]; //word Schedule
 
 /*
  * Print a usage message
@@ -109,7 +122,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-                RTE_LOG(INFO, APP, "Simple Forward NF requires destination flag -d.\n");
+                RTE_LOG(INFO, APP, "AES Decrypt NF requires destination flag -d.\n");
                 return -1;
         }
 
@@ -143,7 +156,16 @@ do_stats_display(struct rte_mbuf* pkt) {
 
         ip = onvm_pkt_ipv4_hdr(pkt);
         if (ip != NULL) {
+		struct udp_hdr *udp;
+
                 onvm_pkt_print(pkt);
+		/* Check if we have a valid UDP packet */
+		udp = onvm_pkt_udp_hdr(pkt);
+		if (udp != NULL) {
+			uint8_t *	pkt_data;
+			pkt_data = ((uint8_t *) udp) + sizeof(struct udp_hdr);
+			printf("Payload : %.32s\n", pkt_data);
+		}
         } else {
                 printf("No IP4 header found\n");
         }
@@ -151,7 +173,34 @@ do_stats_display(struct rte_mbuf* pkt) {
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+	struct udp_hdr *udp;
         static uint32_t counter = 0;
+
+	/* Check if we have a valid UDP packet */
+	udp = onvm_pkt_udp_hdr(pkt);
+	if (udp != NULL) {
+		uint8_t *	pkt_data;
+		uint8_t *	eth;
+		uint16_t	plen;
+		uint16_t	hlen;
+	  
+		/* Get at the payload */
+		pkt_data = ((uint8_t *) udp) + sizeof(struct udp_hdr);
+		/* Calculate length */
+		eth = rte_pktmbuf_mtod(pkt, uint8_t *);
+		hlen = pkt_data - eth;
+		plen = pkt->pkt_len - hlen;
+
+		/* Encrypt. */
+		/* IV should change with every packet, but we don't have any
+		 * way to send it to the other side. */
+		aes_decrypt_ctr(pkt_data, plen, pkt_data, key_schedule, 256, iv[0]);
+		if (counter == 0) {
+			printf("Decrypted %d bytes at offset %d (%ld)\n",
+			       plen, hlen, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) + sizeof(struct udp_hdr));
+		}
+	}
+	
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
@@ -178,7 +227,10 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_run(nf_info, &packet_handler);
+	/* Initialise encryption engine. Key should be configurable. */
+	aes_key_setup(key[0], key_schedule, 256);
+
+	onvm_nflib_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending");
         return 0;
 }

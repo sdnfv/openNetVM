@@ -6,6 +6,7 @@
 # Copyright(c)
 #          2015-2016 George Washington University
 #          2015-2016 University of California Riverside
+#          2016 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,17 +39,32 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-# To add new examples, append the directory name to this variable
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt
-clean_examples=$(addprefix clean_,$(examples))
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
-.PHONY: $(examples) $(clean_examples)
+# Default target, can be overriden by command line or environment
+include $(RTE_SDK)/mk/rte.vars.mk
 
-all : $(examples)
-clean: $(clean_examples)
+# binary name
+APP = aesencrypt
 
-$(examples):
-	cd $@ && $(MAKE)
+# all source are stored in SRCS-y
+SRCS-y := aesencrypt.c aes.c
 
-$(clean_examples):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+# OpenNetVM path
+ONVM= $(SRCDIR)/../../onvm
+
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/shared
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/x86_64-native-linuxapp-gcc/onvm_nflib.o
+LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
+LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_sc_common.o
+
+# workaround for a gcc bug with noreturn attribute
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
+ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
+CFLAGS_main.o += -Wno-return-type
+endif
+
+include $(RTE_SDK)/mk/rte.extapp.mk

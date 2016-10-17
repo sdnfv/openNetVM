@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 function usage {
         echo "$0 CPU-LIST SERVICE-ID [-p PRINT] [-n NF-ID]"
         echo "$0 3 0 --> core 3, Service ID 0"
