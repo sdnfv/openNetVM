@@ -63,7 +63,7 @@ onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
 	/*
 	 * Get the ethernet header from the pkt
 	 */
-	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+	eth = onvm_pkt_ether_hdr(pkt);
 
 	/*
 	 * Copy the source mac address to the destination field.
@@ -80,6 +80,13 @@ onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
 	return 0;
 }
 
+struct ether_hdr*
+onvm_pkt_ether_hdr(struct rte_mbuf* pkt) {
+        if (unlikely(pkt == NULL)) {
+                return NULL;
+        }
+	return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+}
 
 struct tcp_hdr*
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
@@ -236,4 +243,49 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
                 hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 24) & 0xFF);
         printf("Destination IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->dst_addr,
                 hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 24) & 0xFF);
+}
+
+void onvm_pkt_print_ether(struct ether_hdr* hdr) {
+        const char *type = NULL;
+        if (unlikely(hdr == NULL)) {
+                return;
+        }
+        printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                        hdr->s_addr.addr_bytes[0], hdr->s_addr.addr_bytes[1],
+                        hdr->s_addr.addr_bytes[2], hdr->s_addr.addr_bytes[3],
+                        hdr->s_addr.addr_bytes[4], hdr->s_addr.addr_bytes[5]);
+        printf("Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                        hdr->d_addr.addr_bytes[0], hdr->d_addr.addr_bytes[1],
+                        hdr->d_addr.addr_bytes[2], hdr->d_addr.addr_bytes[3],
+                        hdr->d_addr.addr_bytes[4], hdr->d_addr.addr_bytes[5]);
+        switch(hdr->ether_type) {
+                case ETHER_TYPE_IPv4:
+                        type = "IPv4";
+                        break;
+                case ETHER_TYPE_IPv6:
+                        type = "IPv6";
+                        break;
+                case ETHER_TYPE_ARP:
+                        type = "ARP";
+                        break;
+                case ETHER_TYPE_RARP:
+                        type = "Reverse ARP";
+                        break;
+                case ETHER_TYPE_VLAN:
+                        type = "VLAN";
+                        break;
+                case ETHER_TYPE_1588:
+                        type = "1588 Precise Time";
+                        break;
+                case ETHER_TYPE_SLOW:
+                        type = "Slow";
+                        break;
+                case ETHER_TYPE_TEB:
+                        type = "Transparent Ethernet Bridging (TEP)";
+                        break;
+                default:
+                        type = "unknown";
+                        break;
+        }
+        printf("Type: %s\n", type);
 }

@@ -61,6 +61,9 @@ onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port);
 struct tcp_hdr*
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);
 
+struct ether_hdr*
+onvm_pkt_ether_hdr(struct rte_mbuf* pkt);
+
 struct udp_hdr*
 onvm_pkt_udp_hdr(struct rte_mbuf* pkt);
 
@@ -93,5 +96,8 @@ onvm_pkt_print_udp(struct udp_hdr* hdr);
 
 void
 onvm_pkt_print_ipv4(struct ipv4_hdr* hdr);
+
+void
+onvm_pkt_print_ether(struct ether_hdr* hdr);
 
 #endif  // _ONVM_PKT_HELPER_H_"
