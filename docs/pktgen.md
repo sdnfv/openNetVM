@@ -140,7 +140,7 @@ pktgen.set("all", "dport", 1234);
 pktgen.set("all", "count", 100000);
 pktgen.set("all", "rate",100);
 
-pktgen.vlan_id("all", 5);
+pktgen.vlan_id("all", "start", 1);
 ```
 
 2.3 executing the example

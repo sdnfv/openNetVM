@@ -50,4 +50,4 @@ pktgen.set("all", "dport", 1234);
 
 pktgen.set("all", "rate",100);
 
-pktgen.vlanid("all", 5);
+pktgen.vlanid("all", "start", 1);
