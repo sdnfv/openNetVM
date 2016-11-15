@@ -62,7 +62,7 @@
 
 #include "sdn.h"
 #include "sdn_pkt_list.h"
-#include "common.h"
+#include "onvm_common.h"
 #include "onvm_nflib.h"
 #include "onvm_flow_table.h"
 #include "setupconn.h"

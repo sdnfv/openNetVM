@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2016 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -67,7 +68,7 @@
 
 
 // Number of packets to attempt to read from queue
-#define PKT_READ_SIZE  ((uint16_t)32) 
+#define PKT_READ_SIZE  ((uint16_t)32)
 
 
 /******************************Global Variables*******************************/
@@ -273,8 +274,10 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 int
 onvm_nflib_run(
         struct onvm_nf_info* info,
-        int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta)
-        ) {
+        int(*handler)(struct rte_mbuf* pkt,
+        struct onvm_pkt_meta* meta)
+        )
+{
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
 
@@ -286,18 +289,15 @@ onvm_nflib_run(
         signal(SIGTERM, onvm_nflib_handle_signal);
 
         for (; keep_running;) {
-                uint16_t i, j, nb_pkts = PKT_READ_SIZE;
+                uint16_t i, j, nb_pkts;
                 void *pktsTX[PKT_READ_SIZE];
                 int tx_batch_size = 0;
                 int ret_act;
 
-                /* try dequeuing max possible packets first, if that fails, get the
-                 * most we can. Loop body should only execute once, maximum */
-                while (nb_pkts > 0 &&
-                                unlikely(rte_ring_dequeue_bulk(rx_ring, pkts, nb_pkts) != 0))
-                        nb_pkts = (uint16_t)RTE_MIN(rte_ring_count(rx_ring), PKT_READ_SIZE);
+		/* Dequeue all packets in ring up to max possible. */
+		nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
 
-                if(nb_pkts == 0) {
+                if(unlikely(nb_pkts == 0)) {
                         continue;
                 }
                 /* Give each packet to the user proccessing function */

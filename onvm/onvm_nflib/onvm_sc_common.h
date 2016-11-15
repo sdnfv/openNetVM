@@ -35,43 +35,20 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_sc_mgr.h - service chain functions for manager
+ * onvm_sc_common.h - service functions for manager and NFs
  ********************************************************************/
 
-#ifndef _SC_MGR_H_
-#define _SC_MGR_H_
+#ifndef _SC_COMMON_H_
+#define _SC_COMMON_H_
 
-#include <rte_mbuf.h>
-#include "common.h"
+#include <inttypes.h>
+#include "onvm_common.h"
 
-static inline uint8_t
-onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
-	if (unlikely(cur_nf >= chain->chain_length)) {
-		return ONVM_NF_ACTION_DROP;
-	}
-	return chain->sc[cur_nf+1].action;
-}
+/* append a entry to serivce chain, 0 means appending successful, 1 means failed*/
+int onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination);
 
-static inline uint8_t
-onvm_sc_next_action(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-	return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt));
-}
+/*set entry to a new action and destination, 0 means setting successful, 1 means failed */
+int onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination);
 
-static inline uint16_t
-onvm_next_destination(struct onvm_service_chain* chain, uint16_t cur_nf) {
-	if (unlikely(cur_nf >= chain->chain_length)) {
-		return 0;
-	}
-	return chain->sc[cur_nf+1].destination;
-}
-
-static inline uint16_t
-onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-	return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
-}
-
-/*get service chain*/
-struct onvm_service_chain* onvm_sc_get(void);
-/*create service chain*/
-struct onvm_service_chain* onvm_sc_create(void);
-#endif  // _SC_MGR_H_
+void onvm_sc_print(struct onvm_service_chain *chain);
+#endif //_SC_COMMON_H_

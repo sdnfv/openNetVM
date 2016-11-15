@@ -76,10 +76,10 @@
 
 #include "onvm_mgr/onvm_args.h"
 #include "onvm_mgr/onvm_init.h"
-#include "shared/onvm_includes.h"
-#include "shared/onvm_sc_mgr.h"
-#include "shared/onvm_flow_table.h"
-#include "shared/onvm_flow_dir.h"
+#include "onvm_includes.h"
+#include "onvm_sc_mgr.h"
+#include "onvm_flow_table.h"
+#include "onvm_flow_dir.h"
 
 
 /***********************************Macros************************************/

@@ -41,7 +41,7 @@
 #ifndef _ONVM_FLOW_DIR_H_
 #define _ONVM_FLOW_DIR_H_
 
-#include "common.h"
+#include "onvm_common.h"
 #include "onvm_flow_table.h"
 
 extern struct onvm_ft *sdn_ft;

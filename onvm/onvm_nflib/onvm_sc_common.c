@@ -35,20 +35,48 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_sc_common.h - service functions for manager and NFs
+ * onvm_sc_common.c - service functions for manager and NFs
  ********************************************************************/
 
-#ifndef _SC_COMMON_H_
-#define _SC_COMMON_H_
-
 #include <inttypes.h>
-#include "common.h"
+#include <errno.h>
+#include "onvm_common.h"
+#include "onvm_sc_common.h"
 
-/* append a entry to serivce chain, 0 means appending successful, 1 means failed*/
-int onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination);
+int
+onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
+	int chain_length = chain->chain_length;
 
-/*set entry to a new action and destination, 0 means setting successful, 1 means failed */
-int onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination);
+	if (unlikely(chain_length > ONVM_MAX_CHAIN_LENGTH)) {
+		return ENOSPC;
+	}
+	/*the first entry is reserved*/
+	chain_length++;
+	(chain->chain_length)++;
+	chain->sc[chain_length].action = action;
+	chain->sc[chain_length].destination = destination;
 
-void onvm_sc_print(struct onvm_service_chain *chain);
-#endif //_SC_COMMON_H_
+	return 0;
+}
+
+int
+onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination) {
+	if (unlikely(entry > chain->chain_length)) {
+		return -1;
+	}
+
+	chain->sc[entry].action = action;
+	chain->sc[entry].destination = destination;
+
+	return 0;
+}
+
+void
+onvm_sc_print(struct onvm_service_chain *chain) {
+	int i;
+	for (i = 1; i <= chain->chain_length; i++) {
+		printf("cur_index:%d, action:%"PRIu8", destination:%"PRIu16"\n",
+			i, chain->sc[i].action, chain->sc[i].destination);
+	}
+	printf("\n");
+}

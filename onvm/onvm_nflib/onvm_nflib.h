@@ -52,7 +52,7 @@
 #ifndef _ONVM_NFLIB_H_
 #define _ONVM_NFLIB_H_
 #include <rte_mbuf.h>
-#include "common.h"
+#include "onvm_common.h"
 
 /************************************API**************************************/
 

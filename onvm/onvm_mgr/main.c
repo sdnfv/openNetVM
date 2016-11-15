@@ -8,6 +8,7 @@
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
+ *            2016 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -141,17 +142,12 @@ tx_thread_main(void *arg) {
         for (;;) {
                 /* Read packets from the client's tx queue and process them as needed */
                 for (i = tx->first_cl; i < tx->last_cl; i++) {
-                        tx_count = PACKET_READ_SIZE;
                         cl = &clients[i];
                         if (!onvm_nf_is_valid(cl))
                                 continue;
-                        /* try dequeuing max possible packets first, if that fails, get the
-                         * most we can. Loop body should only execute once, maximum */
-                        while (tx_count > 0 &&
-                                unlikely(rte_ring_dequeue_bulk(cl->tx_q, (void **) pkts, tx_count) != 0)) {
-                                tx_count = (uint16_t)RTE_MIN(rte_ring_count(cl->tx_q),
-                                        PACKET_READ_SIZE);
-                        }
+
+			/* Dequeue all packets in ring up to max possible. */
+			tx_count = rte_ring_dequeue_burst(cl->tx_q, (void **) pkts, PACKET_READ_SIZE);
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {

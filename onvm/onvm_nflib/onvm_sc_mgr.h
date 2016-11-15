@@ -7,7 +7,6 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -36,66 +35,43 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ * onvm_sc_mgr.h - service chain functions for manager
  ********************************************************************/
 
+#ifndef _SC_MGR_H_
+#define _SC_MGR_H_
 
-/******************************************************************************
-
-                               onvm_includes.h
-
-
-         Header file containing all shared headers and data structures
-
-
-******************************************************************************/
-
-
-#ifndef _ONVM_INCLUDES_H_
-#define _ONVM_INCLUDES_H_
-
-
-/******************************Standard C library*****************************/
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <sys/queue.h>
-#include <errno.h>
-
-
-/********************************DPDK library*********************************/
-
-
-#include <rte_common.h>
-#include <rte_memory.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
-#include <rte_eal.h>
-#include <rte_launch.h>
-#include <rte_per_lcore.h>
-#include <rte_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_atomic.h>
-#include <rte_ring.h>
-#include <rte_log.h>
-#include <rte_debug.h>
-#include <rte_mempool.h>
 #include <rte_mbuf.h>
-#include <rte_ether.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_ethdev.h>
-#include <rte_string_fns.h>
+#include "onvm_common.h"
 
+static inline uint8_t
+onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
+	if (unlikely(cur_nf >= chain->chain_length)) {
+		return ONVM_NF_ACTION_DROP;
+	}
+	return chain->sc[cur_nf+1].action;
+}
 
-/******************************Internal headers*******************************/
+static inline uint8_t
+onvm_sc_next_action(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
+	return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt));
+}
 
+static inline uint16_t
+onvm_next_destination(struct onvm_service_chain* chain, uint16_t cur_nf) {
+	if (unlikely(cur_nf >= chain->chain_length)) {
+		return 0;
+	}
+	return chain->sc[cur_nf+1].destination;
+}
 
-#include "common.h"
+static inline uint16_t
+onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
+	return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
+}
 
-#endif  // _ONVM_INCLUDES_H_
+/*get service chain*/
+struct onvm_service_chain* onvm_sc_get(void);
+/*create service chain*/
+struct onvm_service_chain* onvm_sc_create(void);
+#endif  // _SC_MGR_H_

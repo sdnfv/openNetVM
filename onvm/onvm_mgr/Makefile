@@ -58,12 +58,12 @@ SRCS-y := main.c onvm_init.c onvm_args.c onvm_stats.c onvm_pkt.c onvm_nf.c
 INC := onvm_mgr.h onvm_init.h onvm_args.h onvm_stats.h onvm_nf.h onvm_pkt.h
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += -I$(SRCDIR)/../
-LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_sc_common.o
-LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_sc_mgr.o
-LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_flow_table.o
-LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
-LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_flow_dir.o
+CFLAGS += -I$(SRCDIR)/../ -I$(SRCDIR)/../onvm_nflib/
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_mgr.o
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_table.o
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_pkt_helper.o
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_dir.o
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.

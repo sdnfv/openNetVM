@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,48 +36,66 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_sc_common.c - service functions for manager and NFs
  ********************************************************************/
 
+
+/******************************************************************************
+
+                               onvm_includes.h
+
+
+         Header file containing all shared headers and data structures
+
+
+******************************************************************************/
+
+
+#ifndef _ONVM_INCLUDES_H_
+#define _ONVM_INCLUDES_H_
+
+
+/******************************Standard C library*****************************/
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
 #include <inttypes.h>
+#include <sys/queue.h>
 #include <errno.h>
-#include "common.h"
-#include "onvm_sc_common.h"
 
-int
-onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
-	int chain_length = chain->chain_length;
 
-	if (unlikely(chain_length > ONVM_MAX_CHAIN_LENGTH)) {
-		return ENOSPC;
-	}
-	/*the first entry is reserved*/
-	chain_length++;
-	(chain->chain_length)++;
-	chain->sc[chain_length].action = action;
-	chain->sc[chain_length].destination = destination;
+/********************************DPDK library*********************************/
 
-	return 0;
-}
 
-int
-onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination) {
-	if (unlikely(entry > chain->chain_length)) {
-		return -1;
-	}
+#include <rte_common.h>
+#include <rte_memory.h>
+#include <rte_memzone.h>
+#include <rte_tailq.h>
+#include <rte_eal.h>
+#include <rte_launch.h>
+#include <rte_per_lcore.h>
+#include <rte_lcore.h>
+#include <rte_branch_prediction.h>
+#include <rte_atomic.h>
+#include <rte_ring.h>
+#include <rte_log.h>
+#include <rte_debug.h>
+#include <rte_mempool.h>
+#include <rte_mbuf.h>
+#include <rte_ether.h>
+#include <rte_interrupts.h>
+#include <rte_pci.h>
+#include <rte_ethdev.h>
+#include <rte_string_fns.h>
 
-	chain->sc[entry].action = action;
-	chain->sc[entry].destination = destination;
 
-	return 0;
-}
+/******************************Internal headers*******************************/
 
-void
-onvm_sc_print(struct onvm_service_chain *chain) {
-	int i;
-	for (i = 1; i <= chain->chain_length; i++) {
-		printf("cur_index:%d, action:%"PRIu8", destination:%"PRIu16"\n",
-			i, chain->sc[i].action, chain->sc[i].destination);
-	}
-	printf("\n");
-}
+
+#include "onvm_common.h"
+
+#endif  // _ONVM_INCLUDES_H_

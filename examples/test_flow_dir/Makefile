@@ -56,13 +56,7 @@ CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
 CFLAGS += -I$(ONVM)/onvm_mgr
-CFLAGS += -I$(ONVM)/shared
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/x86_64-native-linuxapp-gcc/onvm_nflib.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_common.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_sc_mgr.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_table.o
-LDFLAGS += $(ONVM)/shared/shared/x86_64-native-linuxapp-gcc/onvm_flow_dir.o
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

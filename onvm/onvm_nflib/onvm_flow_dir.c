@@ -45,7 +45,7 @@
 #include <rte_memzone.h>
 #include <rte_mbuf.h>
 #include <rte_malloc.h>
-#include "common.h"
+#include "onvm_common.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
 

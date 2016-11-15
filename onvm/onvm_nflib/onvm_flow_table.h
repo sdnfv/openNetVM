@@ -49,7 +49,7 @@
 #include <rte_udp.h>
 #include <rte_thash.h>
 #include "onvm_pkt_helper.h"
-#include "common.h"
+#include "onvm_common.h"
 
 extern uint8_t rss_symmetric_key[40];
 
