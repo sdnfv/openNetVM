@@ -65,7 +65,7 @@ extern uint16_t next_instance_id;
  * Output : a boolean answer 
  *
  */
-inline int
+int
 onvm_nf_is_valid(struct client *cl);
 
 
@@ -95,7 +95,7 @@ onvm_nf_check_status(void);
  * Output  : a NF instance id
  *
  */
-inline uint16_t
+uint16_t
 onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt);
 
 
