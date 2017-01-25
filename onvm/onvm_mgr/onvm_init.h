@@ -68,6 +68,7 @@
 
 
 #include "onvm_mgr/onvm_args.h"
+#include "onvm_mgr/onvm_stats.h"
 #include "onvm_includes.h"
 #include "onvm_common.h"
 #include "onvm_sc_mgr.h"
@@ -177,7 +178,7 @@ extern uint16_t *nf_per_service_count;
 extern unsigned num_sockets;
 extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
-
+extern ONVM_STATS_OUTPUT stats_destination;
 
 /**********************************Functions**********************************/
 

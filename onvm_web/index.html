@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <meta name="viewport" content="width=device-width initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+        <title>ONVM Statistics</title>
+        <meta name="description" content="openNetVM manager statistics web console.">
+
+        <link rel="stylesheet" href="./css/main.css">
+
+        <script src="Chart.min.js"></script>
+
+        <style>
+            canvas {
+                width: 100% !important;
+                max-width: 300px;
+                height: auto !important;
+                padding: 20;
+            }
+        </style>
+    </head>
+
+
+    <body>
+        <header class="site-header">
+            <div class="wrapper">
+                <a href="https://sdnfv.github.io/onvm/"><img src="./res/onvm-logo.png" style="float:left;"></a>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <div class="wrapper">
+                <div class="post">
+                    <header class="post-header">
+                        <h1 class="post-title">openNetVM Manager Statistics</h1>
+                    </header>
+
+                    <article class="post-content">
+                        <p>
+                            openNetVM statistics provide host NIC port performance and NF packet processing rates.<br />
+                            For more information on openNetVM see our <a href="https://sdnfv.github.io/onvm/">webpage</a> or our
+                            <a href="https://github.com/sdnfv/openNetVM/">Github</a>.
+                        </p>
+
+                        <h3 id="current-status">Host Port Statistics</h3>
+                        <p id="onvm_port_stats" style="width: 100%; height: auto;"></p>
+                        <h3 id="current-status">NF Statistics</h3>
+                        <p id="onvm_nf_stats" style="width: 100%; height: auto;"></p>
+                        <h3 id="current-status">ONVM Raw Console Output</h3>
+                        <pre><p id="onvm_raw_stats" style="font-size: 1vw; width: 100%; height: auto;"></p></pre>
+
+                    </article>
+                </div>
+            </div>
+        </div>
+
+        <footer class="site-footer">
+            <div class="wrapper">
+                <div class="footer-col-wrapper">
+                    <div class="footer-col  footer-col-1">
+                        <ul class="contact-list">
+                            <li>SDNFV @ UCR and GW</li>
+                            <li><a href="mailto:"></a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-col  footer-col-2">
+                        <ul class="social-media-list">
+                            <li>
+                                <a href="https://github.com/sdnfv">
+                                    <span class="icon  icon--github">
+                                        <svg viewBox="0 0 16 16">
+                                            <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="username">sdnfv</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-col  footer-col-3">
+                        <p class="text">Research on flexible, high performance software-based networks from UC Riverside and George Washington University.</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            var onvm_raw;
+            var onvm_json;
+            var str;
+            var port_out = document.getElementById("onvm_port_stats");
+            var nf_out = document.getElementById("onvm_nf_stats");
+            var raw_out = document.getElementById("onvm_raw_stats");
+            var graph_colors = ["#3c0f6b", "#d3a85c", "#ace536", "#2e650e",
+                                "#2e554c", "#ed7b7b", "#b27caa", "#9a015c",
+                                "#eab7c1", "#20c297", "#e7cf3d", "#c71e1e",
+                                "#e23a60", "#d7647b", "#eb5703", "#d3abbe"];
+
+            function read_text_file(file) {
+                var rawFile = new XMLHttpRequest();
+                rawFile.open("GET", file, false);
+                rawFile.onreadystatechange = function () {
+                    if(rawFile.readyState === 4) {
+                        if(rawFile.status === 200 || rawFile.status == 0) {
+                            str = rawFile.responseText;
+                        }
+                    }
+                }
+                rawFile.send(null);
+                return null;
+            }
+
+            function onvm_render_stats() {
+                var num_ports = onvm_json.onvm_port_stats.length;
+                var num_nfs = onvm_json.onvm_nf_stats.length;
+
+                for (var i = 0; i < num_ports; i++) {
+                    var stat = onvm_json.onvm_port_stats[i];
+
+                    var graph = document.createElement('canvas');
+                    graph.id = stat.Label;
+                    graph.style = "display: inline-block; padding: 15px;";
+                    graph.width = 25;
+                    graph.height = 25;
+                    port_out.appendChild(graph);
+
+                    draw_chart(stat, graph_colors[i]);
+                }
+
+                for (var i = 0; i < num_nfs; i++) {
+                    var stat = onvm_json.onvm_nf_stats[i];
+
+                    var graph = document.createElement('canvas');
+                    graph.id = stat.Label;
+                    graph.style = "display: inline-block; padding: 15px;";
+                    graph.width = 25;
+                    graph.height = 25;
+                    nf_out.appendChild(graph);
+
+                    draw_chart(stat, graph_colors[graph_colors.length-1-i]);
+                }
+
+                raw_out.innerHTML = onvm_raw;
+            }
+
+            function draw_chart(onvm_stat_obj, color) {
+                var ctx = document.getElementById(onvm_stat_obj.Label);
+
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ["RX Rate (PPS)", "TX Rate (PPS)"],
+                        datasets: [{
+                            label: onvm_stat_obj.Label,
+                            data: [onvm_stat_obj.RX, onvm_stat_obj.TX],
+                            backgroundColor: color
+                        }]
+                    },
+                    options: {
+                        scales: { yAxes: [{ ticks: { beginAtZero:true } }] },
+                        animation: false
+                    }
+                });
+            }
+
+            function onvm_web_stats() {
+                read_text_file("./onvm_stats.txt");
+                onvm_raw = str;
+
+                read_text_file("./onvm_json_stats.json")
+                onvm_json = JSON.parse(str);
+
+                onvm_render_stats();
+            }
+
+            function onvm_update_stats() {
+                window.location.reload(false);
+
+                /*
+                 * The following loops cause weird scrolling effects so we're not using them.
+                 */
+                //while (port_out.hasChildNodes()) {
+                //    port_out.removeChild(port_out.firstChild);
+                //}
+
+                //while (nf_out.hasChildNodes()) {
+                //    nf_out.removeChild(nf_out.firstChild);
+                //}
+
+                //while (raw_out.hasChildNodes()) {
+                //    raw_out.removeChild(raw_out.firstChild);
+                //}
+
+                //onvm_web_stats();
+            }
+
+            document.addEventListener("DOMContentLoaded", function() {
+                onvm_web_stats();
+                setInterval('onvm_update_stats()', 2000);
+            });
+
+        </script>
+    </body>
+</html>

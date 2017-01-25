@@ -50,6 +50,7 @@
 
 
 #include "onvm_mgr/onvm_args.h"
+#include "onvm_mgr/onvm_stats.h"
 
 
 /******************************Global variables*******************************/
@@ -63,6 +64,9 @@ uint16_t num_services = MAX_SERVICES;
 
 /* global var for the default service id - extern in init.h */
 uint16_t default_service = DEFAULT_SERVICE_ID;
+
+/* global var to where to print stats - extern in init.h */
+ONVM_STATS_OUTPUT stats_destination = ONVM_STATS_NONE;
 
 /* global var for program name */
 static const char *progname;
@@ -86,6 +90,9 @@ parse_default_service(const char *services);
 static int
 parse_num_services(const char *services);
 
+static int
+parse_stats_output(const char *stats_output);
+
 
 /*********************************Interfaces**********************************/
 
@@ -94,12 +101,17 @@ int
 parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         int option_index, opt;
         char **argvopt = argv;
-        static struct option lgopts[] = { /* no long options */
-                {NULL, 0, 0, 0 }
+
+        static struct option lgopts[] = {
+                {"port-mask",           required_argument,      NULL,   'p'},
+                {"num-services",        required_argument,      NULL,   'r'},
+                {"default-service",     required_argument,      NULL,   'd'},
+                {"stats-out",           no_argument,            NULL,   's'}
         };
+
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "r:p:d:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:d:s:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -119,6 +131,14 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                         return -1;
                                 }
                                 break;
+                        case 's':
+                                if (parse_stats_output(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+
+                                onvm_stats_set_output(stats_destination);
+                                break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
                                 usage();
@@ -136,11 +156,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
 static void
 usage(void) {
         printf(
-            "%s [EAL options] -- -p PORTMASK "
-            "[-s NUM_SOCKETS] [-r NUM_SERVICES]\n"
-            " -p PORTMASK: hexadecimal bitmask of ports to use\n"
-            " -r NUM_SERVICES: number of unique serivces allowed (optional)\n" // -s already used for num sockets
-            , progname);
+            "%s [EAL options] -- -p PORTMASK [-r NUM_SERVICES] [-d DEFAULT_SERVICE] [-s STATS_OUTPUT]\n"
+            "\t-p PORTMASK: hexadecimal bitmask of ports to use\n"
+            "\t-r NUM_SERVICES: number of unique serivces allowed. defaults to 16 (optional)\n"
+            "\t-d DEFAULT_SERVICE: the service to initially receive packets. defaults to 1 (optional)\n"
+            "\t-s STATS_OUTPUT: where to output manager stats (stdout/stderr/web). defaults to NONE (optional)\n",
+            progname);
 }
 
 
@@ -206,3 +227,18 @@ parse_num_services(const char *services) {
         return 0;
 }
 
+static int
+parse_stats_output(const char *stats_output) {
+        if (!strcmp(stats_output, ONVM_STR_STATS_STDOUT)) {
+                stats_destination = ONVM_STATS_STDOUT;
+                return 0;
+        } else if (!strcmp(stats_output, ONVM_STR_STATS_STDERR)) {
+                stats_destination = ONVM_STATS_STDERR;
+                return 0;
+        } else if (!strcmp(stats_output, ONVM_STR_STATS_WEB)) {
+                stats_destination = ONVM_STATS_WEB;
+                return 0;
+        } else {
+                return -1;
+        }
+}

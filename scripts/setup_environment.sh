@@ -63,6 +63,11 @@ fi
 
 start_dir=$(pwd)
 
+if [ -z "$ONVM_HOME" ]; then
+    echo "Please export \$ONVM_HOME and set it to $start_dir"
+    exit 1
+fi
+
 # Disable ASLR
 sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 
@@ -117,3 +122,10 @@ fi
 
 echo "Finished Binding"
 $RTE_SDK/tools/dpdk_nic_bind.py --status
+
+# Start apache for web stats
+echo "Starting webserver for stats"
+sudo apachectl start
+sudo a2ensite openNetVM.conf
+sudo service apache2 reload
+

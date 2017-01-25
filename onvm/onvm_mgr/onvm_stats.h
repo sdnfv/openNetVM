@@ -51,9 +51,61 @@
 #ifndef _ONVM_STATS_H_
 #define _ONVM_STATS_H_
 
+#include "cJSON.h"
+
+#define ONVM_STR_STATS_STDOUT "stdout"
+#define ONVM_STR_STATS_STDERR "stderr"
+#define ONVM_STR_STATS_WEB "web"
+
+#define ONVM_STATS_FOPEN_ARGS "w+"
+#define ONVM_STATS_PATH_BASE "../onvm_web/"
+#define ONVM_JSON_STATS_FILE ONVM_STATS_PATH_BASE "onvm_json_stats.json"
+#define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
+
+#define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
+#define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
+
+#define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                     \
+        do {                                                                    \
+                (str_) = (char *)malloc(sizeof(char) * (sz_));                  \
+                if (!(str_))                                                    \
+                        rte_exit(-1, "ERROR! [%s,%d]: unable to malloc str.\n", \
+                                 __FUNCTION__, __LINE__);                       \
+                snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                   \
+        } while (0)
+
+typedef enum {
+        ONVM_STATS_NONE = 0,
+        ONVM_STATS_STDOUT,
+        ONVM_STATS_STDERR,
+        ONVM_STATS_WEB
+} ONVM_STATS_OUTPUT;
+
+cJSON* onvm_json_root;
+cJSON* onvm_json_port_stats_arr;
+cJSON* onvm_json_nf_stats_arr;
+cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
+cJSON* onvm_json_nf_stats[MAX_CLIENTS];
 
 /*********************************Interfaces**********************************/
 
+
+/*
+ * Interface called by the manager to tell the stats module where to print
+ * You should only call this once
+ *
+ * Input: a STATS_OUTPUT enum value representing output destination.  If
+ * STATS_NONE is specified, then stats will not be printed to the console or web
+ * browser.  If STATS_STDOUT or STATS_STDOUT is specified, then stats will be
+ * output the respective stream.
+ */
+void onvm_stats_set_output(ONVM_STATS_OUTPUT output);
+
+/*
+ * Interface to close out file descriptions and clean up memory
+ * To be called when the stats loop is done
+ */
+void onvm_stats_cleanup(void);
 
 /*
  * Interface called by the ONVM Manager to display all statistics

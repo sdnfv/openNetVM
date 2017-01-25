@@ -47,6 +47,7 @@
 
 ******************************************************************************/
 
+#include <unistd.h>
 
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
@@ -71,12 +72,12 @@ onvm_stats_display_ports(unsigned difftime);
  *
  */
 static void
-onvm_stats_display_clients(void);
+onvm_stats_display_clients(unsigned difftime);
 
 
 /*
  * Function clearing the terminal and moving back the cursor to the top left.
- * 
+ *
  */
 static void
 onvm_stats_clear_terminal(void);
@@ -87,20 +88,90 @@ onvm_stats_clear_terminal(void);
  *
  * Input  : port
  * Output : its MAC address
- * 
+ *
  */
 static const char *
 onvm_stats_print_MAC(uint8_t port);
 
+/*
+ * Flush the file streams we're writing stats to
+ */
+static void
+onvm_stats_flush(void);
+
+/*
+ * Truncate the files back to being empty, so each iteration we reset the data
+ */
+static void
+onvm_stats_truncate(void);
+
+/*
+ * Free and reset the cJSON variables to build new json string with
+ */
+static void
+onvm_json_reset_objects(void);
+
+/*********************Stats Output Streams************************************/
+
+static FILE *stats_out;
+static FILE *json_stats_out;
 
 /****************************Interfaces***************************************/
 
+void
+onvm_stats_set_output(ONVM_STATS_OUTPUT output) {
+        if (output != ONVM_STATS_NONE) {
+                switch (output) {
+                        case ONVM_STATS_STDOUT:
+                                stats_out = stdout;
+                                break;
+                        case ONVM_STATS_STDERR:
+                                stats_out = stderr;
+                                break;
+                        case ONVM_STATS_WEB:
+                                stats_out = fopen(ONVM_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
+                                json_stats_out = fopen(ONVM_JSON_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
+                                onvm_json_root = NULL;
+                                onvm_json_port_stats_arr = NULL;
+                                onvm_json_nf_stats_arr = NULL;
+                                break;
+                        default:
+                                rte_exit(-1, "Error handling stats output file\n");
+                                break;
+                }
+
+                /* Ensure we're able to open all the files we need */
+                if (stats_out == NULL || json_stats_out == NULL) {
+                        rte_exit(-1, "Error opening stats files\n");
+                }
+        }
+}
+
+void
+onvm_stats_cleanup(void) {
+        if (stats_out != stdout && stats_out != stderr) {
+                fclose(stats_out);
+                fclose(json_stats_out);
+        }
+}
 
 void
 onvm_stats_display_all(unsigned difftime) {
-        onvm_stats_clear_terminal();
+        if (stats_out == stdout) {
+                onvm_stats_clear_terminal();
+        } else {
+                onvm_stats_truncate();
+                onvm_json_reset_objects();
+        }
+
         onvm_stats_display_ports(difftime);
-        onvm_stats_display_clients();
+        onvm_stats_display_clients(difftime);
+
+        if (stats_out != stdout && stats_out != stderr) {
+                fprintf(json_stats_out, "%s\n", cJSON_Print(onvm_json_root));
+        }
+
+        onvm_stats_flush();
 }
 
 
@@ -128,40 +199,67 @@ onvm_stats_clear_client(uint16_t id) {
 
 static void
 onvm_stats_display_ports(unsigned difftime) {
-        unsigned i;
+        unsigned i = 0;
+        uint64_t nic_rx_pkts = 0;
+        uint64_t nic_tx_pkts = 0;
+        uint64_t nic_rx_pps = 0;
+        uint64_t nic_tx_pps = 0;
+        char* port_label = NULL;
         /* Arrays to store last TX/RX count to calculate rate */
         static uint64_t tx_last[RTE_MAX_ETHPORTS];
         static uint64_t rx_last[RTE_MAX_ETHPORTS];
 
-        printf("PORTS\n");
-        printf("-----\n");
+        fprintf(stats_out, "PORTS\n");
+        fprintf(stats_out, "-----\n");
         for (i = 0; i < ports->num_ports; i++)
-                printf("Port %u: '%s'\t", (unsigned)ports->id[i],
-                                onvm_stats_print_MAC(ports->id[i]));
-        printf("\n\n");
+                fprintf(stats_out, "Port %u: '%s'\t", (unsigned)ports->id[i],
+                                    onvm_stats_print_MAC(ports->id[i]));
+        fprintf(stats_out, "\n\n");
         for (i = 0; i < ports->num_ports; i++) {
-                printf("Port %u - rx: %9"PRIu64"  (%9"PRIu64" pps)\t"
+                nic_rx_pkts = ports->rx_stats.rx[ports->id[i]];
+                nic_tx_pkts = ports->tx_stats.tx[ports->id[i]];
+
+                nic_rx_pps = (nic_rx_pkts - rx_last[i]) / difftime;
+                nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
+
+                fprintf(stats_out, "Port %u - rx: %9"PRIu64"  (%9"PRIu64" pps)\t"
                                 "tx: %9"PRIu64"  (%9"PRIu64" pps)\n",
                                 (unsigned)ports->id[i],
-                                ports->rx_stats.rx[ports->id[i]],
-                                (ports->rx_stats.rx[ports->id[i]] - rx_last[i])
-                                        /difftime,
-                                ports->tx_stats.tx[ports->id[i]],
-                                (ports->tx_stats.tx[ports->id[i]] - tx_last[i])
-                                        /difftime);
+                                nic_rx_pkts,
+                                nic_rx_pps,
+                                nic_tx_pkts,
+                                nic_tx_pps);
 
-                rx_last[i] = ports->rx_stats.rx[ports->id[i]];
-                tx_last[i] = ports->tx_stats.tx[ports->id[i]];
+                /* Only print this information out if we haven't already printed it to the console above */
+                if (stats_out != stdout && stats_out != stderr) {
+                        ONVM_SNPRINTF(port_label, 8, "Port %d", i);
+
+                        cJSON_AddItemToArray(onvm_json_port_stats_arr,
+                                             onvm_json_port_stats[i] = cJSON_CreateObject());
+                        cJSON_AddStringToObject(onvm_json_port_stats[i], "Label", port_label);
+                        cJSON_AddNumberToObject(onvm_json_port_stats[i], "RX", nic_rx_pps);
+                        cJSON_AddNumberToObject(onvm_json_port_stats[i], "TX", nic_tx_pps);
+
+                        free(port_label);
+                        port_label = NULL;
+                }
+
+                rx_last[i] = nic_rx_pkts;
+                tx_last[i] = nic_tx_pkts;
         }
 }
 
 
 static void
-onvm_stats_display_clients(void) {
-        unsigned i;
+onvm_stats_display_clients(unsigned difftime) {
+        char* nf_label = NULL;
+        unsigned i = 0;
+        /* Arrays to store last TX/RX count for NFs to calculate rate */
+        static uint64_t nf_tx_last[MAX_CLIENTS];
+        static uint64_t nf_rx_last[MAX_CLIENTS];
 
-        printf("\nCLIENTS\n");
-        printf("-------\n");
+        fprintf(stats_out, "\nCLIENTS\n");
+        fprintf(stats_out, "-------\n");
         for (i = 0; i < MAX_CLIENTS; i++) {
                 if (!onvm_nf_is_valid(&clients[i]))
                         continue;
@@ -175,15 +273,38 @@ onvm_stats_display_clients(void) {
                 const uint64_t act_tonf = clients[i].stats.act_tonf;
                 const uint64_t act_buffer = clients_stats->tx_buffer[i];
                 const uint64_t act_returned = clients_stats->tx_returned[i];
+                const uint64_t rx_pps = (rx - nf_rx_last[i])/difftime;
+                const uint64_t tx_pps = (tx - nf_tx_last[i])/difftime;
 
-                printf("Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
-                                    "tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64"\n",
+                fprintf(stats_out, "Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
+                                   "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
                                 clients[i].info->instance_id,
                                 rx, rx_drop, act_next, act_drop, act_returned,
                                 tx, tx_drop, act_out, act_tonf, act_buffer);
+
+                /* Only print this information out if we haven't already printed it to the console above */
+                if (stats_out != stdout && stats_out != stderr) {
+                        ONVM_SNPRINTF(nf_label, 6, "NF %d", i);
+
+                        cJSON_AddItemToArray(onvm_json_nf_stats_arr,
+                                             onvm_json_nf_stats[i] = cJSON_CreateObject());
+
+                        cJSON_AddStringToObject(onvm_json_nf_stats[i],
+                                                "Label", nf_label);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "RX", rx_pps);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "TX", tx_pps);
+
+                        free(nf_label);
+                        nf_label = NULL;
+                }
+
+                nf_rx_last[i] = clients[i].stats.rx;
+                nf_tx_last[i] = clients_stats->tx[i];
         }
 
-        printf("\n");
+        fprintf(stats_out, "\n");
 }
 
 
@@ -195,7 +316,7 @@ onvm_stats_clear_terminal(void) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
 
-        printf("%s%s", clr, topLeft);
+        fprintf(stats_out, "%s%s", clr, topLeft);
 }
 
 
@@ -206,6 +327,7 @@ onvm_stats_print_MAC(uint8_t port) {
 
         if (unlikely(port >= RTE_MAX_ETHPORTS))
                 return err_address;
+
         if (unlikely(addresses[port][0] == '\0')) {
                 struct ether_addr mac;
                 rte_eth_macaddr_get(port, &mac);
@@ -215,5 +337,49 @@ onvm_stats_print_MAC(uint8_t port) {
                                 mac.addr_bytes[2], mac.addr_bytes[3],
                                 mac.addr_bytes[4], mac.addr_bytes[5]);
         }
+
         return addresses[port];
+}
+
+
+static void
+onvm_stats_flush(void) {
+        if (stats_out == stdout || stats_out == stderr) {
+                return;
+        }
+
+        fflush(stats_out);
+        fflush(json_stats_out);
+}
+
+
+static void
+onvm_stats_truncate(void) {
+        if (stats_out == stdout || stats_out == stderr) {
+                return;
+        }
+
+        stats_out = freopen(NULL, ONVM_STATS_FOPEN_ARGS, stats_out);
+        json_stats_out = freopen(NULL, ONVM_STATS_FOPEN_ARGS, json_stats_out);
+
+        /* Ensure we're able to open all the files we need */
+        if (stats_out == NULL) {
+                rte_exit(-1, "Error truncating stats files\n");
+        }
+}
+
+
+static void
+onvm_json_reset_objects(void) {
+        if (onvm_json_root) {
+                cJSON_Delete(onvm_json_root);
+                onvm_json_root = NULL;
+        }
+
+        onvm_json_root = cJSON_CreateObject();
+
+        cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_PORT_STATS_KEY,
+                              onvm_json_port_stats_arr = cJSON_CreateArray());
+        cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY,
+                              onvm_json_nf_stats_arr = cJSON_CreateArray());
 }

@@ -67,14 +67,23 @@ master_thread_main(void) {
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
+        if (stats_destination == ONVM_STATS_WEB) {
+                RTE_LOG(INFO, APP, "ONVM stats can be viewed through the web console\n");
+                RTE_LOG(INFO, APP, "\tTo activate, please run $ONVM_HOME/onvm_web/start_web_console.sh\n");
+        }
+
         /* Longer initial pause so above printf is seen */
         sleep(sleeptime * 3);
 
         /* Loop forever: sleep always returns 0 or <= param */
         while (sleep(sleeptime) <= sleeptime) {
                 onvm_nf_check_status();
-                onvm_stats_display_all(sleeptime);
+                if (stats_destination != ONVM_STATS_NONE)
+                        onvm_stats_display_all(sleeptime);
         }
+
+        /* Close out file references and things */
+        onvm_stats_cleanup();
 }
 
 

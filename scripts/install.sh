@@ -100,6 +100,11 @@ echo "Creating $hp_count hugepages"
 sleep 1
 sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
 
+# Configure web-based stats
+echo "Configuring web-based stats"
+sleep 1
+scripts/install_web.sh
+
 # Configure local environment
 echo "Configuring environment"
 sleep 1
