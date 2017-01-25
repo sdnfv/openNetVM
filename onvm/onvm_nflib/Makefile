@@ -52,6 +52,5 @@ LIB    = libonvm.a
 SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-#CFLAGS += -I$(SRCDIR)/../shared
 
 include $(RTE_SDK)/mk/rte.extlib.mk

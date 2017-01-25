@@ -3,7 +3,7 @@ NF Development
 
 Overview
 --
-Currently, our platform supports 16 clients.  This limit is defined in [./openNetVM/onvm/shared/common.h].
+Currently, our platform supports 16 clients.  This limit is defined in [./openNetVM/onvm/onvm_nflib/onvm_common.h].
 
 The tag to specify an NFs Service ID is `-r`, which is a number 0, 1, 2, ..., n.  This is what is used to route network traffic between NFs.  The manager automatically assigns an instance ID upon the NF's creation.
 

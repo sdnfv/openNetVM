@@ -6,4 +6,3 @@
 /mp_client/client_server_mp
 *.cmd
 build/
-shared/shared
