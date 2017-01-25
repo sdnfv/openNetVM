@@ -7,6 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
+ *            2016 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -108,8 +109,44 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt);
 
 /**
  * Stop this NF and clean up its memory
+ * Sends shutdown message to manager.
  */
 void
 onvm_nflib_stop(void);
+
+/**
+ * Return the tx_ring associated with this NF.
+ *
+ * @param info
+ *   an info struct describing this NF app.
+ * @return
+ *    pointer to tx_ring structure associated with info, NULL on error.
+ */
+struct rte_ring *
+onvm_nflib_get_tx_ring(struct onvm_nf_info* info);
+
+
+/**
+ * Return the rx_ring associated with this NF.
+ *
+ * @param info
+ *   an info struct describing this NF app.
+ * @return
+ *    pointer to rx_ring structure associated with info, NULL on error.
+ */
+struct rte_ring *
+onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
+
+
+/**
+ * Return the tx_stats associated with this NF.
+ *
+ * @param info
+ *   an info struct describing this NF app.
+ * @return
+ *    pointer to tx_stats structure associated with info, NULL on error.
+ */
+volatile struct client_tx_stats *
+onvm_nflib_get_tx_stats(struct onvm_nf_info* info);
 
 #endif  // _ONVM_NFLIB_H_

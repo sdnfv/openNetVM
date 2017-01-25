@@ -20,6 +20,9 @@ The first function, `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_inf
 
 The second function, `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta))`, is the communication protocol between NF and manager where the NF is providing a packet handler function pointer to the manager.  The manager uses this function pointer to pass packets to when they arrive for a specific NF.  It continuously loops and listens for new packets and passes them on to the packet handler function.
 
+### Advanced Ring Manipulation
+For advanced NFs, calling `onvm_nf_run` (as described above) is actually optional. There is a second mode where NFs can interface directly with the shared data structures. Be warned that using this interface means the NF is responsible for its own packets, and the NF Guest Library can make fewer guarantees about overall system performance. Additionally, the NF is responsible for maintaining its own statistics. An advanced NF can call `onvm_nflib_get_rx_ring(struct onvm_nf_info *info)` or `onvm_nflib_get_tx_ring(struct onvm_nf_info *info)` to get the `struct rte_ring *` for RX and TX, respectively. NFs can also call `onvm_nflib_get_tx_stats(struct onvm_nf_info *info)` to get a reference to `struct client_tx_stats *`. Finally, note that using any of these functions precludes you from calling `onvm_nf_run`, and calling `onvm_nf_run` precludes you from calling any of these advanced functions (they will return `NULL`). The first interface you use if the one you get.
+
 TCP/IP UDP Library
 --
 

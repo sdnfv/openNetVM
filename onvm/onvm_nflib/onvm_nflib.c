@@ -70,6 +70,11 @@
 // Number of packets to attempt to read from queue
 #define PKT_READ_SIZE  ((uint16_t)32)
 
+// Possible NF packet consuming modes
+#define NF_MODE_UNKNOWN 0
+#define NF_MODE_SINGLE 1
+#define NF_MODE_RING 2
+
 
 /******************************Global Variables*******************************/
 
@@ -104,6 +109,10 @@ static uint16_t service_id = -1;
 
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
+
+
+// Mode this NF is running in (single packet, or direct ring manipulation)
+static uint8_t nf_mode = NF_MODE_UNKNOWN;
 
 
 // Shared data for default service chain
@@ -281,6 +290,12 @@ onvm_nflib_run(
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
 
+        /* Don't allow conflicting NF modes */
+        if (nf_mode == NF_MODE_RING) {
+                return -1;
+        }
+        nf_mode = NF_MODE_SINGLE;
+
         printf("\nClient process %d handling packets\n", info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
@@ -345,6 +360,45 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
 void
 onvm_nflib_stop(void) {
         onvm_nflib_cleanup();
+}
+
+
+struct rte_ring *
+onvm_nflib_get_tx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
+        /* Don't allow conflicting NF modes */
+        if (nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the tx_ring associated with the info struct */
+        nf_mode = NF_MODE_RING;
+        return tx_ring;
+}
+
+
+struct rte_ring *
+onvm_nflib_get_rx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
+        /* Don't allow conflicting NF modes */
+        if (nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the rx_ring associated with the info struct */
+        nf_mode = NF_MODE_RING;
+        return rx_ring;
+}
+
+
+volatile struct client_tx_stats *
+onvm_nflib_get_tx_stats(__attribute__((__unused__)) struct onvm_nf_info* info) {
+        /* Don't allow conflicting NF modes */
+        if (nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the tx_stats associated with the info struct */
+        nf_mode = NF_MODE_RING;
+        return tx_stats;
 }
 
 

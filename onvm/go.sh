@@ -2,6 +2,7 @@
 
 cpu=$1
 ports=$2
+virtaddr=$3
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
@@ -17,4 +18,9 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary  -- -p${ports}
+if [ -z $virtaddr ]
+then
+    sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary  -- -p${ports}
+else
+    sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary --base-virtaddr=$virtaddr  -- -p${ports}
+fi

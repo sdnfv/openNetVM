@@ -48,12 +48,14 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <signal.h>
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
 #include <rte_mempool.h>
 #include <rte_cycles.h>
+#include <rte_ring.h>
 
 
 #include "onvm_nflib.h"
@@ -63,6 +65,7 @@
 
 #define NUM_PKTS 128
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
+#define PKT_READ_SIZE  ((uint16_t)32)
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -70,13 +73,15 @@ struct onvm_nf_info *nf_info;
 /* number of package between each print */
 static uint32_t print_delay = 10000000;
 static uint16_t destination;
+static uint8_t use_direct_rings = 0;
+static uint8_t keep_running = 1;
 
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a <use_advanced_rings>\n\n", progname);
 }
 
 /*
@@ -86,8 +91,11 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:p:")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:a:")) != -1) {
                 switch (c) {
+                case 'a':
+                        use_direct_rings = 1;
+                        break;
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
                         dst_flag = 1;
@@ -174,6 +182,66 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 }
 
 
+static void
+handle_signal(int sig)
+{
+        if (sig == SIGINT || sig == SIGTERM)
+                keep_running = 0;
+}
+
+
+static void
+run_advanced_rings(void) {
+        void *pkts[PKT_READ_SIZE];
+        struct onvm_pkt_meta* meta;
+        uint16_t i, j, nb_pkts;
+        void *pktsTX[PKT_READ_SIZE];
+        int tx_batch_size;
+        struct rte_ring *rx_ring;
+        struct rte_ring *tx_ring;
+        volatile struct client_tx_stats *tx_stats;
+
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("[Press Ctrl-C to quit ...]\n");
+
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        signal(SIGINT, handle_signal);
+        signal(SIGTERM, handle_signal);
+
+        /* Get rings from nflib */
+        rx_ring = onvm_nflib_get_rx_ring(nf_info);
+        tx_ring = onvm_nflib_get_tx_ring(nf_info);
+        tx_stats = onvm_nflib_get_tx_stats(nf_info);
+
+        while (keep_running && rx_ring && tx_ring && tx_stats) {
+                tx_batch_size= 0;
+                /* Dequeue all packets in ring up to max possible. */
+		nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+
+                if(unlikely(nb_pkts == 0)) {
+                        continue;
+                }
+                /* Process all the packets */
+                for (i = 0; i < nb_pkts; i++) {
+                        meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
+                        packet_handler((struct rte_mbuf*)pkts[i], meta);
+                        pktsTX[tx_batch_size++] = pkts[i];
+                }
+
+                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
+                        tx_stats->tx_drop[nf_info->instance_id] += tx_batch_size;
+                        for (j = 0; j < tx_batch_size; j++) {
+                                rte_pktmbuf_free(pktsTX[j]);
+                        }
+                } else {
+                        tx_stats->tx[nf_info->instance_id] += tx_batch_size;
+                }
+
+        }
+        onvm_nflib_stop();
+}
+
+
 int main(int argc, char *argv[]) {
         int arg_offset;
 
@@ -210,7 +278,11 @@ int main(int argc, char *argv[]) {
                 onvm_nflib_return_pkt(pkts[i]);
         }
 
-        onvm_nflib_run(nf_info, &packet_handler);
+        if (use_direct_rings) {
+                run_advanced_rings();
+        } else {
+                onvm_nflib_run(nf_info, &packet_handler);
+        }
         printf("If we reach here, program is ending");
         return 0;
 }
