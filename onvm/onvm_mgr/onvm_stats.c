@@ -131,6 +131,11 @@ onvm_stats_set_output(ONVM_STATS_OUTPUT output) {
                         case ONVM_STATS_WEB:
                                 stats_out = fopen(ONVM_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
                                 json_stats_out = fopen(ONVM_JSON_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
+
+                                if (stats_out == NULL || json_stats_out == NULL) {
+                                        rte_exit(-1, "Error opening stats files\n");
+                                }
+
                                 onvm_json_root = NULL;
                                 onvm_json_port_stats_arr = NULL;
                                 onvm_json_nf_stats_arr = NULL;
@@ -138,11 +143,6 @@ onvm_stats_set_output(ONVM_STATS_OUTPUT output) {
                         default:
                                 rte_exit(-1, "Error handling stats output file\n");
                                 break;
-                }
-
-                /* Ensure we're able to open all the files we need */
-                if (stats_out == NULL || json_stats_out == NULL) {
-                        rte_exit(-1, "Error opening stats files\n");
                 }
         }
 }
