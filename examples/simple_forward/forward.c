@@ -126,7 +126,7 @@ static void
 do_stats_display(struct rte_mbuf* pkt) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-        static int pkt_process = 0;
+        static uint64_t pkt_process = 0;
         struct ipv4_hdr* ip;
 
         pkt_process += print_delay;
@@ -138,7 +138,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("N°   : %d\n", pkt_process);
+        printf("N°   : %ld\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
