@@ -111,7 +111,7 @@ static void
 do_stats_display(struct rte_mbuf* pkt) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-        static int pkt_process = 0;
+        static uint64_t pkt_process = 0;
 
         struct ipv4_hdr* ip;
 
@@ -125,7 +125,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Type : %d\n", pkt->packet_type);
-        printf("Number of packet processed : %d\n", pkt_process);
+        printf("Number of packet processed : %"PRIu64"\n", pkt_process);
 
         ip = onvm_pkt_ipv4_hdr(pkt);
         if(ip != NULL) {

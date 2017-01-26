@@ -137,7 +137,7 @@ static void
 do_stats_display(struct rte_mbuf* pkt, int32_t tbl_index) {
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-        static int total_pkts = 0;
+        static uint64_t total_pkts = 0;
         /* Fix unused variable warnings: */
         (void)pkt;
 
@@ -150,7 +150,7 @@ do_stats_display(struct rte_mbuf* pkt, int32_t tbl_index) {
 
         printf("FLOW TABLE NF\n");
         printf("-----\n");
-        printf("Total pkts   : %d\n", total_pkts);
+        printf("Total pkts   : %"PRIu64"\n", total_pkts);
         printf("Total flows  : %d\n", total_flows);
         printf("Flow ID      : %d\n", tbl_index);
         printf("Flow pkts    : %"PRIu64"\n", flow_entry->packet_count);
@@ -182,7 +182,6 @@ flow_table_hit(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 static int
 flow_table_miss(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         int ret;
-
 
         /* Buffer new flows until we get response from SDN controller. */
         ret = rte_ring_enqueue(ring_to_sdn, pkt);
