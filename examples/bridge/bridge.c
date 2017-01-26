@@ -125,7 +125,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Type : %d\n", pkt->packet_type);
-        printf("Number of packet processed : %ld\n", pkt_process);
+        printf("Number of packet processed : %"PRIu64"\n", pkt_process);
 
         ip = onvm_pkt_ipv4_hdr(pkt);
         if(ip != NULL) {

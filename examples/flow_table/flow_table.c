@@ -150,7 +150,7 @@ do_stats_display(struct rte_mbuf* pkt, int32_t tbl_index) {
 
         printf("FLOW TABLE NF\n");
         printf("-----\n");
-        printf("Total pkts   : %ld\n", total_pkts);
+        printf("Total pkts   : %"PRIu64"\n", total_pkts);
         printf("Total flows  : %d\n", total_flows);
         printf("Flow ID      : %d\n", tbl_index);
         printf("Flow pkts    : %"PRIu64"\n", flow_entry->packet_count);

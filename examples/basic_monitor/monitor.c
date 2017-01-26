@@ -125,7 +125,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Hash : %u\n", pkt->hash.rss);
-	printf("N°   : %ld\n", pkt_process);
+	printf("N°   : %"PRIu64"\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
