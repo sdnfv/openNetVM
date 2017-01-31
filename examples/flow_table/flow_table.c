@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
 	onvm_flow_dir_nf_init();
         printf("Starting packet handler.\n");
         onvm_nflib_run(nf_info, &packet_handler);
-        printf("NF exiting...");
+        printf("NF exiting...\n");
         cleanup();
         return 0;
 }

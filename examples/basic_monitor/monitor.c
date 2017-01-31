@@ -170,6 +170,6 @@ int main(int argc, char *argv[]) {
         }
 
         onvm_nflib_run(nf_info, &packet_handler);
-        printf("If we reach here, program is ending");
+        printf("If we reach here, program is ending\n");
         return 0;
 }
