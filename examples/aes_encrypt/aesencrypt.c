@@ -36,7 +36,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * aesencrypt.c - Encrypt UDP packets using AES 
+ * aesencrypt.c - Encrypt UDP packets using AES
  ********************************************************************/
 
 #include <unistd.h>
@@ -188,7 +188,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 		uint8_t *	eth;
 		uint16_t	plen;
 		uint16_t	hlen;
-	  
+
 		/* Get at the payload */
 		pkt_data = ((uint8_t *) udp) + sizeof(struct udp_hdr);
 		/* Calculate length */
@@ -205,7 +205,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 			       plen, hlen, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) + sizeof(struct udp_hdr));
 		}
 	}
-	
+
         meta->action = ONVM_NF_ACTION_TONF;
         meta->destination = destination;
         return 0;
