@@ -80,8 +80,8 @@ typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
 /******************************Global Variables*******************************/
 
 
-// ring used to place new nf_info struct
-static struct rte_ring *nf_info_ring;
+// ring used for NF -> mgr messages (like startup & shutdown)
+static struct rte_ring *mgr_msg_queue;
 
 // ring used for mgr -> NF messages
 static struct rte_ring *nf_msg_ring;
@@ -102,7 +102,7 @@ extern struct onvm_nf_info *nf_info;
 // Shared pool for all clients info
 static struct rte_mempool *nf_info_mp;
 
-// Shared pool for mgr -> NF messages
+// Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
 
@@ -200,6 +200,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 	const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
 	struct onvm_service_chain **scp;
+        struct onvm_nf_msg *startup_msg;
         int retval_eal, retval_parse, retval_final;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
@@ -257,13 +258,21 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 
 	onvm_sc_print(default_chain);
 
-        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
-        if (nf_info_ring == NULL)
+        mgr_msg_queue = rte_ring_lookup(_MGR_MSG_QUEUE_NAME);
+        if (mgr_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
 
         /* Put this NF's info struct onto queue for manager to process startup */
-        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+        if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot create startup msg");
+        }
+
+        startup_msg->msg_type = MSG_NF_STARTING;
+        startup_msg->msg_data = nf_info;
+        if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_mempool_put(nf_msg_pool, startup_msg);
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager");
         }
 
@@ -547,17 +556,25 @@ onvm_nflib_handle_signal(int sig)
 static void
 onvm_nflib_cleanup(void)
 {
+        struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
-        nf_info_ring = rte_ring_lookup(_NF_QUEUE_NAME);
-        if (nf_info_ring == NULL) {
+        if (mgr_msg_queue == NULL) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring for shutdown");
         }
-
-        if (rte_ring_enqueue(nf_info_ring, nf_info) < 0) {
+        if (rte_mempool_get(nf_msg_pool, (void**)(&shutdown_msg)) != 0) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_exit(EXIT_FAILURE, "Cannot create shutdown msg");
+        }
+
+        shutdown_msg->msg_type = MSG_NF_STOPPING;
+        shutdown_msg->msg_data = nf_info;
+
+        if (rte_ring_enqueue(mgr_msg_queue, shutdown_msg) < 0) {
+                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_mempool_put(nf_msg_pool, shutdown_msg);
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
         }
 

@@ -126,7 +126,7 @@ struct onvm_service_chain {
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
-#define _NF_QUEUE_NAME "NF_INFO_QUEUE"
+#define _MGR_MSG_QUEUE_NAME "MSG_MSG_QUEUE"
 #define _NF_MSG_QUEUE_NAME "NF_%u_MSG_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"

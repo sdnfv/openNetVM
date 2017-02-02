@@ -61,7 +61,7 @@ struct port_info *ports = NULL;
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
 struct rte_mempool *nf_msg_pool;
-struct rte_ring *nf_info_queue;
+struct rte_ring *incoming_msg_queue;
 uint16_t **services;
 uint16_t *nf_per_service_count;
 struct client_tx_stats *clients_stats;
@@ -366,14 +366,14 @@ init_shm_rings(void) {
 static int
 init_info_queue(void)
 {
-        nf_info_queue = rte_ring_create(
-                _NF_QUEUE_NAME,
+        incoming_msg_queue = rte_ring_create(
+                _MGR_MSG_QUEUE_NAME,
                 MAX_CLIENTS,
                 rte_socket_id(),
                 RING_F_SC_DEQ); // MP enqueue (default), SC dequeue
 
-        if (nf_info_queue == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot create nf info queue\n");
+        if (incoming_msg_queue == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot create incoming msg queue\n");
 
         return 0;
 }

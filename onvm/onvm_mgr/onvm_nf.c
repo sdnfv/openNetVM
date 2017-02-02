@@ -105,23 +105,33 @@ onvm_nf_next_instance_id(void) {
 void
 onvm_nf_check_status(void) {
         int i;
-        void *new_nfs[MAX_CLIENTS];
+        void *msgs[MAX_CLIENTS];
+        struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
-        int num_new_nfs = rte_ring_count(nf_info_queue);
+        int num_msgs = rte_ring_count(incoming_msg_queue);
 
-        if (rte_ring_dequeue_bulk(nf_info_queue, new_nfs, num_new_nfs) != 0)
+        if (rte_ring_dequeue_bulk(incoming_msg_queue, msgs, num_msgs) != 0)
                 return;
 
-        for (i = 0; i < num_new_nfs; i++) {
-                nf = (struct onvm_nf_info *) new_nfs[i];
+        if (num_msgs == 0) return;
 
-                if (nf->status == NF_WAITING_FOR_ID) {
+        for (i = 0; i < num_msgs; i++) {
+                msg = (struct onvm_nf_msg*) msgs[i];
+
+                switch (msg->msg_type) {
+                case MSG_NF_STARTING:
+                        nf = (struct onvm_nf_info*)msg->msg_data;
                         if (!onvm_nf_start(nf))
                                 num_clients++;
-                } else if (nf->status == NF_STOPPED) {
+                        break;
+                case MSG_NF_STOPPING:
+                        nf = (struct onvm_nf_info*)msg->msg_data;
                         if (!onvm_nf_stop(nf))
                                 num_clients--;
+                        break;
                 }
+
+                rte_mempool_put(nf_msg_pool, (void*)msg);
         }
 }
 
@@ -169,7 +179,7 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
         // take code from init_shm_rings in init.c
         // flush rx/tx queue at the this index to start clean?
 
-        if(nf_info == NULL)
+        if(nf_info == NULL || nf_info->status != NF_WAITING_FOR_ID)
                 return 1;
 
         // if NF passed its own id on the command line, don't assign here
@@ -212,7 +222,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         int mapIndex;
         struct rte_mempool *nf_info_mp;
 
-        if(nf_info == NULL)
+        if(nf_info == NULL || nf_info->status != NF_STOPPED)
                 return 1;
 
         nf_id = nf_info->instance_id;

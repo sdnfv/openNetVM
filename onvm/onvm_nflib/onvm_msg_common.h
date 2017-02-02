@@ -47,6 +47,8 @@
 
 #define MSG_NOOP 0
 #define MSG_STOP 1
+#define MSG_NF_STARTING 2
+#define MSG_NF_STOPPING 3
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */

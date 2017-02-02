@@ -170,7 +170,7 @@ struct port_info {
 extern struct client *clients;
 
 /* NF to Manager data flow */
-extern struct rte_ring *nf_info_queue;
+extern struct rte_ring *incoming_msg_queue;
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
