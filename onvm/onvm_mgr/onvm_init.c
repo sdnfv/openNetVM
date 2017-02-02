@@ -60,6 +60,7 @@ struct port_info *ports = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
+struct rte_mempool *nf_msg_pool;
 struct rte_ring *nf_info_queue;
 uint16_t **services;
 uint16_t *nf_per_service_count;
@@ -73,6 +74,7 @@ struct onvm_service_chain **default_sc_p;
 
 static int init_mbuf_pools(void);
 static int init_client_info_pool(void);
+static int init_nf_msg_pool(void);
 static int init_port(uint8_t port_num);
 static int init_shm_rings(void);
 static int init_info_queue(void);
@@ -126,6 +128,12 @@ init(int argc, char *argv[]) {
         retval = init_client_info_pool();
         if (retval != 0) {
                 rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
+        }
+
+        /* initialise pool for NF messages */
+        retval = init_nf_msg_pool();
+        if (retval != 0) {
+                rte_exit(EXIT_FAILURE, "Cannot create nf message pool: %s\n", rte_strerror(rte_errno));
         }
 
 	/* now initialise the ports we will use */
@@ -191,6 +199,22 @@ init_mbuf_pools(void) {
                         NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
 
         return (pktmbuf_pool == NULL); /* 0  on success */
+}
+
+/**
+ * Set up a mempool to store nf_msg structs
+ */
+static int
+init_nf_msg_pool(void)
+{
+        /* don't pass single-producer/single-consumer flags to mbuf
+         * create as it seems faster to use a cache instead */
+        printf("Creating mbuf pool '%s' ...\n", _NF_MSG_POOL_NAME);
+        nf_msg_pool = rte_mempool_create(_NF_MSG_POOL_NAME, MAX_CLIENTS * CLIENT_MSG_QUEUE_SIZE,
+                        NF_INFO_SIZE, NF_MSG_CACHE_SIZE,
+                        0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
+
+        return (nf_msg_pool == NULL); /* 0 on success */
 }
 
 /**
@@ -284,7 +308,9 @@ init_shm_rings(void) {
         unsigned socket_id;
         const char * rq_name;
         const char * tq_name;
+        const char * msg_q_name;
         const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
+        const unsigned msgringsize = CLIENT_MSG_QUEUE_SIZE;
 
         // use calloc since we allocate for all possible clients
         // ensure that all fields are init to 0 to avoid reading garbage
@@ -310,6 +336,7 @@ init_shm_rings(void) {
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
                 tq_name = get_tx_queue_name(i);
+                msg_q_name = get_msg_queue_name(i);
                 clients[i].instance_id = i;
                 clients[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
@@ -317,12 +344,18 @@ init_shm_rings(void) {
                 clients[i].tx_q = rte_ring_create(tq_name,
                                 ringsize, socket_id,
                                 RING_F_SC_DEQ);                 /* multi prod, single cons */
+                clients[i].msg_q = rte_ring_create(msg_q_name,
+                                msgringsize, socket_id,
+                                RING_F_SC_DEQ);                 /* multi prod, single cons */
 
                 if (clients[i].rx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
 
                 if (clients[i].tx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for client %u\n", i);
+
+                if (clients[i].msg_q == NULL)
+                        rte_exit(EXIT_FAILURE, "Cannot create msg queue for client %u\n", i);
         }
         return 0;
 }

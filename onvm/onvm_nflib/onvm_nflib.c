@@ -75,12 +75,16 @@
 #define NF_MODE_SINGLE 1
 #define NF_MODE_RING 2
 
+typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
 
 /******************************Global Variables*******************************/
 
 
 // ring used to place new nf_info struct
 static struct rte_ring *nf_info_ring;
+
+// ring used for mgr -> NF messages
+static struct rte_ring *nf_msg_ring;
 
 
 // rings used to pass packets between NFlib and NFmgr
@@ -97,6 +101,9 @@ extern struct onvm_nf_info *nf_info;
 
 // Shared pool for all clients info
 static struct rte_mempool *nf_info_mp;
+
+// Shared pool for mgr -> NF messages
+static struct rte_mempool *nf_msg_pool;
 
 
 // User-given NF Client ID (defaults to manager assigned)
@@ -165,6 +172,18 @@ static void
 onvm_nflib_handle_signal(int sig);
 
 /*
+ * Check if there are packets in this NF's RX Queue and process them
+ */
+static inline void
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) __attribute__((always_inline));
+
+/*
+ * Check if there is a message available for this NF and process it
+ */
+static inline void
+onvm_nflib_dequeue_messages(void) __attribute__((always_inline));
+
+/*
  * Set this NF's status to not running and release memory
  *
  * Input: Info struct corresponding to this NF
@@ -212,6 +231,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
         if (nf_info_mp == NULL)
                 rte_exit(EXIT_FAILURE, "No Client Info mempool - bye\n");
+
+        /* Lookup mempool for NF messages */
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        if (nf_msg_pool == NULL)
+                rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
 
         /* Initialize the info struct */
         nf_info = onvm_nflib_info_init(nf_tag);
@@ -272,6 +296,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         if (tx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
 
+        nf_msg_ring = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
+        if (nf_msg_ring == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get nf msg ring");
+
+
         /* Tell the manager we're ready to recieve packets */
         nf_info->status = NF_RUNNING;
 
@@ -283,12 +312,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 int
 onvm_nflib_run(
         struct onvm_nf_info* info,
-        int(*handler)(struct rte_mbuf* pkt,
-        struct onvm_pkt_meta* meta)
-        )
+        pkt_handler handler)
 {
         void *pkts[PKT_READ_SIZE];
-        struct onvm_pkt_meta* meta;
 
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_RING) {
@@ -304,38 +330,8 @@ onvm_nflib_run(
         signal(SIGTERM, onvm_nflib_handle_signal);
 
         for (; keep_running;) {
-                uint16_t i, j, nb_pkts;
-                void *pktsTX[PKT_READ_SIZE];
-                int tx_batch_size = 0;
-                int ret_act;
-
-		/* Dequeue all packets in ring up to max possible. */
-		nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
-
-                if(unlikely(nb_pkts == 0)) {
-                        continue;
-                }
-                /* Give each packet to the user proccessing function */
-                for (i = 0; i < nb_pkts; i++) {
-                        meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                        ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
-                        /* NF returns 0 to return packets or 1 to buffer */
-                        if(likely(ret_act == 0)) {
-                                pktsTX[tx_batch_size++] = pkts[i];
-                        }
-                        else {
-                                tx_stats->tx_buffer[info->instance_id]++;
-                        }
-                }
-
-                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
-                        tx_stats->tx_drop[info->instance_id] += tx_batch_size;
-                        for (j = 0; j < tx_batch_size; j++) {
-                                rte_pktmbuf_free(pktsTX[j]);
-                        }
-                } else {
-                        tx_stats->tx[info->instance_id] += tx_batch_size;
-                }
+                onvm_nflib_dequeue_packets(pkts, info, handler);
+                onvm_nflib_dequeue_messages();
         }
 
         // Stop and free
@@ -354,6 +350,17 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
                 return -ENOBUFS;
         }
         else tx_stats->tx_returned[nf_info->instance_id]++;
+        return 0;
+}
+
+int
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg) {
+        switch(msg->msg_type) {
+        case MSG_NOOP:
+        default:
+                break;
+        }
+
         return 0;
 }
 
@@ -403,6 +410,57 @@ onvm_nflib_get_tx_stats(__attribute__((__unused__)) struct onvm_nf_info* info) {
 
 
 /******************************Helper functions*******************************/
+
+
+static inline void
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) {
+        struct onvm_pkt_meta* meta;
+        uint16_t i, j, nb_pkts;
+        void *pktsTX[PKT_READ_SIZE];
+        int tx_batch_size = 0;
+        int ret_act;
+
+	/* Dequeue all packets in ring up to max possible. */
+	nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+
+        if(unlikely(nb_pkts == 0)) {
+                return;
+        }
+        /* Give each packet to the user proccessing function */
+        for (i = 0; i < nb_pkts; i++) {
+                meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
+                ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
+                /* NF returns 0 to return packets or 1 to buffer */
+                if(likely(ret_act == 0)) {
+                        pktsTX[tx_batch_size++] = pkts[i];
+                } else {
+                        tx_stats->tx_buffer[info->instance_id]++;
+                }
+        }
+
+        if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
+                tx_stats->tx_drop[info->instance_id] += tx_batch_size;
+                for (j = 0; j < tx_batch_size; j++) {
+                        rte_pktmbuf_free(pktsTX[j]);
+                }
+        } else {
+                tx_stats->tx[info->instance_id] += tx_batch_size;
+        }
+}
+
+static inline void
+onvm_nflib_dequeue_messages(void) {
+        struct onvm_nf_msg *msg;
+
+        // Check and see if this NF has any messages from the manager
+        if (likely(rte_ring_count(nf_msg_ring) == 0)) {
+                return;
+        }
+        msg = NULL;
+        rte_ring_dequeue(nf_msg_ring, (void**)(&msg));
+        onvm_nflib_handle_msg(msg);
+        rte_mempool_put(nf_msg_pool, (void*)msg);
+}
 
 
 static struct onvm_nf_info *

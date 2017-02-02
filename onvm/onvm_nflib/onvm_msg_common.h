@@ -7,7 +7,7 @@
  *   Copyright(c)
  *            2015-2016 George Washington University
  *            2015-2016 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2010-2014 Intel Corporation
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -36,80 +36,20 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ * onvm_msg_common.h - Shared structures relating to message passing
+                       between the manager and NFs
  ********************************************************************/
 
+#ifndef _MSG_COMMON_H_
+#define _MSG_COMMON_H_
 
-/******************************************************************************
+#include <stdint.h>
 
-                                 onvm_nf.h
+#define MSG_NOOP 0
 
-     This file contains the prototypes for all functions related to packet
-     processing.
+struct onvm_nf_msg {
+        uint8_t msg_type; /* Constant saying what type of message is */
+        void *msg_data; /* These should be rte_malloc'd so they're stored in hugepages */
+};
 
-******************************************************************************/
-
-
-#ifndef _ONVM_NF_H_
-#define _ONVM_NF_H_
-
-extern uint16_t next_instance_id;
-
-
-/********************************Interfaces***********************************/
-
-
-/*
- * Interface checking if a given nf is "valid", meaning if it's running.
- *
- * Input  : a pointer to the nf
- * Output : a boolean answer 
- *
- */
-int
-onvm_nf_is_valid(struct client *cl);
-
-
-/*
- * Interface giving the smallest unsigned integer unused for a NF instance.
- *
- * Output : the unsigned integer 
- *
- */
-uint16_t
-onvm_nf_next_instance_id(void);
-
-
-/*
- * Interface looking through all registered NFs if one needs to start or stop.
- *
- */
-void
-onvm_nf_check_status(void);
-
-
-/*
- * Interface to send a message to a certain NF.
- *
- * Input  : The destination NF instance ID, a constant denoting the message type
- *          (see onvm_nflib/onvm_msg_common.h), and a pointer to a data argument.
- *          The data argument should be allocated in the hugepage region (so it can
- *          be shared), i.e. using rte_malloc
- * Output : 0 if the message was successfully sent, -1 otherwise
- */
-int
-onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data);
-
-
-/*
- * Interface giving a NF for a specific server id, depending on the flow.
- *
- * Inputs  : the service id
-             a pointer to the packet whose flow help steer it. 
- * Output  : a NF instance id
- *
- */
-uint16_t
-onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt);
-
-
-#endif  // _ONVM_NF_H_
+#endif

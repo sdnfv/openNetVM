@@ -90,9 +90,13 @@
 #define NF_INFO_SIZE sizeof(struct onvm_nf_info)
 #define NF_INFO_CACHE 8
 
+#define NF_MSG_SIZE sizeof(struct onvm_nf_msg)
+#define NF_MSG_CACHE_SIZE 8
+
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
 #define CLIENT_QUEUE_RINGSIZE 128
+#define CLIENT_MSG_QUEUE_SIZE 128
 
 #define NO_FLAGS 0
 
@@ -109,6 +113,7 @@
 struct client {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
+        struct rte_ring *msg_q;
         struct onvm_nf_info *info;
         uint16_t instance_id;
         /* these stats hold how many packets the client will actually receive,
@@ -164,12 +169,14 @@ struct port_info {
 
 extern struct client *clients;
 
+/* NF to Manager data flow */
 extern struct rte_ring *nf_info_queue;
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
+extern struct rte_mempool *nf_msg_pool;
 extern uint16_t num_clients;
 extern uint16_t num_services;
 extern uint16_t default_service;

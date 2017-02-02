@@ -45,6 +45,8 @@
 #include <rte_mbuf.h>
 #include <stdint.h>
 
+#include "onvm_msg_common.h"
+
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
 #define MAX_CLIENTS 16            // total number of NFs allowed
 #define MAX_SERVICES 16           // total number of unique services allowed
@@ -124,10 +126,12 @@ struct onvm_service_chain {
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
-/* common names for NF states */
 #define _NF_QUEUE_NAME "NF_INFO_QUEUE"
+#define _NF_MSG_QUEUE_NAME "NF_%u_MSG_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
+#define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
+/* common names for NF states */
 #define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
 #define NF_STARTING 1           // When a NF is in the startup process and already has an id
 #define NF_RUNNING 2            // Running normally
@@ -162,6 +166,20 @@ get_tx_queue_name(unsigned id) {
 
         snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_TXQ_NAME, id);
         return buffer;
+}
+
+/*
+ * Given the name template above, get the mgr -> NF msg queue name
+ */
+static inline const char *
+get_msg_queue_name(unsigned id) {
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(_NF_MSG_QUEUE_NAME) + 2];
+
+        snprintf(buffer, sizeof(buffer) - 1, _NF_MSG_QUEUE_NAME, id);
+        return buffer;
+
 }
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1

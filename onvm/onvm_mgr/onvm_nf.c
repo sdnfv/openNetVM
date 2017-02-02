@@ -126,6 +126,24 @@ onvm_nf_check_status(void) {
 }
 
 
+int
+onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
+        int ret;
+        struct onvm_nf_msg *msg;
+
+        ret = rte_mempool_get(nf_msg_pool, (void**)(&msg));
+        if (ret != 0) {
+                RTE_LOG(INFO, APP, "Oh the huge manatee! Unable to allocate msg from pool :(\n");
+                return ret;
+        }
+
+        msg->msg_type = msg_type;
+        msg->msg_data = msg_data;
+
+        return rte_ring_sp_enqueue(clients[dest].msg_q, (void*)msg);
+}
+
+
 inline uint16_t
 onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
         uint16_t num_nfs_available = nf_per_service_count[service_id];

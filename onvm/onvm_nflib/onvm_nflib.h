@@ -108,6 +108,17 @@ int
 onvm_nflib_return_pkt(struct rte_mbuf* pkt);
 
 /**
+ * Process an message. Does stuff.
+ *
+ * @param msg
+ *    a pointer to a message to be processed
+ * @return
+ *    0 on success, or a negative value on error
+ */
+int
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg);
+
+/**
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
  */
