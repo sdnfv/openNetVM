@@ -356,6 +356,10 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
 int
 onvm_nflib_handle_msg(struct onvm_nf_msg *msg) {
         switch(msg->msg_type) {
+        case MSG_STOP:
+                RTE_LOG(INFO, APP, "Shutting down...\n");
+                keep_running = 0;
+                break;
         case MSG_NOOP:
         default:
                 break;

@@ -46,6 +46,7 @@
 #include <stdint.h>
 
 #define MSG_NOOP 0
+#define MSG_STOP 1
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */

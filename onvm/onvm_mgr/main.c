@@ -49,20 +49,33 @@
 ******************************************************************************/
 
 
+#include <signal.h>
+
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
 #include "onvm_pkt.h"
 #include "onvm_nf.h"
 
 
-/*******************************Worker threads********************************/
+/****************************Internal Declarations****************************/
 
+// True as long as the main thread loop should keep running
+static uint8_t main_keep_running = 1;
+
+// We'll want to shut down the TX/RX threads second so that we don't
+// race the stats display to be able to print, so keep this varable separate
+static uint8_t worker_keep_running = 1;
+
+static void handle_signal(int sig);
+
+/*******************************Worker threads********************************/
 
 /*
  * Stats thread periodically prints per-port and per-NF stats.
  */
 static void
 master_thread_main(void) {
+        uint16_t i;
         const unsigned sleeptime = 1;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
@@ -76,7 +89,7 @@ master_thread_main(void) {
         sleep(sleeptime * 3);
 
         /* Loop forever: sleep always returns 0 or <= param */
-        while (sleep(sleeptime) <= sleeptime) {
+        while ( main_keep_running && sleep(sleeptime) <= sleeptime) {
                 onvm_nf_check_status();
                 if (stats_destination != ONVM_STATS_NONE)
                         onvm_stats_display_all(sleeptime);
@@ -84,6 +97,29 @@ master_thread_main(void) {
 
         /* Close out file references and things */
         onvm_stats_cleanup();
+
+        RTE_LOG(INFO, APP, "Core %d: Initiating shutdown sequence\n", rte_lcore_id());
+
+        /* Stop all RX and TX threads */
+        worker_keep_running = 0;
+
+        /* Tell all NFs to stop */
+        for (i = 0; i < MAX_CLIENTS; i++) {
+                if (clients[i].info == NULL) {
+                        continue;
+                }
+                RTE_LOG(INFO, APP, "Core %d: Notifying NF %"PRIu16" to shut down\n", rte_lcore_id(), i);
+                onvm_nf_send_msg(i, MSG_STOP, NULL);
+        }
+
+        /* Wait to process all exits */
+        while (num_clients > 0) {
+                onvm_nf_check_status();
+                RTE_LOG(INFO, APP, "Core %d: Waiting for %"PRIu16" NFs to exit\n", rte_lcore_id(), num_clients);
+                sleep(sleeptime);
+        }
+
+        RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
 
 
@@ -103,7 +139,7 @@ rx_thread_main(void *arg) {
                 rte_lcore_id(),
                 rx->queue_id);
 
-        for (;;) {
+        for (; worker_keep_running;) {
                 /* Read ports */
                 for (i = 0; i < ports->num_ports; i++) {
                         rx_count = rte_eth_rx_burst(ports->id[i], rx->queue_id, \
@@ -121,6 +157,8 @@ rx_thread_main(void *arg) {
                         }
                 }
         }
+
+        RTE_LOG(INFO, APP, "Core %d: RX thread done\n", rte_lcore_id());
 
         return 0;
 }
@@ -148,7 +186,7 @@ tx_thread_main(void *arg) {
                         tx->last_cl-1);
         }
 
-        for (;;) {
+        for (; worker_keep_running;) {
                 /* Read packets from the client's tx queue and process them as needed */
                 for (i = tx->first_cl; i < tx->last_cl; i++) {
                         cl = &clients[i];
@@ -171,7 +209,16 @@ tx_thread_main(void *arg) {
                 onvm_pkt_flush_all_nfs(tx);
         }
 
+        RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
+
         return 0;
+}
+
+static void
+handle_signal(int sig) {
+        if (sig == SIGINT || sig == SIGTERM) {
+                main_keep_running = 0;
+        }
 }
 
 
@@ -221,6 +268,10 @@ main(int argc, char *argv[]) {
 
         // We start the system with 0 NFs active
         num_clients = 0;
+
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        signal(SIGINT, handle_signal);
+        signal(SIGTERM, handle_signal);
 
         for (i = 0; i < tx_lcores; i++) {
                 struct thread_info *tx = calloc(1, sizeof(struct thread_info));

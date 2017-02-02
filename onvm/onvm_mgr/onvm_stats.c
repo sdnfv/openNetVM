@@ -149,7 +149,7 @@ onvm_stats_set_output(ONVM_STATS_OUTPUT output) {
 
 void
 onvm_stats_cleanup(void) {
-        if (stats_out != stdout && stats_out != stderr) {
+        if (stats_destination == ONVM_STATS_WEB) {
                 fclose(stats_out);
                 fclose(json_stats_out);
         }
