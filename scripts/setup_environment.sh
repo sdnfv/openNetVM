@@ -123,9 +123,5 @@ fi
 echo "Finished Binding"
 $RTE_SDK/tools/dpdk_nic_bind.py --status
 
-# Start apache for web stats
-echo "Starting webserver for stats"
-sudo apachectl start
-sudo a2ensite openNetVM.conf
-sudo service apache2 reload
+echo "Environment setup complete."
 

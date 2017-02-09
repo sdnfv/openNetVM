@@ -84,6 +84,10 @@ This guide helps you build and install openNetVM.
 --
 
 1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
+    ```sh¬
+    cd scripts
+    ./install.sh
+    ```
 
     The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/setup_environment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 

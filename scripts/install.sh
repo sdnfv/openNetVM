@@ -46,7 +46,7 @@ set -e
 #  - Set $ONVM_SKIP_FSTAB to not add huge fs to /etc/fstab
 
 if [ -z "$RTE_TARGET" ]; then
-    echo "Please export \$RTE_TARGET"
+    echo "Please export \$RTE_TARGET. Or try running this without sudo."
     exit 1
 fi
 
@@ -100,12 +100,10 @@ echo "Creating $hp_count hugepages"
 sleep 1
 sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
 
-# Configure web-based stats
-echo "Configuring web-based stats"
-sleep 1
-scripts/install_web.sh
-
 # Configure local environment
 echo "Configuring environment"
 sleep 1
 scripts/setup_environment.sh
+
+echo "ONVM INSTALL COMPLETED SUCCESSFULLY"
+
