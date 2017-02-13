@@ -53,6 +53,15 @@
 #ifndef _ONVM_INIT_H_
 #define _ONVM_INIT_H_
 
+/***************************Standard C library********************************/
+
+//#ifdef INTERRUPT_SEM  //move maro to makefile, otherwise uncomemnt or need to include these after including common.h
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+//#endif //INTERRUPT_SEM
 
 /********************************DPDK library*********************************/
 
@@ -129,9 +138,20 @@ struct client {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
+                #ifdef INTERRUPT_SEM
+                volatile uint64_t prev_rx;
+		volatile uint64_t prev_rx_drop;
+                #endif
         } stats;
+        
+        /* mutex and semaphore name for NFs to wait on */ 
+        #ifdef INTERRUPT_SEM
+        const char *sem_name;
+        sem_t *mutex;
+        key_t shm_key;
+        rte_atomic16_t *shm_server;
+        #endif
 };
-
 
 /*
  * Shared port info, including statistics information for display by server.

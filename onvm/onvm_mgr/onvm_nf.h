@@ -53,7 +53,7 @@
 #define _ONVM_NF_H_
 
 extern uint16_t next_instance_id;
-
+extern struct wakeup_info *wakeup_infos;
 
 /********************************Interfaces***********************************/
 

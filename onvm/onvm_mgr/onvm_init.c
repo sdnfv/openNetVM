@@ -88,7 +88,7 @@ int
 init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz;
-	const struct rte_memzone *mz_scp;
+        const struct rte_memzone *mz_scp;
         uint8_t i, total_ports;
 
         /* init EAL, parsing EAL args */
@@ -109,7 +109,7 @@ init(int argc, char *argv[]) {
         memset(mz->addr, 0, sizeof(*clients_stats));
         clients_stats = mz->addr;
 
-	/* set up ports info */
+        /* set up ports info */
         ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
         if (ports == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
@@ -136,7 +136,7 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot create nf message pool: %s\n", rte_strerror(rte_errno));
         }
 
-	/* now initialise the ports we will use */
+        /* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
                 retval = init_port(ports->id[i]);
                 if (retval != 0)
@@ -152,28 +152,28 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
-	/*initialize a default service chain*/
-	default_chain = onvm_sc_create();
-	retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
+        /*initialize a default service chain*/
+        default_chain = onvm_sc_create();
+        retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
         if (retval == ENOSPC) {
                 printf("chain length can not be larger than the maximum chain length\n");
                 exit(1);
         }
-	printf("Default service chain: send to sdn NF\n");
+        printf("Default service chain: send to sdn NF\n");
 
-	/* set up service chain pointer shared to NFs*/
-	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
-				   rte_socket_id(), NO_FLAGS);
-	if (mz_scp == NULL)
-		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
-	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
-	default_sc_p = mz_scp->addr;
-	*default_sc_p = default_chain;
-	onvm_sc_print(default_chain);
+        /* set up service chain pointer shared to NFs*/
+        mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
+                                   rte_socket_id(), NO_FLAGS);
+        if (mz_scp == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for service chain pointer\n");
+        memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
+        default_sc_p = mz_scp->addr;
+        *default_sc_p = default_chain;
+        onvm_sc_print(default_chain);
 
-	onvm_flow_dir_init();
+        onvm_flow_dir_init();
 
-	return 0;
+        return 0;
 }
 
 
@@ -312,6 +312,15 @@ init_shm_rings(void) {
         const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
         const unsigned msgringsize = CLIENT_MSG_QUEUE_SIZE;
 
+        // mutex and semaphores for N
+        #ifdef INTERRUPT_SEM
+        const char * sem_name;
+        sem_t *mutex;
+        key_t key;
+        int shmid;
+        char *shm;
+        #endif
+
         // use calloc since we allocate for all possible clients
         // ensure that all fields are init to 0 to avoid reading garbage
         // TODO plopreiato, move to creation when a NF starts
@@ -356,6 +365,33 @@ init_shm_rings(void) {
 
                 if (clients[i].msg_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create msg queue for client %u\n", i);
+
+                #ifdef INTERRUPT_SEM
+                sem_name = get_sem_name(i);
+                clients[i].sem_name = sem_name;
+
+                fprintf(stderr, "sem_name=%s for client %d\n", sem_name, i);
+                mutex = sem_open(sem_name, O_CREAT, 06666, 0);
+                if(mutex == SEM_FAILED) {
+                        fprintf(stderr, "can not create semaphore for client %d\n", i);
+                        sem_unlink(sem_name);
+                        exit(1);
+                }
+                clients[i].mutex = mutex;
+
+                key = get_rx_shmkey(i);
+                if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+                        fprintf(stderr, "can not create the shared memory segment for client %d\n", i);
+                        exit(1);
+                }
+
+                if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+                        fprintf(stderr, "can not attach the shared segment to the server space for client %d\n", i);
+                               exit(1);
+                    }
+
+                clients[i].shm_server = (rte_atomic16_t *)shm;
+                #endif
         }
         return 0;
 }

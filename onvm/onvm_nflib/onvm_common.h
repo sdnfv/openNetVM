@@ -57,6 +57,9 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
+#define INTERRUPT_SEM           // To enable NF thread interrupt mode wake.  Better to move it as option in Makefile
+
+
 //extern uint8_t rss_symmetric_key[40];
 
 struct onvm_pkt_meta {
@@ -84,6 +87,11 @@ struct client_tx_stats {
         uint64_t tx_drop[MAX_CLIENTS];
         uint64_t tx_buffer[MAX_CLIENTS];
         uint64_t tx_returned[MAX_CLIENTS];
+        #ifdef INTERRUPT_SEM
+        volatile uint64_t prev_tx[MAX_CLIENTS];
+        volatile uint64_t prev_tx_drop[MAX_CLIENTS];
+        volatile uint64_t comp_cost[MAX_CLIENTS];
+        #endif
         /* FIXME: Why are these stats kept separately from the rest?
          * Would it be better to have an array of struct client_tx_stats instead
          * of putting the array inside the struct? How can we avoid cache
@@ -130,6 +138,19 @@ struct onvm_service_chain {
 #define _NF_MSG_QUEUE_NAME "NF_%u_MSG_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
+
+/* interrupt semaphore specific updates */
+#ifdef INTERRUPT_SEM
+#define SHMSZ 4                         // size of shared memory segement (page_size)
+#define KEY_PREFIX 123                  // prefix len for key
+#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
+#define MONITOR                         // Unused remove it
+#define ONVM_NUM_WAKEUP_THREADS 1
+#define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
+#define SAMPLING_RATE 1000000           // sampling rate to estimate NFs computation cost
+#define ONVM_SPECIAL_NF 0               // special NF for flow table entry management
+#endif
+
 
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
@@ -181,6 +202,30 @@ get_msg_queue_name(unsigned id) {
         return buffer;
 
 }
+#ifdef INTERRUPT_SEM
+/*
+ * Given the rx queue name template above, get the key of the shared memory
+ */
+static inline key_t
+get_rx_shmkey(unsigned id)
+{
+        return KEY_PREFIX * 10 + id;
+}
+
+/*
+ * Given the sem name template above, get the sem name
+ */
+static inline const char *
+get_sem_name(unsigned id)
+{
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(MP_CLIENT_SEM_NAME) + 2];
+
+        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_SEM_NAME, id);
+        return buffer;
+}
+#endif
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
