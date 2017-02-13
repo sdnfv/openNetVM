@@ -3,70 +3,63 @@ NF Development
 
 Overview
 --
-Currently, our platform supports 16 clients.  This limit is defined in [./openNetVM/onvm/onvm_nflib/onvm_common.h].
 
-The tag to specify an NFs Service ID is `-r`, which is a number 0, 1, 2, ..., n.  This is what is used to route network traffic between NFs.  The manager automatically assigns an instance ID upon the NF's creation.
+The openNetVM manager is comprised of two directories: one containing the source code for the [manager][onvm_mgr] and the second containing the source for the [NF_Lib][onvm_nflib].  The manager is responsible for maintaining state bewteen NFs, routing packets between NICs and NFs, and displaying log messages and/or statistics.  The NF_Lib contains useful libraries to initialize and run NFs and libraries to support NF capabilities: [packet helper][pkt_helper], [flow table][flow_table], [flow director][flow_director], [service chains][srvc_chains], and [message passing][msg_passing].
 
-The openNetVM manager is built with three directories where one contains source code for the manager, [./onvm/onvm_mgr], the second contains the NF Guest libraries that provide each NF a method of communication between the manager and other NFs, [./onvm/onvm_nf], and the third is a shared library that contains variables and definitions that both the manager and guest libraries need.
+Currently, our platform supports at most 16 NF instances running at once.  This limit is defined in [onvm_common.h][onvm_common.h:L51].
 
-NF Guest Library
+NFs are run with different arguments in three different tiers--DPDK configuration flags, openNetVM configuration flags, and NF configuration flags--which are separated with `--`.
+  - DPDK configuration flags:
+    + Flags to configure how DPDK is initialized and run.  NFs typically use these arguments:
+      - `-l CPU_CORE_LIST -n 3 --proc-type=secondary`
+  - openNetVM configuration flags:
+    + Flags to configure how the NF is managed by openNetVM.  NFs can configure their service ID and, for debugging, their instance ID (the manager automatically assigns instance IDs, but sometimes it is useful to manually assign them):
+      - `-r SERVICE_ID [-n INSTANCE_ID]`
+  - NF configuration flags:
+    + User defined flags to configure NF parameters.  Some of our example NFs use a flag to throttle how often packet info is printed, or to specify a destination NF to send packets to.  See the [simple_forward][forward] NF for an example of them both.
+
+Each NF needs to have a packet handler function.  It must match this specification: `static int packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);`  A pointer to this function will be provided to the manager and is the entry point for packets to be processed by the NF (see NF Library section below).  Once packet processing is finished, an NF can set an _action_ coupled with a _destination NF ID_ or _destination port ID_ in the packet which tell the openNetVM manager how route the packet next.  These _actions_ are defined in [onvm_common][onvm_common.h:L55]:
+  - `ONVM_NF_ACTION_DROP`: Drop the packet
+  - `ONVM_NF_ACTION_NEXT`: Forward the packet using the rule from the SDN controller stored in the flow table
+  - `ONVM_NF_ACTION_TONF`: Forward the packet to the specified NF
+  - `ONVM_NF_ACTION_OUT`: Forward the packet to the specified NIC port
+
+NF Library
 --
 
-The NF Guest Library provides functions to allow each NF to interface with the manager and other NFs.  This library provides the main communication protocol of the system.  To include it, add the line `#include "onvm_nflib.h"` to the top of your c file.
+The NF_Lib Library provides functions to allow each NF to interface with the manager and other NFs.  This library provides the main communication protocol of the system.  To include it, add the line `#include "onvm_nflib.h"` to the top of your c file.
 
-It provides two functions that NFs must include: `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info *info)` and `int onvm_nf_run(struct onvm_nf_info *info void(*handler)(struct rte_mbuf *pkt, struct onvm_pkt_meta* meta))`.
-
-The first function, `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)`, initializes all the data structures and memory regions that the NF needs run and communicates with the manager about its existence.
-
-The second function, `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta))`, is the communication protocol between NF and manager where the NF is providing a packet handler function pointer to the manager.  The manager uses this function pointer to pass packets to when they arrive for a specific NF.  It continuously loops and listens for new packets and passes them on to the packet handler function.
+Here are some of the frequently used functions of this library (to see the full API, please review the [NF_Lib header][onvm_nflib.h]):
+  - `int onvm_nf_init(int argc, char *argv[], struct onvm_nf_info* info)`, initializes all the data structures and memory regions that the NF needs run and communicates with the manager about its existence.  This is required to be called in the main function of an NF.
+  - `int onvm_nf_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta))`, is the communication protocol between NF and manager, where the NF provides a pointer to a packet handler function to the manager.  The manager uses this function pointer to pass packets to the NF as it is routing traffic.  This function continuously loops, giving packets one-by-one to the destined NF as they arrive.
 
 ### Advanced Ring Manipulation
-For advanced NFs, calling `onvm_nf_run` (as described above) is actually optional. There is a second mode where NFs can interface directly with the shared data structures. Be warned that using this interface means the NF is responsible for its own packets, and the NF Guest Library can make fewer guarantees about overall system performance. Additionally, the NF is responsible for maintaining its own statistics. An advanced NF can call `onvm_nflib_get_rx_ring(struct onvm_nf_info *info)` or `onvm_nflib_get_tx_ring(struct onvm_nf_info *info)` to get the `struct rte_ring *` for RX and TX, respectively. NFs can also call `onvm_nflib_get_tx_stats(struct onvm_nf_info *info)` to get a reference to `struct client_tx_stats *`. Finally, note that using any of these functions precludes you from calling `onvm_nf_run`, and calling `onvm_nf_run` precludes you from calling any of these advanced functions (they will return `NULL`). The first interface you use if the one you get.
+For advanced NFs, calling `onvm_nf_run` (as described above) is actually optional. There is a second mode where NFs can interface directly with the shared data structures.  Be warned that using this interface means the NF is responsible for its own packets, and the NF Guest Library can make fewer guarantees about overall system performance.  Additionally, the NF is responsible for maintaining its own statistics.  An advanced NF can call `onvm_nflib_get_rx_ring(struct onvm_nf_info *info)` or `onvm_nflib_get_tx_ring(struct onvm_nf_info *info)` to get the `struct rte_ring *` for RX and TX, respectively.  NFs can also call `onvm_nflib_get_tx_stats(struct onvm_nf_info *info)` to get a reference to `struct client_tx_stats *`.  Finally, note that using any of these functions precludes you from calling `onvm_nf_run`, and calling `onvm_nf_run` precludes you from calling any of these advanced functions (they will return `NULL`).  The first interface you use is the one you get.
 
-TCP/IP UDP Library
+Packet Helper Library
 --
 
-openNetVM also provides a TCP/IP UDP Helper Library to provide an abstraction to extract information from the packets, which allow NFs to perform more complicated processing of packets.
+The openNetVM Packet Helper Library provides an abstraction to support development of NFs that use complex packet processing logic.  Here is a selected list of capablities that it can provide:
 
-There is one function in [./onvm/shared/onvm_pkt_helper.h] that can swap the source and destination MAC addresses of a packet.  It will return 0 if it is successful, something else if it is not.
-
-+ `int onvm_pkt_mac_addr_swap(struct rte_mbuf *pkt, unsigned dst_port)`
-
-Three functions in [./onvm/shared/onvm_pkt_helper.h] return pointers to the TCP, UDP, or IP headers in the packet.  If it is not a TCP, UDP, or IP packet, a NULL pointer will be returned.
-
-+ `struct tcp_hdr* onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);`
-+ `struct udp_hdr* onvm_pkt_udp_hdr(struct rte_mbuf* pkt);`
-+ `struct ipv4_hdr* onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt);`
-
-There are three functions in that determine whether the packet is a TCP, UDP, or IP packet.  If it is of one of these types, the functions will return 1 and 0 otherwise.
-
-+ `int onvm_pkt_is_tcp(struct rte_mbuf* pkt);`
-+ `int onvm_pkt_is_udp(struct rte_mbuf* pkt);`
-+ `int onvm_pkt_is_ipv4(struct rte_mbuf* pkt);`
-
-There are four functions in [./onvm/shared/onvm_pkt_helper.h] that print the whole packet or individual headers of the packet.  The first function below, `void onvm_pkt_print(struct rte_mbuf *pkt)`, prints out the entire packet.  It does this by calling the other three helper functions, which can be used on their own too.
-
-+ `void onvm_pkt_print(struct rte_mbuf* pkt); `
-+ `void onvm_pkt_print_tcp(struct tcp_hdr* hdr);`
-+ `void onvm_pkt_print_udp(struct udp_hdr* hdr);`
-+ `void onvm_pkt_print_ipv4(struct ipv4_hdr* hdr);`
-
-Controlling packets in openNetVM is done with actions.  There are four actions, Drop, Next, To NF, and Out that control the flow of a packet.  These are defined in [./openNetVM/onvm/shared/common.h].  The action is combined with a destination NF ID or a NIC Port ID, which determines where the packet ends up.
-+ Drop packet:
-	`#define ONVM_NF_ACTION_DROP 0 `
-+ Forward using the rule from the SDN controller stored in the flow table:
-	`#define ONVM_NF_ACTION_NEXT 1 `
-+ Forward packets to the specified network function service ID:
-	`#define ONVM_NF_ACTION_TONF 2`
-+ Forward packets by specifying destination NIC port number:
-	`#define ONVM_NF_ACTION_OUT 3 `
+  - Swap the source and destination MAC addresses of a packet, then return 0 on success. `onvm_pkt_mac_addr_swap` can be found [here][onvm_pkt_helper.h:L56]
+  - Check the packet type, either TCP, UDP, or IP.  If the packet type is verified, these functions will return 1.  They can be found [here][onvm_pkt_helper.h:L74]
+  - Extract TCP, UDP, IP, or Ethernet headers from packets.  These functions return pointers to the respective headers in the packets.  If provided an unsupported packet header, a NULL pointer will be returned.  These are found [here][onvm_pkt_helper.h:L59]
+  - Print the whole packet or individual headers of the packet.  These functions can be found [here][onvm_pkt_helper.h:L86].
 
 
-[./openNetVM/onvm/shared/common.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/common.h#L26
-[./onvm/onvm_mgr]: https://github.com/sdnfv/openNetVM/tree/master/onvm/onvm_mgr
-[./onvm/onvm_nf]: https://github.com/sdnfv/openNetVM/tree/master/onvm/onvm_nf
-[./onvm/shared/onvm_pkt_helper.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/onvm_pkt_helper.h#L38
-[./onvm/shared/onvm_pkt_helper.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/onvm_pkt_helper.h#L44
-[./onvm/shared/onvm_pkt_helper.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/onvm_pkt_helper.h#L56
-[./onvm/shared/onvm_pkt_helper.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/onvm_pkt_helper.h#L68
-[./openNetVM/onvm/shared/common.h]: https://github.com/sdnfv/openNetVM/blob/master/onvm/shared/common.h#L28
+[onvm_mgr]: ../onvm/onvm_mgr
+[onvm_nflib]: ../onvm/onvm_nflib
+[onvm_nflib.h]: ../onvm/onvm_nflib/onvm_nflib.h
+[onvm_pkt_helper.h:L56]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L56
+[onvm_pkt_helper.h:L59]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L59
+[onvm_pkt_helper.h:L74]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L74
+[onvm_pkt_helper.h:L86]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L86
+[onvm_common.h:L51]: ../onvm/onvm_nflib/onvm_common.h#L51
+[onvm_common.h:L55]: ../onvm/onvm_nflib/onvm_common.h#L55
+[forward]: ../examples/simple_forward/forward.c#L82
+[pkt_helper]: ../onvm/onvm_nflib/onvm_pkt_helper.h
+[flow_table]: ../onvm/onvm_nflib/onvm_flow_table.h
+[flow_director]: ../onvm/onvm_nflib/onvm_flow_dir.h
+[srvc_chains]: ../onvm/onvm_nflib/onvm_sc_common.h
+[msg_passing]: ../onvm/onvm_nflib/onvm_msg_common.h
+

@@ -97,10 +97,10 @@ root@2f20c33f9d69:/openNetVM/examples# cd basic_monitor/
 root@2f20c33f9d69:/openNetVM/examples/basic_monitor# ls
 Makefile  README.md  basic_monitor  build  go.sh  monitor.c
 root@2f20c33f9d69:/openNetVM/examples/basic_monitor# ./go.sh
-./go.sh [cpu-list] [Service ID] [PRINT]
+./go.sh CPU-LIST SERVICE-ID [-p PRINT] [-n NF-ID]
 ./go.sh 3 0 --> core 3, Service ID 0
 ./go.sh 3,7,9 1 --> cores 3,7, and 9 with Service ID 1
-./go.sh 3,7,9 1 1000 --> cores 3,7, and 9 with Service ID 1 and Print Rate of 1000
+./go.sh -p 1000 -n 6 3,7,9 1 --> cores 3,7, and 9 with Service ID 1 and Print Rate of 1000 and instance ID 6
 root@2f20c33f9d69:/openNetVM/examples/basic_monitor# ./go.sh 3 1
 ...
 ```

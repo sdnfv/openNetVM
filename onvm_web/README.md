@@ -1,24 +1,47 @@
-openNetVM Web Display
+openNetVM Web Console for Statistics
 ==
 
 About
 --
 
-Resources to view manager statistics through a web browser
+Resources to view openNetVM Manager statistics through a web based console.
+
+The [start web console][start_web] script will download
+[Chart.js][chartjs] and run [Python SimpleHTTPServer][simplehttp] on
+port 8080.
 
 Usage
 --
 
-Once this has been installed, point a web browser to
-`http://<hostname>/onvm_web`
+Start the openNetVM Manager following steps in either the [install
+doc][install] or the [example usage guide][examples] and be sure to use
+the `-s` flag supplying the argument `web`.
 
-Installation
---
+The following example runs openNetVM with four cores (1 for stats
+display, 1 for NIC Rx, 1 for NIC Tx, and 1 for NF Tx), a portmask of 1
+to use 1 NIC port, and sets the stats output to the web console.
+```sh
+cd onvm
+./go.sh 0,1,2,3 1 -s web
+```
 
-1. In `openNetVM/onvm_web/setup/` run the file `setup_web.sh`.  This
-   scripts installs all dependencies and sets up Apache2 to point to the
-openNetVM directory.  During its execution, you will be notified to edit
-two files, and then the files will open inside VIM.  Find the comments
-marked with `TODO:` and do as they say.
-   
-     `sudo ./openNetVM/onvm_web/setup/setup_web.sh`
+Doing that will launch openNetVM and use the console to display log
+messages.  It will print out a message stating that the web stats
+console has been setup and information to access it.
+
+Next, we run the [start web console][start_web] script and point a
+browser to `http://<Address of ONVM host>:8080`
+```sh
+cd onvm_web
+./start_web_console.sh
+```
+
+In your web browser, you will see statistics regarding openNetVM NIC
+performance, each NF's Rx and Tx performance, and the raw stats output.
+
+
+[install]: ../docs/Install.md
+[examples]: ../docs/Examples.md
+[start_web]: ./start_web_console.sh
+[chartjs]: http://www.chartjs.org/
+[simplehttp]: https://docs.python.org/2/library/simplehttpserver.html

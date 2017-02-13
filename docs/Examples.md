@@ -40,11 +40,16 @@ In this example, we will be setting up a chain of NFs.  The length of the chain 
 
     - Running the script on our machine shows that the system can handle 7 NFs efficiently.  The manager needs three cores and 4 more to handle NFs' TX.
   2. Run Manager:
-    - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores and a portmask to decide which NIC ports to use:
-      - `# onvm/go.sh 0,2,4,6,8,10,12 1`
+    - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores, a portmask to decide which NIC ports to use, and configuring it display manager statistics to stdout:
+      - `# onvm/go.sh 0,2,4,6,8,10,12 1 -s stdout`
   3. Start NFs:
     - First, start at most `n-1` simple_forward NFs, where `n` corresponds to the total number of NFs that the system can handle.  This is determined from the `scripts/coremask.py` helper script.  We will only start two NFs for convenience.
-      - `# examples/simple_forward/go.sh 14 1`
+    - Simple forward's arguments are core to pin it to, service ID, and
+      destination service ID.  The last argument, destination service ID
+should be (current_id) + 1 if you want to forward it to the next NF in
+the chain.  In this case, we are going to set it to 6, the last NF or
+basic_monitor.
+      - `# examples/simple_forward/go.sh 14 1 6`
     - Second, start a basic_monitor NF as the last NF in the chain:
       - `# examples/basic_monitor/go.sh 26 6`
   4. Start a packet generator (i.e. [Pktgen-DPDK][pktgen])
@@ -88,14 +93,14 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
 
     - Running the script on our machine shows that the system can handle 7 NFs efficiently.  The manager needs three cores and 4 more to handle NFs' TX.
   2. Run Manager:
-    - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores and a portmask to decide which NIC ports to use:
-      - `# onvm/go.sh 0,2,4,6,8,10,12 1`
+    - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores, a portmask to decide which NIC ports to use, and configuring it display manager statistics to stdout:
+      - `# onvm/go.sh 0,2,4,6,8,10,12 1 -s stdout`
   3. Start NFs:
     - First, start up to n-1 simple_forward NFs.  For simplicity, we'll start one simple_forward NF.
       - The NF will have service ID of 2 and it is pinned to core 16.  It also forwards packets to the NF with service ID 1.
-      - `# examples/simple_forward/simple_forward/x86_64-native-linuxapp-gcc/forward -l 16 -n 3 --proc-type=auto -- -r 2 -- -d 1`
+      - `# ./examples/simple_forward/go.sh 16 2 1`
     - Second, start up 1 speed_tester NF and have it forward to service ID 2.
-      - `# examples/speed_tester/speed_tester/x86_64-native-linuxapp-gcc/speed_tester -l 14 -n 3 --proc-type=auto -- -r 1 -- -d 2`
+      - `# ./examples/speed_tester/go.sh 14 1 2`
   4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
 
 

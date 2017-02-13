@@ -61,7 +61,7 @@ This guide helps you build and install openNetVM.
 
 4. Set environment variable ONVM_NUM_HUGEPAGES and ONVM_NIC_PCI.
 
-    ONVM_NUM_HUGEPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using: 
+    ONVM_NUM_HUGEPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using:
     ```sh
     echo export ONVM_NUM_HUGEPAGES=1024 >> ~/.bashrc
     ```
@@ -133,26 +133,26 @@ This guide helps you build and install openNetVM.
 
 3. Run openNetVM manager
 
-    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX) and to use 1 NIC port:
+    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), and to use stdout for the statistics console:
 
-    `./onvm/go.sh 0,1,2,3,4 1`
+    `./onvm/go.sh 0,1,2,3 1 -s stdout`
 
-    You should see information regarding the port that openNetVM is using, and some initial statistics will be displayed.
+    You should see information regarding the NIC port that openNetVM is using, and openNetVM manager statistics will be displayed.
 
 4. Run speed_tester NF
 
     To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-    In a new shell, run this command to start the speed_tester and giving it one core, and assigning it a Service ID of 1:
+    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1:
 
     `./examples/speed_tester/go.sh 5 1 1`
 
-    Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `client 0` is receiving data.  If this is the case, the openNetVM is working correctly.
+    Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `client 1` is receiving data.  If this is the case, the openNetVM is working correctly.
 
 7. Configuring environment post reboot
 --
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/setup_environment.sh).
- 
+
 Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
 
 Troubleshooting
@@ -180,7 +180,7 @@ Troubleshooting
     `sudo ./tools/dpdk_nic_bind.py  --status`
 
     Output similar to below will show what driver each NIC port is bound to.
-    
+
     ```
     Network devices using DPDK-compatible driver
     ============================================
@@ -204,13 +204,13 @@ Troubleshooting
 
     `sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
 
-    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below: 
+    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below:
 
     ```
     Network devices using DPDK-compatible driver
     ============================================
     0000:07:00.0 '82599EB 10-Gigabit SFI/SFP+ Network Connection' drv=igb_uio unused=ixgbe
-   
+
     Network devices using kernel driver
     ===================================
     0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
