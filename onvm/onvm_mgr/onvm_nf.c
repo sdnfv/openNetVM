@@ -92,13 +92,16 @@ onvm_nf_is_valid(struct client *cl) {
 uint16_t
 onvm_nf_next_instance_id(void) {
         struct client *cl;
+        uint16_t instance_id = MAX_CLIENTS;
+
         while (next_instance_id < MAX_CLIENTS) {
-                cl = &clients[next_instance_id];
+                instance_id = next_instance_id++;
+                cl = &clients[instance_id];
                 if (!onvm_nf_is_valid(cl))
                         break;
-                next_instance_id++;
         }
-        return next_instance_id;
+
+        return instance_id;
 }
 
 
