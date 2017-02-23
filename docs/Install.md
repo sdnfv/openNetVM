@@ -217,4 +217,6 @@ Troubleshooting
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
     ```
+3. **Exporting $ONVM_HOME**
 
+    If the setup_environment.sh script fails because the environment variable ONVM_HOME is not set, please run this command: `export ONVM_HOME=$ONVM_HOME:CHANGEME_TO_THE_PATH_TO_ONVM_DIR`

@@ -35,7 +35,13 @@ Hugepagesize:       2048 kB
 
 if your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
 
+If you have DPDK 2.2 use 
 `$.../your_dpdk_directory/tools/dpdk_nic_bind.py  --status`
+to check the status of your NIC ports. 
+
+If you have DPDK 16.11 or greater, use
+`$.../your_dpdk_directory/usertools/dpdk-devbind.py  --status`
+instead.
 
 ```
 Network devices using DPDK-compatible driver
