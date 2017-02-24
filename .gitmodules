@@ -2,3 +2,7 @@
 	path = dpdk
 	url = ../../sdnfv/onvm-dpdk.git
     branch = onvm
+[submodule "tools/Pktgen/pktgen-dpdk"]
+	path = tools/Pktgen/pktgen-dpdk
+	url = ../../sdnfv/onvm-pktgen.git
+	branch = onvm

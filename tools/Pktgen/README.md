@@ -14,7 +14,7 @@ This guide is assuming that you have already got openNetVM installed on your mac
 1. Preparation Steps
 ===================
 
-1.1 check if you have free hugepages
+1.1 Check if you have free hugepages
 ------------- 
 
 `$grep -i huge /proc/meminfo`
@@ -30,18 +30,11 @@ HugePages_Surp:        0
 Hugepagesize:       2048 kB
 ```
 
-1.2 check your current status of NIC binding and active status
+1.2 Check your current status of NIC binding and active status
 ------------- 
 
-if your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
+If your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
 
-If you have DPDK 2.2 use 
-`$.../your_dpdk_directory/tools/dpdk_nic_bind.py  --status`
-to check the status of your NIC ports. 
-
-If you have DPDK 16.11 or greater, use
-`$.../your_dpdk_directory/usertools/dpdk-devbind.py  --status`
-instead.
 
 ```
 Network devices using DPDK-compatible driver
@@ -63,98 +56,47 @@ Network devices using kernel driver
 2.1 Get Package 
 -------------
 
-2.1.1  entering working directory and download	latest source	code
+Initialize pktgen submodule
 
-`$cd /home/**your_name**/openNetVM/`
+`git submodule init && git submodule update`
 
-`$git clone http://dpdk.org/git/apps/pktgen-dpdk`
+Install pcap dependency
 
-
+`sudo apt-get install libpcap-dev`
 
 2.2 Build Pktgen Application
 ------------- 
 
-2.2.1 enter working directory, and compile the application
+Enter working directory, and compile the application
 
-`$cd ./pktgen-dpdk/`
+`$cd tools/Pktgen/pktgen-dpdk/`
 
 `$make`
 
+Test pktgen by:
 
-2.2.2 executing the example
+`$sudo ./app/app/x86_64-native-linuxapp-gcc/pktgen -c 3 -n 1`
 
-test the pktgen by:
-
-`$sudo ./pktgen -c 3 -n 1`
-
-2.2.3 updating configuration for pktgen, three servers are set up for observing the traffic flow: web client ----> port 0 - ONVM - port 1----> web server
-
-if the test run goes through, please set up example configuration file as below:
-
-`$sudo vim doit.sh`
-
-```
-***comment all lines and add the following scripts in the doit.sh file***
-echo "start"
-
-./app/build/pktgen -c ffff -n 3 $BLACK_LIST -- -p 0x3 -P -m "[4:8].0" -f  /home/***your_name***/openNetVM/pktgen-dpdk/forward_3_server.lua
-
-echo "done"
-```
-
-`$sudo vim forward_3_server.lua`
-
-```
-***please add these following  lines in your forward_3_server.lua file***
-
---package.path = package.path ..";?.lua;test/?.lua;app/?.lua;"
-
--- A list of the test script for Pktgen and Lua.
--- Each command somewhat mirrors the pktgen command line versions.
--- A couple of the arguments have be changed to be more like the others.
---
-
-printf("Lua Version      : %s\n", pktgen.info.Lua_Version);
-printf("Pktgen Version   : %s\n", pktgen.info.Pktgen_Version);
-printf("Pktgen Copyright : %s\n", pktgen.info.Pktgen_Copyright);
-
-prints("pktgen.info", pktgen.info);
-
-printf("Port Count %d\n", pktgen.portCount());
-printf("Total port Count %d\n", pktgen.totalPorts());
+Updating configuration for pktgen, three servers are set up for observing the traffic flow: web client ----> port 0 - ONVM - port 1----> web server
 
 
--- set up a mac address to set flow to 
---  
--- TO DO LIST:
---
--- please update this part with the destination mac address, source and destination ip address you would like to sent packets to 
-
-pktgen.set_mac("0", "1c:c1:de:f0:e6:0a"); 
-pktgen.set_ipaddr("0", "dst", "10.11.1.17");
-pktgen.set_ipaddr("0", "src", "10.11.1.16");
-
-
-
-pktgen.set_proto("all", "udp");
-pktgen.set_type("all", "ipv4");
-
-pktgen.set("all", "size", 64)
-pktgen.set("all", "burst", 32);
-pktgen.set("all", "sport", 1234);
-pktgen.set("all", "dport", 1234);
-pktgen.set("all", "count", 100000);
-pktgen.set("all", "rate",100);
-
-pktgen.vlan_id("all", "start", 1);
-```
-
-2.3 executing the example
+2.3 Configure pktgen for openNetVM
 ------------- 
 
-`$sudo bash doit.sh`
+Script files are located in openNetVM-Scripts
 
-if you got your result as below, , then you are all set
+1. Modify directories in run-pktgen.sh. 
+
+2. Modify mac, src/dest ip in pktgen-config.lua.
+
+2.4 Run pktgen
+------------- 
+
+`$cd openNetVM-Scripts`
+
+`$sudo bash run-pktgen.sh`
+
+If you got your result as below, then you are all set
 ```
 
 
@@ -254,11 +196,39 @@ Src MAC Address :  90:e2:ba:5a:f7:90  90:e2:ba:5a:f7:91
 
 Please use `pktgen> quit` for existing. 
 
+Licensing
+-------------
 
+```
+BSD LICENSE
 
+Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+Copyright(c) 2015 George Washington University
+All rights reserved.
 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
+Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.
+The name of the author may not be used to endorse or promote
+products derived from this software without specific prior
+written permission.
 
-
-
-
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
