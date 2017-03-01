@@ -64,6 +64,7 @@
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
+#define ONVM_JSON_TIMESTAMP_KEY "last_updated"
 
 #define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                     \
         do {                                                                    \

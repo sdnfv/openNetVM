@@ -55,9 +55,7 @@ ONVM= $(SRCDIR)/../../onvm
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_nflib.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_pkt_helper.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

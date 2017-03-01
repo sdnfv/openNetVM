@@ -45,6 +45,7 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
+DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += lib
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_nflib
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_mgr
 

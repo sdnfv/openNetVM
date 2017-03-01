@@ -6,8 +6,7 @@ About
 
 Resources to view openNetVM Manager statistics through a web based console.
 
-The [start web console][start_web] script will download
-[Chart.js][chartjs] and run [Python SimpleHTTPServer][simplehttp] on
+The [start web console][start_web] script will run [Python SimpleHTTPServer][simplehttp] on
 port 8080.
 
 Usage

@@ -39,5 +39,17 @@ while getopts "r:d:s:" opt; do
   esac
 done
 
+if [ "${stats}" = "-s web" ]
+then
+    cd ../onvm_web/
+    source start_web_console.sh
+    cd ../onvm/
+fi
+
 sudo rm -rf /mnt/huge/rtemap_*
 sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats}
+
+if [ "${stats}" = "-s web" ]
+then
+    kill $ONVM_WEB_PID
+fi

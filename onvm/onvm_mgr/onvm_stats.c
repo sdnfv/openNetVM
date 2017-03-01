@@ -48,11 +48,12 @@
 ******************************************************************************/
 
 #include <unistd.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
 #include "onvm_nf.h"
-
 
 /************************Internal Functions Prototypes************************/
 
@@ -371,6 +372,8 @@ onvm_stats_truncate(void) {
 
 static void
 onvm_json_reset_objects(void) {
+        time_t current_time;
+
         if (onvm_json_root) {
                 cJSON_Delete(onvm_json_root);
                 onvm_json_root = NULL;
@@ -378,6 +381,10 @@ onvm_json_reset_objects(void) {
 
         onvm_json_root = cJSON_CreateObject();
 
+        current_time = time(0);
+
+        cJSON_AddStringToObject(onvm_json_root, ONVM_JSON_TIMESTAMP_KEY,
+                              ctime(&current_time));
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_PORT_STATS_KEY,
                               onvm_json_port_stats_arr = cJSON_CreateArray());
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY,

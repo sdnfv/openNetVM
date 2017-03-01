@@ -37,9 +37,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Fetch chart.js from github
-wget https://github.com/chartjs/Chart.js/releases/download/v2.3.0/Chart.min.js -O Chart.min.js
-
 # Start ONVM web stats console at http://localhost:8080
 echo "Starting openNetVM Web Stats Console at http://localhost:8080"
-python -m SimpleHTTPServer 8080
+nohup python -m SimpleHTTPServer 8080 &
+export ONVM_WEB_PID=$!

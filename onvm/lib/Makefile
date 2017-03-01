@@ -6,6 +6,8 @@
 # Copyright(c)
 #          2015-2016 George Washington University
 #          2015-2016 University of California Riverside
+#          2010-2014 Intel Corporation.
+#          2016 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,28 +40,17 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
+
 RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # binary name
-APP = bridge
+LIB    = libonvmhelper.a
 
 # all source are stored in SRCS-y
-SRCS-y := bridge.c
-
-ONVM= $(SRCDIR)/../../onvm
+SRCS-y := cJSON.c
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
-CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
-
-# workaround for a gcc bug with noreturn attribute
-# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
-ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
-CFLAGS_main.o += -Wno-return-type
-endif
-
-include $(RTE_SDK)/mk/rte.extapp.mk
+include $(RTE_SDK)/mk/rte.extlib.mk

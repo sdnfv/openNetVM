@@ -55,8 +55,6 @@ ONVM= $(SRCDIR)/../../onvm
 CFLAGS += $(WERROR_FLAGS) -O3
 
 CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_nflib.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_pkt_helper.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 include $(RTE_SDK)/mk/rte.extapp.mk
