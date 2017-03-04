@@ -66,6 +66,7 @@
 #define NUM_PKTS 128
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE  ((uint16_t)32)
+#define SPEED_TESTER_BIT 7
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -169,7 +170,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 counter = 0;
         }
 
-        if(pkt->port == 3) {
+        if(ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
                 /* one of our fake pkts to forward */
                 meta->destination = destination;
                 meta->action = ONVM_NF_ACTION_TONF;
@@ -273,7 +274,7 @@ int main(int argc, char *argv[]) {
                 pmeta = onvm_get_pkt_meta(pkts[i]);
                 pmeta->destination = destination;
                 pmeta->action = ONVM_NF_ACTION_TONF;
-                pkts[i]->port = 3;
+                pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                 pkts[i]->hash.rss = i;
                 onvm_nflib_return_pkt(pkts[i]);
         }

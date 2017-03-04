@@ -59,11 +59,18 @@
 
 //extern uint8_t rss_symmetric_key[40];
 
+//flag operations that should be used on onvm_pkt_meta
+#define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
+#define ONVM_SET_BIT(flags, n) ((flags) | (1 << (n)))
+#define ONVM_CLEAR_BIT(flags, n) ((flags) & (0 << (n)))
+
 struct onvm_pkt_meta {
         uint8_t action; /* Action to be performed */
         uint16_t destination; /* where to go next */
         uint16_t src; /* who processed the packet last */
-	uint8_t chain_index; /*index of the current step in the service chain*/
+        uint8_t chain_index; /*index of the current step in the service chain*/
+        uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
+
 };
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
         return (struct onvm_pkt_meta*)&pkt->udata64;
