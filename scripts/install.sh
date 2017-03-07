@@ -45,6 +45,17 @@ set -e
 #  - Set $ONVM_NUM_HUGEPAGES to control the number of pages created
 #  - Set $ONVM_SKIP_FSTAB to not add huge fs to /etc/fstab
 
+#Print a table with enviromental variable locations
+echo "----------------------------------------"
+echo "ONVM Environment Variables:"
+echo "----------------------------------------"
+echo "RTE_SDK: $RTE_SDK"
+echo "RTE_TARGET: $RTE_TARGET"
+echo "ONVM_NUM_HUGEPAGES: $ONVM_NUM_HUGEPAGES"
+echo "ONVM_SKIP_HUGEPAGES: $ONVM_SKIP_HUGEPAGES"
+echo "ONVM_SKIP_FSTAB: $ONVM_SKIP_FSTAB"
+echo "----------------------------------------"
+
 if [ -z "$RTE_TARGET" ]; then
     echo "Please export \$RTE_TARGET. Or try running this without sudo."
     exit 1
@@ -79,12 +90,14 @@ sudo -v
 
 cd $start_dir
 
-# Configure HugePages
-hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
-hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
-echo "Configuring $hp_count hugepages with size $hp_size"
-sleep 1
-sudo mkdir -p /mnt/huge
+# Configure HugePages only if user wants to
+if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
+	hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
+	hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
+	echo "Configuring $hp_count hugepages with size $hp_size"
+	sleep 1
+	sudo mkdir -p /mnt/huge
+fi
 
 # Only add to /etc/fstab if user wants it
 if [ -z "$ONVM_SKIP_FSTAB" ]; then
