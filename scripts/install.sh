@@ -106,12 +106,15 @@ if [ -z "$ONVM_SKIP_FSTAB" ]; then
     sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"
 fi
 
-echo "Mounting hugepages"
-sleep 1
-sudo mount -t hugetlbfs nodev /mnt/huge
-echo "Creating $hp_count hugepages"
-sleep 1
-sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
+#Only mount hugepages if user wants to 
+if [ -z "ONVM_SKIP_HUGEPAGES" ]; then
+	echo "Mounting hugepages"
+	sleep 1
+	sudo mount -t hugetlbfs nodev /mnt/huge
+	echo "Creating $hp_count hugepages"
+	sleep 1
+	sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
+fi
 
 # Configure local environment
 echo "Configuring environment"
