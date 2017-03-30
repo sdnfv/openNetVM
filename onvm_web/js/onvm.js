@@ -1,7 +1,12 @@
-var UPDATE_RATE = 3000; // constant for how many ms to wait before updating
+// Constants / config data
+var UPDATE_RATE = 3000; // constant for how many ms to wait before updating, defaults to 3 seconds
+var Y_MIN = 0; // defaults to zero (should never be negative)
+var Y_MAX = 30000000; // defaults to 30M pps
+var X_RANGE = 30; // defaults to 30 SECONDS
 
 var graphIds; // array of graph ids
-var graphDataSets; // hashtable of graph ids and data sets
+var graphDataSets; // hashtable of graph ids and data sets used by graphs
+var onvmDataSets; // hashtable of graph ids and data sets storing ALL data that is used for CSV generation
 var graphs; // hashtable of graph ids and graphs
 
 var xAxisCounter;
@@ -16,7 +21,56 @@ var graph_colors = ["#3c0f6b", "#d3a85c", "#ace536", "#2e650e",
 
 var isPaused;
 
+/*
+ * List of Functions provided in this file:
+ *
+ * function initWebStats()
+ * function readConfig()
+ * function initGraphs()
+ * function createDomElement(dataObj, parent)
+ * function createNfGraphs(nfArray)
+ * function createPortGraphs(portArray)
+ * function createPortGraph(port)
+ * function createNfGraph(nf)
+ * function generateGraph(obj)
+ * function updateGraphs()
+ * function updateRawText()
+ * function refreshGraphById(id)
+ * function indexOfNfWithLabel(arr, label)
+ * function checkStoppedNfs(nfArray)
+ * function renderGraphs(nfArray)
+ * function renderText(text)
+ * function renderUpdateTime(updateTime)
+ * function handleAutoUpdateButtonClick()
+ * function determineMaxTime()
+ * function generateCSV()
+ * function handleDownloadButtonClick()
+ */
+
 function initWebStats(){
+    var config = readConfig();
+    if(config != null){
+        if(config.hasOwnProperty('refresh_rate')){
+	    UPDATE_RATE = config.refresh_rate;
+        }
+
+        if(config.hasOwnProperty('y_min')){
+	    Y_MIN = config.y_min;
+        }
+
+        if(config.hasOwnProperty('y_max')){
+	    Y_MAX = config.y_max;
+        }
+
+        if(config.hasOwnProperty('x_range')){
+	    X_RANGE = config.x_range;
+        }
+
+        if(config.hasOwnProperty('refresh_rate')){
+	    UPDATE_RATE = config.refresh_rate;
+        }
+    }
+
     nfStatsSection = document.getElementById("onvm_nf_stats");
     portStatsSection = document.getElementById("onvm_port_stats");
 
@@ -25,6 +79,7 @@ function initWebStats(){
     graphIds = [];
     graphs = {};
     graphDataSets = {};
+    onvmDataSets = {};
     xAxisCounter = 0;
 
     initGraphs(); // creates the graph with no data
@@ -34,6 +89,7 @@ function initWebStats(){
     // sets updates to run in background every <UPDATE_RATE> milliseconds
     setInterval(function(){
         if(!isPaused){
+	    console.log("Updating.");
             updateGraphs();
             updateRawText();
 
@@ -41,6 +97,34 @@ function initWebStats(){
             xAxisCounter += (UPDATE_RATE / 1000);
         }
     }, UPDATE_RATE);
+}
+
+function readConfig(){
+    // makes a synchronous get request (bad practice, but necessary for reading config before proceeding)
+    function syncGetRequest(){
+	var req = null;
+
+	try{
+	    req = new XMLHttpRequest();
+	    req.open("GET", "/config.json", false);
+	    req.send(null);
+	}catch(e){}
+
+	return {'code': req.status, 'text': req.responseText};
+    }
+
+    var config = syncGetRequest();
+    if(config.code != 200){
+	console.log("Error fetching config. Continuing with default configuration.");
+	return null;
+    }
+
+    try {
+	return JSON.parse(config.text);
+    }catch(e){
+	console.log("Error parsing config.  Continuing with default configuration.");
+	return null;
+    }
 }
 
 function initGraphs(){
@@ -86,19 +170,19 @@ function createPortGraphs(portArray){
 
 function createPortGraph(port){
     createDomElement(port, portStatsSection);
-    generateNfGraph(port);
+    generateGraph(port);
 
     graphIds.push(port.Label);
 }
 
 function createNfGraph(nf){
     createDomElement(nf, nfStatsSection);
-    generateNfGraph(nf);
+    generateGraph(nf);
 
     graphIds.push(nf.Label);
 }
 
-function generateNfGraph(nf){
+function generateGraph(nf){
     var nfGraphCtx = document.getElementById(nf.Label);
 
     var nfDataSet = {
@@ -127,6 +211,7 @@ function generateNfGraph(nf){
     };
 
     graphDataSets[nf.Label] = nfDataSet;
+    onvmDataSets[nf.Label] = jQuery.extend(true, {}, nfDataSet);
 
     var options = {
         title: {
@@ -135,12 +220,20 @@ function generateNfGraph(nf){
         },
         scales: {
             yAxes: [{
+		ticks: {
+		    min: Y_MIN,
+		    max: Y_MAX
+		},
                 scaleLabel: {
                     display: true,
                     labelString: 'Packets'
                 }
             }],
             xAxes: [{
+		ticks: {
+		    min: 0,
+		    max: X_RANGE
+		},
                 scaleLabel: {
                     display: true,
                     labelString: 'Seconds'
@@ -156,6 +249,9 @@ function generateNfGraph(nf){
     });
 
     graphs[nf.Label] = nfGraph;
+
+    graphs[nf.Label].options.scales.xAxes[0].ticks.min = xAxisCounter;
+    graphs[nf.Label].options.scales.xAxes[0].ticks.max = xAxisCounter + X_RANGE;
 }
 
 function updateGraphs(){
@@ -187,7 +283,6 @@ function updateRawText(){
 
 function refreshGraphById(id){
     var graph = graphs[id];
-
     graph.update();
 }
 
@@ -217,9 +312,9 @@ function checkStoppedNfs(nfArray){
     for(var j = 0; j < stoppedNfIds.length; ++j){
         var stoppedNfId = stoppedNfIds[j];
 
-        // remove from data structures ( graphs, datasets, graphids )
+        // remove from data structures ( graphs, graphids )
         delete graphs[stoppedNfId]; // remove from graphs hashtable
-        delete graphDataSets[stoppedNfId]; // remove from graphDataSets hashtable
+        // do not remove from graphDataSets hashtable, this enables us to export its data to CSV
 
         var idIndex = graphIds.indexOf(stoppedNfId);
 
@@ -246,20 +341,40 @@ function renderGraphs(nfArray){
         }else{
             //update its data
             var nfDataSet = graphDataSets[nf.Label].datasets;
+	    var onvmDataSet = onvmDataSets[nf.Label].datasets;
 
             for(var d = 0; d < nfDataSet.length; ++d){
                 var dataSet = nfDataSet[d];
+		var onvmSet = onvmDataSet[d];
 
                 if(dataSet.label == (nf.Label + " TX")){
                     dataSet.data.push({
                         x: xAxisCounter,
                         y: nf.TX
                     });
+		    onvmSet.data.push({
+			x: xAxisCounter,
+			y: nf.TX
+		    });
+		    if((dataSet.data.length * (UPDATE_RATE / 1000.0)) > X_RANGE){
+			dataSet.data.shift();
+			graphs[nf.Label].options.scales.xAxes[0].ticks.min = dataSet.data[0].x;
+			graphs[nf.Label].options.scales.xAxes[0].ticks.max = dataSet.data[dataSet.data.length - 1].x;
+		    }
                 }else if(dataSet.label == (nf.Label + " RX")){
                     dataSet.data.push({
                         x: xAxisCounter,
                         y: nf.RX
                     });
+		    onvmSet.data.push({
+			x: xAxisCounter,
+			y: nf.RX
+		    });
+		    if((dataSet.data.length * (UPDATE_RATE / 1000.0)) > X_RANGE){
+			dataSet.data.shift();
+			graphs[nf.Label].options.scales.xAxes[0].ticks.min = dataSet.data[0].x;
+			graphs[nf.Label].options.scales.xAxes[0].ticks.max = dataSet.data[dataSet.data.length - 1].x;
+		    }
                 }else{
                     // something went wrong, TX and RX should be the only 2 datasets (aka lines) on a graph
                     console.log("Error with data sets!");
@@ -289,4 +404,107 @@ function handleAutoUpdateButtonClick(){
     }
 
     isPaused = !isPaused;
+}
+
+function determineMaxTime(dataSets){
+    var maxTime = -1;
+
+    for(var key in dataSets){
+    	if(dataSets.hasOwnProperty(key)){
+	    var objDS = dataSets[key].datasets; // var for object data sets (TX and RX Data)
+	    for(var i = 0; i < objDS.length; ++i){
+		var singleDsData = objDS[i].data;
+
+		var singleDsMaxTime = singleDsData[singleDsData.length - 1].x;
+
+		if(singleDsMaxTime > maxTime) maxTime = singleDsMaxTime;
+	    }
+    	}
+    }
+
+    return maxTime;
+}
+
+function generateCSV(){
+    // deep copy the graphDataSets object to avoid recieving new data during this process and messing up calculations / export
+    var copiedDataSets = jQuery.extend(true, {}, onvmDataSets);
+
+    // this gets us the highest value on the x-axis to generate the CSV to
+    var maxTime = determineMaxTime(copiedDataSets);
+
+    var header = "";
+    var keys = []; // this array is used to keep data in same order as header
+    for(var key in copiedDataSets){
+    	if(copiedDataSets.hasOwnProperty(key)){
+	    var dsArr = copiedDataSets[key].datasets;
+	    for(var i = 0; i < dsArr.length; ++i){
+		header += (dsArr[i].label + ",");
+		keys.push({'key': key, 'label': dsArr[i].label});
+	    }
+    	}
+    }
+    if(header.length > 0){
+	header = "time (s)," + header.substring(0, header.length -1);
+    }
+
+    var csvArr = [];
+    csvArr.push(header);
+
+    // for each time we have data for (0 thru max time)
+    for(var time = 0; time <= maxTime; time += (UPDATE_RATE / 1000)){
+	var csvLine = "" + time;
+
+	// iterate through each NF data IN ORDER (based on key array) and fetch its data for that time
+	for(var i = 0; i < keys.length; ++i){
+	    var key = keys[i];
+
+	    // locate the data set we are looking for based on the key
+	    var dsArr = copiedDataSets[key.key].datasets;
+	    var currentDataSet = null;
+	    for(var j = 0; j < dsArr.length; ++j){
+		if(dsArr[j].label == key.label){
+		    currentDataSet = dsArr[j];
+		    break;
+		}
+	    }
+
+	    if(currentDataSet == null) continue; // something went wrong
+
+	    // find the data point we are looking for, if it's not there we will denote using -1
+	    var data = currentDataSet.data;
+	    var yVal = -1;
+	    for(var j = 0; j < data.length; ++j){
+		if(data[j].x == time){
+		    yVal = data[j].y;
+		    break;
+		}
+	    }
+	    csvLine += ("," + yVal);
+	}
+
+	csvArr.push(csvLine);
+    }
+
+    // convert the array of csv lines to a single string
+    var csvStr = "";
+    for(var i = 0; i < csvArr.length; ++i){
+	csvStr += (csvArr[i] + "\n");
+    }
+
+    return csvStr;
+}
+
+function handleDownloadButtonClick(){
+    // generate the CSV from the current data
+    var csv = generateCSV();
+
+    // creates a fake element and clicks it
+    var dataLink = document.createElement("a");
+    dataLink.textContent = 'download';
+    dataLink.download = "onvm-data.csv";
+    dataLink.href="data:text/csv;charset=utf-8," + escape(csv);
+
+    document.body.appendChild(dataLink);
+    dataLink.click(); // simulate a click of the link
+    document.body.removeChild(dataLink);
 }

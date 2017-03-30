@@ -6,8 +6,35 @@ About
 
 Resources to view openNetVM Manager statistics through a web based console.
 
-The [start web console][start_web] script will run [Python SimpleHTTPServer][simplehttp] on
-port 8080.
+The [start web console][start_web] script will run [Python SimpleHTTPServer][simplehttp] on port 8080.
+
+Configuration
+--
+
+You may provide a config.json file in this directory containing the following variables:
+
+* `y_min`: minimum Y value shown on the graphs (default = 0)
+* `y_max`: maximum Y value shown on the graphs (default = 30M)
+* `x_range`: maximum number of seconds shown on the graph on the X axis at once (default = 30)
+* `refresh_rate`: Number of **milliseconds** to update the graphs (default = 3000)
+
+If no config.json file is provided, or if invalid options are provided, the system will use the defaults.
+
+An example `config.json` setup is provided below using the default parameters:
+
+```
+{
+        "y_min": 0,
+        "y_max": 30000000,
+        "x_range": 30,
+        "refresh_rate": 3000
+}
+```                                                                
+
+CSV Download
+--
+
+The web view also provides the user with the ability to download a CSV containing all data points recorded **by the current browser session**.  Please note that refreshing the page will remove these data points and reset the data the browser has recorded.
 
 Usage
 --
