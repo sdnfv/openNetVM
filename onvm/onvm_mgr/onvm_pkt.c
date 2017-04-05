@@ -209,7 +209,7 @@ onvm_pkt_flush_all_ports(struct thread_info *tx) {
                 return;
 
         for (i = 0; i < ports->num_ports; i++)
-                onvm_pkt_flush_port_queue(tx, i);
+                onvm_pkt_flush_port_queue(tx, ports->id[i]);
 }
 
 
