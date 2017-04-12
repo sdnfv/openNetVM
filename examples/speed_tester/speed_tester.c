@@ -56,7 +56,8 @@
 #include <rte_mempool.h>
 #include <rte_cycles.h>
 #include <rte_ring.h>
-
+#include <rte_ethdev.h>
+#include <rte_ether.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -67,6 +68,7 @@
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE  ((uint16_t)32)
 #define SPEED_TESTER_BIT 7
+#define LOCAL_EXPERIMENTAL_ETHER 0x88B5
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -77,12 +79,18 @@ static uint16_t destination;
 static uint8_t use_direct_rings = 0;
 static uint8_t keep_running = 1;
 
+/*user defined packet size and destination mac address
+*size defaults to ethernet header length
+*/
+static uint16_t packet_size = ETHER_HDR_LEN;
+static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
+
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a <use_advanced_rings>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a -s <packet_length> -m <dest_mac_address>\n\n", progname);
 }
 
 /*
@@ -90,9 +98,10 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0;
+        int c, i, count, dst_flag = 0;
+        int values[ETHER_ADDR_LEN];
 
-        while ((c = getopt (argc, argv, "d:p:a:")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:as:m:")) != -1) {
                 switch (c) {
                 case 'a':
                         use_direct_rings = 1;
@@ -104,11 +113,35 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         break;
+                case 's':
+                        packet_size = strtoul(optarg, NULL, 10);
+                        break;
+                case 'm':
+                        count = sscanf(optarg, 
+                                        "%x:%x:%x:%x:%x:%x", 
+                                        &values[0], 
+                                        &values[1], 
+                                        &values[2], 
+                                        &values[3],
+                                        &values[4], 
+                                        &values[5]);
+                        if (count == ETHER_ADDR_LEN) {
+                                for (i = 0; i < ETHER_ADDR_LEN; ++i) {
+                                        d_addr_bytes[i] = (uint8_t) values[i];
+                                }
+                        } else {
+                                usage(progname);
+                        }
+                        break;
                 case '?':
                         usage(progname);
                         if (optopt == 'd')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (optopt == 'p')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 's')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'm')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -175,6 +208,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 meta->destination = destination;
                 meta->action = ONVM_NF_ACTION_TONF;
         }
+
         else {
                 /* Drop real incoming packets */
                 meta->action = ONVM_NF_ACTION_DROP;
@@ -217,7 +251,7 @@ run_advanced_rings(void) {
         while (keep_running && rx_ring && tx_ring && tx_stats) {
                 tx_batch_size= 0;
                 /* Dequeue all packets in ring up to max possible. */
-		nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
 
                 if(unlikely(nb_pkts == 0)) {
                         continue;
@@ -270,7 +304,23 @@ int main(int argc, char *argv[]) {
         printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);
         for (i=0; i < NUM_PKTS; i++) {
                 struct onvm_pkt_meta* pmeta;
+                struct ether_hdr *ehdr;
+                int j;
+
                 pkts[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+
+                /*set up ether header and set new packet size*/
+                ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkts[i], packet_size);
+
+                /*using manager mac addr for source
+                *using input string for dest addr 
+                */ 
+                rte_eth_macaddr_get(0, &ehdr->s_addr);
+                for (j = 0; j < ETHER_ADDR_LEN; ++j) {
+                        ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                }
+                ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
+
                 pmeta = onvm_get_pkt_meta(pkts[i]);
                 pmeta->destination = destination;
                 pmeta->action = ONVM_NF_ACTION_TONF;
