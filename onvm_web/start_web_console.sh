@@ -37,7 +37,25 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Start ONVM web stats console at http://localhost:8080
-echo "Starting openNetVM Web Stats Console at http://localhost:8080"
-nohup python -m SimpleHTTPServer 8080 &
+function usage {
+    echo "$0 [-p WEB-PORT-NUMBER]"
+    exit 1
+}
+
+web_port=8080
+
+while getopts "p:" opt; do
+    case $opt in
+        p) web_port="$OPTARG";;
+        \?) echo "Unknown option -$OPTARG" && usage
+            ;;
+    esac
+done
+
+
+# Start ONVM web stats console at http://localhost:<port num>
+echo -n "Starting openNetVM Web Stats Console at http://localhost:"
+echo $web_port
+
+nohup python -m SimpleHTTPServer $web_port &
 export ONVM_WEB_PID=$!
