@@ -59,6 +59,8 @@
 
 /****************************Internal Declarations****************************/
 
+#define MAX_SHUTDOWN_ITERS 10
+
 // True as long as the main thread loop should keep running
 static uint8_t main_keep_running = 1;
 
@@ -76,6 +78,7 @@ static void handle_signal(int sig);
 static void
 master_thread_main(void) {
         uint16_t i;
+        int shutdown_iter_count;
         const unsigned sleeptime = 1;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
@@ -113,10 +116,16 @@ master_thread_main(void) {
         }
 
         /* Wait to process all exits */
-        while (num_clients > 0) {
+        for (shutdown_iter_count = 0;
+             shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_clients > 0;
+             shutdown_iter_count++) {
                 onvm_nf_check_status();
                 RTE_LOG(INFO, APP, "Core %d: Waiting for %"PRIu16" NFs to exit\n", rte_lcore_id(), num_clients);
                 sleep(sleeptime);
+        }
+
+        if (num_clients > 0) {
+                RTE_LOG(INFO, APP, "Core %d: Up to %"PRIu16" NFs may still be running and must be killed manually\n", rte_lcore_id(), num_clients);
         }
 
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());

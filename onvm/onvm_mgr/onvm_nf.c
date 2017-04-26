@@ -70,6 +70,17 @@ onvm_nf_start(struct onvm_nf_info *nf_info);
 
 
 /*
+ * Function to mark a NF as ready.
+ *
+ * Input  : a pointer to the NF's informations
+ * Output : an error code
+ *
+ */
+inline static int
+onvm_nf_ready(struct onvm_nf_info *nf_info);
+
+
+/*
  * Function stopping a NF.
  *
  * Input  : a pointer to the NF's informations
@@ -124,8 +135,11 @@ onvm_nf_check_status(void) {
                 switch (msg->msg_type) {
                 case MSG_NF_STARTING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        if (!onvm_nf_start(nf))
-                                num_clients++;
+                        onvm_nf_start(nf);
+                        break;
+                case MSG_NF_READY:
+                        nf = (struct onvm_nf_info*)msg->msg_data;
+                        onvm_nf_ready(nf);
                         break;
                 case MSG_NF_STOPPING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
@@ -208,12 +222,22 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
         clients[nf_id].info = nf_info;
         clients[nf_id].instance_id = nf_id;
 
-        // Register this NF running within its service
-        uint16_t service_count = nf_per_service_count[nf_info->service_id]++;
-        services[nf_info->service_id][service_count] = nf_id;
-
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
+        return 0;
+}
+
+
+inline static int
+onvm_nf_ready(struct onvm_nf_info *info) {
+        // Ensure we've already called nf_start for this NF
+        if (info->status != NF_STARTING) return -1;
+
+        // Register this NF running within its service
+        info->status = NF_RUNNING;
+        uint16_t service_count = nf_per_service_count[info->service_id]++;
+        services[info->service_id][service_count] = info->instance_id;
+        num_clients++;
         return 0;
 }
 

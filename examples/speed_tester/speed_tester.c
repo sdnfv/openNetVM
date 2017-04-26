@@ -330,6 +330,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (use_direct_rings) {
+                onvm_nflib_nf_ready(nf_info);
                 run_advanced_rings();
         } else {
                 onvm_nflib_run(nf_info, &packet_handler);

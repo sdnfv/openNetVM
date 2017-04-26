@@ -309,9 +309,8 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         if (nf_msg_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf msg ring");
 
-
         /* Tell the manager we're ready to recieve packets */
-        nf_info->status = NF_RUNNING;
+        keep_running = 1;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
         return retval_final;
@@ -324,6 +323,7 @@ onvm_nflib_run(
         pkt_handler handler)
 {
         void *pkts[PKT_READ_SIZE];
+        int ret;
 
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_RING) {
@@ -332,12 +332,16 @@ onvm_nflib_run(
         nf_mode = NF_MODE_SINGLE;
 
         printf("\nClient process %d handling packets\n", info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, onvm_nflib_handle_signal);
         signal(SIGTERM, onvm_nflib_handle_signal);
 
+        printf("Sending NF_READY message to manager...\n");
+        ret = onvm_nflib_nf_ready(info);
+        if (ret != 0) rte_exit(EXIT_FAILURE, "Unable to message manager\n");
+
+        printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 onvm_nflib_dequeue_packets(pkts, info, handler);
                 onvm_nflib_dequeue_messages();
@@ -359,6 +363,25 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
                 return -ENOBUFS;
         }
         else tx_stats->tx_returned[nf_info->instance_id]++;
+        return 0;
+}
+
+int
+onvm_nflib_nf_ready(struct onvm_nf_info *info) {
+        struct onvm_nf_msg *startup_msg;
+        int ret;
+
+        /* Put this NF's info struct onto queue for manager to process startup */
+        ret = rte_mempool_get(nf_msg_pool, (void**)(&startup_msg));
+        if (ret != 0) return ret;
+
+        startup_msg->msg_type = MSG_NF_READY;
+        startup_msg->msg_data = info;
+        ret = rte_ring_enqueue(mgr_msg_queue, startup_msg);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, startup_msg);
+                return ret;
+        }
         return 0;
 }
 
@@ -439,6 +462,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
         if(unlikely(nb_pkts == 0)) {
                 return;
         }
+
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);

@@ -108,6 +108,19 @@ int
 onvm_nflib_return_pkt(struct rte_mbuf* pkt);
 
 /**
+ * Inform the manager that the NF is ready to receive packets.
+ * This only needs to be called when the NF is using advanced rings
+ * Otherwise, onvm_nflib_run will call this
+ *
+ * @param info
+ *    A pointer to this NF's info struct
+ * @return
+ *    0 on success, or a negative value on failure
+ */
+int
+onvm_nflib_nf_ready(struct onvm_nf_info *info);
+
+/**
  * Process an message. Does stuff.
  *
  * @param msg
