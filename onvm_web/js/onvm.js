@@ -213,10 +213,46 @@ function generateGraph(nf){
     graphDataSets[nf.Label] = nfDataSet;
     onvmDataSets[nf.Label] = jQuery.extend(true, {}, nfDataSet);
 
+    // add drop rates to ONVM DATA SETS ONLY
+    // do not add to graph data sets directly, will mess with graphs
+    var tx_drop_rate = {
+        label: nf.Label + " TX Drop Rate",
+        data: [
+            {
+                x: xAxisCounter,
+                y: nf.TX_Drop_Rate
+            }
+        ]
+    };
+
+    var rx_drop_rate = {
+        label: nf.Label + " RX Drop Rate",
+        data: [
+            {
+                x: xAxisCounter,
+                y: nf.RX_Drop_Rate
+            }
+        ]
+    };
+
+    if(nf.Label.toUpperCase().includes("NF")){
+        onvmDataSets[nf.Label].datasets.push(tx_drop_rate);
+        onvmDataSets[nf.Label].datasets.push(rx_drop_rate);
+    }
+
+    //console.log(onvmDataSets[nf.Label]);
+
+    var TITLE;
+    if(nf.Label.toUpperCase().includes("NF")){
+        TITLE = nf.Label + " (Drop Rates: {tx: " + nf.TX_Drop_Rate + ", rx: " + nf.RX_Drop_Rate + "})";
+    }else{
+        TITLE = nf.Label;
+    }
+
     var options = {
         title: {
             display: true,
-            text: nf.Label
+            text: TITLE
         },
         scales: {
             yAxes: [{
@@ -343,6 +379,35 @@ function renderGraphs(nfArray){
             var nfDataSet = graphDataSets[nf.Label].datasets;
 	    var onvmDataSet = onvmDataSets[nf.Label].datasets;
 
+            var title = graphs[nf.Label].options.title;
+            var TITLE;
+            if(nf.Label.toUpperCase().includes("NF")){
+                TITLE = nf.Label + " (Drop Rates: {tx: " + nf.TX_Drop_Rate + ", rx: " + nf.RX_Drop_Rate + "})";
+            }else{
+                TITLE = nf.Label;
+            }
+            title.text = TITLE;
+
+            //console.log("ONVM DATA SET");
+            //console.log(onvmDataSet);
+            if(nf.Label.toUpperCase().includes("NF")){
+                for(var z = 0; z < onvmDataSet.length; ++z){
+                    if(onvmDataSet[z].label == (nf.Label + " RX Drop Rate")){
+                        //console.log("INSERT RXDR DATA");
+                        onvmDataSet[z].data.push({
+                            x: xAxisCounter,
+                            y: nf.RX_Drop_Rate
+                        });
+                    }else if(onvmDataSet[z].label == (nf.Label + " TX Drop Rate")){
+                        //console.log("INSERT TXDR DATA");
+                        onvmDataSet[z].data.push({
+                            x: xAxisCounter,
+                            y: nf.TX_Drop_Rate
+                        });
+                    }
+                }
+            }
+
             for(var d = 0; d < nfDataSet.length; ++d){
                 var dataSet = nfDataSet[d];
 		var onvmSet = onvmDataSet[d];
@@ -412,8 +477,15 @@ function determineMaxTime(dataSets){
     for(var key in dataSets){
     	if(dataSets.hasOwnProperty(key)){
 	    var objDS = dataSets[key].datasets; // var for object data sets (TX and RX Data)
+            //console.log(objDS);
 	    for(var i = 0; i < objDS.length; ++i){
+
 		var singleDsData = objDS[i].data;
+
+                if(singleDsData.length == 0){
+                    maxTime = 0;
+                    continue;
+                }
 
 		var singleDsMaxTime = singleDsData[singleDsData.length - 1].x;
 
@@ -439,7 +511,9 @@ function generateCSV(){
 	    var dsArr = copiedDataSets[key].datasets;
 	    for(var i = 0; i < dsArr.length; ++i){
 		header += (dsArr[i].label + ",");
-		keys.push({'key': key, 'label': dsArr[i].label});
+                if(dsArr[i].label != null){
+		    keys.push({'key': key, 'label': dsArr[i].label});
+                }
 	    }
     	}
     }
@@ -455,6 +529,8 @@ function generateCSV(){
 	var csvLine = "" + time;
 
 	// iterate through each NF data IN ORDER (based on key array) and fetch its data for that time
+        //console.log("KEYS:");
+        //console.log(keys);
 	for(var i = 0; i < keys.length; ++i){
 	    var key = keys[i];
 

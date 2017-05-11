@@ -259,6 +259,10 @@ onvm_stats_display_clients(unsigned difftime) {
         static uint64_t nf_tx_last[MAX_CLIENTS];
         static uint64_t nf_rx_last[MAX_CLIENTS];
 
+        /* Arrays to store last TX/RX pkts dropped for NFs to calculate drop rate */
+        static uint64_t nf_tx_drop_last[MAX_CLIENTS];
+        static uint64_t nf_rx_drop_last[MAX_CLIENTS];
+
         fprintf(stats_out, "\nCLIENTS\n");
         fprintf(stats_out, "-------\n");
         for (i = 0; i < MAX_CLIENTS; i++) {
@@ -276,6 +280,8 @@ onvm_stats_display_clients(unsigned difftime) {
                 const uint64_t act_returned = clients_stats->tx_returned[i];
                 const uint64_t rx_pps = (rx - nf_rx_last[i])/difftime;
                 const uint64_t tx_pps = (tx - nf_tx_last[i])/difftime;
+                const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i])/difftime;
+                const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i])/difftime;
 
                 fprintf(stats_out, "Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
                                    "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
@@ -296,6 +302,10 @@ onvm_stats_display_clients(unsigned difftime) {
                                                 "RX", rx_pps);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i],
                                                 "TX", tx_pps);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "TX_Drop_Rate", tx_drop_rate);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "RX_Drop_Rate", rx_drop_rate);
 
                         free(nf_label);
                         nf_label = NULL;
@@ -303,6 +313,8 @@ onvm_stats_display_clients(unsigned difftime) {
 
                 nf_rx_last[i] = clients[i].stats.rx;
                 nf_tx_last[i] = clients_stats->tx[i];
+                nf_rx_drop_last[i] = rx_drop;
+                nf_tx_drop_last[i] = tx_drop;
         }
 
         fprintf(stats_out, "\n");
