@@ -68,6 +68,9 @@ uint16_t default_service = DEFAULT_SERVICE_ID;
 /* global var to where to print stats - extern in init.h */
 ONVM_STATS_OUTPUT stats_destination = ONVM_STATS_NONE;
 
+/* global var for how long stats should wait before updating - extern in init.h */
+uint16_t global_stats_sleep_time = 1;
+
 /* global var for program name */
 static const char *progname;
 
@@ -93,6 +96,9 @@ parse_num_services(const char *services);
 static int
 parse_stats_output(const char *stats_output);
 
+static int
+parse_stats_sleep_time(const char *sleeptime);
+
 
 /*********************************Interfaces**********************************/
 
@@ -106,12 +112,13 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 {"port-mask",           required_argument,      NULL,   'p'},
                 {"num-services",        required_argument,      NULL,   'r'},
                 {"default-service",     required_argument,      NULL,   'd'},
-                {"stats-out",           no_argument,            NULL,   's'}
+                {"stats-out",           no_argument,            NULL,   's'},
+                {"stats-sleep-time",    no_argument,            NULL,   'z'}
         };
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:d:s:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:d:s:z:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -139,6 +146,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
 
                                 onvm_stats_set_output(stats_destination);
                                 break;
+                        case 'z':
+                                if(parse_stats_sleep_time(optarg) != 0){
+                                        usage();
+                                        return -1;
+                                }
+                                break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
                                 usage();
@@ -160,7 +173,8 @@ usage(void) {
             "\t-p PORTMASK: hexadecimal bitmask of ports to use\n"
             "\t-r NUM_SERVICES: number of unique serivces allowed. defaults to 16 (optional)\n"
             "\t-d DEFAULT_SERVICE: the service to initially receive packets. defaults to 1 (optional)\n"
-            "\t-s STATS_OUTPUT: where to output manager stats (stdout/stderr/web). defaults to NONE (optional)\n",
+            "\t-s STATS_OUTPUT: where to output manager stats (stdout/stderr/web). defaults to NONE (optional)\n"
+            "\t-z STATS_SLEEP_TIME: how long the stats thread should wait before updating the stats (in seconds)\n",
             progname);
 }
 
@@ -224,6 +238,19 @@ parse_num_services(const char *services) {
                 return -1;
 
         num_services = (uint16_t)temp;
+        return 0;
+}
+
+static int
+parse_stats_sleep_time(const char *sleeptime){
+        char* end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(sleeptime, &end, 10);
+        if(end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        global_stats_sleep_time = (uint16_t)temp;
         return 0;
 }
 

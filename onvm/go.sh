@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage {
-        echo "$0 CPU-LIST PORTMASK [-r NUM-SERVICES] [-d DEFAULT-SERVICE] [-s STATS-OUTPUT] [-p WEB-PORT-NUMBER]"
+        echo "$0 CPU-LIST PORTMASK [-r NUM-SERVICES] [-d DEFAULT-SERVICE] [-s STATS-OUTPUT] [-p WEB-PORT-NUMBER] [-z STATS-SLEEP-TIME]"
         # this works well on our 2x6-core nodes
         echo "$0 0,1,2,6 3 --> cores 0, 1, 2 and 6 with ports 0 and 1"
         echo -e "\tCores will be used as follows in numerical order:"
@@ -30,13 +30,14 @@ then
     usage
 fi
 
-while getopts "r:d:s:p:" opt; do
+while getopts "r:d:s:p:z:" opt; do
     case $opt in
         v) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
         d) def_srvc="-d $optarg";;
         s) stats="-s $OPTARG";;
         p) web_port="$OPTARG";;
+        z) stats_sleep_time="-z $OPTARG";;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
@@ -57,7 +58,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats}
+sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
 
 if [ "${stats}" = "-s web" ]
 then

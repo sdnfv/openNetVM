@@ -79,7 +79,7 @@ static void
 master_thread_main(void) {
         uint16_t i;
         int shutdown_iter_count;
-        const unsigned sleeptime = 1;
+        const unsigned sleeptime = global_stats_sleep_time;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
@@ -88,8 +88,8 @@ master_thread_main(void) {
                 RTE_LOG(INFO, APP, "\tTo activate, please run $ONVM_HOME/onvm_web/start_web_console.sh\n");
         }
 
-        /* Longer initial pause so above printf is seen */
-        sleep(sleeptime * 3);
+        /* Initial pause so above printf is seen */
+        sleep(5);
 
         /* Loop forever: sleep always returns 0 or <= param */
         while ( main_keep_running && sleep(sleeptime) <= sleeptime) {
