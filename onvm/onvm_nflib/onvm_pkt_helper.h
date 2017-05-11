@@ -41,6 +41,7 @@
 #ifndef _ONVM_PKT_HELPER_H_
 #define _ONVM_PKT_HELPER_H_
 
+struct port_info;
 struct rte_mbuf;
 struct tcp_hdr;
 struct udp_hdr;
@@ -50,10 +51,23 @@ struct ipv4_hdr;
 #define IP_PROTOCOL_UDP 17
 
 /**
- * Flip the source and destination mac address of a packet
+ * Assign the source and destination MAC address of the packet to the specified
+ * source and destination port ID.
  */
 int
-onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port);
+onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info *ports);
+
+/**
+ * Swap the source MAC address of a packet with a specified destination port's MAC address.
+ */
+int
+onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info *ports);
+
+/**
+ * Swap the destination MAC address of a packet with a specified source port's MAC address.
+ */
+int
+onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info *ports);
 
 /**
  * Return a pointer to the tcp/udp/ip header in the packet, or NULL if not a TCP packet

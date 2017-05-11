@@ -77,8 +77,11 @@
 
 typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
 
+
 /******************************Global Variables*******************************/
 
+// Shared data for host port information
+struct port_info *ports;
 
 // ring used for NF -> mgr messages (like startup & shutdown)
 static struct rte_ring *mgr_msg_queue;
@@ -86,18 +89,14 @@ static struct rte_ring *mgr_msg_queue;
 // ring used for mgr -> NF messages
 static struct rte_ring *nf_msg_ring;
 
-
 // rings used to pass packets between NFlib and NFmgr
 static struct rte_ring *tx_ring, *rx_ring;
-
 
 // shared data from server. We update statistics here
 static volatile struct client_tx_stats *tx_stats;
 
-
 // Shared data for client info
 extern struct onvm_nf_info *nf_info;
-
 
 // Shared pool for all clients info
 static struct rte_mempool *nf_info_mp;
@@ -105,22 +104,17 @@ static struct rte_mempool *nf_info_mp;
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
-
 // User-given NF Client ID (defaults to manager assigned)
 static uint16_t initial_instance_id = NF_NO_ID;
-
 
 // User supplied service ID
 static uint16_t service_id = -1;
 
-
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
 
-
 // Mode this NF is running in (single packet, or direct ring manipulation)
 static uint8_t nf_mode = NF_MODE_UNKNOWN;
-
 
 // Shared data for default service chain
 static struct onvm_service_chain *default_chain;
@@ -196,10 +190,11 @@ onvm_nflib_cleanup(void);
 
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
-        const struct rte_memzone *mz;
-	const struct rte_memzone *mz_scp;
+        const struct rte_memzone *mz_client;
+        const struct rte_memzone *mz_port;
+        const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
-	struct onvm_service_chain **scp;
+        struct onvm_service_chain **scp;
         struct onvm_nf_msg *startup_msg;
         int retval_eal, retval_parse, retval_final;
 
@@ -245,18 +240,23 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
 
-        mz = rte_memzone_lookup(MZ_CLIENT_INFO);
-        if (mz == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get tx info structure\n");
-        tx_stats = mz->addr;
+        mz_client = rte_memzone_lookup(MZ_CLIENT_INFO);
+        if (mz_client == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get client tx info structure\n");
+        tx_stats = mz_client->addr;
 
-	mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
-	if (mz_scp == NULL)
-		rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
-	scp = mz_scp->addr;
-	default_chain = *scp;
+        mz_port = rte_memzone_lookup(MZ_PORT_INFO);
+        if (mz_port == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
+        ports = mz_port->addr;
 
-	onvm_sc_print(default_chain);
+        mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
+        if (mz_scp == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
+        scp = mz_scp->addr;
+        default_chain = *scp;
+
+        onvm_sc_print(default_chain);
 
         mgr_msg_queue = rte_ring_lookup(_MGR_MSG_QUEUE_NAME);
         if (mgr_msg_queue == NULL)
@@ -456,8 +456,8 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
         int tx_batch_size = 0;
         int ret_act;
 
-	/* Dequeue all packets in ring up to max possible. */
-	nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+        /* Dequeue all packets in ring up to max possible. */
+        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
 
         if(unlikely(nb_pkts == 0)) {
                 return;

@@ -81,15 +81,80 @@ static int init_info_queue(void);
 static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 
 
+/*****************Internal Configuration Structs and Constants*****************/
+
+/*
+ * RX and TX Prefetch, Host, and Write-back threshold values should be
+ * carefully set for optimal performance. Consult the network
+ * controller's datasheet and supporting DPDK documentation for guidance
+ * on how these parameters should be set.
+ */
+#define RX_PTHRESH 8 /* Default values of RX prefetch threshold reg. */
+#define RX_HTHRESH 8 /* Default values of RX host threshold reg. */
+#define RX_WTHRESH 4 /* Default values of RX write-back threshold reg. */
+
+/*
+ * These default values are optimized for use with the Intel(R) 82599 10 GbE
+ * Controller and the DPDK ixgbe PMD. Consider using other values for other
+ * network controllers and/or network drivers.
+ */
+#define TX_PTHRESH 36 /* Default values of TX prefetch threshold reg. */
+#define TX_HTHRESH 0  /* Default values of TX host threshold reg. */
+#define TX_WTHRESH 0  /* Default values of TX write-back threshold reg. */
+
+static const struct rte_eth_conf port_conf = {
+        .rxmode = {
+                .mq_mode        = ETH_MQ_RX_RSS,
+                .max_rx_pkt_len = ETHER_MAX_LEN,
+                .split_hdr_size = 0,
+                .header_split   = 0,                    /* header split disabled */
+                .hw_ip_checksum = 1,                    /* IP checksum offload enabled */
+                .hw_vlan_filter = 0,                    /* VLAN filtering disabled */
+                .jumbo_frame    = 0,                    /* jumbo frame support disabled */
+                .hw_strip_crc   = 1,                    /* CRC stripped by hardware */
+        },
+        .rx_adv_conf = {
+                .rss_conf = {
+                        .rss_key = rss_symmetric_key,
+                        .rss_hf  = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
+                },
+        },
+        .txmode = {
+                .mq_mode = ETH_MQ_TX_NONE,
+        },
+};
+
+static const struct rte_eth_rxconf rx_conf = {
+        .rx_thresh = {
+                .pthresh = RX_PTHRESH,
+                .hthresh = RX_HTHRESH,
+                .wthresh = RX_WTHRESH,
+        },
+        .rx_free_thresh = 32,
+};
+
+static const struct rte_eth_txconf tx_conf = {
+        .tx_thresh = {
+                .pthresh = TX_PTHRESH,
+                .hthresh = TX_HTHRESH,
+                .wthresh = TX_WTHRESH,
+        },
+        .tx_free_thresh = 0,
+        .tx_rs_thresh   = 0,
+        .txq_flags      = 0,
+};
+
+
 /*********************************Interfaces**********************************/
 
 
 int
 init(int argc, char *argv[]) {
         int retval;
-        const struct rte_memzone *mz;
-	const struct rte_memzone *mz_scp;
-        uint8_t i, total_ports;
+        const struct rte_memzone *mz_client;
+        const struct rte_memzone *mz_port;
+        const struct rte_memzone *mz_scp;
+        uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
         retval = rte_eal_init(argc, argv);
@@ -102,17 +167,19 @@ init(int argc, char *argv[]) {
         total_ports = rte_eth_dev_count();
 
         /* set up array for client tx data */
-        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
+        mz_client = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
                                 rte_socket_id(), NO_FLAGS);
-        if (mz == NULL)
+        if (mz_client == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for client information\n");
-        memset(mz->addr, 0, sizeof(*clients_stats));
-        clients_stats = mz->addr;
+        memset(mz_client->addr, 0, sizeof(*clients_stats));
+        clients_stats = mz_client->addr;
 
-	/* set up ports info */
-        ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
-        if (ports == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
+        /* set up ports info */
+        mz_port = rte_memzone_reserve(MZ_PORT_INFO, sizeof(*ports),
+                                    rte_socket_id(), NO_FLAGS);
+        if (mz_port == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
+        ports = mz_port->addr;
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -136,12 +203,13 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot create nf message pool: %s\n", rte_strerror(rte_errno));
         }
 
-	/* now initialise the ports we will use */
+        /* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
-                retval = init_port(ports->id[i]);
+                port_id = ports->id[i];
+                rte_eth_macaddr_get(port_id, &ports->mac[port_id]);
+                retval = init_port(port_id);
                 if (retval != 0)
-                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n",
-                                        (unsigned)i);
+                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));
@@ -152,28 +220,28 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
-	/*initialize a default service chain*/
-	default_chain = onvm_sc_create();
-	retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
+        /*initialize a default service chain*/
+        default_chain = onvm_sc_create();
+        retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
         if (retval == ENOSPC) {
                 printf("chain length can not be larger than the maximum chain length\n");
                 exit(1);
         }
-	printf("Default service chain: send to sdn NF\n");
+        printf("Default service chain: send to sdn NF\n");
 
-	/* set up service chain pointer shared to NFs*/
-	mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
-				   rte_socket_id(), NO_FLAGS);
-	if (mz_scp == NULL)
-		rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
-	memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
-	default_sc_p = mz_scp->addr;
-	*default_sc_p = default_chain;
-	onvm_sc_print(default_chain);
+        /* set up service chain pointer shared to NFs*/
+        mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
+                                   rte_socket_id(), NO_FLAGS);
+        if (mz_scp == NULL)
+                rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
+        memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
+        default_sc_p = mz_scp->addr;
+        *default_sc_p = default_chain;
+        onvm_sc_print(default_chain);
 
-	onvm_flow_dir_init();
+        onvm_flow_dir_init();
 
-	return 0;
+        return 0;
 }
 
 
@@ -242,19 +310,6 @@ init_client_info_pool(void)
  */
 static int
 init_port(uint8_t port_num) {
-        /* for port configuration all features are off by default */
-        const struct rte_eth_conf port_conf = {
-                .rxmode = {
-                        .mq_mode = ETH_MQ_RX_RSS
-                },
-                .rx_adv_conf = {
-                        .rss_conf = {
-                                .rss_key = rss_symmetric_key,
-                                .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
-                        }
-                },
-        };
-
         const uint16_t rx_rings = ONVM_NUM_RX_THREADS, tx_rings = MAX_CLIENTS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
@@ -276,14 +331,14 @@ init_port(uint8_t port_num) {
         for (q = 0; q < rx_rings; q++) {
                 retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                NULL, pktmbuf_pool);
+                                &rx_conf, pktmbuf_pool);
                 if (retval < 0) return retval;
         }
 
         for (q = 0; q < tx_rings; q++) {
                 retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                NULL);
+                                &tx_conf);
                 if (retval < 0) return retval;
         }
 
@@ -432,7 +487,3 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
         }
 }
 
-/**
- * Main init function for the multi-process server app,
- * calls subfunctions to do each stage of the initialisation.
- */

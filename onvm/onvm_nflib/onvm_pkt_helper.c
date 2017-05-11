@@ -39,6 +39,7 @@
  ********************************************************************/
 
 #include "onvm_pkt_helper.h"
+#include "onvm_common.h"
 
 #include <inttypes.h>
 
@@ -52,32 +53,80 @@
 #include <rte_udp.h>
 
 int
-onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
-	struct ether_hdr *eth;
-	struct ether_addr addr;
+onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
 
-	if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
-		return -1;
-	}
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
 
-	/*
-	 * Get the ethernet header from the pkt
-	 */
-	eth = onvm_pkt_ether_hdr(pkt);
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
 
-	/*
-	 * Copy the source mac address to the destination field.
-	 */
-	ether_addr_copy(&eth->s_addr, &eth->d_addr);
+        /*
+         * Get the MAC addresses of the src and destination NIC ports,
+         * and set the ethernet header's fields to them.
+         */
+        ether_addr_copy(&ports->mac[src_port_id], &eth->s_addr);
+        ether_addr_copy(&ports->mac[dst_port_id], &eth->d_addr);
 
-	/*
-	 * Get the mac address of the current port to send out of
-	 * and set the source field to it.
-	 */
-	rte_eth_macaddr_get(dst_port, &eth->s_addr);
-	ether_addr_copy(&addr, &eth->s_addr);
+        return 0;
+}
 
-	return 0;
+int
+onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
+
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
+
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
+
+        /*
+         * Copy the source mac address to the destination field.
+         */
+        ether_addr_copy(&eth->s_addr, &eth->d_addr);
+
+        /*
+         * Get the mac address of the specified destination port id
+         * and set the source field to it.
+         */
+        ether_addr_copy(&ports->mac[dst_port_id], &eth->s_addr);
+
+        return 0;
+}
+
+int
+onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
+
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
+
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
+
+        /*
+         * Copy the destination mac address to the source field.
+         */
+        ether_addr_copy(&eth->d_addr, &eth->s_addr);
+
+        /*
+         * Get the mac address of specified source port id
+         * and set the destination field to it.
+         */
+        ether_addr_copy(&ports->mac[src_port_id], &eth->d_addr);
+
+        return 0;
 }
 
 struct ether_hdr*
@@ -85,7 +134,7 @@ onvm_pkt_ether_hdr(struct rte_mbuf* pkt) {
         if (unlikely(pkt == NULL)) {
                 return NULL;
         }
-	return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+        return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 }
 
 struct tcp_hdr*

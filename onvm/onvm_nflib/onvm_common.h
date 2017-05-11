@@ -42,8 +42,10 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
-#include <rte_mbuf.h>
 #include <stdint.h>
+
+#include <rte_mbuf.h>
+#include <rte_ether.h>
 
 #include "onvm_msg_common.h"
 
@@ -72,6 +74,7 @@ struct onvm_pkt_meta {
         uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
 
 };
+
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
         return (struct onvm_pkt_meta*)&pkt->udata64;
 }
@@ -79,6 +82,34 @@ static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
 static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
         return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
 }
+
+/*
+ * Shared port info, including statistics information for display by server.
+ * Structure will be put in a memzone.
+ * - All port id values share one cache line as this data will be read-only
+ * during operation.
+ * - All rx statistic values share cache lines, as this data is written only
+ * by the server process. (rare reads by stats display)
+ * - The tx statistics have values for all ports per cache line, but the stats
+ * themselves are written by the clients, so we have a distinct set, on different
+ * cache lines for each client to use.
+ */
+struct rx_stats{
+        uint64_t rx[RTE_MAX_ETHPORTS];
+};
+
+struct tx_stats{
+        uint64_t tx[RTE_MAX_ETHPORTS];
+        uint64_t tx_drop[RTE_MAX_ETHPORTS];
+};
+
+struct port_info {
+        uint8_t num_ports;
+        uint8_t id[RTE_MAX_ETHPORTS];
+        struct ether_addr mac[RTE_MAX_ETHPORTS];
+        volatile struct rx_stats rx_stats;
+        volatile struct tx_stats tx_stats;
+};
 
 /*
  * Define a structure with stats from the clients.
@@ -114,14 +145,14 @@ struct onvm_nf_info {
  * Define a structure to describe a service chain entry
  */
 struct onvm_service_chain_entry {
-	uint16_t destination;
-	uint8_t action;
+        uint16_t destination;
+        uint8_t action;
 };
 
 struct onvm_service_chain {
-	struct onvm_service_chain_entry sc[ONVM_MAX_CHAIN_LENGTH];
-	uint8_t chain_length;
-	int ref_cnt;
+        struct onvm_service_chain_entry sc[ONVM_MAX_CHAIN_LENGTH];
+        uint8_t chain_length;
+        int ref_cnt;
 };
 
 /* define common names for structures shared between server and client */

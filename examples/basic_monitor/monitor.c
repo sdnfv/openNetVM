@@ -64,6 +64,9 @@ struct onvm_nf_info *nf_info;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+/* shared data structure containing host port info */
+extern struct port_info *ports;
+
 /*
  * Print a usage message
  */
@@ -125,7 +128,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Hash : %u\n", pkt->hash.rss);
-	printf("N°   : %"PRIu64"\n", pkt_process);
+        printf("N°   : %"PRIu64"\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -147,8 +150,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         meta->action = ONVM_NF_ACTION_OUT;
         meta->destination = pkt->port;
 
-        if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
-                printf("ERROR: MAC failed to swap!\n");
+        if (onvm_pkt_swap_src_mac_addr(pkt, meta->destination, ports) != 0) {
+                RTE_LOG(INFO, APP, "ERROR: Failed to swap src mac with dst mac!\n");
         }
         return 0;
 }
