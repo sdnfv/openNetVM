@@ -62,6 +62,9 @@
 #include <rte_fbk_hash.h>
 #include <rte_cycles.h>
 #include <rte_errno.h>
+#ifdef RTE_LIBRTE_PDUMP
+#include <rte_pdump.h>
+#endif
 
 
 /*****************************Internal library********************************/

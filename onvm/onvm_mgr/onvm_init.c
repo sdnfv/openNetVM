@@ -163,6 +163,10 @@ init(int argc, char *argv[]) {
         argc -= retval;
         argv += retval;
 
+#ifdef RTE_LIBRTE_PDUMP
+        rte_pdump_init(NULL);
+#endif
+
         /* get total number of ports */
         total_ports = rte_eth_dev_count();
 
