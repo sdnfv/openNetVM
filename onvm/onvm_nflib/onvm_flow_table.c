@@ -152,8 +152,7 @@ onvm_ft_lookup_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
     -EINVAL if the parameters are invalid.
 */
 int32_t
-onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt)
-{
+onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt) {
         struct onvm_ft_ipv4_5tuple key;
         int ret;
 
@@ -195,9 +194,11 @@ onvm_ft_lookup_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char*
 }
 
 int32_t
-onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key)
-{
-        return rte_hash_del_key(table->hash, (const void *)key);
+onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key) {
+        uint32_t softrss;
+
+        softrss = onvm_softrss(key);
+        return rte_hash_del_key_with_hash(table->hash, (const void *)key, softrss);
 }
 
 /* Iterate through the hash table, returning key-value pairs.
@@ -211,15 +212,18 @@ onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key)
     -ENOENT if end of the hash table.
  */
 int32_t
-onvm_ft_iterate(struct onvm_ft *table, const void **key, void **data, uint32_t *next)
-{
-        return rte_hash_iterate(table->hash, key, data, next);
+onvm_ft_iterate(struct onvm_ft *table, const void **key, void **data, uint32_t *next) {
+        int32_t tbl_index = rte_hash_iterate(table->hash, key, data, next);
+        if (tbl_index >= 0) {
+                *data = onvm_ft_get_data(table, tbl_index);
+        }
+
+        return tbl_index;
 }
 
 /* Clears a flow table and frees associated memory */
 void
-onvm_ft_free(struct onvm_ft *table)
-{
+onvm_ft_free(struct onvm_ft *table) {
         rte_hash_reset(table->hash);
         rte_hash_free(table->hash);
 }
