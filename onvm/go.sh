@@ -30,7 +30,7 @@ then
     usage
 fi
 
-while getopts "r:d:s:p:z:" opt; do
+while getopts "v:r:d:s:p:z:" opt; do
     case $opt in
         v) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
