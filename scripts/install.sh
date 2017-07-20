@@ -107,7 +107,7 @@ if [ -z "$ONVM_SKIP_FSTAB" ]; then
 fi
 
 #Only mount hugepages if user wants to 
-if [ -z "ONVM_SKIP_HUGEPAGES" ]; then
+if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
 	echo "Mounting hugepages"
 	sleep 1
 	sudo mount -t hugetlbfs nodev /mnt/huge
