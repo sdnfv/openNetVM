@@ -44,22 +44,27 @@ This guide helps you build and install openNetVM.
 3. Set up Environment
 --
 
-1. List DPDK supported architectures:
+1. Set environment variable ONVM_HOME to the path of the openNetVM source directory.
+    ```sh
+    echo export ONVM_HOME=$(pwd) >> ~/.bashrc
+    ```
+
+2. List DPDK supported architectures:
     ```sh
     ls dpdk/config/
     ```
 
-2. Set environment variable RTE_SDK to the path of the DPDK library.  Make sure that you are in the DPDK directory
+3. Set environment variable RTE_SDK to the path of the DPDK library.  Make sure that you are in the DPDK directory
     ```sh
     echo export RTE_SDK=$(pwd) >> ~/.bashrc
     ```
 
-3. Set environment variable RTE_TARGET to the target architecture of your system.  This is found in step 3.1
+4. Set environment variable RTE_TARGET to the target architecture of your system.  This is found in step 3.1
     ```sh
     echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc
     ```
 
-4. Set environment variable ONVM_NUM_HUGEPAGES and ONVM_NIC_PCI.
+5. Set environment variable ONVM_NUM_HUGEPAGES and ONVM_NIC_PCI.
 
     ONVM_NUM_HUGEPAGES is a variable specifies how many hugepages are reserved by the user, default value of this is 1024, which could be set using:
     ```sh
@@ -70,17 +75,17 @@ This guide helps you build and install openNetVM.
     ```sh
     export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
     ```
-5. Source your shell rc file to set the environment variables:
+6. Source your shell rc file to set the environment variables:
     ```sh
     source ~/.bashrc
     ```
 
-6. Disable ASLR since it makes sharing memory with NFs harder:
+7. Disable ASLR since it makes sharing memory with NFs harder:
    ```sh
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
     ```
 
-4. Configure and compile DPDK
+8. Configure and compile DPDK
 --
 
 1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.

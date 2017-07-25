@@ -99,15 +99,16 @@ if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
 	sudo mkdir -p /mnt/huge
 fi
 
+grep -m 1 "huge" /etc/fstab | cat
 # Only add to /etc/fstab if user wants it
-if [ -z "$ONVM_SKIP_FSTAB" ]; then
+if [ ${PIPESTATUS[0]} != 0 ] && [ -z "$ONVM_SKIP_FSTAB" ]; then
     echo "Adding huge fs to /etc/fstab"
     sleep 1
     sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"
 fi
 
 #Only mount hugepages if user wants to 
-if [ -z "ONVM_SKIP_HUGEPAGES" ]; then
+if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
 	echo "Mounting hugepages"
 	sleep 1
 	sudo mount -t hugetlbfs nodev /mnt/huge
