@@ -34,6 +34,16 @@ cd dpdk/x86_64-native-linuxapp-gcc
 sudo ./build/app/pdump/dpdk-pdump -- --pdump 'port=0,queue=*,rx-dev=/tmp/rx.pcap'
 ```
 Full set of options and configurations for dpdk-pdump can be found [here][dpdk-pdump].
- 
+
+Possible crash reasons
+--
+Both primary and secondary dpdk processes must have the exact same hugepage memory mappings to function correctly. This can be an issue when using complex NFs that have a large memory footprint. When using such NFs a memory discrepency occurs between a NF and onvm_mgr, which leads to onvm_mgr crashes.  
+
+The NF/mgr hugepage memory layout discrepency is resolved by using the base virtual address value for onvm_mgr.
+Examples of compex NFs: ndpi_stats, onvm_mtcp epserver
+  
+Example onvm_mgr setup:  
+```./go.sh 0,1,2,3 3 -v 0x7f000000000 -s stdout```
+
 [dpdk-pdump]: http://dpdk.org/doc/guides/tools/pdump.html#example
 [speed_tester]: ../examples/speed_tester
