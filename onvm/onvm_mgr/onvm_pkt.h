@@ -75,11 +75,11 @@ onvm_pkt_process_rx_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint1
  * Inputs : a pointer to the tx queue
  *          an array of packets
  *          the size of the array
- *          a pointer to the client possessing the TX queue.
+ *          a pointer to the NF possessing the TX queue.
  *
  */
 void
-onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl);
+onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf);
 
 
 /*

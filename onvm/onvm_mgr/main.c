@@ -111,8 +111,8 @@ master_thread_main(void) {
         worker_keep_running = 0;
 
         /* Tell all NFs to stop */
-        for (i = 0; i < MAX_CLIENTS; i++) {
-                if (clients[i].info == NULL) {
+        for (i = 0; i < MAX_NFS; i++) {
+                if (nfs[i].info == NULL) {
                         continue;
                 }
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %"PRIu16" to shut down\n", rte_lcore_id(), i);
@@ -121,15 +121,15 @@ master_thread_main(void) {
 
         /* Wait to process all exits */
         for (shutdown_iter_count = 0;
-             shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_clients > 0;
+             shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_nfs > 0;
              shutdown_iter_count++) {
                 onvm_nf_check_status();
-                RTE_LOG(INFO, APP, "Core %d: Waiting for %"PRIu16" NFs to exit\n", rte_lcore_id(), num_clients);
+                RTE_LOG(INFO, APP, "Core %d: Waiting for %"PRIu16" NFs to exit\n", rte_lcore_id(), num_nfs);
                 sleep(sleeptime);
         }
 
-        if (num_clients > 0) {
-                RTE_LOG(INFO, APP, "Core %d: Up to %"PRIu16" NFs may still be running and must be killed manually\n", rte_lcore_id(), num_clients);
+        if (num_nfs > 0) {
+                RTE_LOG(INFO, APP, "Core %d: Up to %"PRIu16" NFs may still be running and must be killed manually\n", rte_lcore_id(), num_nfs);
         }
 
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
@@ -162,7 +162,7 @@ rx_thread_main(void *arg) {
                         /* Now process the NIC packets read */
                         if (likely(rx_count > 0)) {
                                 // If there is no running NF, we drop all the packets of the batch.
-                                if (!num_clients) {
+                                if (!num_nfs) {
                                         onvm_pkt_drop_batch(pkts, rx_count);
                                 } else {
                                         onvm_pkt_process_rx_batch(rx, pkts, rx_count);
@@ -179,39 +179,39 @@ rx_thread_main(void *arg) {
 
 static int
 tx_thread_main(void *arg) {
-        struct client *cl;
+        struct onvm_nf *nf;
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct thread_info* tx = (struct thread_info*)arg;
 
-        if (tx->first_cl == tx->last_cl - 1) {
+        if (tx->first_nf == tx->last_nf - 1) {
                 RTE_LOG(INFO,
                         APP,
                         "Core %d: Running TX thread for NF %d\n",
                         rte_lcore_id(),
-                        tx->first_cl);
-        } else if (tx->first_cl < tx->last_cl) {
+                        tx->first_nf);
+        } else if (tx->first_nf < tx->last_nf) {
                 RTE_LOG(INFO,
                         APP,
                         "Core %d: Running TX thread for NFs %d to %d\n",
                         rte_lcore_id(),
-                        tx->first_cl,
-                        tx->last_cl-1);
+                        tx->first_nf,
+                        tx->last_nf-1);
         }
 
         for (; worker_keep_running;) {
-                /* Read packets from the client's tx queue and process them as needed */
-                for (i = tx->first_cl; i < tx->last_cl; i++) {
-                        cl = &clients[i];
-                        if (!onvm_nf_is_valid(cl))
+                /* Read packets from the NF's tx queue and process them as needed */
+                for (i = tx->first_nf; i < tx->last_nf; i++) {
+                        nf = &nfs[i];
+                        if (!onvm_nf_is_valid(nf))
                                 continue;
 
 			/* Dequeue all packets in ring up to max possible. */
-			tx_count = rte_ring_dequeue_burst(cl->tx_q, (void **) pkts, PACKET_READ_SIZE);
+			tx_count = rte_ring_dequeue_burst(nf->tx_q, (void **) pkts, PACKET_READ_SIZE);
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
-                                onvm_pkt_process_tx_batch(tx, pkts, tx_count, cl);
+                                onvm_pkt_process_tx_batch(tx, pkts, tx_count, nf);
                         }
                 }
 
@@ -241,7 +241,7 @@ handle_signal(int sig) {
 int
 main(int argc, char *argv[]) {
         unsigned cur_lcore, rx_lcores, tx_lcores;
-        unsigned clients_per_tx;
+        unsigned nfs_per_tx;
         unsigned i;
 
         /* initialise the system */
@@ -253,7 +253,7 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         /* clear statistics */
-        onvm_stats_clear_all_clients();
+        onvm_stats_clear_all_nfs();
 
         /* Reserve n cores for: 1 Stats, 1 final Tx out, and ONVM_NUM_RX_THREADS for Rx */
         cur_lcore = rte_lcore_id();
@@ -271,16 +271,16 @@ main(int argc, char *argv[]) {
         /* Evenly assign NFs to TX threads */
 
         /*
-         * If num clients is zero, then we are running in dynamic NF mode.
+         * If num NFs is zero, then we are running in dynamic NF mode.
          * We do not have a way to tell the total number of NFs running so
-         * we have to calculate clients_per_tx using MAX_CLIENTS then.
+         * we have to calculate nfs_per_tx using MAX_NFS then.
          * We want to distribute the number of running NFs across available
          * TX threads
          */
-        clients_per_tx = ceil((float)MAX_CLIENTS/tx_lcores);
+        nfs_per_tx = ceil((float)MAX_NFS/tx_lcores);
 
         // We start the system with 0 NFs active
-        num_clients = 0;
+        num_nfs = 0;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, handle_signal);
@@ -290,16 +290,16 @@ main(int argc, char *argv[]) {
                 struct thread_info *tx = calloc(1, sizeof(struct thread_info));
                 tx->queue_id = i;
                 tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-                tx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
-                tx->first_cl = RTE_MIN(i * clients_per_tx + 1, (unsigned)MAX_CLIENTS);
-                tx->last_cl = RTE_MIN((i+1) * clients_per_tx + 1, (unsigned)MAX_CLIENTS);
+                tx->nf_rx_buf = calloc(MAX_NFS, sizeof(struct packet_buf));
+                tx->first_nf = RTE_MIN(i * nfs_per_tx + 1, (unsigned)MAX_NFS);
+                tx->last_nf = RTE_MIN((i+1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR,
                                 APP,
-                                "Core %d is already busy, can't use for client %d TX\n",
+                                "Core %d is already busy, can't use for nf %d TX\n",
                                 cur_lcore,
-                                tx->first_cl);
+                                tx->first_nf);
                         return -1;
                 }
         }
@@ -309,7 +309,7 @@ main(int argc, char *argv[]) {
                 struct thread_info *rx = calloc(1, sizeof(struct thread_info));
                 rx->queue_id = i;
                 rx->port_tx_buf = NULL;
-                rx->nf_rx_buf = calloc(MAX_CLIENTS, sizeof(struct packet_buf));
+                rx->nf_rx_buf = calloc(MAX_NFS, sizeof(struct packet_buf));
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(rx_thread_main, (void *)rx, cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR,

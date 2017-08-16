@@ -95,20 +95,20 @@ onvm_nf_stop(struct onvm_nf_info *nf_info);
 
 
 inline int
-onvm_nf_is_valid(struct client *cl) {
-        return cl && cl->info && cl->info->status == NF_RUNNING;
+onvm_nf_is_valid(struct onvm_nf *nf) {
+        return nf && nf->info && nf->info->status == NF_RUNNING;
 }
 
 
 uint16_t
 onvm_nf_next_instance_id(void) {
-        struct client *cl;
-        uint16_t instance_id = MAX_CLIENTS;
+        struct onvm_nf *nf;
+        uint16_t instance_id = MAX_NFS;
 
-        while (next_instance_id < MAX_CLIENTS) {
+        while (next_instance_id < MAX_NFS) {
                 instance_id = next_instance_id++;
-                cl = &clients[instance_id];
-                if (!onvm_nf_is_valid(cl))
+                nf = &nfs[instance_id];
+                if (!onvm_nf_is_valid(nf))
                         break;
         }
 
@@ -119,7 +119,7 @@ onvm_nf_next_instance_id(void) {
 void
 onvm_nf_check_status(void) {
         int i;
-        void *msgs[MAX_CLIENTS];
+        void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
         int num_msgs = rte_ring_count(incoming_msg_queue);
@@ -144,7 +144,7 @@ onvm_nf_check_status(void) {
                 case MSG_NF_STOPPING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
                         if (!onvm_nf_stop(nf))
-                                num_clients--;
+                                num_nfs--;
                         break;
                 }
 
@@ -167,7 +167,7 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
         msg->msg_type = msg_type;
         msg->msg_data = msg_data;
 
-        return rte_ring_sp_enqueue(clients[dest].msg_q, (void*)msg);
+        return rte_ring_sp_enqueue(nfs[dest].msg_q, (void*)msg);
 }
 
 
@@ -205,13 +205,13 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 ? onvm_nf_next_instance_id()
                 : nf_info->instance_id;
 
-        if (nf_id >= MAX_CLIENTS) {
+        if (nf_id >= MAX_NFS) {
                 // There are no more available IDs for this NF
                 nf_info->status = NF_NO_IDS;
                 return 1;
         }
 
-        if (onvm_nf_is_valid(&clients[nf_id])) {
+        if (onvm_nf_is_valid(&nfs[nf_id])) {
                 // This NF is trying to declare an ID already in use
                 nf_info->status = NF_ID_CONFLICT;
                 return 1;
@@ -219,8 +219,8 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
-        clients[nf_id].info = nf_info;
-        clients[nf_id].instance_id = nf_id;
+        nfs[nf_id].info = nf_info;
+        nfs[nf_id].instance_id = nf_id;
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
@@ -237,7 +237,7 @@ onvm_nf_ready(struct onvm_nf_info *info) {
         info->status = NF_RUNNING;
         uint16_t service_count = nf_per_service_count[info->service_id]++;
         services[info->service_id][service_count] = info->instance_id;
-        num_clients++;
+        num_nfs++;
         return 0;
 }
 
@@ -256,23 +256,23 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         service_id = nf_info->service_id;
 
         /* Clean up dangling pointers to info struct */
-        clients[nf_id].info = NULL;
+        nfs[nf_id].info = NULL;
 
         /* Reset stats */
-        onvm_stats_clear_client(nf_id);
+        onvm_stats_clear_nf(nf_id);
 
         /* Remove this NF from the service map.
          * Need to shift all elements past it in the array left to avoid gaps */
         nf_per_service_count[service_id]--;
-        for (mapIndex = 0; mapIndex < MAX_CLIENTS_PER_SERVICE; mapIndex++) {
+        for (mapIndex = 0; mapIndex < MAX_NFS_PER_SERVICE; mapIndex++) {
                 if (services[service_id][mapIndex] == nf_id) {
                         break;
                 }
         }
 
-        if (mapIndex < MAX_CLIENTS_PER_SERVICE) {  // sanity error check
+        if (mapIndex < MAX_NFS_PER_SERVICE) {  // sanity error check
                 services[service_id][mapIndex] = 0;
-                for (; mapIndex < MAX_CLIENTS_PER_SERVICE - 1; mapIndex++) {
+                for (; mapIndex < MAX_NFS_PER_SERVICE - 1; mapIndex++) {
                         // Shift the NULL to the end of the array
                         if (services[service_id][mapIndex + 1] == 0) {
                                 // Short circuit when we reach the end of this service's list

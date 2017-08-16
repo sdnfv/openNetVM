@@ -56,8 +56,8 @@
 /******************************Global variables*******************************/
 
 
-/* global var for number of currently active clients - extern in header init.h */
-uint16_t num_clients;
+/* global var for number of currently active NFs - extern in header init.h */
+uint16_t num_nfs;
 
 /* global var for number of services - extern in header init.h */
 uint16_t num_services = MAX_SERVICES;

@@ -50,9 +50,9 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
-#define MAX_CLIENTS 16            // total number of NFs allowed
+#define MAX_NFS 16            // total number of NFs allowed
 #define MAX_SERVICES 16           // total number of unique services allowed
-#define MAX_CLIENTS_PER_SERVICE 8 // max number of NFs per service.
+#define MAX_NFS_PER_SERVICE 8 // max number of NFs per service.
 
 #define ONVM_NF_ACTION_DROP 0   // drop packet
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
@@ -91,8 +91,8 @@ static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
  * - All rx statistic values share cache lines, as this data is written only
  * by the server process. (rare reads by stats display)
  * - The tx statistics have values for all ports per cache line, but the stats
- * themselves are written by the clients, so we have a distinct set, on different
- * cache lines for each client to use.
+ * themselves are written by the NFs, so we have a distinct set, on different
+ * cache lines for each NF to use.
  */
 struct rx_stats{
         uint64_t rx[RTE_MAX_ETHPORTS];
@@ -112,24 +112,39 @@ struct port_info {
 };
 
 /*
- * Define a structure with stats from the clients.
+ * Define a NF structure with all needed info, including
+ * stats from the NFs.
  */
-struct client_tx_stats {
-        /* these stats hold how many packets the manager will actually receive,
-         * and how many packets were dropped because the manager's queue was full.
-         */
-        uint64_t tx[MAX_CLIENTS];
-        uint64_t tx_drop[MAX_CLIENTS];
-        uint64_t tx_buffer[MAX_CLIENTS];
-        uint64_t tx_returned[MAX_CLIENTS];
-        /* FIXME: Why are these stats kept separately from the rest?
-         * Would it be better to have an array of struct client_tx_stats instead
-         * of putting the array inside the struct? How can we avoid cache
-         * invalidations from different NFs updating these stats?
-         */
-};
+struct onvm_nf {
+        struct rte_ring *rx_q;
+        struct rte_ring *tx_q;
+        struct rte_ring *msg_q;
+        struct onvm_nf_info *info;
+        uint16_t instance_id;
 
-extern struct client_tx_stats *clients_stats;
+        /*
+         * Define a structure with stats from the NFs.
+         *
+         * These stats hold how many packets the NF will actually receive, send,
+         * and how many packets were dropped because the NF's queue was full.
+         * The port-info stats, in contrast, record how many packets were received
+         * or transmitted on an actual NIC port.
+         */
+        struct {
+                volatile uint64_t rx;
+                volatile uint64_t rx_drop;
+                volatile uint64_t tx;
+                volatile uint64_t tx_drop;
+                volatile uint64_t tx_buffer;
+                volatile uint64_t tx_returned;
+                volatile uint64_t act_out;
+                volatile uint64_t act_tonf;
+                volatile uint64_t act_drop;
+                volatile uint64_t act_next;
+                volatile uint64_t act_buffer;
+        } stats;
+
+};
 
 /*
  * Define a structure to describe one NF
@@ -155,12 +170,12 @@ struct onvm_service_chain {
         int ref_cnt;
 };
 
-/* define common names for structures shared between server and client */
-#define MP_CLIENT_RXQ_NAME "MProc_Client_%u_RX"
-#define MP_CLIENT_TXQ_NAME "MProc_Client_%u_TX"
+/* define common names for structures shared between server and NF */
+#define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
+#define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
-#define MZ_CLIENT_INFO "MProc_client_info"
+#define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
@@ -187,9 +202,9 @@ static inline const char *
 get_rx_queue_name(unsigned id) {
         /* buffer for return value. Size calculated by %u being replaced
          * by maximum 3 digits (plus an extra byte for safety) */
-        static char buffer[sizeof(MP_CLIENT_RXQ_NAME) + 2];
+        static char buffer[sizeof(MP_NF_RXQ_NAME) + 2];
 
-        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_RXQ_NAME, id);
+        snprintf(buffer, sizeof(buffer) - 1, MP_NF_RXQ_NAME, id);
         return buffer;
 }
 
@@ -200,9 +215,9 @@ static inline const char *
 get_tx_queue_name(unsigned id) {
         /* buffer for return value. Size calculated by %u being replaced
          * by maximum 3 digits (plus an extra byte for safety) */
-        static char buffer[sizeof(MP_CLIENT_TXQ_NAME) + 2];
+        static char buffer[sizeof(MP_NF_TXQ_NAME) + 2];
 
-        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_TXQ_NAME, id);
+        snprintf(buffer, sizeof(buffer) - 1, MP_NF_TXQ_NAME, id);
         return buffer;
 }
 

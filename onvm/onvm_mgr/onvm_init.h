@@ -83,7 +83,7 @@
 /***********************************Macros************************************/
 
 
-#define MBUFS_PER_CLIENT 1536
+#define MBUFS_PER_NF 1536
 #define MBUFS_PER_PORT 1536
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
@@ -98,48 +98,16 @@
 
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
-#define CLIENT_QUEUE_RINGSIZE 128
-#define CLIENT_MSG_QUEUE_SIZE 128
+#define NF_QUEUE_RINGSIZE 128
+#define NF_MSG_QUEUE_SIZE 128
 
 #define NO_FLAGS 0
 
 #define ONVM_NUM_RX_THREADS 1
 
 
-/******************************Data structures********************************/
-
-
-/*
- * Define a client structure with all needed info, including
- * stats from the clients.
- */
-struct client {
-        struct rte_ring *rx_q;
-        struct rte_ring *tx_q;
-        struct rte_ring *msg_q;
-        struct onvm_nf_info *info;
-        uint16_t instance_id;
-        /* these stats hold how many packets the client will actually receive,
-         * and how many packets were dropped because the client's queue was full.
-         * The port-info stats, in contrast, record how many packets were received
-         * or transmitted on an actual NIC port.
-         */
-        struct {
-                volatile uint64_t rx;
-                volatile uint64_t rx_drop;
-                volatile uint64_t act_out;
-                volatile uint64_t act_tonf;
-                volatile uint64_t act_drop;
-                volatile uint64_t act_next;
-                volatile uint64_t act_buffer;
-        } stats;
-};
-
-
 /*************************External global variables***************************/
 
-
-extern struct client *clients;
 
 /* NF to Manager data flow */
 extern struct rte_ring *incoming_msg_queue;
@@ -149,7 +117,7 @@ extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
 extern struct rte_mempool *nf_msg_pool;
-extern uint16_t num_clients;
+extern uint16_t num_nfs;
 extern uint16_t num_services;
 extern uint16_t default_service;
 extern uint16_t **services;

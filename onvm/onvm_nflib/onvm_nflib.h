@@ -180,14 +180,15 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
 
 
 /**
- * Return the tx_stats associated with this NF.
+ * Return the nf details associated with this NF.
  *
- * @param info
- *   an info struct describing this NF app.
+ * @param id
+ *   an instance id of the corresponding NF.
  * @return
- *    pointer to tx_stats structure associated with info, NULL on error.
+ *    pointer to NF structure referenced by instance id, NULL on error.
  */
-volatile struct client_tx_stats *
-onvm_nflib_get_tx_stats(struct onvm_nf_info* info);
+struct onvm_nf *
+onvm_nflib_get_nf(uint16_t id);
+
 
 #endif  // _ONVM_NFLIB_H_

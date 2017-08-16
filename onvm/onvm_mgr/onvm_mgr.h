@@ -88,7 +88,7 @@
 #define PACKET_READ_SIZE ((uint16_t)32)
 
 #define TO_PORT 0
-#define TO_CLIENT 1
+#define TO_NF 1
 
 
 /***************************Shared global variables***************************/
@@ -97,13 +97,16 @@
 /* ID to be assigned to the next NF that starts */
 extern uint16_t next_instance_id;
 
+/* Client information, rx/tx/msg rings, nf_info, inst_id and stats */
+extern struct onvm_nf *nfs;
+
 
 /*******************************Data Structures*******************************/
 
 
 /*
  * Local buffers to put packets in, used to send packets in bursts to the
- * clients or to the NIC
+ * NFs or to the NIC
  */
 struct packet_buf {
         struct rte_mbuf *buffer[PACKET_READ_SIZE];
@@ -116,11 +119,11 @@ struct packet_buf {
  */
 struct thread_info {
        unsigned queue_id;
-       unsigned first_cl;
-       unsigned last_cl;
+       unsigned first_nf;
+       unsigned last_nf;
        /* FIXME: This is confusing since it is non-inclusive. It would be
-        *        better to have this take the first client and the number
-        *        of consecutive clients after it to handle.
+        *        better to have this take the first NF and the number
+        *        of consecutive NFs after it to handle.
         */
        struct packet_buf *nf_rx_buf;
        struct packet_buf *port_tx_buf;

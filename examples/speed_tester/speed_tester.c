@@ -234,7 +234,7 @@ run_advanced_rings(void) {
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
-        volatile struct client_tx_stats *tx_stats;
+        volatile struct onvm_nf *nf;
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
@@ -244,11 +244,11 @@ run_advanced_rings(void) {
         signal(SIGTERM, handle_signal);
 
         /* Get rings from nflib */
-        rx_ring = onvm_nflib_get_rx_ring(nf_info);
-        tx_ring = onvm_nflib_get_tx_ring(nf_info);
-        tx_stats = onvm_nflib_get_tx_stats(nf_info);
+        nf = onvm_nflib_get_nf(nf_info->instance_id);
+        rx_ring = nf->rx_q;
+        tx_ring = nf->tx_q;
 
-        while (keep_running && rx_ring && tx_ring && tx_stats) {
+        while (keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size= 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
@@ -264,12 +264,12 @@ run_advanced_rings(void) {
                 }
 
                 if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
-                        tx_stats->tx_drop[nf_info->instance_id] += tx_batch_size;
+                        nf->stats.tx_drop += tx_batch_size;
                         for (j = 0; j < tx_batch_size; j++) {
                                 rte_pktmbuf_free(pktsTX[j]);
                         }
                 } else {
-                        tx_stats->tx[nf_info->instance_id] += tx_batch_size;
+                        nf->stats.tx += tx_batch_size;
                 }
 
         }

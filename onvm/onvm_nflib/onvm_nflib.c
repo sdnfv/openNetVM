@@ -94,13 +94,13 @@ static struct rte_ring *nf_msg_ring;
 // rings used to pass packets between NFlib and NFmgr
 static struct rte_ring *tx_ring, *rx_ring;
 
-// shared data from server. We update statistics here
-static volatile struct client_tx_stats *tx_stats;
+// Shared data from server. We update statistics here
+static struct onvm_nf *nfs;
 
-// Shared data for client info
+// Shared data for NF info
 extern struct onvm_nf_info *nf_info;
 
-// Shared pool for all clients info
+// Shared pool for all NFs info
 static struct rte_mempool *nf_info_mp;
 
 // Shared pool for mgr <--> NF messages
@@ -126,7 +126,7 @@ static struct onvm_service_chain *default_chain;
 
 
 /*
- * Function that initialize a nf info data structure.
+ * Function that initialize a NF info data structure.
  *
  * Input  : the tag to name the NF
  * Output : the data structure initialized
@@ -192,7 +192,7 @@ onvm_nflib_cleanup(void);
 
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
-        const struct rte_memzone *mz_client;
+        const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
@@ -228,7 +228,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         /* Lookup mempool for nf_info struct */
         nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
         if (nf_info_mp == NULL)
-                rte_exit(EXIT_FAILURE, "No Client Info mempool - bye\n");
+                rte_exit(EXIT_FAILURE, "No NF Info mempool - bye\n");
 
         /* Lookup mempool for NF messages */
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
@@ -242,10 +242,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
 
-        mz_client = rte_memzone_lookup(MZ_CLIENT_INFO);
-        if (mz_client == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get client tx info structure\n");
-        tx_stats = mz_client->addr;
+        /* Lookup mempool for NF structs */
+        mz_nf = rte_memzone_lookup(MZ_NF_INFO);
+        if (mz_nf == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get NF structure mempool\n");
+        nfs = mz_nf->addr;
 
         mz_port = rte_memzone_lookup(MZ_PORT_INFO);
         if (mz_port == NULL)
@@ -278,7 +279,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager");
         }
 
-        /* Wait for a client id to be assigned by the manager */
+        /* Wait for a NF id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
         for (; nf_info->status == (uint16_t)NF_WAITING_FOR_ID ;) {
                 sleep(1);
@@ -298,7 +299,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
 
-        /* Now, map rx and tx rings into client space */
+        /* Now, map rx and tx rings into nf space */
         rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->instance_id));
         if (rx_ring == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
@@ -370,10 +371,10 @@ onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
         /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
         if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
-                tx_stats->tx_drop[nf_info->instance_id]++;
+                nfs[nf_info->instance_id].stats.tx_drop++;
                 return -ENOBUFS;
         }
-        else tx_stats->tx_returned[nf_info->instance_id]++;
+        else nfs[nf_info->instance_id].stats.tx_returned++;
         return 0;
 }
 
@@ -443,16 +444,16 @@ onvm_nflib_get_rx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
 }
 
 
-volatile struct client_tx_stats *
-onvm_nflib_get_tx_stats(__attribute__((__unused__)) struct onvm_nf_info* info) {
+struct onvm_nf *
+onvm_nflib_get_nf(uint16_t id) {
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
 
-        /* We should return the tx_stats associated with the info struct */
+        /* We should return the NF struct referenced by instance id */
         nf_mode = NF_MODE_RING;
-        return tx_stats;
+        return &nfs[id];
 }
 
 
@@ -482,17 +483,17 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
                 if(likely(ret_act == 0)) {
                         pktsTX[tx_batch_size++] = pkts[i];
                 } else {
-                        tx_stats->tx_buffer[info->instance_id]++;
+                        nfs[info->instance_id].stats.tx_buffer++;
                 }
         }
 
         if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
-                tx_stats->tx_drop[info->instance_id] += tx_batch_size;
+                nfs[info->instance_id].stats.tx_drop += tx_batch_size;
                 for (j = 0; j < tx_batch_size; j++) {
                         rte_pktmbuf_free(pktsTX[j]);
                 }
         } else {
-                tx_stats->tx[info->instance_id] += tx_batch_size;
+                nfs[info->instance_id].stats.tx += tx_batch_size;
         }
 }
 
@@ -518,7 +519,7 @@ onvm_nflib_info_init(const char *tag)
         struct onvm_nf_info *info;
 
         if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
-                rte_exit(EXIT_FAILURE, "Failed to get client info memory");
+                rte_exit(EXIT_FAILURE, "Failed to get nf info memory");
         }
 
         if (mempool_data == NULL) {
@@ -530,7 +531,6 @@ onvm_nflib_info_init(const char *tag)
         info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
-
         return info;
 }
 

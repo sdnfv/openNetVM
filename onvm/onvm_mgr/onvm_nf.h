@@ -66,7 +66,7 @@ extern uint16_t next_instance_id;
  *
  */
 int
-onvm_nf_is_valid(struct client *cl);
+onvm_nf_is_valid(struct onvm_nf *nf);
 
 
 /*

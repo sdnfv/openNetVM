@@ -152,7 +152,7 @@ This guide helps you build and install openNetVM.
 
     `./examples/speed_tester/go.sh 5 1 1`
 
-    Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `client 1` is receiving data.  If this is the case, the openNetVM is working correctly.
+    Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `NF 1` is receiving data.  If this is the case, the openNetVM is working correctly.
 
 7. Configuring environment post reboot
 --
