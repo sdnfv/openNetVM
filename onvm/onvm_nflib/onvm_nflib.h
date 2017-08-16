@@ -81,8 +81,25 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag);
 
 /**
  * Run the OpenNetVM container Library.
- * This will register the callback used for each new packet. It will then
+ * This will register the callback used for each new packet, and the callback used for batch processing. It will then
  * loop forever waiting for packets.
+ *
+ * @param info
+ *   an info struct describing this NF app. Must be from a huge page memzone.
+ * @param handler
+ *   a pointer to the function that will be called on each received packet.
+ * @param callback_handler
+ *   a pointer to the callback handler that is called every attempted batch
+ * @return
+ *   0 on success, or a negative value on error.
+ */
+int
+onvm_nflib_run_callback(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action), int(*callback_handler)(void));
+
+
+/**
+ * Runs the OpenNetVM container library, without using the callback function.
+ * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
  *
  * @param info
  *   an info struct describing this NF app. Must be from a huge page memzone.

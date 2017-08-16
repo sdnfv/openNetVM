@@ -52,6 +52,7 @@
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_cycles.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -63,6 +64,10 @@ struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
+
+static uint32_t total_packets = 0;
+static uint64_t last_cycle;
+static uint64_t cur_cycles;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -140,8 +145,21 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
+callback_handler(void) {
+        cur_cycles = rte_get_tsc_cycles();
+
+        if (((cur_cycles - last_cycle) / rte_get_timer_hz()) > 5) {
+                printf("Total packets received: %" PRIu32 "\n", total_packets);
+                last_cycle = cur_cycles;
+        }
+
+        return 0;
+}
+
+static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         static uint32_t counter = 0;
+        total_packets++;
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
@@ -172,7 +190,10 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_run(nf_info, &packet_handler);
+        cur_cycles = rte_get_tsc_cycles();
+        last_cycle = rte_get_tsc_cycles();
+
+        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
         printf("If we reach here, program is ending\n");
         return 0;
 }

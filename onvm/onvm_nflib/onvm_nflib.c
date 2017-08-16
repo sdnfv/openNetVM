@@ -75,8 +75,10 @@
 #define NF_MODE_SINGLE 1
 #define NF_MODE_RING 2
 
-typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+#define ONVM_NO_CALLBACK NULL
 
+typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+typedef int(*callback_handler)(void);
 
 /******************************Global Variables*******************************/
 
@@ -318,9 +320,10 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 
 
 int
-onvm_nflib_run(
+onvm_nflib_run_callback(
         struct onvm_nf_info* info,
-        pkt_handler handler)
+        pkt_handler handler,
+        callback_handler callback)
 {
         void *pkts[PKT_READ_SIZE];
         int ret;
@@ -345,12 +348,20 @@ onvm_nflib_run(
         for (; keep_running;) {
                 onvm_nflib_dequeue_packets(pkts, info, handler);
                 onvm_nflib_dequeue_messages();
+                if (callback != ONVM_NO_CALLBACK) {
+                        keep_running = !(*callback)() && keep_running;
+                }
         }
 
         // Stop and free
         onvm_nflib_cleanup();
 
         return 0;
+}
+
+int
+onvm_nflib_run(struct onvm_nf_info* info, pkt_handler handler) {
+        return onvm_nflib_run_callback(info, handler, ONVM_NO_CALLBACK);
 }
 
 
