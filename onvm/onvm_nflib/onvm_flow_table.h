@@ -169,6 +169,27 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
         return 0;
 }
 
+static inline int
+onvm_ft_fill_key_symmetric(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
+        if (onvm_ft_fill_key(key, pkt) < 0) {
+                return -EPROTONOSUPPORT;
+        }
+
+         if (key->dst_addr > key->src_addr) {
+                uint32_t temp = key->dst_addr;
+                key->dst_addr = key->src_addr;
+                key->src_addr = temp;
+         }
+
+         if (key->dst_port > key->src_port) {
+                uint16_t temp = key->dst_port;
+                key->dst_port = key->src_port;
+                key->src_port = temp;
+         }
+
+         return 0;
+}
+
 /* Hash a flow key to get an int. From L3 fwd example */
 static inline uint32_t
 onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len,

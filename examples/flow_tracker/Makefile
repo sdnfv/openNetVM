@@ -6,7 +6,6 @@
 # Copyright(c)
 #          2015-2016 George Washington University
 #          2015-2016 University of California Riverside
-#          2016 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,27 +35,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ifeq ($(RTE_SDK),)
-$(error "Please define RTE_SDK environment variable")
+  $(error "Please define RTE_SDK environment variable")
 endif
 
-# To add new examples, append the directory name to this variable
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker
+RTE_TARGET ?= $(RTE_TARGET)
 
-ifeq ($(NDPI_HOME),)
-$(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
-else
-examples +=ndpi_stats
-endif
+# Default target, can be overridden by the command line or environment
+include $(RTE_SDK)/mk/rte.vars.mk
+# Binary name
+APP = flow_tracker
 
-clean_examples=$(addprefix clean_,$(examples))
+# all sources are stored in SRCS-y
+SRCS-y := flow_tracker.c
 
-.PHONY: $(examples) $(clean_examples)
+ONVM= $(SRCDIR)/../../onvm
 
-all : $(examples)
-clean: $(clean_examples)
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
-$(examples):
-	cd $@ && $(MAKE)
+CFLAGS += -I$(ONVM)/onvm_nflib
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
-$(clean_examples):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+include $(RTE_SDK)/mk/rte.extapp.mk
