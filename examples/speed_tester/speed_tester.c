@@ -226,7 +226,7 @@ handle_signal(int sig)
 
 
 static void
-run_advanced_rings(void) {
+run_advanced_rings(struct onvm_nf_info *nf_info) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
         uint16_t i, j, nb_pkts;
@@ -273,7 +273,7 @@ run_advanced_rings(void) {
                 }
 
         }
-        onvm_nflib_stop();
+        onvm_nflib_stop(nf_info);
 }
 
 
@@ -282,13 +282,13 @@ int main(int argc, char *argv[]) {
 
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if(pktmbuf_pool == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
         printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);
@@ -326,12 +326,12 @@ int main(int argc, char *argv[]) {
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                 pkts[i]->hash.rss = i;
-                onvm_nflib_return_pkt(pkts[i]);
+                onvm_nflib_return_pkt(nf_info, pkts[i]);
         }
 
         if (use_direct_rings) {
                 onvm_nflib_nf_ready(nf_info);
-                run_advanced_rings();
+                run_advanced_rings(nf_info);
         } else {
                 onvm_nflib_run(nf_info, &packet_handler);
         }

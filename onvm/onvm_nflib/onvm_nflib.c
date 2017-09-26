@@ -177,7 +177,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
  * Check if there is a message available for this NF and process it
  */
 static inline void
-onvm_nflib_dequeue_messages(void) __attribute__((always_inline));
+onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) __attribute__((always_inline));
 
 /*
  * Set this NF's status to not running and release memory
@@ -185,19 +185,20 @@ onvm_nflib_dequeue_messages(void) __attribute__((always_inline));
  * Input: Info struct corresponding to this NF
  */
 static void
-onvm_nflib_cleanup(void);
+onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 
 /************************************API**************************************/
 
 
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p) {
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
         struct onvm_nf_msg *startup_msg;
+        struct onvm_nf_info *nf_info;
         int retval_eal, retval_parse, retval_final;
 
         if ((retval_eal = rte_eal_init(argc, argv)) < 0)
@@ -237,6 +238,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Initialize the info struct */
         nf_info = onvm_nflib_info_init(nf_tag);
+        *nf_info_p = nf_info;
 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
@@ -267,7 +269,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag) {
 
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
-                rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                rte_mempool_put(nf_info_mp, nf_info); // give back memory
                 rte_exit(EXIT_FAILURE, "Cannot create startup msg");
         }
 
@@ -367,7 +369,7 @@ onvm_nflib_run(struct onvm_nf_info* info, pkt_handler handler) {
 
 
 int
-onvm_nflib_return_pkt(struct rte_mbuf* pkt) {
+onvm_nflib_return_pkt(struct onvm_nf_info* nf_info, struct rte_mbuf* pkt) {
         /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
         if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
@@ -589,7 +591,7 @@ onvm_nflib_handle_signal(int sig)
 }
 
 static void
-onvm_nflib_cleanup(void)
+onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 {
         struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;

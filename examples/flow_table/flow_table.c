@@ -91,7 +91,7 @@ setup_rings(void) {
         ring_from_sdn = rte_ring_create("ring_from_sdn", SDN_RING_SIZE,
                         rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
         if(ring_to_sdn == NULL || ring_from_sdn == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Unable to create SDN rings\n");
         }
 }
@@ -230,7 +230,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 printf("Error in flow lookup: %d (ENOENT=%d, EINVAL=%d)\n", tbl_index, ENOENT, EINVAL);
                 onvm_pkt_print(pkt);
                 #endif
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Error in flow lookup\n");
         }
 
@@ -249,12 +249,12 @@ int main(int argc, char *argv[]) {
         int retval;
         unsigned sdn_core = 0;
 
-        if ((retval = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((retval = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
         argc -= retval;
         argv += retval;
         if (parse_app_args(argc, argv) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
         printf("Flow table running on %d\n", rte_lcore_id());
