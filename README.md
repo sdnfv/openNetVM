@@ -5,7 +5,7 @@ About
 --
 openNetVM is a high performance NFV platform based on [DPDK][dpdk] and [Docker][docker] containers.  openNetVM is SDN-enabled, allowing the network controller to provide rules that dictate what network functions need to process each packet flow.
 
-openNetVM is an open source version of the NetVM platform described in our [NSDI 2014 paper][nsdi04], released under the [BSD][license] license. 
+openNetVM is an open source version of the NetVM platform described in our [NSDI 2014 paper][nsdi04], released under the [BSD][license] license.  The [develop][dev] branch tracks experimental builds (active development) whereas the [master][mast] branch tracks verified stable releases.  Please read our [releases][rels] document for more information about our releases and release cycle.
 
 You can find information about research projects building on [OpenNetVM][onvm] at the [UCR/GW SDNFV project site][sdnfv]. _Please [let us know](mailto:timwood@gwu.edu) if you use OpenNetVM in your research so we can add your papers to our list._
 
@@ -37,3 +37,6 @@ NFs can be run inside docker containers, with the NF being automatically or hand
 [examples]: docs/Examples.md
 [nfs]: docs/NF_Dev.md
 [docker-nf]: docs/Docker.md
+[dev]: https://github.com/sdnfv/openNetVM/tree/develop
+[mast]: https://github.com/sdnfv/openNetVM/tree/master
+[rels]: docs/Releases.md

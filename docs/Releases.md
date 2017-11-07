@@ -1,5 +1,18 @@
 ## Release Notes
 
+#### About:
+##### Release Cycle:
+We track active development through the `develop` branch and verified
+stable releases through the `master` branch.  New releases are created and
+tagged on a monthly cycle.  When we tag a release, we update `master` to
+have the latest stable code.
+
+##### Versioning:
+As of 11/06/2017, we are retiring semantic versioning and will instead
+use a date based versioning system.  Now, a release version can look
+like `17.11` where the "major" number is the year and the "minor" number
+is the month.
+
 #### 8/25/16: Refactoring to improve code organization
 A big set of commits to clean the structure and simplify onvm source code.
 We separated all functions into the main.c of the manager into modules :
