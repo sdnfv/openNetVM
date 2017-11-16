@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -152,6 +152,8 @@ init(int argc, char *argv[]) {
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
+        const struct rte_memzone *mz_services;
+        const struct rte_memzone *mz_nf_per_service;
         uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
@@ -182,6 +184,21 @@ init(int argc, char *argv[]) {
         if (mz_port == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
         ports = mz_port->addr;
+        
+        /* set up array for NF tx data */
+        mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        if (mz_services == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for services information\n");
+        services = mz_services->addr;
+        for (i = 0; i < num_services; i++) {
+                services[i] = rte_calloc("one service NFs",
+                        MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
+        }
+        mz_nf_per_service = rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        if (mz_nf_per_service == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for NF per service information.\n");
+        }
+        nf_per_service_count = mz_nf_per_service->addr;  
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -372,18 +389,7 @@ init_shm_rings(void) {
         // use calloc since we allocate for all possible NFs
         // ensure that all fields are init to 0 to avoid reading garbage
         // TODO plopreiato, move to creation when a NF starts
-        services = rte_calloc("service to nf map",
-                num_services, sizeof(uint16_t*), 0);
-        for (i = 0; i < num_services; i++) {
-                services[i] = rte_calloc("one service NFs",
-                        MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
-        }
-        nf_per_service_count = rte_calloc("count of NFs active per service",
-                num_services, sizeof(uint16_t), 0);
-        if (services == NULL || nf_per_service_count == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
-
-        for (i = 0; i < MAX_NFS; i++) {
+	for (i = 0; i < MAX_NFS; i++) {
                 /* Create an RX queue for each NF */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);

@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation
  *   All rights reserved.
  *
@@ -54,6 +54,8 @@
 #define MAX_SERVICES 16           // total number of unique services allowed
 #define MAX_NFS_PER_SERVICE 8 // max number of NFs per service.
 
+#define PACKET_READ_SIZE ((uint16_t)32)
+
 #define ONVM_NF_ACTION_DROP 0   // drop packet
 #define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
@@ -94,6 +96,42 @@ static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
  * themselves are written by the NFs, so we have a distinct set, on different
  * cache lines for each NF to use.
  */
+/*******************************Data Structures*******************************/
+
+/*  
+ * Packets may be transported by a tx thread or by an NF.
+ * This data structure encapsulates data specific to  
+ * tx threads. 
+ */
+struct tx_thread_info {
+        unsigned first_nf;
+        unsigned last_nf;
+        struct packet_buf *port_tx_bufs;
+};
+
+/*
+ * Local buffers to put packets in, used to send packets in bursts to the
+ * NFs or to the NIC
+ */
+struct packet_buf {
+        struct rte_mbuf *buffer[PACKET_READ_SIZE];
+        uint16_t count;
+};
+
+/*
+ * Generic data struct that tx threads and nfs both use.
+ * Allows pkt functions to be shared
+ * */
+struct queue_mgr {
+        unsigned id;
+        enum {NF, MGR} mgr_type_t;
+        union {
+                struct tx_thread_info *tx_thread_info;
+                struct packet_buf *to_tx_buf;
+        };
+        struct packet_buf *nf_rx_bufs;
+};
+
 struct rx_stats{
         uint64_t rx[RTE_MAX_ETHPORTS];
 };
@@ -112,8 +150,8 @@ struct port_info {
 };
 
 /*
- * Define a NF structure with all needed info, including
- * stats from the NFs.
+ * Define a nf structure with all needed info, including
+ * stats from the nfs.
  */
 struct onvm_nf {
         struct rte_ring *rx_q;
@@ -176,6 +214,8 @@ struct onvm_service_chain {
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_NF_INFO "MProc_nf_info"
+#define MZ_SERVICES_INFO "MProc_services_info"
+#define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
@@ -194,6 +234,8 @@ struct onvm_service_chain {
 #define NF_NO_IDS 6             // There are no available IDs for this NF
 
 #define NF_NO_ID -1
+#define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other
+
 
 /*
  * Given the rx queue name template above, get the queue name
@@ -232,7 +274,14 @@ get_msg_queue_name(unsigned id) {
 
         snprintf(buffer, sizeof(buffer) - 1, _NF_MSG_QUEUE_NAME, id);
         return buffer;
+}
 
+/*
+ * Interface checking if a given NF is "valid", meaning if it's running.
+ */
+static inline int
+onvm_nf_is_valid(struct onvm_nf *nf) {
+        return nf && nf->info && nf->info->status == NF_RUNNING;
 }
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1

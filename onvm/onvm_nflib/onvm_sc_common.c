@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,26 @@
 #include "onvm_common.h"
 #include "onvm_sc_common.h"
 
+/*********************************Interfaces**********************************/
+
+uint16_t
+onvm_sc_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
+        if (!nf_per_service_count || !services) {
+            rte_exit(EXIT_FAILURE, "Failed to retrieve service information\n");
+        }
+        uint16_t num_nfs_available = nf_per_service_count[service_id];
+
+        if (num_nfs_available == 0)
+                return 0;
+
+        if (pkt == NULL)
+                return 0;
+
+        uint16_t instance_index = pkt->hash.rss % num_nfs_available;
+        uint16_t instance_id = services[service_id][instance_index];
+        return instance_id;
+}
+
 int
 onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
 	int chain_length = chain->chain_length;
@@ -67,7 +87,6 @@ onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, u
 
 	chain->sc[entry].action = action;
 	chain->sc[entry].destination = destination;
-
 	return 0;
 }
 

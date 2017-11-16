@@ -1,6 +1,6 @@
 # CloudLab Coding Style Guide
 
-*Updated June 21, 2016*
+*Updated June 21, 2017*
 
 As a student, you have spent years writing code that was read by at most two or three people. This has allowed you to get away with terrible coding habits. In the real world, writing good code is **important**, but writing readable code is **critical**.
 
@@ -32,8 +32,8 @@ Your project is likely to include multiple files, so you need to think about how
  * BSD LICENSE
  * 
  * Copyright (c) 
- *	2015-2016 George Washington University
- *	2015-2016 University of California Riverside
+ *	2015-2017 George Washington University
+ *	2015-2017 University of California Riverside
  *	2010-2014 Intel Corporation.
  * All rights reserved.
  * 

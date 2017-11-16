@@ -41,24 +41,86 @@
 
 /******************************************************************************
 
-                                 onvm_args.h
+                                 onvm_pkt_common.h
 
-    Header file with functions for parsing DPDK and ONVM command-line arguments
+
+      Header file containing all prototypes of packet processing functions
 
 
 ******************************************************************************/
 
 
-#ifndef _ONVM_ARGS_H_
-#define _ONVM_ARGS_H_
+#ifndef _ONVM_PKT_COMMON_H_
+#define _ONVM_PKT_COMMON_H_
 
-#include "getopt.h"
-
+#include "onvm_common.h"
+#include "onvm_sc_common.h"
 #include "onvm_includes.h"
-#include "onvm_mgr/onvm_init.h"
+#include "onvm_flow_dir.h"
+#include "onvm_sc_mgr.h"
 
-#define DEFAULT_SERVICE_ID 1
+extern struct port_info *ports;
+extern struct onvm_service_chain *default_chain;
 
-int parse_app_args(uint8_t max_ports, int argc, char *argv[]);
+/*********************************Interfaces**********************************/
 
-#endif  // _ONVM_ARGS_H_
+
+/*
+ * Interface to process packets in a given TX queue.
+ *
+ * Inputs : a pointer to the tx queue 
+ *          an array of packets
+ *          the size of the array
+ *          a pointer to the NF possessing the TX queue.
+ *
+ */
+void
+onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf);
+
+/*
+ * Interface to send packets to all NFs after processing them.
+ *
+ * Input : a pointer to the tx queue 
+ *
+ */
+void
+onvm_pkt_flush_all_nfs(struct queue_mgr *tx_mgr);
+
+/*
+ * Function to send packets to one NF after processing them.
+ *
+ * Input : a pointer to the tx queue
+ *
+ */
+
+void
+onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id);
+
+/*
+ * Function to enqueue a packet on one NF's queue.
+ *
+ * Inputs : a pointer to the tx queue responsible
+ *          the number of the port
+ *          a pointer to the packet
+ *
+ */
+inline void
+onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt);
+
+/*
+ * Function to send packets to one port after processing them.
+ *
+ * Input : a pointer to the tx queue
+ *
+ */
+void
+onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port);
+
+/*
+ * Give packets to TX thread so it can do useful work.
+ */
+void 
+onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, uint16_t instance_id);
+
+
+#endif  // _ONVM_PKT_COMMON_H_

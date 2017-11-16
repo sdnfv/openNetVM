@@ -5,10 +5,10 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
- *            2016 Hewlett Packard Enterprise Development LP
+ *            2016-2017 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -144,18 +144,18 @@ static int
 rx_thread_main(void *arg) {
         uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-        struct thread_info *rx = (struct thread_info*)arg;
+        struct queue_mgr *rx_mgr = (struct queue_mgr*)arg;
 
         RTE_LOG(INFO,
                 APP,
                 "Core %d: Running RX thread for RX queue %d\n",
                 rte_lcore_id(),
-                rx->queue_id);
+                rx_mgr->id);
 
         for (; worker_keep_running;) {
                 /* Read ports */
                 for (i = 0; i < ports->num_ports; i++) {
-                        rx_count = rte_eth_rx_burst(ports->id[i], rx->queue_id, \
+                        rx_count = rte_eth_rx_burst(ports->id[i], rx_mgr->id, \
                                         pkts, PACKET_READ_SIZE);
                         ports->rx_stats.rx[ports->id[i]] += rx_count;
 
@@ -165,7 +165,7 @@ rx_thread_main(void *arg) {
                                 if (!num_nfs) {
                                         onvm_pkt_drop_batch(pkts, rx_count);
                                 } else {
-                                        onvm_pkt_process_rx_batch(rx, pkts, rx_count);
+                                        onvm_pkt_process_rx_batch(rx_mgr, pkts, rx_count);
                                 }
                         }
                 }
@@ -182,26 +182,26 @@ tx_thread_main(void *arg) {
         struct onvm_nf *nf;
         unsigned i, tx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-        struct thread_info* tx = (struct thread_info*)arg;
+        struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
 
-        if (tx->first_nf == tx->last_nf - 1) {
+        if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
                 RTE_LOG(INFO,
                         APP,
                         "Core %d: Running TX thread for NF %d\n",
                         rte_lcore_id(),
-                        tx->first_nf);
-        } else if (tx->first_nf < tx->last_nf) {
+                        tx_mgr->tx_thread_info->first_nf);
+        } else if (tx_mgr->tx_thread_info->first_nf < tx_mgr->tx_thread_info->last_nf) {
                 RTE_LOG(INFO,
                         APP,
                         "Core %d: Running TX thread for NFs %d to %d\n",
                         rte_lcore_id(),
-                        tx->first_nf,
-                        tx->last_nf-1);
+                        tx_mgr->tx_thread_info->first_nf,
+                        tx_mgr->tx_thread_info->last_nf-1);
         }
 
         for (; worker_keep_running;) {
                 /* Read packets from the NF's tx queue and process them as needed */
-                for (i = tx->first_nf; i < tx->last_nf; i++) {
+                for (i = tx_mgr->tx_thread_info->first_nf; i < tx_mgr->tx_thread_info->last_nf; i++) {
                         nf = &nfs[i];
                         if (!onvm_nf_is_valid(nf))
                                 continue;
@@ -211,15 +211,15 @@ tx_thread_main(void *arg) {
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
-                                onvm_pkt_process_tx_batch(tx, pkts, tx_count, nf);
+                                onvm_pkt_process_tx_batch(tx_mgr, pkts, tx_count, nf);
                         }
                 }
 
                 /* Send a burst to every port */
-                onvm_pkt_flush_all_ports(tx);
+                onvm_pkt_flush_all_ports(tx_mgr);
 
                 /* Send a burst to every NF */
-                onvm_pkt_flush_all_nfs(tx);
+                onvm_pkt_flush_all_nfs(tx_mgr);
         }
 
         RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
@@ -287,36 +287,39 @@ main(int argc, char *argv[]) {
         signal(SIGTERM, handle_signal);
 
         for (i = 0; i < tx_lcores; i++) {
-                struct thread_info *tx = calloc(1, sizeof(struct thread_info));
-                tx->queue_id = i;
-                tx->port_tx_buf = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
-                tx->nf_rx_buf = calloc(MAX_NFS, sizeof(struct packet_buf));
-                tx->first_nf = RTE_MIN(i * nfs_per_tx + 1, (unsigned)MAX_NFS);
-                tx->last_nf = RTE_MIN((i+1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
+                struct queue_mgr *tx_mgr = calloc(1, sizeof(struct queue_mgr));
+                tx_mgr->mgr_type_t = MGR;
+                tx_mgr->id = i;
+                tx_mgr->tx_thread_info = calloc(1, sizeof(struct tx_thread_info));
+                tx_mgr->tx_thread_info->port_tx_bufs = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
+                tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
+                tx_mgr->tx_thread_info->first_nf = RTE_MIN(i * nfs_per_tx + 1, (unsigned)MAX_NFS);
+                tx_mgr->tx_thread_info->last_nf = RTE_MIN((i+1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-                if (rte_eal_remote_launch(tx_thread_main, (void*)tx,  cur_lcore) == -EBUSY) {
+                if (rte_eal_remote_launch(tx_thread_main, (void*)tx_mgr,  cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR,
                                 APP,
                                 "Core %d is already busy, can't use for nf %d TX\n",
                                 cur_lcore,
-                                tx->first_nf);
+                                tx_mgr->tx_thread_info->first_nf);
                         return -1;
                 }
         }
 
         /* Launch RX thread main function for each RX queue on cores */
         for (i = 0; i < rx_lcores; i++) {
-                struct thread_info *rx = calloc(1, sizeof(struct thread_info));
-                rx->queue_id = i;
-                rx->port_tx_buf = NULL;
-                rx->nf_rx_buf = calloc(MAX_NFS, sizeof(struct packet_buf));
+                struct queue_mgr *rx_mgr = calloc(1, sizeof(struct queue_mgr));
+                rx_mgr->mgr_type_t = MGR;
+                rx_mgr->id = i;
+                rx_mgr->tx_thread_info = NULL;
+                rx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-                if (rte_eal_remote_launch(rx_thread_main, (void *)rx, cur_lcore) == -EBUSY) {
+                if (rte_eal_remote_launch(rx_thread_main, (void *)rx_mgr, cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR,
                                 APP,
                                 "Core %d is already busy, can't use for RX queue id %d\n",
                                 cur_lcore,
-                                rx->queue_id);
+                                rx_mgr->id);
                         return -1;
                 }
         }
