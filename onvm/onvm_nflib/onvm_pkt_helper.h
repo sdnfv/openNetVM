@@ -41,6 +41,9 @@
 #ifndef _ONVM_PKT_HELPER_H_
 #define _ONVM_PKT_HELPER_H_
 
+#include <inttypes.h>
+#include <rte_mempool.h>
+
 struct port_info;
 struct rte_mbuf;
 struct tcp_hdr;
@@ -49,6 +52,33 @@ struct ipv4_hdr;
 
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
+
+#define TCP_FLAG_FIN (1<<0)
+#define TCP_FLAG_SYN (1<<1)
+#define TCP_FLAG_RST (1<<2)
+#define TCP_FLAG_PSH (1<<3)
+#define TCP_FLAG_ACK (1<<4)
+#define TCP_FLAG_URG (1<<5)
+#define TCP_FLAG_ECE (1<<6)
+#define TCP_FLAG_CWR (1<<7)
+#define TCP_FLAG_NS  (1<<8)
+
+#define SUPPORTS_IPV4_CHECKSUM_OFFLOAD (1<<0)
+#define SUPPORTS_TCP_CHECKSUM_OFFLOAD (1<<1)
+#define SUPPORTS_UDP_CHECKSUM_OFFLOAD (1<<2)
+
+/* Returns the bitflags in the tcp header */
+#define ONVM_PKT_GET_FLAGS(tcp, flags) \
+        do { \
+                (flags) = (((tcp)->data_off << 8) | (tcp)->tcp_flags) & 0b111111111; \
+        } while (0)
+
+/* Sets the bitflags in the tcp header */
+#define ONVM_PKT_SET_FLAGS(tcp, flags) \
+        do { \
+                (tcp)->tcp_flags = (flags) & 0xFF; \
+                (tcp)->data_off |= ((flags) >> 8) & 0x1; \
+        } while (0)
 
 /**
  * Assign the source and destination MAC address of the packet to the specified
@@ -113,5 +143,27 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr);
 
 void
 onvm_pkt_print_ether(struct ether_hdr* hdr);
+
+/**
+ * Parsing ip addr of form X.X.X.X into decimal form
+ */
+int
+onvm_pkt_parse_ip(char * ip_str, uint32_t* dest);
+
+/**
+ * Parsing mac addr of form xx:xx:xx:xx:xx:xx into dest array
+ */
+int
+onvm_pkt_parse_mac(char * mac_str, uint8_t* dest);
+
+/**
+ * Packet checksum calculation routines
+ */
+
+uint32_t
+onvm_pkt_get_checksum_offload_flags(uint8_t port_id);
+
+void
+onvm_pkt_set_checksums(struct rte_mbuf* pkt);
 
 #endif  // _ONVM_PKT_HELPER_H_"
