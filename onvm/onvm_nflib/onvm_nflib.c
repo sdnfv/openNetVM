@@ -350,14 +350,14 @@ onvm_nflib_run_callback(
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 onvm_nflib_dequeue_packets(pkts, info, handler);
-                onvm_nflib_dequeue_messages();
+                onvm_nflib_dequeue_messages(info);
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)() && keep_running;
                 }
         }
 
         // Stop and free
-        onvm_nflib_cleanup();
+        onvm_nflib_cleanup(info);
 
         return 0;
 }
@@ -415,8 +415,8 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg) {
 }
 
 void
-onvm_nflib_stop(void) {
-        onvm_nflib_cleanup();
+onvm_nflib_stop(struct onvm_nf_info *nf_info) {
+        onvm_nflib_cleanup(nf_info);
 }
 
 
@@ -500,11 +500,13 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
 }
 
 static inline void
-onvm_nflib_dequeue_messages(void) {
+onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *msg;
+	struct rte_ring *msg_q;
+	msg_q = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
 
         // Check and see if this NF has any messages from the manager
-        if (likely(rte_ring_count(nf_msg_ring) == 0)) {
+        if (likely(rte_ring_count(msg_q) == 0)) {
                 return;
         }
         msg = NULL;

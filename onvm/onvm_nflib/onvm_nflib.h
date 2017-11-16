@@ -76,7 +76,7 @@
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p);
 
 
 /**
@@ -122,7 +122,7 @@ onvm_nflib_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, st
  *    0 on success, or a negative value on error.
  */
 int
-onvm_nflib_return_pkt(struct rte_mbuf* pkt);
+onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
 
 /**
  * Inform the manager that the NF is ready to receive packets.
@@ -153,7 +153,7 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg);
  * Sends shutdown message to manager.
  */
 void
-onvm_nflib_stop(void);
+onvm_nflib_stop(struct onvm_nf_info *nf_info);
 
 /**
  * Return the tx_ring associated with this NF.
