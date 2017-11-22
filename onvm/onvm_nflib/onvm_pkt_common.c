@@ -177,7 +177,7 @@ onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id) {
         nf_buf->count = 0;
 }
 
-inline void
+void
 onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt) {
         struct onvm_nf *nf;
         uint16_t dst_instance_id;
