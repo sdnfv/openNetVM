@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -52,91 +52,18 @@
 #include "onvm_pkt.h"
 #include "onvm_nf.h"
 
-
-
-/**********************Internal Functions Prototypes**************************/
-
-
-/*
- * Function to send packets to one port after processing them.
- *
- * Input : a pointer to the tx queue
- *
- */
-static void
-onvm_pkt_flush_port_queue(struct thread_info *tx, uint16_t port);
-
-
-/*
- * Function to send packets to one NF after processing them.
- *
- * Input : a pointer to the tx queue
- *
- */
-static void
-onvm_pkt_flush_nf_queue(struct thread_info *thread, uint16_t nf_id);
-
-
-/*
- * Function to enqueue a packet on one port's queue.
- *
- * Inputs : a pointer to the tx queue responsible
- *          the number of the port
- *          a pointer to the packet
- *
- */
-inline static void
-onvm_pkt_enqueue_port(struct thread_info *tx, uint16_t port, struct rte_mbuf *buf);
-
-
-/*
- * Function to enqueue a packet on one NF's queue.
- *
- * Inputs : a pointer to the tx queue responsible
- *          the number of the port
- *          a pointer to the packet
- *
- */
-inline static void
-onvm_pkt_enqueue_nf(struct thread_info *thread, uint16_t dst_service_id, struct rte_mbuf *pkt);
-
-
-/*
- * Function to process a single packet.
- *
- * Inputs : a pointer to the tx queue responsible
- *          a pointer to the packet
- *          a pointer to the NF involved
- *
- */
-inline static void
-onvm_pkt_process_next_action(struct thread_info *tx, struct rte_mbuf *pkt, struct onvm_nf *nf);
-
-
-/*
- * Helper function to drop a packet.
- *
- * Input : a pointer to the packet
- *
- * Ouput : an error code
- *
- */
-static int
-onvm_pkt_drop(struct rte_mbuf *pkt);
-
-
 /**********************************Interfaces*********************************/
 
 
 void
-onvm_pkt_process_rx_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint16_t rx_count) {
+onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uint16_t rx_count) {
         uint16_t i;
         struct onvm_pkt_meta *meta;
         struct onvm_flow_entry *flow_entry;
         struct onvm_service_chain *sc;
         int ret;
 
-        if (rx == NULL || pkts == NULL)
+        if (rx_mgr == NULL || pkts == NULL)
                 return;
 
         for (i = 0; i < rx_count; i++) {
@@ -159,70 +86,24 @@ onvm_pkt_process_rx_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint1
                  */
 
                 (meta->chain_index)++;
-                onvm_pkt_enqueue_nf(rx, meta->destination, pkts[i]);
+                onvm_pkt_enqueue_nf(rx_mgr, meta->destination, pkts[i]);
         }
 
-        onvm_pkt_flush_all_nfs(rx);
+        onvm_pkt_flush_all_nfs(rx_mgr);
 }
 
 
 void
-onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf) {
-        uint16_t i;
-        struct onvm_pkt_meta *meta;
+onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr) {
+	uint16_t i;
 
-        if (tx == NULL || pkts == NULL || nf == NULL)
-                return;
-
-        for (i = 0; i < tx_count; i++) {
-                meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
-                meta->src = nf->instance_id;
-                if (meta->action == ONVM_NF_ACTION_DROP) {
-                        // if the packet is drop, then <return value> is 0
-                        // and !<return value> is 1.
-                        nf->stats.act_drop += !onvm_pkt_drop(pkts[i]);
-                } else if (meta->action == ONVM_NF_ACTION_NEXT) {
-                        /* TODO: Here we drop the packet : there will be a flow table
-                        in the future to know what to do with the packet next */
-                        nf->stats.act_next++;
-                        onvm_pkt_process_next_action(tx, pkts[i], nf);
-                } else if (meta->action == ONVM_NF_ACTION_TONF) {
-                        nf->stats.act_tonf++;
-                        onvm_pkt_enqueue_nf(tx, meta->destination, pkts[i]);
-                } else if (meta->action == ONVM_NF_ACTION_OUT) {
-                        nf->stats.act_out++;
-                        onvm_pkt_enqueue_port(tx, meta->destination, pkts[i]);
-                } else {
-                        printf("ERROR invalid action : this shouldn't happen.\n");
-                        onvm_pkt_drop(pkts[i]);
-                        return;
-                }
-        }
-}
-
-
-void
-onvm_pkt_flush_all_ports(struct thread_info *tx) {
-        uint16_t i;
-
-        if (tx == NULL)
+        if (tx_mgr == NULL)
                 return;
 
         for (i = 0; i < ports->num_ports; i++)
-                onvm_pkt_flush_port_queue(tx, ports->id[i]);
+                onvm_pkt_flush_port_queue(tx_mgr, ports->id[i]);
 }
 
-
-void
-onvm_pkt_flush_all_nfs(struct thread_info *tx) {
-        uint16_t i;
-
-        if (tx == NULL)
-                return;
-
-        for (i = 0; i < MAX_NFS; i++)
-                onvm_pkt_flush_nf_queue(tx, i);
-}
 
 void
 onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size) {
@@ -235,162 +116,3 @@ onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size) {
                 rte_pktmbuf_free(pkts[i]);
 }
 
-
-/****************************Internal functions*******************************/
-
-
-static void
-onvm_pkt_flush_port_queue(struct thread_info *tx, uint16_t port) {
-        uint16_t i, sent;
-        volatile struct tx_stats *tx_stats;
-
-        if (tx == NULL)
-                return;
-
-        if (tx->port_tx_buf[port].count == 0)
-                return;
-
-        tx_stats = &(ports->tx_stats);
-        sent = rte_eth_tx_burst(port,
-                                tx->queue_id,
-                                tx->port_tx_buf[port].buffer,
-                                tx->port_tx_buf[port].count);
-        if (unlikely(sent < tx->port_tx_buf[port].count)) {
-                for (i = sent; i < tx->port_tx_buf[port].count; i++) {
-                        onvm_pkt_drop(tx->port_tx_buf[port].buffer[i]);
-                }
-                tx_stats->tx_drop[port] += (tx->port_tx_buf[port].count - sent);
-        }
-        tx_stats->tx[port] += sent;
-
-        tx->port_tx_buf[port].count = 0;
-}
-
-
-static void
-onvm_pkt_flush_nf_queue(struct thread_info *thread, uint16_t nf_id) {
-        uint16_t i;
-        struct onvm_nf *nf;
-
-        if (thread == NULL)
-                return;
-
-        if (thread->nf_rx_buf[nf_id].count == 0)
-                return;
-
-        nf = &nfs[nf_id];
-
-        // Ensure destination NF is running and ready to receive packets
-        if (!onvm_nf_is_valid(nf))
-                return;
-
-        if (rte_ring_enqueue_bulk(nf->rx_q, (void **)thread->nf_rx_buf[nf_id].buffer,
-                        thread->nf_rx_buf[nf_id].count) != 0) {
-                for (i = 0; i < thread->nf_rx_buf[nf_id].count; i++) {
-                        onvm_pkt_drop(thread->nf_rx_buf[nf_id].buffer[i]);
-                }
-                nf->stats.rx_drop += thread->nf_rx_buf[nf_id].count;
-        } else {
-                nf->stats.rx += thread->nf_rx_buf[nf_id].count;
-        }
-        thread->nf_rx_buf[nf_id].count = 0;
-}
-
-
-inline static void
-onvm_pkt_enqueue_port(struct thread_info *tx, uint16_t port, struct rte_mbuf *buf) {
-
-        if (tx == NULL || buf == NULL)
-                return;
-
-
-        tx->port_tx_buf[port].buffer[tx->port_tx_buf[port].count++] = buf;
-        if (tx->port_tx_buf[port].count == PACKET_READ_SIZE) {
-                onvm_pkt_flush_port_queue(tx, port);
-        }
-}
-
-
-inline static void
-onvm_pkt_enqueue_nf(struct thread_info *thread, uint16_t dst_service_id, struct rte_mbuf *pkt) {
-        struct onvm_nf *nf;
-        uint16_t dst_instance_id;
-
-
-        if (thread == NULL || pkt == NULL)
-                return;
-
-        // map service to instance and check one exists
-        dst_instance_id = onvm_nf_service_to_nf_map(dst_service_id, pkt);
-        if (dst_instance_id == 0) {
-                onvm_pkt_drop(pkt);
-                return;
-        }
-
-        // Ensure destination NF is running and ready to receive packets
-        nf = &nfs[dst_instance_id];
-        if (!onvm_nf_is_valid(nf)) {
-                onvm_pkt_drop(pkt);
-                return;
-        }
-
-        thread->nf_rx_buf[dst_instance_id].buffer[thread->nf_rx_buf[dst_instance_id].count++] = pkt;
-        if (thread->nf_rx_buf[dst_instance_id].count == PACKET_READ_SIZE) {
-                onvm_pkt_flush_nf_queue(thread, dst_instance_id);
-        }
-}
-
-
-inline static void
-onvm_pkt_process_next_action(struct thread_info *tx, struct rte_mbuf *pkt, struct onvm_nf *nf) {
-
-        if (tx == NULL || pkt == NULL || nf == NULL)
-                return;
-
-        struct onvm_flow_entry *flow_entry;
-        struct onvm_service_chain *sc;
-        struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
-        int ret;
-
-        ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
-        if (ret >= 0) {
-                sc = flow_entry->sc;
-                meta->action = onvm_sc_next_action(sc, pkt);
-                meta->destination = onvm_sc_next_destination(sc, pkt);
-        } else {
-                meta->action = onvm_sc_next_action(default_chain, pkt);
-                meta->destination = onvm_sc_next_destination(default_chain, pkt);
-        }
-
-        switch (meta->action) {
-                case ONVM_NF_ACTION_DROP:
-                        // if the packet is drop, then <return value> is 0
-                        // and !<return value> is 1.
-                        nf->stats.act_drop += !onvm_pkt_drop(pkt);
-                        break;
-                case ONVM_NF_ACTION_TONF:
-                        nf->stats.act_tonf++;
-                        onvm_pkt_enqueue_nf(tx, meta->destination, pkt);
-                        break;
-                case ONVM_NF_ACTION_OUT:
-                        nf->stats.act_out++;
-                        onvm_pkt_enqueue_port(tx, meta->destination, pkt);
-                        break;
-                default:
-                        break;
-        }
-        (meta->chain_index)++;
-}
-
-
-/*******************************Helper function*******************************/
-
-
-static int
-onvm_pkt_drop(struct rte_mbuf *pkt) {
-        rte_pktmbuf_free(pkt);
-        if (pkt != NULL) {
-                return 1;
-        }
-        return 0;
-}

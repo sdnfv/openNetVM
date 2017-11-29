@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
- *            2016 Hewlett Packard Enterprise Development LP
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
+ *            2016-2017 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@
 #define _ONVM_NFLIB_H_
 #include <rte_mbuf.h>
 #include "onvm_common.h"
+#include "onvm_pkt_common.h"
 
 /************************************API**************************************/
 
@@ -190,5 +191,7 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id);
 
+struct onvm_service_chain *
+onvm_nflib_get_default_chain(void);
 
 #endif  // _ONVM_NFLIB_H_

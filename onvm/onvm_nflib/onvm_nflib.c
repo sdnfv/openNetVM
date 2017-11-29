@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
- *            2016 Hewlett Packard Enterprise Development LP
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
+ *            2016-2017 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -67,9 +67,6 @@
 /**********************************Macros*************************************/
 
 
-// Number of packets to attempt to read from queue
-#define PKT_READ_SIZE  ((uint16_t)32)
-
 // Possible NF packet consuming modes
 #define NF_MODE_UNKNOWN 0
 #define NF_MODE_SINGLE 1
@@ -94,8 +91,15 @@ static struct rte_ring *nf_msg_ring;
 // rings used to pass packets between NFlib and NFmgr
 static struct rte_ring *tx_ring, *rx_ring;
 
+//data for NFs that handle tx. May not be used
+static struct queue_mgr *nf_tx_mgr;
+
 // Shared data from server. We update statistics here
-static struct onvm_nf *nfs;
+struct onvm_nf *nfs;
+
+// Shared data from manager, has information used for nf_side tx
+uint16_t **services;
+uint16_t *nf_per_service_count;
 
 // Shared data for NF info
 extern struct onvm_nf_info *nf_info;
@@ -119,7 +123,7 @@ static uint8_t keep_running = 1;
 static uint8_t nf_mode = NF_MODE_UNKNOWN;
 
 // Shared data for default service chain
-static struct onvm_service_chain *default_chain;
+struct onvm_service_chain *default_chain;
 
 
 /***********************Internal Functions Prototypes*************************/
@@ -134,6 +138,16 @@ static struct onvm_service_chain *default_chain;
  */
 static struct onvm_nf_info *
 onvm_nflib_info_init(const char *tag);
+
+/*
+ * Function that initialize a nf tx info data structure.
+ *
+ * Input  : void 
+ * Output : the data structure initialized
+ *
+ */
+static void 
+onvm_nflib_nf_tx_mgr_init(void);
 
 
 /*
@@ -170,7 +184,7 @@ onvm_nflib_handle_signal(int sig);
 /*
  * Check if there are packets in this NF's RX Queue and process them
  */
-static inline void
+static inline uint16_t
 onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) __attribute__((always_inline));
 
 /*
@@ -195,13 +209,15 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
+        const struct rte_memzone *mz_services;
+        const struct rte_memzone *mz_nf_per_service;
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
         struct onvm_nf_msg *startup_msg;
         struct onvm_nf_info *nf_info;
         int retval_eal, retval_parse, retval_final;
 
-        if ((retval_eal = rte_eal_init(argc, argv)) < 0)
+        if ((retval_eal = rte_eal_init(argc, argv)) < 0) 
                 return -1;
 
         /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
@@ -240,6 +256,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         nf_info = onvm_nflib_info_init(nf_tag);
         *nf_info_p = nf_info;
 
+        /* Initialize empty NF's tx manager */
+        onvm_nflib_nf_tx_mgr_init();
+
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
@@ -249,6 +268,18 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         if (mz_nf == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get NF structure mempool\n");
         nfs = mz_nf->addr;
+
+        mz_services = rte_memzone_lookup(MZ_SERVICES_INFO);
+        if (mz_services == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot get service information\n");
+        }
+        services = mz_services->addr;
+
+        mz_nf_per_service = rte_memzone_lookup(MZ_NF_PER_SERVICE_INFO);
+        if (mz_nf_per_service == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot get NF per service information\n");
+        }
+        nf_per_service_count = mz_nf_per_service->addr;
 
         mz_port = rte_memzone_lookup(MZ_PORT_INFO);
         if (mz_port == NULL)
@@ -328,8 +359,9 @@ onvm_nflib_run_callback(
         pkt_handler handler,
         callback_handler callback)
 {
-        void *pkts[PKT_READ_SIZE];
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
         int ret;
+        uint16_t nb_pkts_added;
 
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_RING) {
@@ -349,8 +381,17 @@ onvm_nflib_run_callback(
 
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
-                onvm_nflib_dequeue_packets(pkts, info, handler);
-                onvm_nflib_dequeue_messages(info);
+                nb_pkts_added = onvm_nflib_dequeue_packets((void **) pkts, info, handler);
+
+                if (likely(nb_pkts_added > 0)) {
+                        onvm_pkt_process_tx_batch(nf_tx_mgr, pkts, nb_pkts_added, &nfs[info->instance_id]);
+                }
+
+                /* Flush the packet buffers */
+                onvm_pkt_enqueue_tx_thread(nf_tx_mgr->to_tx_buf, info->instance_id);
+                onvm_pkt_flush_all_nfs(nf_tx_mgr);
+
+                onvm_nflib_dequeue_messages();
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)() && keep_running;
                 }
@@ -366,7 +407,6 @@ int
 onvm_nflib_run(struct onvm_nf_info* info, pkt_handler handler) {
         return onvm_nflib_run_callback(info, handler, ONVM_NO_CALLBACK);
 }
-
 
 int
 onvm_nflib_return_pkt(struct onvm_nf_info* nf_info, struct rte_mbuf* pkt) {
@@ -458,24 +498,30 @@ onvm_nflib_get_nf(uint16_t id) {
         return &nfs[id];
 }
 
+struct onvm_service_chain *
+onvm_nflib_get_default_chain(void) {
+        return default_chain;
+}
 
 /******************************Helper functions*******************************/
 
 
-static inline void
+static inline uint16_t
 onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) {
         struct onvm_pkt_meta* meta;
-        uint16_t i, j, nb_pkts;
-        void *pktsTX[PKT_READ_SIZE];
-        int tx_batch_size = 0;
+        uint16_t i, nb_pkts;
+        struct packet_buf tx_buf;
         int ret_act;
 
         /* Dequeue all packets in ring up to max possible. */
-        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PACKET_READ_SIZE);
 
+        /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
-                return;
+                return 0;
         }
+
+        tx_buf.count = 0;
 
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
@@ -483,20 +529,17 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
                 ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
                 /* NF returns 0 to return packets or 1 to buffer */
                 if(likely(ret_act == 0)) {
-                        pktsTX[tx_batch_size++] = pkts[i];
+                        tx_buf.buffer[tx_buf.count++] = pkts[i];
                 } else {
                         nfs[info->instance_id].stats.tx_buffer++;
                 }
         }
+        if (ONVM_NF_HANDLE_TX) {
+                return nb_pkts;
+        } 
 
-        if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
-                nfs[info->instance_id].stats.tx_drop += tx_batch_size;
-                for (j = 0; j < tx_batch_size; j++) {
-                        rte_pktmbuf_free(pktsTX[j]);
-                }
-        } else {
-                nfs[info->instance_id].stats.tx += tx_batch_size;
-        }
+        onvm_pkt_enqueue_tx_thread(&tx_buf, info->instance_id);
+        return 0;        
 }
 
 static inline void
@@ -536,6 +579,16 @@ onvm_nflib_info_init(const char *tag)
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
         return info;
+}
+
+static void 
+onvm_nflib_nf_tx_mgr_init(void)
+{
+        nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
+        nf_tx_mgr->mgr_type_t = NF; 
+        nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
+        nf_tx_mgr->id = initial_instance_id;
+        nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
 }
 
 

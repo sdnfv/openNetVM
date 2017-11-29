@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -268,6 +268,7 @@ onvm_stats_display_nfs(unsigned difftime) {
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
+
                 const uint64_t rx = nfs[i].stats.rx;
                 const uint64_t rx_drop = nfs[i].stats.rx_drop;
                 const uint64_t tx = nfs[i].stats.tx;

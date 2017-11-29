@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -94,12 +94,6 @@ onvm_nf_stop(struct onvm_nf_info *nf_info);
 /********************************Interfaces***********************************/
 
 
-inline int
-onvm_nf_is_valid(struct onvm_nf *nf) {
-        return nf && nf->info && nf->info->status == NF_RUNNING;
-}
-
-
 uint16_t
 onvm_nf_next_instance_id(void) {
         struct onvm_nf *nf;
@@ -169,23 +163,6 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
 
         return rte_ring_sp_enqueue(nfs[dest].msg_q, (void*)msg);
 }
-
-
-inline uint16_t
-onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
-        uint16_t num_nfs_available = nf_per_service_count[service_id];
-
-        if (num_nfs_available == 0)
-                return 0;
-
-        if (pkt == NULL)
-                return 0;
-
-        uint16_t instance_index = pkt->hash.rss % num_nfs_available;
-        uint16_t instance_id = services[service_id][instance_index];
-        return instance_id;
-}
-
 
 /******************************Internal functions*****************************/
 

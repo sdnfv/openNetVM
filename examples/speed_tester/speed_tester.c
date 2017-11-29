@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,13 @@
 #include <rte_ethdev.h>
 #include <rte_ether.h>
 
+#ifdef LIBPCAP
+#include <pcap.h>
+#endif
+
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_flow_table.h"
 
 #define NF_TAG "speed"
 
@@ -86,11 +91,16 @@ static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
 /*
+ * Variables needed to replay a pcap file
+ */
+char *pcap_filename = NULL;
+
+/*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a -s <packet_length> -m <dest_mac_address>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a -s <packet_length> -m <dest_mac_address> -o <pcap_filename>\n\n", progname);
 }
 
 /*
@@ -101,7 +111,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
         int values[ETHER_ADDR_LEN];
 
-        while ((c = getopt (argc, argv, "d:p:as:m:")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:as:m:o:")) != -1) {
                 switch (c) {
                 case 'a':
                         use_direct_rings = 1;
@@ -133,6 +143,14 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 usage(progname);
                         }
                         break;
+                case 'o':
+#ifdef LIBPCAP 
+                        pcap_filename = strdup(optarg);
+                        break;
+#else 
+                        rte_exit(EXIT_FAILURE, "To enable pcap replay follow the README instructins\n");
+                        break;        
+#endif
                 case '?':
                         usage(progname);
                         if (optopt == 'd')
@@ -295,40 +313,88 @@ int main(int argc, char *argv[]) {
         struct rte_mempool *pktmbuf_pool;
         struct rte_mbuf* pkts[NUM_PKTS];
         int i;
+#ifdef LIBPCAP
+        struct rte_mbuf* pkt;
+        pcap_t *pcap;
+        const u_char *packet;
+        struct pcap_pkthdr header;
+        char errbuf[PCAP_ERRBUF_SIZE];
+#endif
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if(pktmbuf_pool == NULL) {
                 onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
-        printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);
-        for (i=0; i < NUM_PKTS; i++) {
-                struct onvm_pkt_meta* pmeta;
-                struct ether_hdr *ehdr;
-                int j;
 
-                pkts[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+#ifdef LIBPCAP
+        if (pcap_filename != NULL) {
+                printf("Replaying %s pcap file\n", pcap_filename);
 
-                /*set up ether header and set new packet size*/
-                ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkts[i], packet_size);
-
-                /*using manager mac addr for source
-                *using input string for dest addr 
-                */ 
-                rte_eth_macaddr_get(0, &ehdr->s_addr);
-                for (j = 0; j < ETHER_ADDR_LEN; ++j) {
-                        ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                pcap = pcap_open_offline(pcap_filename, errbuf);
+                if (pcap == NULL) {
+                        fprintf(stderr, "Error reading pcap file: %s\n", errbuf);
+                        rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
-                ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
-                pmeta = onvm_get_pkt_meta(pkts[i]);
-                pmeta->destination = destination;
-                pmeta->action = ONVM_NF_ACTION_TONF;
-                pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
-                pkts[i]->hash.rss = i;
-                onvm_nflib_return_pkt(nf_info, pkts[i]);
-        }
+                while ((packet = pcap_next(pcap, &header)) != NULL) {
+                        struct onvm_pkt_meta* pmeta;
+                        struct onvm_ft_ipv4_5tuple key;
 
+                        pkt = rte_pktmbuf_alloc(rte_mempool_lookup(PKTMBUF_POOL_NAME));
+                        if (pkt == NULL)
+                                break;
+
+                        pkt->pkt_len = header.caplen;
+                        pkt->data_len = header.caplen;
+
+                        /* Copy the packet into the rte_mbuf data section */
+                        rte_memcpy(rte_ctrlmbuf_data(pkt), packet, header.caplen);
+
+                        pmeta = onvm_get_pkt_meta(pkt);
+                        pmeta->destination = destination;
+                        pmeta->action = ONVM_NF_ACTION_TONF;
+                        pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
+
+                        onvm_ft_fill_key(&key, pkt);
+                        pkt->hash.rss = onvm_softrss(&key);
+
+                        onvm_nflib_return_pkt(pkt);
+                }
+ 
+        } else {
+#endif
+                printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);
+                for (i=0; i < NUM_PKTS; i++) {
+                        struct onvm_pkt_meta* pmeta;
+                        struct ether_hdr *ehdr;
+                        int j;
+
+                        pkts[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+
+                        /*set up ether header and set new packet size*/
+                        ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkts[i], packet_size);
+
+                        /*using manager mac addr for source
+                        *using input string for dest addr 
+                        */ 
+                        rte_eth_macaddr_get(0, &ehdr->s_addr);
+                        for (j = 0; j < ETHER_ADDR_LEN; ++j) {
+                                ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                        }
+                        ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
+
+                        pmeta = onvm_get_pkt_meta(pkts[i]);
+                        pmeta->destination = destination;
+                        pmeta->action = ONVM_NF_ACTION_TONF;
+                        pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
+                        pkts[i]->hash.rss = i;
+                        pkts[i]->port = 0;
+                        onvm_nflib_return_pkt(pkts[i]);
+                }
+#ifdef LIBPCAP
+       }
+#endif
         if (use_direct_rings) {
                 onvm_nflib_nf_ready(nf_info);
                 run_advanced_rings(nf_info);

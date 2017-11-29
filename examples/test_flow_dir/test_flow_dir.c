@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -160,21 +160,16 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 counter = 0;
         }
 
-	/* The system may crash when receiving a packet with hash.rss=0
-	 * we should find out the reason.
-	 */
-	if (pkt->hash.rss == 0) {
-		meta->action = ONVM_NF_ACTION_DROP;
-		meta->destination = 0;
-		return 0;
-	}
-
 	ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
 	if (ret >= 0) {
         	meta->action = ONVM_NF_ACTION_NEXT;
-	}
-	else {
+	} else {
 		ret = onvm_flow_dir_add_pkt(pkt, &flow_entry);
+		if (ret < 0) {
+			meta->action = ONVM_NF_ACTION_DROP;
+			meta->destination = 0;
+			return 0;
+		}
 		memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
 		flow_entry->sc = onvm_sc_create();
 		onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);

@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -80,12 +80,11 @@
 #include "onvm_sc_mgr.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
+#include "onvm_pkt_common.h"
 
 
 /***********************************Macros************************************/
 
-
-#define PACKET_READ_SIZE ((uint16_t)32)
 
 #define TO_PORT 0
 #define TO_NF 1
@@ -96,37 +95,5 @@
 
 /* ID to be assigned to the next NF that starts */
 extern uint16_t next_instance_id;
-
-/* Client information, rx/tx/msg rings, nf_info, inst_id and stats */
-extern struct onvm_nf *nfs;
-
-
-/*******************************Data Structures*******************************/
-
-
-/*
- * Local buffers to put packets in, used to send packets in bursts to the
- * NFs or to the NIC
- */
-struct packet_buf {
-        struct rte_mbuf *buffer[PACKET_READ_SIZE];
-        uint16_t count;
-};
-
-
-/** Thread state. This specifies which NFs the thread will handle and
- *  includes the packet buffers used by the thread for NFs and ports.
- */
-struct thread_info {
-       unsigned queue_id;
-       unsigned first_nf;
-       unsigned last_nf;
-       /* FIXME: This is confusing since it is non-inclusive. It would be
-        *        better to have this take the first NF and the number
-        *        of consecutive NFs after it to handle.
-        */
-       struct packet_buf *nf_rx_buf;
-       struct packet_buf *port_tx_buf;
-};
 
 #endif  // _ONVM_MGR_H_

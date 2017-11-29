@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -98,7 +98,7 @@
 
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
-#define NF_QUEUE_RINGSIZE 128
+#define NF_QUEUE_RINGSIZE 16384
 #define NF_MSG_QUEUE_SIZE 128
 
 #define NO_FLAGS 0
