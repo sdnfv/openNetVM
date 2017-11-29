@@ -421,7 +421,7 @@ onvm_nflib_stop(struct onvm_nf_info *nf_info) {
 
 
 struct rte_ring *
-onvm_nflib_get_tx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
+onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
@@ -429,12 +429,12 @@ onvm_nflib_get_tx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
 
         /* We should return the tx_ring associated with the info struct */
         nf_mode = NF_MODE_RING;
-        return tx_ring;
+	return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
 }
 
 
 struct rte_ring *
-onvm_nflib_get_rx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
+onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
@@ -442,7 +442,7 @@ onvm_nflib_get_rx_ring(__attribute__((__unused__)) struct onvm_nf_info* info) {
 
         /* We should return the rx_ring associated with the info struct */
         nf_mode = NF_MODE_RING;
-        return rx_ring;
+        return (struct rte_ring *)(&(nfs[info->instance_id].rx_q));
 }
 
 
