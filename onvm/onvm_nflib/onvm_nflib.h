@@ -70,6 +70,9 @@
  * @param tag
  *   A uniquely identifiable string for this NF.
  *   For example, can be the application name (e.g. "bridge_nf")
+ * @param info
+ *   A pointer to the structure containing information relevant to this NF.
+ *   For example, the instance_id and the status of the NF can be found here.
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
@@ -86,11 +89,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
  * loop forever waiting for packets.
  *
  * @param info
- *   an info struct describing this NF app. Must be from a huge page memzone.
+ *   A pointer to the info struct describing this NF app. Must be from a huge page memzone.
  * @param handler
- *   a pointer to the function that will be called on each received packet.
+ *   A pointer to the function that will be called on each received packet.
  * @param callback_handler
- *   a pointer to the callback handler that is called every attempted batch
+ *   A pointer to the callback handler that is called every attempted batch
  * @return
  *   0 on success, or a negative value on error.
  */
@@ -103,9 +106,9 @@ onvm_nflib_run_callback(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf
  * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
  *
  * @param info
- *   an info struct describing this NF app. Must be from a huge page memzone.
+ *   An info struct describing this NF. Must be from a huge page memzone.
  * @param handler
- *   a pointer to the function that will be called on each received packet.
+ *   A pointer to the function that will be called on each received packet.
  * @return
  *   0 on success, or a negative value on error.
  */
@@ -117,6 +120,8 @@ onvm_nflib_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, st
  * Return a packet that has previously had the ONVM_NF_ACTION_BUFFER action
  * called on it.
  *
+ * @param info
+ *    Pointer to a struct containing information used to describe this NF.
  * @param pkt
  *    a pointer to a packet that should now have a action other than buffer.
  * @return
@@ -152,6 +157,9 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg);
 /**
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
+ *
+ * @param info
+ *   Pointer to the info struct for this NF.
  */
 void
 onvm_nflib_stop(struct onvm_nf_info *nf_info);
@@ -160,9 +168,9 @@ onvm_nflib_stop(struct onvm_nf_info *nf_info);
  * Return the tx_ring associated with this NF.
  *
  * @param info
- *   an info struct describing this NF app.
+ *   An info struct describing this NF.
  * @return
- *    pointer to tx_ring structure associated with info, NULL on error.
+ *   Pointer to tx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
 onvm_nflib_get_tx_ring(struct onvm_nf_info* info);
@@ -172,9 +180,9 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info);
  * Return the rx_ring associated with this NF.
  *
  * @param info
- *   an info struct describing this NF app.
+ *   An info struct describing this NF app.
  * @return
- *    pointer to rx_ring structure associated with info, NULL on error.
+ *   Pointer to rx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
 onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
@@ -184,9 +192,9 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
  * Return the nf details associated with this NF.
  *
  * @param id
- *   an instance id of the corresponding NF.
+ *   An instance id of the corresponding NF.
  * @return
- *    pointer to NF structure referenced by instance id, NULL on error.
+ *   Pointer to NF structure referenced by instance id, NULL on error.
  */
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id);

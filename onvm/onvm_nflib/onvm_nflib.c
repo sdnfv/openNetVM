@@ -391,7 +391,7 @@ onvm_nflib_run_callback(
                 onvm_pkt_enqueue_tx_thread(nf_tx_mgr->to_tx_buf, info->instance_id);
                 onvm_pkt_flush_all_nfs(nf_tx_mgr);
 
-                onvm_nflib_dequeue_messages();
+                onvm_nflib_dequeue_messages(info);
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)() && keep_running;
                 }
@@ -462,7 +462,11 @@ onvm_nflib_stop(struct onvm_nf_info *nf_info) {
 
 struct rte_ring *
 onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
-        /* Don't allow conflicting NF modes */
+        if (info == NULL) {
+		return NULL;
+	}
+
+	/* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
@@ -475,6 +479,10 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
 
 struct rte_ring *
 onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
+	if (info == NULL) {
+		return NULL;
+	}
+
         /* Don't allow conflicting NF modes */
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
@@ -548,6 +556,10 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
 	struct rte_ring *msg_q;
 	msg_q = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
 
+	if (nf_info == NULL) {
+		return; :548
+
+	}
         // Check and see if this NF has any messages from the manager
         if (likely(rte_ring_count(msg_q) == 0)) {
                 return;
@@ -648,7 +660,11 @@ onvm_nflib_handle_signal(int sig)
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 {
-        struct onvm_nf_msg *shutdown_msg;
+        if (nf_info == NULL) {
+		return;
+	}		
+
+	struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */

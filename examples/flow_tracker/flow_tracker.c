@@ -309,7 +309,7 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
 
         argc -= arg_offset;
@@ -317,7 +317,7 @@ main(int argc, char *argv[]) {
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
@@ -325,13 +325,13 @@ main(int argc, char *argv[]) {
         state_info->num_stored = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
         state_info->ft = onvm_ft_create(TBL_SIZE, sizeof(struct flow_stats));
         if (state_info->ft == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 

@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        onvm_nflib_return_pkt(pkt);
+                        onvm_nflib_return_pkt(nf_info, pkt);
                 }
  
         } else {
@@ -390,7 +390,7 @@ int main(int argc, char *argv[]) {
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                         pkts[i]->hash.rss = i;
                         pkts[i]->port = 0;
-                        onvm_nflib_return_pkt(pkts[i]);
+                        onvm_nflib_return_pkt(nf_info, pkts[i]);
                 }
 #ifdef LIBPCAP
        }

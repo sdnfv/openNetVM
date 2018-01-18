@@ -250,7 +250,7 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
-        return onvm_nflib_return_pkt(out_pkt);
+        return onvm_nflib_return_pkt(nf_info, out_pkt);
 }
 
 static int
@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0) {
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0) {
                 return -1;
         }
 
@@ -290,18 +290,18 @@ int main(int argc, char *argv[]) {
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
         state_info->pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (state_info->pktmbuf_pool == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
