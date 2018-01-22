@@ -557,7 +557,7 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
 	msg_q = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
 
 	if (nf_info == NULL) {
-		return; :548
+		return; 
 
 	}
         // Check and see if this NF has any messages from the manager
