@@ -69,11 +69,12 @@
 
 #define NF_TAG "speed"
 
-#define NUM_PKTS 128
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE  ((uint16_t)32)
 #define SPEED_TESTER_BIT 7
 #define LOCAL_EXPERIMENTAL_ETHER 0x88B5
+#define DEFAULT_PKT_NUM 128
+#define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -90,6 +91,9 @@ static uint8_t keep_running = 1;
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
+/* Default number of packets: 128; user can modify it by -c <packet_number> in command line */
+static uint32_t packet_number = 0;
+
 /*
  * Variables needed to replay a pcap file
  */
@@ -100,7 +104,9 @@ char *pcap_filename = NULL;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -a -s <packet_length> -m <dest_mac_address> -o <pcap_filename>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
+                        "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
+                        "[-c <packet_number>]\n\n", progname);
 }
 
 /*
@@ -111,7 +117,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
         int values[ETHER_ADDR_LEN];
 
-        while ((c = getopt (argc, argv, "d:p:as:m:o:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:as:m:o:c:")) != -1) {
                 switch (c) {
                 case 'a':
                         use_direct_rings = 1;
@@ -127,13 +133,13 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         packet_size = strtoul(optarg, NULL, 10);
                         break;
                 case 'm':
-                        count = sscanf(optarg, 
-                                        "%x:%x:%x:%x:%x:%x", 
-                                        &values[0], 
-                                        &values[1], 
-                                        &values[2], 
+                        count = sscanf(optarg,
+                                        "%x:%x:%x:%x:%x:%x",
+                                        &values[0],
+                                        &values[1],
+                                        &values[2],
                                         &values[3],
-                                        &values[4], 
+                                        &values[4],
                                         &values[5]);
                         if (count == ETHER_ADDR_LEN) {
                                 for (i = 0; i < ETHER_ADDR_LEN; ++i) {
@@ -144,13 +150,22 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         }
                         break;
                 case 'o':
-#ifdef LIBPCAP 
+#ifdef LIBPCAP
                         pcap_filename = strdup(optarg);
                         break;
-#else 
-                        rte_exit(EXIT_FAILURE, "To enable pcap replay follow the README instructins\n");
-                        break;        
+#else
+                        rte_exit(EXIT_FAILURE, "To enable pcap replay follow the README "
+                                "instructins\n");
+                        break;
 #endif
+                case 'c':
+                        packet_number = strtoul(optarg, NULL, 10);
+                        if (packet_number <= 0 || packet_number > MAX_PKT_NUM) {
+                                RTE_LOG(INFO, APP, "Illegal packet number(1 ~ %u) %u!\n",
+                                        MAX_PKT_NUM, packet_number);
+                                return -1;
+                        }
+                        break;
                 case '?':
                         usage(progname);
                         if (optopt == 'd')
@@ -161,6 +176,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (optopt == 'm')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        else if (optopt == 'c')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
                         else
@@ -170,7 +187,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         usage(progname);
                         return -1;
                 }
-
         }
 
         if (!dst_flag) {
@@ -205,7 +221,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Total packets: %9"PRIu64" \n", cur_pkts);
         printf("TX pkts per second: %9"PRIu64" \n", (cur_pkts - last_pkts)
                 * rte_get_timer_hz() / (cur_cycles - last_cycles));
-        printf("Packets per group: %d\n", NUM_PKTS);
+        printf("Initial packets created: %u\n", packet_number);
 
         last_pkts = cur_pkts;
         last_cycles = cur_cycles;
@@ -221,13 +237,11 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 counter = 0;
         }
 
-        if(ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
+        if (ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
                 /* one of our fake pkts to forward */
                 meta->destination = destination;
                 meta->action = ONVM_NF_ACTION_TONF;
-        }
-
-        else {
+        } else {
                 /* Drop real incoming packets */
                 meta->action = ONVM_NF_ACTION_DROP;
         }
@@ -236,8 +250,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
 
 
 static void
-handle_signal(int sig)
-{
+handle_signal(int sig) {
         if (sig == SIGINT || sig == SIGTERM)
                 keep_running = 0;
 }
@@ -267,11 +280,11 @@ run_advanced_rings(void) {
         tx_ring = nf->tx_q;
 
         while (keep_running && rx_ring && tx_ring && nf) {
-                tx_batch_size= 0;
+                tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
 
-                if(unlikely(nb_pkts == 0)) {
+                if (unlikely(nb_pkts == 0)) {
                         continue;
                 }
                 /* Process all the packets */
@@ -289,19 +302,21 @@ run_advanced_rings(void) {
                 } else {
                         nf->stats.tx += tx_batch_size;
                 }
-
         }
         onvm_nflib_stop();
 }
 
 
 int main(int argc, char *argv[]) {
+        uint32_t i;
         int arg_offset;
+        struct rte_mempool *pktmbuf_pool;
 
         const char *progname = argv[0];
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
                 return -1;
+
         argc -= arg_offset;
         argv += arg_offset;
 
@@ -310,24 +325,19 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct rte_mempool *pktmbuf_pool;
-        struct rte_mbuf* pkts[NUM_PKTS];
-        int i;
+        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
+        if (pktmbuf_pool == NULL) {
+                onvm_nflib_stop();
+                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
+        }
+
 #ifdef LIBPCAP
         struct rte_mbuf* pkt;
         pcap_t *pcap;
         const u_char *packet;
         struct pcap_pkthdr header;
         char errbuf[PCAP_ERRBUF_SIZE];
-#endif
 
-        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
-        if(pktmbuf_pool == NULL) {
-                onvm_nflib_stop();
-                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
-        }
-
-#ifdef LIBPCAP
         if (pcap_filename != NULL) {
                 printf("Replaying %s pcap file\n", pcap_filename);
 
@@ -337,11 +347,14 @@ int main(int argc, char *argv[]) {
                         rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
 
-                while ((packet = pcap_next(pcap, &header)) != NULL) {
+                packet_number = (packet_number? packet_number : MAX_PKT_NUM);
+                i = 0;
+
+                while (((packet = pcap_next(pcap, &header)) != NULL) && (i++ < packet_number)) {
                         struct onvm_pkt_meta* pmeta;
                         struct onvm_ft_ipv4_5tuple key;
 
-                        pkt = rte_pktmbuf_alloc(rte_mempool_lookup(PKTMBUF_POOL_NAME));
+                        pkt = rte_pktmbuf_alloc(pktmbuf_pool);
                         if (pkt == NULL)
                                 break;
 
@@ -361,19 +374,21 @@ int main(int argc, char *argv[]) {
 
                         onvm_nflib_return_pkt(pkt);
                 }
- 
         } else {
 #endif
-                printf("Creating %d packets to send to %d\n", NUM_PKTS, destination);
-                for (i=0; i < NUM_PKTS; i++) {
+                packet_number = (packet_number? packet_number : DEFAULT_PKT_NUM);
+
+                printf("Creating %u packets to send to %u\n", packet_number, destination);
+
+                for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta* pmeta;
                         struct ether_hdr *ehdr;
                         int j;
 
-                        pkts[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+                        struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
 
                         /*set up ether header and set new packet size*/
-                        ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkts[i], packet_size);
+                        ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkt, packet_size);
 
                         /*using manager mac addr for source
                         *using input string for dest addr 
@@ -384,16 +399,16 @@ int main(int argc, char *argv[]) {
                         }
                         ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
-                        pmeta = onvm_get_pkt_meta(pkts[i]);
+                        pmeta = onvm_get_pkt_meta(pkt);
                         pmeta->destination = destination;
                         pmeta->action = ONVM_NF_ACTION_TONF;
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
-                        pkts[i]->hash.rss = i;
-                        pkts[i]->port = 0;
-                        onvm_nflib_return_pkt(pkts[i]);
+                        pkt->hash.rss = i;
+                        pkt->port = 0;
+                        onvm_nflib_return_pkt(pkt);
                 }
 #ifdef LIBPCAP
-       }
+        }
 #endif
         if (use_direct_rings) {
                 onvm_nflib_nf_ready(nf_info);
