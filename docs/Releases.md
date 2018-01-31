@@ -13,6 +13,17 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+#### v18.1 (1/31/18): Bug Fixes and Speed Tester improvements
+This release includes several bug fixes including:
+ - Changed macro and inline function declarations to improve compatibility with 3rd party libraries and newer gcc versions (tested with 4.8 and 5.4)
+ - Solved memory leak in SDN flow table example
+ - Load Balancer NF now correctly updates MAC address on outgoing packets to backend servers
+
+Improvements:
+ - Speed Tester NF now supports a `-c` argument indicating how many packets should be created. If combined with the PCAP replay flag, this parameter controls how many of packets in the trace will be transmitted. A larger packet count may be required when trying to use Speed Tester to saturate a chain of network functions.
+ 
+*No API changes were introduced in this release.*
+
 #### v17.11 (11/16/17): New TX thread architecture, realistic NF examples, better stats, messaging, and more
 Since the last official release there have been substantial changes to openNetVM, including the switch to date based versioning mentioned above. Changes include:
  - New TX architecture: previously NFs enqueued packets into a TX ring that was read by TX threads in the manager, which consumed significant CPU resources. 
