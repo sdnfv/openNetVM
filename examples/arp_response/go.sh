@@ -28,4 +28,4 @@ while getopts ":s:p" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/arp_response -l $cpu -n 3 --proc-type=secondary -- -r $service  -- -d $dst $src_ip $enable_print
+exec sudo $SCRIPTPATH/build/app/arp_response -l $cpu -n 3 --proc-type=secondary -- -r $service  -- -d $dst $src_ip $enable_print

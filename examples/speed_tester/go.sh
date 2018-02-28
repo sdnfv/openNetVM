@@ -39,4 +39,4 @@ while getopts ":p:n:as:m:o:c:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings $size $dest_mac $pcap_filename $pkt_num
+exec sudo $SCRIPTPATH/build/app/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings $size $dest_mac $pcap_filename $pkt_num

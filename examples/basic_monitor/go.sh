@@ -29,4 +29,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print
+exec sudo $SCRIPTPATH/build/app/monitor -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print

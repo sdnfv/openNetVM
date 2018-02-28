@@ -29,4 +29,4 @@ while getopts ":d:w:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/ndpi_stats -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $destination $write
+exec sudo $SCRIPTPATH/build/app/ndpi_stats -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $destination $write

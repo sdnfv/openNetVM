@@ -29,4 +29,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/test_flow_dir -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print
+exec sudo $SCRIPTPATH/build/app/test_flow_dir -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print

@@ -58,7 +58,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
+sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
 
 if [ "${stats}" = "-s web" ]
 then

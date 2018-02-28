@@ -30,4 +30,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print
+exec sudo $SCRIPTPATH/build/app/bridge -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print

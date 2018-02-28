@@ -282,7 +282,7 @@ run_advanced_rings(void) {
         while (keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
-                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE);
+                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
                         continue;
@@ -294,7 +294,7 @@ run_advanced_rings(void) {
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
-                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size) == -ENOBUFS)) {
+                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL) == 0)) {
                         nf->stats.tx_drop += tx_batch_size;
                         for (j = 0; j < tx_batch_size; j++) {
                                 rte_pktmbuf_free(pktsTX[j]);
