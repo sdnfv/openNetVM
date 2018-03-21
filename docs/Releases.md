@@ -4,8 +4,8 @@
 ##### Release Cycle:
 We track active development through the `develop` branch and verified
 stable releases through the `master` branch.  New releases are created and
-tagged on a monthly cycle.  When we tag a release, we update `master` to
-have the latest stable code.
+tagged with the year and month of their release.  When we tag a release,
+we update `master` to have the latest stable code.
 
 ##### Versioning:
 As of 11/06/2017, we are retiring semantic versioning and will instead
