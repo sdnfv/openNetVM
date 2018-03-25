@@ -151,9 +151,9 @@ Make and test openNetVM
 
     To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1:
+    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
 
-    `./examples/speed_tester/go.sh 5 1 1`
+    `./examples/speed_tester/go.sh 5 1 1 -c 16000`
 
     Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `NF 1` is receiving data.  If this is the case, the openNetVM is working correctly.
 
@@ -228,3 +228,10 @@ Troubleshooting
 3. **Exporting $ONVM_HOME**
 
     If the setup_environment.sh script fails because the environment variable ONVM_HOME is not set, please run this command: `export ONVM_HOME=$ONVM_HOME:CHANGEME_TO_THE_PATH_TO_ONVM_DIR`
+
+4. **Poor Performance**
+
+If you are not getting the expected level of performance, try these:
+
+ - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
+ - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.
