@@ -3,6 +3,26 @@
 
 _Please let us know if you use OpenNetVM in your research by [emailing us](mailto:timwood@gwu.edu) or completing this [short survey](https://goo.gl/forms/oxcnGO45Kxq1Zyyi2)._
 
+Notes
+--
+
+We have updated our DPDK submodule to point to a new version, v17.08.  If you have already cloned this repository, please update your DPDK submodule by running:
+
+```
+git submodule update --init
+```
+
+And then rebuild DPDK using the [install guide][install] or running these commands:
+
+```
+cd dpdk
+make config T=$RTE_TARGET
+make T=$RTE_TARGET -j 8
+make install T=$RTE_TARGET -j 8
+```
+
+See our [release](docs/Releases.md) document for more information.
+
 About
 --
 openNetVM is a high performance NFV platform based on [DPDK][dpdk] and [Docker][docker] containers.  openNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
