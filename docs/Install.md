@@ -25,6 +25,10 @@ Check System
     ```sh
     locate uio
     ```
+5. Install libnuma
+   ```sh
+   sudo apt-get install libnuma-dev
+   ```
 
 Setup Repositories
 --
