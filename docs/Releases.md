@@ -13,6 +13,37 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+#### v18.03 (3/27/18): Updated DPDK and preliminary mTCP support
+This release updates the DPDK submodule to use version 17.08.  This DPDK update caused breaking changes to its API, so updates have been made to the OpenNetVM manager and example NFs to support this change.
+
+In order to update to the latest version of DPDK you must run:
+
+```
+git submodule update --init
+```
+
+And then rebuild DPDK using the [install guide](./Install.md) or running these commands:
+
+```
+cd dpdk
+make clean
+make config T=$RTE_TARGET
+make T=$RTE_TARGET -j 8
+make install T=$RTE_TARGET -j 8
+```
+(you may need to install the `libnuma-dev` package if you get compilation errors)
+
+This update also includes preliminary support for mTCP-based endpoint NFs. Our OpenNetVM driver has been merged into the [develop branch of mTCP](https://github.com/eunyoung14/mtcp/tree/devel). This allows you to run services like high performance web servers on an integrated platform with other middleboxes.  See the mTCP repository for usage instructions.
+
+Other changes include:
+ - Adds a new "Router NF" example which can be used to redirect packets to specific NFs based on their IP. This is currently designed for simple scenarios where a small number of IPs are matched to NFs acting as connection terminating endpoints (e.g., mTCP-based servers). 
+ - Bug Fix in ARP NF to properly handle replies based on the ARP OP code.
+ - Updated pktgen submodule to 3.49 which works with DPDK 17.08.
+ 
+ An NSF CloudLab template including OpenNetVM 18.03, mTCP, and some basic networking utilities is available here: https://www.cloudlab.us/p/GWCloudLab/onvm-18.03
+
+*No API changes were introduced in this release.*
+
 #### v18.1 (1/31/18): Bug Fixes and Speed Tester improvements
 This release includes several bug fixes including:
  - Changed macro and inline function declarations to improve compatibility with 3rd party libraries and newer gcc versions (tested with 4.8 and 5.4)
