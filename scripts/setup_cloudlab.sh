@@ -38,6 +38,7 @@
 #
 # A script to configure dpdk environment variables on the cloudlab server
 
+ONVM_PATH=/local/onvm/openNetVM
 DPDK_PATH=/local/onvm/openNetVM/dpdk
 
 if [ -z "$RTE_TARGET" ]; then
@@ -46,4 +47,8 @@ fi
 
 if [ -z "$RTE_SDK" ]; then
     export RTE_SDK=$DPDK_PATH
+fi
+
+if [ -z "$ONVM_HOME" ]; then
+    export ONVM_HOME=$ONVM_PATH
 fi
