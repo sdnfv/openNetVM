@@ -52,6 +52,10 @@ Dockerize NFs
 --
 NFs can be run inside docker containers, with the NF being automatically or hand started. For more informations, see our [Docker guide][docker-nf].
 
+TCP Stack
+--
+openNetVM can run mTCP applications as NFs. For more information, visit [mTCP][mtcp].
+
 Citing OpenNetVM
 --
 If you use OpenNetVM in your work, please cite our paper:
@@ -86,3 +90,4 @@ _Please let us know if you use OpenNetVM in your research by [emailing us](mailt
 [dev]: https://github.com/sdnfv/openNetVM/tree/develop
 [mast]: https://github.com/sdnfv/openNetVM/tree/master
 [rels]: docs/Releases.md
+[mtcp]: https://github.com/eunyoung14/mtcp
