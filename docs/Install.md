@@ -21,9 +21,9 @@ Check System
     ```sh
     sudo apt-get install build-essential linux-headers-$(uname -r) git
     ```
-4. Assure your kernel suppors uio
+4. Assure your kernel supports uio
     ```sh
-    locate uio
+    locate igb_uio.ko
     ```
 5. Install libnuma
    ```sh
