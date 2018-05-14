@@ -72,8 +72,10 @@
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE  ((uint16_t)32)
 #define SPEED_TESTER_BIT 7
+#define LATENCY_BIT 6
 #define LOCAL_EXPERIMENTAL_ETHER 0x88B5
 #define DEFAULT_PKT_NUM 128
+#define DEFAULT_LAT_PKT_NUM 16
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 
 /* Struct that contains information about this NF */
@@ -94,6 +96,11 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 /* Default number of packets: 128; user can modify it by -c <packet_number> in command line */
 static uint32_t packet_number = 0;
 
+/* Variables for measuring packet latency */
+static uint8_t measure_latency = 0;
+static uint32_t latency_packets = 0;
+static uint64_t total_latency = 0;
+
 /*
  * Variables needed to replay a pcap file
  */
@@ -106,7 +113,7 @@ static void
 usage(const char *progname) {
         printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
                         "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
-                        "[-c <packet_number>]\n\n", progname);
+                        "[-c <packet_number>] [-l]\n\n", progname);
 }
 
 /*
@@ -117,7 +124,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
         int values[ETHER_ADDR_LEN];
 
-        while ((c = getopt(argc, argv, "d:p:as:m:o:c:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:as:m:o:c:l")) != -1) {
                 switch (c) {
                 case 'a':
                         use_direct_rings = 1;
@@ -165,6 +172,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                         MAX_PKT_NUM, packet_number);
                                 return -1;
                         }
+                        break;
+                case 'l':
+                        measure_latency = 1;
                         break;
                 case '?':
                         usage(progname);
@@ -221,7 +231,13 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Total packets: %9"PRIu64" \n", cur_pkts);
         printf("TX pkts per second: %9"PRIu64" \n", (cur_pkts - last_pkts)
                 * rte_get_timer_hz() / (cur_cycles - last_cycles));
+        if (measure_latency && latency_packets > 0)
+                printf("Avg latency nanoseconds: %6"PRIu64" \n", total_latency/(latency_packets)
+                        * 1000000000 / rte_get_timer_hz());
         printf("Initial packets created: %u\n", packet_number);
+
+        total_latency = 0;
+        latency_packets = 0;
 
         last_pkts = cur_pkts;
         last_cycles = cur_cycles;
@@ -241,6 +257,15 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 /* one of our fake pkts to forward */
                 meta->destination = destination;
                 meta->action = ONVM_NF_ACTION_TONF;
+                if (measure_latency && ONVM_CHECK_BIT(meta->flags, LATENCY_BIT)) {
+                        uint64_t curtime = rte_get_tsc_cycles();
+                        uint64_t* oldtime = (uint64_t *)(rte_pktmbuf_mtod(pkt, uint8_t *) + packet_size);
+                        if (*oldtime != 0) {
+                                total_latency += curtime - *oldtime;
+                                latency_packets++;
+                        }
+                        *oldtime = curtime;
+                }
         } else {
                 /* Drop real incoming packets */
                 meta->action = ONVM_NF_ACTION_DROP;
@@ -391,8 +416,8 @@ int main(int argc, char *argv[]) {
                         ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkt, packet_size);
 
                         /*using manager mac addr for source
-                        *using input string for dest addr 
-                        */ 
+                        *using input string for dest addr
+                        */
                         rte_eth_macaddr_get(0, &ehdr->s_addr);
                         for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
@@ -405,6 +430,13 @@ int main(int argc, char *argv[]) {
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                         pkt->hash.rss = i;
                         pkt->port = 0;
+
+                        if (measure_latency && (packet_number < DEFAULT_LAT_PKT_NUM || i % (packet_number/DEFAULT_LAT_PKT_NUM) == 0)) {
+                                pmeta->flags |= ONVM_SET_BIT(0, LATENCY_BIT);
+                                uint64_t* ts = (uint64_t *) rte_pktmbuf_append(pkt, sizeof(uint64_t));
+                                *ts = 0;
+                        }
+
                         onvm_nflib_return_pkt(pkt);
                 }
 #ifdef LIBPCAP
