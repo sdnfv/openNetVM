@@ -1,5 +1,3 @@
-#!/bin/bash
-
 #                        openNetVM
 #                https://sdnfv.github.io
 #
@@ -36,64 +34,22 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-while getopts :d:c:D:h:o:n: OPTION ; do
-    case ${OPTION} in
-        d) DIR="${OPTARG}" ;;
-        c) CMD=${OPTARG} ;;
-        D) RAW_DEVICES=${OPTARG} ;;
-        h) HUGE=${OPTARG} ;;
-        o) ONVM=${OPTARG} ;;
-        n) NAME=${OPTARG} ;;
-    esac
-done
+FROM ubuntu:14.04
+MAINTAINER "Neel Shah" <neel@shah7.com>
+LABEL version="OpenNetVM v18.03"
+LABEL vendor="SDNFV @ UCR and GW"
+LABEL github="github.com/sdnfv/openNetVM"
 
-DEVICES=()
-MODE=""
+ENV ONVM_HOME=/openNetVM
+ENV RTE_TARGET=x86_64-native-linuxapp-gcc
+ENV RTE_SDK=$ONVM_HOME/dpdk
 
-if [[ "${NAME}" == "" ]] || [[ "${HUGE}" == "" ]] || [[ "${ONVM}" == "" ]] ; then
-    echo -e "sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c COMMAND]\n"
-    echo -e "\te.g. sudo ./docker.sh -h /hugepages -o /root/openNetVM -n Basic_Monitor_NF -D /dev/uio0,/dev/uio1"
-    echo -e "\t\tThis will create a container with two NIC devices, uio0 and uio1,"
-    echo -e "\t\thugepages mapped from the host's /hugepage directory and openNetVM"
-    echo -e "\t\tmapped from /root/openNetVM and it will name it Basic_Monitor_NF"
-    exit 1
-fi
+WORKDIR $ONVM_HOME
 
-IFS=','
-for DEV in ${RAW_DEVICES} ; do
-    DEVICES+=("--device=$DEV:$DEV")
-done
-
-if [[ "${DIR}" != "" ]] ; then
-    DIR="--volume=${DIR}:/$(basename ${DIR})"
-fi
-
-if [[ "${CMD}" == "" ]] ; then
-    sudo docker run \
-        --interactive --tty \
-        --privileged \
-        --name=${NAME} \
-        --network bridge \
-        --volume=/var/run:/var/run \
-        --volume=${HUGE}:${HUGE} \
-        --volume=${ONVM}:/openNetVM \
-        ${DIR} \
-        ${DEVICES[@]} \
-        sdnfv/opennetvm \
-        /bin/bash
-else
-    sudo docker run \
-        --detach=true \
-        --privileged \
-        --name=${NAME} \
-        --network bridge \
-        --volume=/var/run:/var/run \
-        --volume=${HUGE}:${HUGE} \
-        --volume=${ONVM}:/openNetVM \
-        ${DIR} \
-        ${DEVICES[@]} \
-        sdnfv/opennetvm \
-        /bin/bash -c "${CMD}"
-fi
-
-
+RUN apt-get update && \
+    apt-get install -y build-essential \
+                       gdb \
+                       libnuma-dev \
+                       vim \
+                       less \
+                       git
