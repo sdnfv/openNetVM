@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,17 @@
 #include <inttypes.h>
 #include "onvm_common.h"
 
+/********************************Global variables*****************************/
+
+extern struct onvm_nf *nfs;
+extern uint16_t **services;
+extern uint16_t *nf_per_service_count;
+
+/********************************Interfaces***********************************/
+
+uint16_t 
+onvm_sc_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt);/*, uint16_t *nf_per_service_count, uint16_t **services);*/
+
 /* append a entry to serivce chain, 0 means appending successful, 1 means failed*/
 int onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination);
 
@@ -51,4 +62,5 @@ int onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint1
 int onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination);
 
 void onvm_sc_print(struct onvm_service_chain *chain);
+
 #endif //_SC_COMMON_H_

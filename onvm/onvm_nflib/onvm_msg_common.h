@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation
  *   All rights reserved.
  *
@@ -49,6 +49,7 @@
 #define MSG_STOP 1
 #define MSG_NF_STARTING 2
 #define MSG_NF_STOPPING 3
+#define MSG_NF_READY 4
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */

@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -71,6 +71,9 @@
 #include <rte_fbk_hash.h>
 #include <rte_cycles.h>
 #include <rte_errno.h>
+#ifdef RTE_LIBRTE_PDUMP
+#include <rte_pdump.h>
+#endif
 
 
 /*****************************Internal library********************************/
@@ -89,7 +92,7 @@
 /***********************************Macros************************************/
 
 
-#define MBUFS_PER_CLIENT 1536
+#define MBUFS_PER_NF 1536
 #define MBUFS_PER_PORT 1536
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
@@ -104,90 +107,16 @@
 
 #define RTE_MP_RX_DESC_DEFAULT 512
 #define RTE_MP_TX_DESC_DEFAULT 512
-#define CLIENT_QUEUE_RINGSIZE 128
-#define CLIENT_MSG_QUEUE_SIZE 128
+#define NF_QUEUE_RINGSIZE 16384
+#define NF_MSG_QUEUE_SIZE 128
 
 #define NO_FLAGS 0
 
 #define ONVM_NUM_RX_THREADS 1
 
 
-/******************************Data structures********************************/
-
-
-/*
- * Define a client structure with all needed info, including
- * stats from the clients.
- */
-struct client {
-        struct rte_ring *rx_q;
-        struct rte_ring *tx_q;
-        struct rte_ring *msg_q;
-        struct onvm_nf_info *info;
-        uint16_t instance_id;
-        /* these stats hold how many packets the client will actually receive,
-         * and how many packets were dropped because the client's queue was full.
-         * The port-info stats, in contrast, record how many packets were received
-         * or transmitted on an actual NIC port.
-         */
-        struct {
-                volatile uint64_t rx;
-                volatile uint64_t rx_drop;
-                volatile uint64_t act_out;
-                volatile uint64_t act_tonf;
-                volatile uint64_t act_drop;
-                volatile uint64_t act_next;
-                volatile uint64_t act_buffer;
-                #ifdef INTERRUPT_SEM
-                volatile uint64_t prev_rx;
-		volatile uint64_t prev_rx_drop;
-                #endif
-        } stats;
-        
-        /* mutex and semaphore name for NFs to wait on */ 
-        #ifdef INTERRUPT_SEM
-        const char *sem_name;
-        sem_t *mutex;
-        key_t shm_key;
-        rte_atomic16_t *shm_server;
-        #endif
-};
-
-/*
- * Shared port info, including statistics information for display by server.
- * Structure will be put in a memzone.
- * - All port id values share one cache line as this data will be read-only
- * during operation.
- * - All rx statistic values share cache lines, as this data is written only
- * by the server process. (rare reads by stats display)
- * - The tx statistics have values for all ports per cache line, but the stats
- * themselves are written by the clients, so we have a distinct set, on different
- * cache lines for each client to use.
- */
-struct rx_stats{
-        uint64_t rx[RTE_MAX_ETHPORTS];
-};
-
-
-struct tx_stats{
-        uint64_t tx[RTE_MAX_ETHPORTS];
-        uint64_t tx_drop[RTE_MAX_ETHPORTS];
-};
-
-
-struct port_info {
-        uint8_t num_ports;
-        uint8_t id[RTE_MAX_ETHPORTS];
-        volatile struct rx_stats rx_stats;
-        volatile struct tx_stats tx_stats;
-};
-
-
-
 /*************************External global variables***************************/
 
-
-extern struct client *clients;
 
 /* NF to Manager data flow */
 extern struct rte_ring *incoming_msg_queue;
@@ -197,7 +126,7 @@ extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
 extern struct rte_mempool *nf_msg_pool;
-extern uint16_t num_clients;
+extern uint16_t num_nfs;
 extern uint16_t num_services;
 extern uint16_t default_service;
 extern uint16_t **services;
@@ -206,6 +135,7 @@ extern unsigned num_sockets;
 extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
 extern ONVM_STATS_OUTPUT stats_destination;
+extern uint16_t global_stats_sleep_time;
 
 /**********************************Functions**********************************/
 

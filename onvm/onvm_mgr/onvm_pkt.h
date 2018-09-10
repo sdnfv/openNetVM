@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -66,21 +66,7 @@
  *
  */
 void
-onvm_pkt_process_rx_batch(struct thread_info *rx, struct rte_mbuf *pkts[], uint16_t rx_count);
-
-
-/*
- * Interface to process packets in a given TX queue.
- *
- * Inputs : a pointer to the tx queue
- *          an array of packets
- *          the size of the array
- *          a pointer to the client possessing the TX queue.
- *
- */
-void
-onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint16_t tx_count, struct client *cl);
-
+onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uint16_t rx_count);
 
 /*
  * Interface to send packets to all ports after processing them.
@@ -89,17 +75,7 @@ onvm_pkt_process_tx_batch(struct thread_info *tx, struct rte_mbuf *pkts[], uint1
  *
  */
 void
-onvm_pkt_flush_all_ports(struct thread_info *tx);
-
-
-/*
- * Interface to send packets to all NFs after processing them.
- *
- * Input : a pointer to the tx queue
- *
- */
-void
-onvm_pkt_flush_all_nfs(struct thread_info *tx);
+onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr);
 
 
 /*

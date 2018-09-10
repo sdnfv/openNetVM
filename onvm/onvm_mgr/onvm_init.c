@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -55,7 +55,7 @@
 /********************************Global variables*****************************/
 
 
-struct client *clients = NULL;
+struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
 
 struct rte_mempool *pktmbuf_pool;
@@ -64,21 +64,83 @@ struct rte_mempool *nf_msg_pool;
 struct rte_ring *incoming_msg_queue;
 uint16_t **services;
 uint16_t *nf_per_service_count;
-struct client_tx_stats *clients_stats;
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p;
 
 
 /*************************Internal Functions Prototypes***********************/
 
-
 static int init_mbuf_pools(void);
-static int init_client_info_pool(void);
+static int init_nf_info_pool(void);
 static int init_nf_msg_pool(void);
 static int init_port(uint8_t port_num);
 static int init_shm_rings(void);
 static int init_info_queue(void);
 static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
+
+
+/*****************Internal Configuration Structs and Constants*****************/
+
+/*
+ * RX and TX Prefetch, Host, and Write-back threshold values should be
+ * carefully set for optimal performance. Consult the network
+ * controller's datasheet and supporting DPDK documentation for guidance
+ * on how these parameters should be set.
+ */
+#define RX_PTHRESH 8 /* Default values of RX prefetch threshold reg. */
+#define RX_HTHRESH 8 /* Default values of RX host threshold reg. */
+#define RX_WTHRESH 4 /* Default values of RX write-back threshold reg. */
+
+/*
+ * These default values are optimized for use with the Intel(R) 82599 10 GbE
+ * Controller and the DPDK ixgbe PMD. Consider using other values for other
+ * network controllers and/or network drivers.
+ */
+#define TX_PTHRESH 36 /* Default values of TX prefetch threshold reg. */
+#define TX_HTHRESH 0  /* Default values of TX host threshold reg. */
+#define TX_WTHRESH 0  /* Default values of TX write-back threshold reg. */
+
+static const struct rte_eth_conf port_conf = {
+        .rxmode = {
+                .mq_mode        = ETH_MQ_RX_RSS,
+                .max_rx_pkt_len = ETHER_MAX_LEN,
+                .split_hdr_size = 0,
+                .header_split   = 0,                    /* header split disabled */
+                .hw_ip_checksum = 1,                    /* IP checksum offload enabled */
+                .hw_vlan_filter = 0,                    /* VLAN filtering disabled */
+                .jumbo_frame    = 0,                    /* jumbo frame support disabled */
+                .hw_strip_crc   = 1,                    /* CRC stripped by hardware */
+        },
+        .rx_adv_conf = {
+                .rss_conf = {
+                        .rss_key = rss_symmetric_key,
+                        .rss_hf  = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
+                },
+        },
+        .txmode = {
+                .mq_mode = ETH_MQ_TX_NONE,
+        },
+};
+
+static const struct rte_eth_rxconf rx_conf = {
+        .rx_thresh = {
+                .pthresh = RX_PTHRESH,
+                .hthresh = RX_HTHRESH,
+                .wthresh = RX_WTHRESH,
+        },
+        .rx_free_thresh = 32,
+};
+
+static const struct rte_eth_txconf tx_conf = {
+        .tx_thresh = {
+                .pthresh = TX_PTHRESH,
+                .hthresh = TX_HTHRESH,
+                .wthresh = TX_WTHRESH,
+        },
+        .tx_free_thresh = 0,
+        .tx_rs_thresh   = 0,
+        .txq_flags      = 0,
+};
 
 
 /*********************************Interfaces**********************************/
@@ -87,9 +149,12 @@ static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 int
 init(int argc, char *argv[]) {
         int retval;
-        const struct rte_memzone *mz;
+        const struct rte_memzone *mz_nf;
+        const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
-        uint8_t i, total_ports;
+        const struct rte_memzone *mz_services;
+        const struct rte_memzone *mz_nf_per_service;
+        uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
         retval = rte_eal_init(argc, argv);
@@ -98,21 +163,42 @@ init(int argc, char *argv[]) {
         argc -= retval;
         argv += retval;
 
+#ifdef RTE_LIBRTE_PDUMP
+        rte_pdump_init(NULL);
+#endif
+
         /* get total number of ports */
         total_ports = rte_eth_dev_count();
 
-        /* set up array for client tx data */
-        mz = rte_memzone_reserve(MZ_CLIENT_INFO, sizeof(*clients_stats),
+        /* set up array for NF tx data */
+        mz_nf = rte_memzone_reserve(MZ_NF_INFO, sizeof(*nfs) * MAX_NFS,
                                 rte_socket_id(), NO_FLAGS);
-        if (mz == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for client information\n");
-        memset(mz->addr, 0, sizeof(*clients_stats));
-        clients_stats = mz->addr;
+        if (mz_nf == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for nf information\n");
+        memset(mz_nf->addr, 0, sizeof(*nfs) * MAX_NFS);
+        nfs = mz_nf->addr;
 
         /* set up ports info */
-        ports = rte_malloc(MZ_PORT_INFO, sizeof(*ports), 0);
-        if (ports == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for ports details\n");
+        mz_port = rte_memzone_reserve(MZ_PORT_INFO, sizeof(*ports),
+                                    rte_socket_id(), NO_FLAGS);
+        if (mz_port == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
+        ports = mz_port->addr;
+        
+        /* set up array for NF tx data */
+        mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        if (mz_services == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for services information\n");
+        services = mz_services->addr;
+        for (i = 0; i < num_services; i++) {
+                services[i] = rte_calloc("one service NFs",
+                        MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
+        }
+        mz_nf_per_service = rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        if (mz_nf_per_service == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for NF per service information.\n");
+        }
+        nf_per_service_count = mz_nf_per_service->addr;  
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -124,10 +210,10 @@ init(int argc, char *argv[]) {
         if (retval != 0)
                 rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
 
-        /* initialise client info pool */
-        retval = init_client_info_pool();
+        /* initialise nf info pool */
+        retval = init_nf_info_pool();
         if (retval != 0) {
-                rte_exit(EXIT_FAILURE, "Cannot create client info mbuf pool: %s\n", rte_strerror(rte_errno));
+                rte_exit(EXIT_FAILURE, "Cannot create nf info mbuf pool: %s\n", rte_strerror(rte_errno));
         }
 
         /* initialise pool for NF messages */
@@ -138,15 +224,16 @@ init(int argc, char *argv[]) {
 
         /* now initialise the ports we will use */
         for (i = 0; i < ports->num_ports; i++) {
-                retval = init_port(ports->id[i]);
+                port_id = ports->id[i];
+                rte_eth_macaddr_get(port_id, &ports->mac[port_id]);
+                retval = init_port(port_id);
                 if (retval != 0)
-                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n",
-                                        (unsigned)i);
+                        rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));
 
-        /* initialise the client queues/rings for inter-eu comms */
+        /* initialise the NF queues/rings for inter-eu comms */
         init_shm_rings();
 
         /* initialise a queue for newly created NFs */
@@ -165,7 +252,7 @@ init(int argc, char *argv[]) {
         mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
                                    rte_socket_id(), NO_FLAGS);
         if (mz_scp == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for service chain pointer\n");
+                rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
         memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
         default_sc_p = mz_scp->addr;
         *default_sc_p = default_chain;
@@ -186,7 +273,7 @@ init(int argc, char *argv[]) {
  */
 static int
 init_mbuf_pools(void) {
-        const unsigned num_mbufs = (MAX_CLIENTS * MBUFS_PER_CLIENT) \
+        const unsigned num_mbufs = (MAX_NFS * MBUFS_PER_NF) \
                         + (ports->num_ports * MBUFS_PER_PORT);
 
         /* don't pass single-producer/single-consumer flags to mbuf create as it
@@ -210,7 +297,7 @@ init_nf_msg_pool(void)
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MSG_POOL_NAME);
-        nf_msg_pool = rte_mempool_create(_NF_MSG_POOL_NAME, MAX_CLIENTS * CLIENT_MSG_QUEUE_SIZE,
+        nf_msg_pool = rte_mempool_create(_NF_MSG_POOL_NAME, MAX_NFS * NF_MSG_QUEUE_SIZE,
                         NF_INFO_SIZE, NF_MSG_CACHE_SIZE,
                         0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
 
@@ -221,12 +308,12 @@ init_nf_msg_pool(void)
  * Set up a mempool to store nf_info structs
  */
 static int
-init_client_info_pool(void)
+init_nf_info_pool(void)
 {
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
-        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_CLIENTS,
+        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS,
                         NF_INFO_SIZE, NF_INFO_CACHE,
                         0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
 
@@ -242,20 +329,7 @@ init_client_info_pool(void)
  */
 static int
 init_port(uint8_t port_num) {
-        /* for port configuration all features are off by default */
-        const struct rte_eth_conf port_conf = {
-                .rxmode = {
-                        .mq_mode = ETH_MQ_RX_RSS
-                },
-                .rx_adv_conf = {
-                        .rss_conf = {
-                                .rss_key = rss_symmetric_key,
-                                .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
-                        }
-                },
-        };
-
-        const uint16_t rx_rings = ONVM_NUM_RX_THREADS, tx_rings = MAX_CLIENTS;
+        const uint16_t rx_rings = ONVM_NUM_RX_THREADS, tx_rings = MAX_NFS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
 
@@ -276,14 +350,14 @@ init_port(uint8_t port_num) {
         for (q = 0; q < rx_rings; q++) {
                 retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                NULL, pktmbuf_pool);
+                                &rx_conf, pktmbuf_pool);
                 if (retval < 0) return retval;
         }
 
         for (q = 0; q < tx_rings; q++) {
                 retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                NULL);
+                                &tx_conf);
                 if (retval < 0) return retval;
         }
 
@@ -299,8 +373,8 @@ init_port(uint8_t port_num) {
 
 /**
  * Set up the DPDK rings which will be used to pass packets, via
- * pointers, between the multi-process server and client processes.
- * Each client needs one RX queue.
+ * pointers, between the multi-process server and NF processes.
+ * Each NF needs one RX queue.
  */
 static int
 init_shm_rings(void) {
@@ -309,8 +383,8 @@ init_shm_rings(void) {
         const char * rq_name;
         const char * tq_name;
         const char * msg_q_name;
-        const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
-        const unsigned msgringsize = CLIENT_MSG_QUEUE_SIZE;
+        const unsigned ringsize = NF_QUEUE_RINGSIZE;
+        const unsigned msgringsize = NF_MSG_QUEUE_SIZE;
 
         // mutex and semaphores for N
         #ifdef INTERRUPT_SEM
@@ -321,54 +395,38 @@ init_shm_rings(void) {
         char *shm;
         #endif
 
-        // use calloc since we allocate for all possible clients
+        // use calloc since we allocate for all possible NFs
         // ensure that all fields are init to 0 to avoid reading garbage
         // TODO plopreiato, move to creation when a NF starts
-        clients = rte_calloc("client details",
-                MAX_CLIENTS, sizeof(*clients), 0);
-        if (clients == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
-
-        services = rte_calloc("service to nf map",
-                num_services, sizeof(uint16_t*), 0);
-        for (i = 0; i < num_services; i++) {
-                services[i] = rte_calloc("one service NFs",
-                        MAX_CLIENTS_PER_SERVICE, sizeof(uint16_t), 0);
-        }
-        nf_per_service_count = rte_calloc("count of NFs active per service",
-                num_services, sizeof(uint16_t), 0);
-        if (services == NULL || nf_per_service_count == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot allocate memory for service to NF mapping\n");
-
-        for (i = 0; i < MAX_CLIENTS; i++) {
-                /* Create an RX queue for each client */
+	for (i = 0; i < MAX_NFS; i++) {
+                /* Create an RX queue for each NF */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);
                 tq_name = get_tx_queue_name(i);
                 msg_q_name = get_msg_queue_name(i);
-                clients[i].instance_id = i;
-                clients[i].rx_q = rte_ring_create(rq_name,
+                nfs[i].instance_id = i;
+                nfs[i].rx_q = rte_ring_create(rq_name,
                                 ringsize, socket_id,
                                 RING_F_SC_DEQ);                 /* multi prod, single cons */
-                clients[i].tx_q = rte_ring_create(tq_name,
+                nfs[i].tx_q = rte_ring_create(tq_name,
                                 ringsize, socket_id,
                                 RING_F_SC_DEQ);                 /* multi prod, single cons */
-                clients[i].msg_q = rte_ring_create(msg_q_name,
+                nfs[i].msg_q = rte_ring_create(msg_q_name,
                                 msgringsize, socket_id,
                                 RING_F_SC_DEQ);                 /* multi prod, single cons */
 
-                if (clients[i].rx_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
+                if (nfs[i].rx_q == NULL)
+                        rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for NF %u\n", i);
 
-                if (clients[i].tx_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for client %u\n", i);
+                if (nfs[i].tx_q == NULL)
+                        rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for NF %u\n", i);
 
-                if (clients[i].msg_q == NULL)
+                if (nfs[i].msg_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create msg queue for client %u\n", i);
 
                 #ifdef INTERRUPT_SEM
                 sem_name = get_sem_name(i);
-                clients[i].sem_name = sem_name;
+                nfs[i].sem_name = sem_name;
 
                 fprintf(stderr, "sem_name=%s for client %d\n", sem_name, i);
                 mutex = sem_open(sem_name, O_CREAT, 06666, 0);
@@ -377,7 +435,7 @@ init_shm_rings(void) {
                         sem_unlink(sem_name);
                         exit(1);
                 }
-                clients[i].mutex = mutex;
+                nfs[i].mutex = mutex;
 
                 key = get_rx_shmkey(i);
                 if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
@@ -390,7 +448,7 @@ init_shm_rings(void) {
                                exit(1);
                     }
 
-                clients[i].shm_server = (rte_atomic16_t *)shm;
+                nfs[i].shm_server = (rte_atomic16_t *)shm;
                 #endif
         }
         return 0;
@@ -404,7 +462,7 @@ init_info_queue(void)
 {
         incoming_msg_queue = rte_ring_create(
                 _MGR_MSG_QUEUE_NAME,
-                MAX_CLIENTS,
+                MAX_NFS,
                 rte_socket_id(),
                 RING_F_SC_DEQ); // MP enqueue (default), SC dequeue
 
@@ -468,7 +526,3 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
         }
 }
 
-/**
- * Main init function for the multi-process server app,
- * calls subfunctions to do each stage of the initialisation.
- */

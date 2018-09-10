@@ -4,8 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 #          2010-2014 Intel Corporation.
 # All rights reserved.
 #
@@ -45,6 +45,7 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
+DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += lib
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_nflib
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += onvm_mgr
 

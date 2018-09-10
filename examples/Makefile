@@ -4,9 +4,9 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
-#          2016 Hewlett Packard Enterprise Development LP
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
+#          2016-2017 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,14 @@ $(error "Please define RTE_SDK environment variable")
 endif
 
 # To add new examples, append the directory name to this variable
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt
+examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response
+
+ifeq ($(NDPI_HOME),)
+$(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
+else
+examples +=ndpi_stats
+endif
+
 clean_examples=$(addprefix clean_,$(examples))
 
 .PHONY: $(examples) $(clean_examples)

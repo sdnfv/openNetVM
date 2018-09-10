@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -64,6 +64,7 @@
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
+#define ONVM_JSON_TIMESTAMP_KEY "last_updated"
 
 #define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                     \
         do {                                                                    \
@@ -85,7 +86,7 @@ cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_arr;
 cJSON* onvm_json_nf_stats_arr;
 cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
-cJSON* onvm_json_nf_stats[MAX_CLIENTS];
+cJSON* onvm_json_nf_stats[MAX_NFS];
 
 /*********************************Interfaces**********************************/
 
@@ -118,24 +119,24 @@ void onvm_stats_display_all(unsigned difftime);
 
 
 /*
- * Interface called by the ONVM Manager to clear all clients statistics
+ * Interface called by the ONVM Manager to clear all NFs statistics
  * available.
  *
- * Note : this function doesn't use onvm_stats_clear_client for each client,
- * since with a huge number of clients, the additional functions calls would
+ * Note : this function doesn't use onvm_stats_clear_nf for each nf,
+ * since with a huge number of NFs, the additional functions calls would
  * incur a visible slowdown.
  *
  */
-void onvm_stats_clear_all_clients(void);
+void onvm_stats_clear_all_nfs(void);
 
 
 /*
- * Interface called by the ONVM Manager to clear one client's statistics.
+ * Interface called by the ONVM Manager to clear one NF's statistics.
  *
- * Input : the client id
+ * Input : the NF id
  *
  */
-void onvm_stats_clear_client(uint16_t id);
+void onvm_stats_clear_nf(uint16_t id);
 
 
 #endif  // _ONVM_STATS_H_

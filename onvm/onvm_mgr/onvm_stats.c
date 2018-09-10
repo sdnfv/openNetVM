@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -48,11 +48,12 @@
 ******************************************************************************/
 
 #include <unistd.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
 #include "onvm_nf.h"
-
 
 /************************Internal Functions Prototypes************************/
 
@@ -68,11 +69,11 @@ onvm_stats_display_ports(unsigned difftime);
 
 
 /*
- * Function displaying statistics for all clients
+ * Function displaying statistics for all NFs
  *
  */
 static void
-onvm_stats_display_clients(unsigned difftime);
+onvm_stats_display_nfs(unsigned difftime);
 
 
 /*
@@ -165,7 +166,7 @@ onvm_stats_display_all(unsigned difftime) {
         }
 
         onvm_stats_display_ports(difftime);
-        onvm_stats_display_clients(difftime);
+        onvm_stats_display_nfs(difftime);
 
         if (stats_out != stdout && stats_out != stderr) {
                 fprintf(json_stats_out, "%s\n", cJSON_Print(onvm_json_root));
@@ -177,21 +178,21 @@ onvm_stats_display_all(unsigned difftime) {
 
 
 void
-onvm_stats_clear_all_clients(void) {
+onvm_stats_clear_all_nfs(void) {
         unsigned i;
 
-        for (i = 0; i < MAX_CLIENTS; i++) {
-                clients[i].stats.rx = clients[i].stats.rx_drop = 0;
-                clients[i].stats.act_drop = clients[i].stats.act_tonf = 0;
-                clients[i].stats.act_next = clients[i].stats.act_out = 0;
+        for (i = 0; i < MAX_NFS; i++) {
+                nfs[i].stats.rx = nfs[i].stats.rx_drop = 0;
+                nfs[i].stats.act_drop = nfs[i].stats.act_tonf = 0;
+                nfs[i].stats.act_next = nfs[i].stats.act_out = 0;
         }
 }
 
 void
-onvm_stats_clear_client(uint16_t id) {
-        clients[id].stats.rx = clients[id].stats.rx_drop = 0;
-        clients[id].stats.act_drop = clients[id].stats.act_tonf = 0;
-        clients[id].stats.act_next = clients[id].stats.act_out = 0;
+onvm_stats_clear_nf(uint16_t id) {
+        nfs[id].stats.rx = nfs[id].stats.rx_drop = 0;
+        nfs[id].stats.act_drop = nfs[id].stats.act_tonf = 0;
+        nfs[id].stats.act_next = nfs[id].stats.act_out = 0;
 }
 
 
@@ -252,16 +253,20 @@ onvm_stats_display_ports(unsigned difftime) {
 
 
 static void
-onvm_stats_display_clients(unsigned difftime) {
+onvm_stats_display_nfs(unsigned difftime) {
         char* nf_label = NULL;
         unsigned i = 0;
         /* Arrays to store last TX/RX count for NFs to calculate rate */
-        static uint64_t nf_tx_last[MAX_CLIENTS];
-        static uint64_t nf_rx_last[MAX_CLIENTS];
+        static uint64_t nf_tx_last[MAX_NFS];
+        static uint64_t nf_rx_last[MAX_NFS];
+
+        /* Arrays to store last TX/RX pkts dropped for NFs to calculate drop rate */
+        static uint64_t nf_tx_drop_last[MAX_NFS];
+        static uint64_t nf_rx_drop_last[MAX_NFS];
 
         #ifdef INTERRUPT_SEM
         uint64_t vol_rate;
-        uint64_t rx_drop_rate;
+        //uint64_t rx_drop_rate=0;
         uint64_t serv_rate;
         uint64_t serv_drop_rate;
         uint64_t rx_qlen;
@@ -283,28 +288,30 @@ onvm_stats_display_clients(unsigned difftime) {
         printf("num_wakeups=%"PRIu64", wakeup_rate=%"PRIu64"\n", num_wakeups, wakeup_rate);
         #endif
 
-        fprintf(stats_out, "\nCLIENTS\n");
+        fprintf(stats_out, "\nNFS\n");
         fprintf(stats_out, "-------\n");
-
-        for (i = 0; i < MAX_CLIENTS; i++) {
-                if (!onvm_nf_is_valid(&clients[i]))
+        for (i = 0; i < MAX_NFS; i++) {
+                if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
-                const uint64_t rx = clients[i].stats.rx;
-                const uint64_t rx_drop = clients[i].stats.rx_drop;
-                const uint64_t tx = clients_stats->tx[i];
-                const uint64_t tx_drop = clients_stats->tx_drop[i];
-                const uint64_t act_drop = clients[i].stats.act_drop;
-                const uint64_t act_next = clients[i].stats.act_next;
-                const uint64_t act_out = clients[i].stats.act_out;
-                const uint64_t act_tonf = clients[i].stats.act_tonf;
-                const uint64_t act_buffer = clients_stats->tx_buffer[i];
-                const uint64_t act_returned = clients_stats->tx_returned[i];
+
+                const uint64_t rx = nfs[i].stats.rx;
+                const uint64_t rx_drop = nfs[i].stats.rx_drop;
+                const uint64_t tx = nfs[i].stats.tx;
+                const uint64_t tx_drop = nfs[i].stats.tx_drop;
+                const uint64_t act_drop = nfs[i].stats.act_drop;
+                const uint64_t act_next = nfs[i].stats.act_next;
+                const uint64_t act_out = nfs[i].stats.act_out;
+                const uint64_t act_tonf = nfs[i].stats.act_tonf;
+                const uint64_t act_buffer = nfs[i].stats.tx_buffer;
+                const uint64_t act_returned = nfs[i].stats.tx_returned;
                 const uint64_t rx_pps = (rx - nf_rx_last[i])/difftime;
                 const uint64_t tx_pps = (tx - nf_tx_last[i])/difftime;
+                const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i])/difftime;
+                const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i])/difftime;
 
-                fprintf(stats_out, "Client %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
-                                   "            tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
-                                clients[i].info->instance_id,
+                fprintf(stats_out, "NF %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
+                                   "        tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n",
+                                nfs[i].info->instance_id,
                                 rx, rx_drop, act_next, act_drop, act_returned,
                                 tx, tx_drop, act_out, act_tonf, act_buffer);
 
@@ -321,40 +328,46 @@ onvm_stats_display_clients(unsigned difftime) {
                                                 "RX", rx_pps);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i],
                                                 "TX", tx_pps);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "TX_Drop_Rate", tx_drop_rate);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "RX_Drop_Rate", rx_drop_rate);
 
                         free(nf_label);
                         nf_label = NULL;
                 }
 
-                nf_rx_last[i] = clients[i].stats.rx;
-                nf_tx_last[i] = clients_stats->tx[i];
 
                 #ifdef INTERRUPT_SEM
                 /* periodic/rate specific statistics of NF instance */
-                const uint64_t prev_rx = clients[i].stats.prev_rx;
-                const uint64_t prev_rx_drop = clients[i].stats.prev_rx_drop;
-                const uint64_t prev_tx = clients_stats->prev_tx[i];
-                const uint64_t prev_tx_drop = clients_stats->prev_tx_drop[i];
+                const uint64_t prev_rx = nfs[i].stats.prev_rx;
+                //const uint64_t prev_rx_drop = nfs[i].stats.prev_rx_drop;
+                const uint64_t prev_tx = nfs[i].stats.prev_tx;
+                const uint64_t prev_tx_drop = nfs[i].stats.prev_tx_drop;
 
                 vol_rate = (rx - prev_rx) / difftime;
-                rx_drop_rate = (rx_drop - prev_rx_drop) / difftime;
+                //rx_drop_rate = (rx_drop - prev_rx_drop) / difftime;
                 serv_rate = (tx - prev_tx) / difftime;
                 serv_drop_rate = (tx_drop - prev_tx_drop) / difftime;
-                rx_qlen = rte_ring_count(clients[i].rx_q);
-                tx_qlen = rte_ring_count(clients[i].tx_q);
-                comp_cost = clients_stats->comp_cost[i];
+                rx_qlen = rte_ring_count(nfs[i].rx_q);
+                tx_qlen = rte_ring_count(nfs[i].tx_q);
+                comp_cost = nfs[i].stats.comp_cost;
 
                 printf("instance_id=%d, vol_rate=%"PRIu64", rx_drop_rate=%"PRIu64","
                 " comp_cost=%"PRIu64", serv_rate=%"PRIu64","
                 "serv_drop_rate=%"PRIu64", rx_qlen=%"PRIu64", tx_qlen=%"PRIu64", msg_flag=%d\n",
-                clients[i].info->instance_id, vol_rate, rx_drop_rate, comp_cost,
-                serv_rate, serv_drop_rate, rx_qlen, tx_qlen, rte_atomic16_read(clients[i].shm_server));
+                nfs[i].info->instance_id, vol_rate, rx_drop_rate, comp_cost,
+                serv_rate, serv_drop_rate, rx_qlen, tx_qlen, rte_atomic16_read(nfs[i].shm_server));
 
                 //clients[i].stats.prev_rx = clients[i].stats.rx;
                 //clients[i].stats.prev_rx_drop = clients[i].stats.rx_drop;
                 //clients_stats->prev_tx[i] = clients_stats->tx[i];
                 //clients_stats->prev_tx_drop[i] = clients_stats->tx_drop[i];
                 #endif
+                nf_rx_last[i] = nfs[i].stats.rx;
+                nf_tx_last[i] = nfs[i].stats.tx;
+                nf_rx_drop_last[i] = rx_drop;
+                nf_tx_drop_last[i] = tx_drop;
         }
 
         fprintf(stats_out, "\n");
@@ -424,6 +437,8 @@ onvm_stats_truncate(void) {
 
 static void
 onvm_json_reset_objects(void) {
+        time_t current_time;
+
         if (onvm_json_root) {
                 cJSON_Delete(onvm_json_root);
                 onvm_json_root = NULL;
@@ -431,6 +446,10 @@ onvm_json_reset_objects(void) {
 
         onvm_json_root = cJSON_CreateObject();
 
+        current_time = time(0);
+
+        cJSON_AddStringToObject(onvm_json_root, ONVM_JSON_TIMESTAMP_KEY,
+                              ctime(&current_time));
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_PORT_STATS_KEY,
                               onvm_json_port_stats_arr = cJSON_CreateArray());
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY,

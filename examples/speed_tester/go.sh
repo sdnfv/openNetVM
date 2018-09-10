@@ -1,9 +1,12 @@
 #!/bin/bash
 
 function usage {
-        echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID] [-a]"
+        echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID] [-a] [-s PACKET-SIZE] [-m DEST-MAC]"
         echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
         echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
+        echo "$0 3,7,9 1 2 -s 32 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, and packet size of 32"
+        echo "$0 3,7,9 1 2 -s 32 -m aa:bb:cc:dd:ee:ff --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, packet size of 32, and destination MAC address of aa:bb:cc:dd:ee:ff"
+        echo "$0 5 1 2 -o sample_trafic.pcap --> core 5, with Service ID 1, and forwards to service ID 2, replays sample_trafic.pcap packets (make sure to enable pcap functionality, check README for instructions)"
         echo "Pass '-a' to signal the NF to use advanced ring manipulation"
         exit 1
 }
@@ -21,14 +24,17 @@ then
     usage
 fi
 
-while getopts ":p:n:a" opt; do
+while getopts ":p:n:as:m:o:" opt; do
   case $opt in
     p) print="-p $OPTARG";;
     n) instance="-n $OPTARG";;
-    a) rings="-a true";;
+    a) rings="-a";;
+    s) size="-s $OPTARG";;
+    m) dest_mac="-m $OPTARG";;
+    o) pcap_filename="-o $OPTARG";;
     \?) echo "Unknown option -$OPTARG" && usage
     ;;
   esac
 done
 
-exec sudo $SCRIPTPATH/build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings
+exec sudo $SCRIPTPATH/build/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings $size $dest_mac $pcap_filename

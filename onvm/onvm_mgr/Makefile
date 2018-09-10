@@ -4,8 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 #          2010-2014 Intel Corporation.
 # All rights reserved.
 #
@@ -53,17 +53,14 @@ endif
 APP = onvm_mgr
 
 # all source are stored in SRCS-y
-SRCS-y := main.c onvm_init.c onvm_args.c onvm_stats.c onvm_pkt.c onvm_nf.c cJSON.c
+SRCS-y := main.c onvm_init.c onvm_args.c onvm_stats.c onvm_pkt.c onvm_nf.c
 
-INC := onvm_mgr.h onvm_init.h onvm_args.h onvm_stats.h onvm_nf.h onvm_pkt.h cJSON.h
+INC := onvm_mgr.h onvm_init.h onvm_args.h onvm_stats.h onvm_nf.h onvm_pkt.h
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += -I$(SRCDIR)/../ -I$(SRCDIR)/../onvm_nflib/
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_mgr.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_table.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_pkt_helper.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_dir.o
+CFLAGS += -I$(SRCDIR)/../ -I$(SRCDIR)/../onvm_nflib/ -I$(SRCDIR)/../lib/
+LDFLAGS += $(SRCDIR)/../lib/lib/$(RTE_TARGET)/libonvmhelper.a
+LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.

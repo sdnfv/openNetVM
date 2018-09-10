@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -80,15 +80,14 @@
 #include "onvm_sc_mgr.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
+#include "onvm_pkt_common.h"
 
 
 /***********************************Macros************************************/
 
 
-#define PACKET_READ_SIZE ((uint16_t)32)
-
 #define TO_PORT 0
-#define TO_CLIENT 1
+#define TO_NF 1
 
 
 /***************************Shared global variables***************************/
@@ -96,20 +95,6 @@
 
 /* ID to be assigned to the next NF that starts */
 extern uint16_t next_instance_id;
-
-
-/*******************************Data Structures*******************************/
-
-
-/*
- * Local buffers to put packets in, used to send packets in bursts to the
- * clients or to the NIC
- */
-struct packet_buf {
-        struct rte_mbuf *buffer[PACKET_READ_SIZE];
-        uint16_t count;
-};
-
 
 /** Thread state. This specifies which NFs the thread will handle and
  *  includes the packet buffers used by the thread for NFs and ports.

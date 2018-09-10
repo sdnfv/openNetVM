@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -59,17 +59,6 @@ extern struct wakeup_info *wakeup_infos;
 
 
 /*
- * Interface checking if a given nf is "valid", meaning if it's running.
- *
- * Input  : a pointer to the nf
- * Output : a boolean answer 
- *
- */
-int
-onvm_nf_is_valid(struct client *cl);
-
-
-/*
  * Interface giving the smallest unsigned integer unused for a NF instance.
  *
  * Output : the unsigned integer 
@@ -98,18 +87,6 @@ onvm_nf_check_status(void);
  */
 int
 onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data);
-
-
-/*
- * Interface giving a NF for a specific server id, depending on the flow.
- *
- * Inputs  : the service id
-             a pointer to the packet whose flow help steer it. 
- * Output  : a NF instance id
- *
- */
-uint16_t
-onvm_nf_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt);
 
 
 #endif  // _ONVM_NF_H_

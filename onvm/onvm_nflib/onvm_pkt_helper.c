@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
  ********************************************************************/
 
 #include "onvm_pkt_helper.h"
+#include "onvm_common.h"
 
 #include <inttypes.h>
 
@@ -51,33 +52,84 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
+#include <rte_mempool.h>
+#include <rte_memcpy.h>
+
 int
-onvm_pkt_mac_addr_swap(struct rte_mbuf* pkt, unsigned dst_port) {
-	struct ether_hdr *eth;
-	struct ether_addr addr;
+onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
 
-	if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
-		return -1;
-	}
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
 
-	/*
-	 * Get the ethernet header from the pkt
-	 */
-	eth = onvm_pkt_ether_hdr(pkt);
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
 
-	/*
-	 * Copy the source mac address to the destination field.
-	 */
-	ether_addr_copy(&eth->s_addr, &eth->d_addr);
+        /*
+         * Get the MAC addresses of the src and destination NIC ports,
+         * and set the ethernet header's fields to them.
+         */
+        ether_addr_copy(&ports->mac[src_port_id], &eth->s_addr);
+        ether_addr_copy(&ports->mac[dst_port_id], &eth->d_addr);
 
-	/*
-	 * Get the mac address of the current port to send out of
-	 * and set the source field to it.
-	 */
-	rte_eth_macaddr_get(dst_port, &eth->s_addr);
-	ether_addr_copy(&addr, &eth->s_addr);
+        return 0;
+}
 
-	return 0;
+int
+onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
+
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
+
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
+
+        /*
+         * Copy the source mac address to the destination field.
+         */
+        ether_addr_copy(&eth->s_addr, &eth->d_addr);
+
+        /*
+         * Get the mac address of the specified destination port id
+         * and set the source field to it.
+         */
+        ether_addr_copy(&ports->mac[dst_port_id], &eth->s_addr);
+
+        return 0;
+}
+
+int
+onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info *ports) {
+        struct ether_hdr *eth;
+
+        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+                return -1;
+        }
+
+        /*
+         * Get the ethernet header from the pkt
+         */
+        eth = onvm_pkt_ether_hdr(pkt);
+
+        /*
+         * Copy the destination mac address to the source field.
+         */
+        ether_addr_copy(&eth->d_addr, &eth->s_addr);
+
+        /*
+         * Get the mac address of specified source port id
+         * and set the destination field to it.
+         */
+        ether_addr_copy(&ports->mac[src_port_id], &eth->d_addr);
+
+        return 0;
 }
 
 struct ether_hdr*
@@ -85,7 +137,7 @@ onvm_pkt_ether_hdr(struct rte_mbuf* pkt) {
         if (unlikely(pkt == NULL)) {
                 return NULL;
         }
-	return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+        return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 }
 
 struct tcp_hdr*
@@ -288,4 +340,155 @@ void onvm_pkt_print_ether(struct ether_hdr* hdr) {
                         break;
         }
         printf("Type: %s\n", type);
+}
+
+int
+onvm_pkt_parse_ip(char *ip_str, uint32_t *dest) {
+        int ret;
+        int ip[4];
+
+        if (ip_str == NULL || dest == NULL) {
+                return -1;
+        }
+
+        ret = sscanf(ip_str, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+        if (ret != 4) {
+                return -1;
+        }
+        *dest = IPv4(ip[0], ip[1], ip[2], ip[3]);
+        return 0;
+}
+
+int 
+onvm_pkt_parse_mac(char * mac_str, uint8_t* dest) {
+        int ret, i;
+        int mac[ETHER_ADDR_LEN];
+
+        if (mac_str == NULL || dest == NULL) {
+                return -1;
+        }
+
+        ret = sscanf(mac_str, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+        if (ret != ETHER_ADDR_LEN) {
+                return -1;
+        }
+
+        for (i = 0; i < ETHER_ADDR_LEN; i++){
+                dest[i] = mac[i];
+        }
+        return 0;
+}
+
+uint32_t
+onvm_pkt_get_checksum_offload_flags(uint8_t port_id) {
+        struct rte_eth_dev_info dev_info;
+        uint32_t hw_offload_flags = 0;
+
+        rte_eth_dev_info_get(port_id, &dev_info);
+
+        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
+                hw_offload_flags |= SUPPORTS_IPV4_CHECKSUM_OFFLOAD;
+        }
+        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_TCP_CKSUM) {
+                hw_offload_flags |= SUPPORTS_TCP_CHECKSUM_OFFLOAD;
+        }
+        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
+                hw_offload_flags |= SUPPORTS_UDP_CHECKSUM_OFFLOAD;
+        }
+        return hw_offload_flags;
+}
+
+/**
+ * Calculates TCP or UDP checksum.
+ * This is the same implementation as rte_ipv4_udptcp_cksum(),
+ * except that this implementation can process packets with IP options.
+ */
+static uint16_t
+calculate_tcpudp_cksum(const struct ipv4_hdr *ip, const void *l4_hdr, const uint32_t l3_len, uint8_t protocol) {
+        uint32_t cksum = 0;
+        uint32_t l4_len = ip->total_length - l3_len;
+
+        /* pseudo header checksum */
+        struct {
+                uint32_t saddr;
+                uint32_t daddr;
+                uint8_t reserved; /* all zeros */
+                uint8_t protocol;
+                uint16_t total_length; /* the length of the TCP/UDP header and data */
+        } __attribute__((__packed__)) ph;
+
+        ph.saddr = ip->src_addr;
+        ph.daddr = ip->dst_addr;
+        ph.reserved = 0;
+        ph.protocol = protocol;
+        ph.total_length = (uint16_t)l4_len;
+
+        cksum += rte_raw_cksum(&ph, sizeof(ph));
+
+        /* packet checksum */
+        cksum += rte_raw_cksum(l4_hdr, l4_len);
+
+        while (cksum & 0xffff0000) {
+                cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+        }
+        return ~cksum;
+}
+
+/**
+ * Calculates IP checksum.
+ * This is the same implementation as rte_ipv4_cksum(),
+ * exception that this implementation can process packets with IP options.
+ */
+static uint16_t
+calculate_ip_cksum(const struct ipv4_hdr *ip, const uint32_t l3_len) {
+        uint16_t cksum = rte_raw_cksum(ip, l3_len);
+        return (cksum == 0xffff) ? cksum : ~cksum;
+}
+
+void
+onvm_pkt_set_checksums(struct rte_mbuf *pkt) {
+        uint32_t hw_cksum_support = onvm_pkt_get_checksum_offload_flags(pkt->port);
+        struct ipv4_hdr *ip = onvm_pkt_ipv4_hdr(pkt);
+        struct tcp_hdr *tcp = onvm_pkt_tcp_hdr(pkt);
+        struct udp_hdr *udp = onvm_pkt_udp_hdr(pkt);
+
+        if (ip != NULL) {
+                ip->hdr_checksum = 0;
+                pkt->l2_len = sizeof(struct ether_hdr);
+                pkt->l3_len = (ip->version_ihl & 0b1111) * 4;
+                pkt->ol_flags |= PKT_TX_IPV4;
+
+                if (tcp != NULL) {
+                        tcp->cksum = 0;
+                        pkt->l4_len = (tcp->data_off >> 4) & 0b1111;
+
+                        if (hw_cksum_support & SUPPORTS_TCP_CHECKSUM_OFFLOAD) {
+                                tcp->cksum = rte_ipv4_phdr_cksum(ip, pkt->ol_flags);
+                                pkt->ol_flags |= PKT_TX_TCP_CKSUM;
+                        } else {
+                                /* software TCP checksumming */
+                                tcp->cksum = calculate_tcpudp_cksum(ip, tcp, pkt->l3_len, IP_PROTOCOL_TCP);
+                        }
+                }
+
+                if (udp != NULL) {
+                        udp->dgram_cksum = 0;
+                        pkt->l4_len = 8;
+
+                        if (hw_cksum_support & SUPPORTS_UDP_CHECKSUM_OFFLOAD) {
+                                udp->dgram_cksum = rte_ipv4_phdr_cksum(ip, pkt->ol_flags);
+                                pkt->ol_flags |= PKT_TX_UDP_CKSUM;
+                        } else {
+                                /* software UDP checksumming */
+                                udp->dgram_cksum = calculate_tcpudp_cksum(ip, udp, pkt->l3_len, IP_PROTOCOL_UDP);
+                        }
+                }
+
+                if (hw_cksum_support & SUPPORTS_IPV4_CHECKSUM_OFFLOAD) {
+                        pkt->ol_flags |= PKT_TX_IP_CKSUM;
+                } else {
+                        /* software IP checksumming */
+                        ip->hdr_checksum = calculate_ip_cksum(ip, pkt->l3_len);
+                }
+        }
 }

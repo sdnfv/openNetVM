@@ -4,9 +4,9 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
-#          2016 Hewlett Packard Enterprise Development LP
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
+#          2016-2017 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,9 +56,7 @@ ONVM= $(SRCDIR)/../../onvm
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/x86_64-native-linuxapp-gcc/onvm_nflib.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/x86_64-native-linuxapp-gcc/onvm_pkt_helper.o
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
+LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
