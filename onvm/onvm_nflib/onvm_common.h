@@ -106,26 +106,6 @@ static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
  * themselves are written by the NFs, so we have a distinct set, on different
  * cache lines for each NF to use.
  */
-#if 0
-struct client_tx_stats {
-        /* these stats hold how many packets the manager will actually receive,
-         * and how many packets were dropped because the manager's queue was full.
-         */
-        uint64_t tx[MAX_CLIENTS];
-        uint64_t tx_drop[MAX_CLIENTS];
-        uint64_t tx_buffer[MAX_CLIENTS];
-        uint64_t tx_returned[MAX_CLIENTS];
-        #ifdef INTERRUPT_SEM
-        volatile uint64_t prev_tx[MAX_CLIENTS];
-        volatile uint64_t prev_tx_drop[MAX_CLIENTS];
-        volatile uint64_t comp_cost[MAX_CLIENTS];
-        #endif
-        /* FIXME: Why are these stats kept separately from the rest?
-         * Would it be better to have an array of struct client_tx_stats instead
-         * of putting the array inside the struct? How can we avoid cache
-         * invalidations from different NFs updating these stats?
-         */
-#endif
 /*******************************Data Structures*******************************/
 
 /*  
@@ -137,8 +117,6 @@ struct tx_thread_info {
         unsigned first_nf;
         unsigned last_nf;
         struct packet_buf *port_tx_bufs;
-
-
 };
 
 /*
@@ -212,7 +190,6 @@ struct onvm_nf {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
-
 
                 #ifdef INTERRUPT_SEM
                 volatile uint64_t prev_rx;
@@ -349,8 +326,7 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
  * Given the rx queue name template above, get the key of the shared memory
  */
 static inline key_t
-get_rx_shmkey(unsigned id)
-{
+get_rx_shmkey(unsigned id) {
         return KEY_PREFIX * 10 + id;
 }
 
@@ -358,8 +334,7 @@ get_rx_shmkey(unsigned id)
  * Given the sem name template above, get the sem name
  */
 static inline const char *
-get_sem_name(unsigned id)
-{
+get_sem_name(unsigned id) {
         /* buffer for return value. Size calculated by %u being replaced
          * by maximum 3 digits (plus an extra byte for safety) */
         static char buffer[sizeof(MP_CLIENT_SEM_NAME) + 2];
