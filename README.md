@@ -3,6 +3,29 @@
 
 _Please let us know if you use OpenNetVM in your research by [emailing us](mailto:timwood@gwu.edu) or completing this [short survey](https://goo.gl/forms/oxcnGO45Kxq1Zyyi2)._
 
+_Want to get started quickly?_ Try using our NSF CloudLab profile: https://www.cloudlab.us/p/GWCloudLab/onvm-18.03
+
+
+Notes
+--
+
+We have updated our DPDK submodule to point to a new version, v17.08.  If you have already cloned this repository, please update your DPDK submodule by running:
+
+```
+git submodule update --init
+```
+
+And then rebuild DPDK using the [install guide][install] or running these commands:
+
+```
+cd dpdk
+make config T=$RTE_TARGET
+make T=$RTE_TARGET -j 8
+make install T=$RTE_TARGET -j 8
+```
+
+See our [release](docs/Releases.md) document for more information.
+
 About
 --
 openNetVM is a high performance NFV platform based on [DPDK][dpdk] and [Docker][docker] containers.  openNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
@@ -28,6 +51,10 @@ The [NF Development][nfs] guide will provide what you need to start creating you
 Dockerize NFs
 --
 NFs can be run inside docker containers, with the NF being automatically or hand started. For more informations, see our [Docker guide][docker-nf].
+
+TCP Stack
+--
+openNetVM can run mTCP applications as NFs. For more information, visit [mTCP][mtcp].
 
 Citing OpenNetVM
 --
@@ -63,3 +90,4 @@ _Please let us know if you use OpenNetVM in your research by [emailing us](mailt
 [dev]: https://github.com/sdnfv/openNetVM/tree/develop
 [mast]: https://github.com/sdnfv/openNetVM/tree/master
 [rels]: docs/Releases.md
+[mtcp]: https://github.com/eunyoung14/mtcp

@@ -534,6 +534,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 ip->src_addr = lb->ip_lb_client;
                 meta->destination = lb->client_port;
         } else {
+                rte_eth_macaddr_get(lb->server_port, &ehdr->s_addr);
                 for (i = 0; i < ETHER_ADDR_LEN; i++) {
                         ehdr->d_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
                 }

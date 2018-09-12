@@ -86,6 +86,16 @@ static uint32_t total_flows;
 /* Setup rings to hold buffered packets destined for SDN controller */
 static void
 setup_rings(void) {
+        /* Remove old ring buffers */
+        ring_to_sdn = rte_ring_lookup("ring_to_sdn");
+        ring_from_sdn = rte_ring_lookup("ring_from_sdn");
+        if (ring_to_sdn) {
+            rte_ring_free(ring_to_sdn);
+        }
+        if (ring_from_sdn) {
+            rte_ring_free(ring_from_sdn);
+        }
+
         ring_to_sdn = rte_ring_create("ring_to_sdn", SDN_RING_SIZE,
                         rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
         ring_from_sdn = rte_ring_create("ring_from_sdn", SDN_RING_SIZE,

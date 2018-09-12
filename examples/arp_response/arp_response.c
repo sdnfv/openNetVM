@@ -259,16 +259,33 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;
 
-        //First checks to see if pkt is of type ARP, then whether the target IP of packet matches machine IP
+        /*
+         * First check if pkt is of type ARP:
+         * Then whether its an ARP REQUEST
+         *      if packet target IP matches machine IP send ARP REPLY
+         * If its an ARP REPLY send to dest
+         * Ignore (fwd to dest) other opcodes
+         */
         if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
                 in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
-                if (in_arp_hdr->arp_data.arp_tip == state_info->source_ips[ports->id[pkt->port]]) {
-                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
-                        if (state_info->print_flag) {
-                                printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port, ports->id[pkt->port], result);
-                        }
-                        meta->action = ONVM_NF_ACTION_DROP;
-                        return 0;
+                switch (rte_cpu_to_be_16(in_arp_hdr->arp_op)) {
+                        case ARP_OP_REQUEST:
+                                if (in_arp_hdr->arp_data.arp_tip == state_info->source_ips[ports->id[pkt->port]]) {
+                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
+                                        if (state_info->print_flag) {
+                                                printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port, ports->id[pkt->port], result);
+                                        }
+                                        meta->action = ONVM_NF_ACTION_DROP;
+                                        return 0;
+                                }
+                                break;
+                        case ARP_OP_REPLY:
+                                /* Here we can potentially save the information */
+                                break;
+                        default:
+                                if (state_info->print_flag) {
+                                        printf("ARP with opcode %d, port %d (ID %d) DROPPED\n", rte_cpu_to_be_16(in_arp_hdr->arp_op),pkt->port, ports->id[pkt->port]);
+                                }
                 }
         }
 

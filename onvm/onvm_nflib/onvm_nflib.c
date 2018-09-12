@@ -522,7 +522,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
         int ret_act;
 
         /* Dequeue all packets in ring up to max possible. */
-        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PACKET_READ_SIZE);
+        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {

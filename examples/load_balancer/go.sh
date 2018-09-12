@@ -31,4 +31,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/load_balancer -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -c $client -s $server -f $config $print
+exec sudo $SCRIPTPATH/build/app/load_balancer -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -c $client -s $server -f $config $print
