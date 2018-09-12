@@ -104,7 +104,7 @@ onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id);
  *          a pointer to the packet
  *
  */
-inline void
+void
 onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt);
 
 /*

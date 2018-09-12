@@ -32,4 +32,4 @@ while getopts ":p:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/flow_tracker -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst $print
+exec sudo $SCRIPTPATH/build/app/flow_tracker -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst $print

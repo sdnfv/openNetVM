@@ -100,8 +100,9 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
       - The NF will have service ID of 2 and it is pinned to core 16.  It also forwards packets to the NF with service ID 1.
       - `# ./examples/simple_forward/go.sh 16 2 1`
     - Second, start up 1 speed_tester NF and have it forward to service ID 2.
-      - `# ./examples/speed_tester/go.sh 14 1 2`
+      - `# ./examples/speed_tester/go.sh 14 1 2 -c 16000`
   4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
+  
 
 
 [cores]: ../scripts/corehelper.py

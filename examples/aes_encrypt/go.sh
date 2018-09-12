@@ -30,4 +30,4 @@ while getopts ":p:n:" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/aesencrypt -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print
+exec sudo $SCRIPTPATH/build/app/aesencrypt -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print

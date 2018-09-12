@@ -2,7 +2,7 @@
 
 This guide helps you build and install openNetVM.
 
-1. Check System
+Check System
 --
 
 1. Make sure your NIC is supported by Intel DPDK by comparing the following command's ouptput against DPDK's [supported NIC list](http://dpdk.org/doc/nics).
@@ -25,14 +25,21 @@ This guide helps you build and install openNetVM.
     ```sh
     locate uio
     ```
+5. Install libnuma
+   ```sh
+   sudo apt-get install libnuma-dev
+   ```
 
-2. Setup Repositories
+Setup Repositories
 --
 
 1. Download source code
     ```sh
     git clone https://github.com/sdnfv/openNetVM
+    cd openNetVM
+    git checkout master
     ```
+    This will ensure you are on the stable, `master` branch. If you want to use potentially buggy features, you can use the default `develop` branch.
 
 2. Initialize DPDK submodule
     ```sh
@@ -41,7 +48,7 @@ This guide helps you build and install openNetVM.
 
  **From this point forward, this guide assumes that you are working out of the openNetVM source directory.**
 
-3. Set up Environment
+Set up Environment
 --
 
 1. Set environment variable ONVM_HOME to the path of the openNetVM source directory.
@@ -85,7 +92,7 @@ This guide helps you build and install openNetVM.
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
     ```
 
-8. Configure and compile DPDK
+Configure and compile DPDK
 --
 
 1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
@@ -96,7 +103,7 @@ This guide helps you build and install openNetVM.
 
     The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/setup_environment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 
-5. Run DPDK HelloWorld Application
+Run DPDK HelloWorld Application
 --
 
 1. Enter DPDK HelloWorld directory and compile the application:
@@ -119,7 +126,7 @@ This guide helps you build and install openNetVM.
     hello from core 0
     ```
 
-6. Make and test openNetVM
+Make and test openNetVM
 --
 
 1. Compile openNetVM manager and libraries
@@ -148,13 +155,13 @@ This guide helps you build and install openNetVM.
 
     To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1:
+    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
 
-    `./examples/speed_tester/go.sh 5 1 1`
+    `./examples/speed_tester/go.sh 5 1 1 -c 16000`
 
     Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `NF 1` is receiving data.  If this is the case, the openNetVM is working correctly.
 
-7. Configuring environment post reboot
+Configuring environment post reboot
 --
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/setup_environment.sh).
 
@@ -225,3 +232,10 @@ Troubleshooting
 3. **Exporting $ONVM_HOME**
 
     If the setup_environment.sh script fails because the environment variable ONVM_HOME is not set, please run this command: `export ONVM_HOME=$ONVM_HOME:CHANGEME_TO_THE_PATH_TO_ONVM_DIR`
+
+4. **Poor Performance**
+
+If you are not getting the expected level of performance, try these:
+
+ - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
+ - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.

@@ -118,10 +118,10 @@ onvm_nf_check_status(void) {
         struct onvm_nf_info *nf;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
-        if (rte_ring_dequeue_bulk(incoming_msg_queue, msgs, num_msgs) != 0)
-                return;
-
         if (num_msgs == 0) return;
+
+        if (rte_ring_dequeue_bulk(incoming_msg_queue, msgs, num_msgs, NULL) == 0)
+                return;
 
         for (i = 0; i < num_msgs; i++) {
                 msg = (struct onvm_nf_msg*) msgs[i];

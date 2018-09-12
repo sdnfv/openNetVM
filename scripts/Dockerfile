@@ -1,13 +1,11 @@
-#! /bin/bash
-
 #                        openNetVM
 #                https://sdnfv.github.io
 #
 # OpenNetVM is distributed under the following BSD LICENSE:
 #
 # Copyright(c)
-#       2015-2017 George Washington University
-#       2015-2017 University of California Riverside
+#       2015-2018 George Washington University
+#       2015-2018 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,20 +33,23 @@
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# A script to configure dpdk environment variables on the cloudlab server
 
-ONVM_PATH=/local/onvm/openNetVM
-DPDK_PATH=/local/onvm/openNetVM/dpdk
+FROM ubuntu:14.04
+MAINTAINER "Neel Shah" <neel@shah7.com>
+LABEL version="OpenNetVM v18.03"
+LABEL vendor="SDNFV @ UCR and GW"
+LABEL github="github.com/sdnfv/openNetVM"
 
-if [ -z "$RTE_TARGET" ]; then
-    export RTE_TARGET=x86_64-native-linuxapp-gcc
-fi
+ENV ONVM_HOME=/openNetVM
+ENV RTE_TARGET=x86_64-native-linuxapp-gcc
+ENV RTE_SDK=$ONVM_HOME/dpdk
 
-if [ -z "$RTE_SDK" ]; then
-    export RTE_SDK=$DPDK_PATH
-fi
+WORKDIR $ONVM_HOME
 
-if [ -z "$ONVM_HOME" ]; then
-    export ONVM_HOME=$ONVM_PATH
-fi
+RUN apt-get update && \
+    apt-get install -y build-essential \
+                       gdb \
+                       libnuma-dev \
+                       vim \
+                       less \
+                       git

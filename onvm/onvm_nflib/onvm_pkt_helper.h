@@ -53,12 +53,15 @@ struct ipv4_hdr;
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
 
+#ifndef TCP_FLAGS
+#define TCP_FLAGS
 #define TCP_FLAG_FIN (1<<0)
 #define TCP_FLAG_SYN (1<<1)
 #define TCP_FLAG_RST (1<<2)
 #define TCP_FLAG_PSH (1<<3)
 #define TCP_FLAG_ACK (1<<4)
 #define TCP_FLAG_URG (1<<5)
+#endif
 #define TCP_FLAG_ECE (1<<6)
 #define TCP_FLAG_CWR (1<<7)
 #define TCP_FLAG_NS  (1<<8)

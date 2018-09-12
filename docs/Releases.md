@@ -4,14 +4,71 @@
 ##### Release Cycle:
 We track active development through the `develop` branch and verified
 stable releases through the `master` branch.  New releases are created and
-tagged on a monthly cycle.  When we tag a release, we update `master` to
-have the latest stable code.
+tagged with the year and month of their release.  When we tag a release,
+we update `master` to have the latest stable code.
 
 ##### Versioning:
 As of 11/06/2017, we are retiring semantic versioning and will instead
 use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
+
+#### v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
+This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 
+
+It also makes minor changes to the setup scripts to work better in NSF CloudLab environments.
+
+We now provide a docker container image that can be used to easily run NFs inside containers. See the [Docker Docs](./Docker.md) for more information.
+
+OpenNetVM support has now been integrated into the mainline [mTCP repository](https://github.com/eunyoung14/mtcp).
+
+Finally, we are now adding issues to the GitHub Issue Tracker with the [Good First Issue](https://github.com/sdnfv/openNetVM/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label to help others find ways to contribute to the project. Please take a look and contribute a pull request!
+
+An NSF CloudLab template including OpenNetVM 18.05, mTCP, and some basic networking utilities is available here: https://www.cloudlab.us/p/GWCloudLab/onvm-18.05
+
+*No API changes were introduced in this release.*
+
+#### v18.03 (3/27/18): Updated DPDK and preliminary mTCP support
+This release updates the DPDK submodule to use version 17.08.  This DPDK update caused breaking changes to its API, so updates have been made to the OpenNetVM manager and example NFs to support this change.
+
+In order to update to the latest version of DPDK you must run:
+
+```
+git submodule update --init
+```
+
+And then rebuild DPDK using the [install guide](./Install.md) or running these commands:
+
+```
+cd dpdk
+make clean
+make config T=$RTE_TARGET
+make T=$RTE_TARGET -j 8
+make install T=$RTE_TARGET -j 8
+```
+(you may need to install the `libnuma-dev` package if you get compilation errors)
+
+This update also includes preliminary support for mTCP-based endpoint NFs. Our OpenNetVM driver has been merged into the [develop branch of mTCP](https://github.com/eunyoung14/mtcp/tree/devel). This allows you to run services like high performance web servers on an integrated platform with other middleboxes.  See the mTCP repository for usage instructions.
+
+Other changes include:
+ - Adds a new "Router NF" example which can be used to redirect packets to specific NFs based on their IP. This is currently designed for simple scenarios where a small number of IPs are matched to NFs acting as connection terminating endpoints (e.g., mTCP-based servers). 
+ - Bug Fix in ARP NF to properly handle replies based on the ARP OP code.
+ - Updated pktgen submodule to 3.49 which works with DPDK 17.08.
+ 
+ An NSF CloudLab template including OpenNetVM 18.03, mTCP, and some basic networking utilities is available here: https://www.cloudlab.us/p/GWCloudLab/onvm-18.03
+
+*No API changes were introduced in this release.*
+
+#### v18.1 (1/31/18): Bug Fixes and Speed Tester improvements
+This release includes several bug fixes including:
+ - Changed macro and inline function declarations to improve compatibility with 3rd party libraries and newer gcc versions (tested with 4.8 and 5.4)
+ - Solved memory leak in SDN flow table example
+ - Load Balancer NF now correctly updates MAC address on outgoing packets to backend servers
+
+Improvements:
+ - Speed Tester NF now supports a `-c` argument indicating how many packets should be created. If combined with the PCAP replay flag, this parameter controls how many of packets in the trace will be transmitted. A larger packet count may be required when trying to use Speed Tester to saturate a chain of network functions.
+ 
+*No API changes were introduced in this release.*
 
 #### v17.11 (11/16/17): New TX thread architecture, realistic NF examples, better stats, messaging, and more
 Since the last official release there have been substantial changes to openNetVM, including the switch to date based versioning mentioned above. Changes include:

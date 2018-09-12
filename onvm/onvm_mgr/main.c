@@ -210,7 +210,7 @@ tx_thread_main(void *arg) {
                                 continue;
 
 			/* Dequeue all packets in ring up to max possible. */
-			tx_count = rte_ring_dequeue_burst(nf->tx_q, (void **) pkts, PACKET_READ_SIZE);
+			tx_count = rte_ring_dequeue_burst(nf->tx_q, (void **) pkts, PACKET_READ_SIZE, NULL);
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {

@@ -54,6 +54,8 @@
 #define MAX_SERVICES 16           // total number of unique services allowed
 #define MAX_NFS_PER_SERVICE 8 // max number of NFs per service.
 
+#define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
+
 #define PACKET_READ_SIZE ((uint16_t)32)
 
 #define ONVM_NF_ACTION_DROP 0   // drop packet
