@@ -102,7 +102,7 @@ uint16_t **services;
 uint16_t *nf_per_service_count;
 
 // Shared data for NF info
-extern struct onvm_nf_info *nf_info;
+//extern struct onvm_nf_info *nf_info;
 
 // Shared pool for all NFs info
 static struct rte_mempool *nf_info_mp;
@@ -125,6 +125,11 @@ static uint8_t nf_mode = NF_MODE_UNKNOWN;
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
+// Keeping track of the inital args (but only once), so we can use them again
+static int first_init_flag = 1;
+static int first_argc;
+static char **first_argv;
+static const char *first_nf_tag;
 
 /***********************Internal Functions Prototypes*************************/
 
@@ -201,6 +206,12 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) __attribute__((always_
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 
+static inline void
+onvm_nflib_scale(struct onvm_nf_info *info) __attribute__((always_inline));
+
+static int
+onvm_nflib_start_child(void *arg);
+
 /************************************API**************************************/
 
 
@@ -215,13 +226,22 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         struct onvm_service_chain **scp;
         struct onvm_nf_msg *startup_msg;
         struct onvm_nf_info *nf_info;
-        int retval_eal, retval_parse, retval_final;
+        int retval_parse, retval_final;
+        int retval_eal = 0;
 
-        if ((retval_eal = rte_eal_init(argc, argv)) < 0) 
+        if (first_init_flag && (retval_eal = rte_eal_init(argc, argv)) < 0) 
                 return -1;
 
         /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
         argc -= retval_eal; argv += retval_eal;
+
+        if (first_init_flag) {
+                /* Keep these for if we need to start another copy */
+                first_argc = argc;
+                first_argv = argv;
+                first_nf_tag = nf_tag;
+                first_init_flag = 0;
+        }
 
         /* Reset getopt global variables opterr and optind to their default values */
         opterr = 0; optind = 1;
@@ -364,16 +384,21 @@ onvm_nflib_run_callback(
         uint16_t nb_pkts_added;
 
         /* Don't allow conflicting NF modes */
-        if (nf_mode == NF_MODE_RING) {
+        if (info->nf_mode == NF_MODE_RING) {
                 return -1;
         }
-        nf_mode = NF_MODE_SINGLE;
+        //something weird is going on here TODO fix
+        info->nf_mode = 1;//NF_MODE_SINGLE;
 
         printf("\nClient process %d handling packets\n", info->instance_id);
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, onvm_nflib_handle_signal);
         signal(SIGTERM, onvm_nflib_handle_signal);
+
+        if (info->nf_pkt_function == NULL) {
+                info->nf_pkt_function = handler;
+        }
 
         printf("Sending NF_READY message to manager...\n");
         ret = onvm_nflib_nf_ready(info);
@@ -440,11 +465,15 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info) {
 }
 
 int
-onvm_nflib_handle_msg(struct onvm_nf_msg *msg) {
+onvm_nflib_handle_msg(struct onvm_nf_info *info, struct onvm_nf_msg *msg) {
         switch(msg->msg_type) {
         case MSG_STOP:
                 RTE_LOG(INFO, APP, "Shutting down...\n");
                 keep_running = 0;
+                break;
+        case MSG_SCALE:
+                RTE_LOG(INFO, APP, "Received scale message...\n");
+                onvm_nflib_scale(info);
                 break;
         case MSG_NOOP:
         default:
@@ -566,10 +595,71 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         }
         msg = NULL;
         rte_ring_dequeue(nf_msg_ring, (void**)(&msg));
-        onvm_nflib_handle_msg(msg);
+        onvm_nflib_handle_msg(nf_info, msg);
         rte_mempool_put(nf_msg_pool, (void*)msg);
 }
 
+static inline void
+onvm_nflib_scale(struct onvm_nf_info *info) {
+        unsigned current;
+        unsigned core;
+        enum rte_lcore_state_t state;
+        int ret;
+
+        if (info->headroom == 0) {
+                RTE_LOG(INFO, APP, "No cores available to scale\n");
+                return;
+        }
+
+        current = rte_lcore_id();
+        if (current != rte_get_master_lcore()) {
+                RTE_LOG(INFO, APP, "Can only scale from the master lcore\n");
+                return;
+        }
+
+        if (info->nf_mode != NF_MODE_SINGLE) {
+                RTE_LOG(INFO, APP, "Can only scale NFs running in single mode\n");
+                RTE_LOG(INFO, APP, "NFs mode %d \n", info->nf_mode);
+                return;
+        }
+
+        // Find the next available lcore to use
+        RTE_LOG(INFO, APP, "Currently running on core %u\n", current);
+        for (core = rte_get_next_lcore(current, 1, 0); core != RTE_MAX_LCORE; core = rte_get_next_lcore(core, 1, 0)) {
+                state = rte_eal_get_lcore_state(core);
+                if (state != RUNNING) {
+                        RTE_LOG(INFO, APP, "Able to scale to core %u\n", core);
+                        ret = rte_eal_remote_launch(&onvm_nflib_start_child, info, core);
+                        if (ret == -EBUSY) {
+                                RTE_LOG(INFO, APP, "Core is %u busy, skipping...\n", core);
+                                continue;
+                        }
+                        return;
+                }
+        }
+
+        RTE_LOG(INFO, APP, "No cores available to scale\n");
+}
+
+// The entry point for a child NF
+static int
+onvm_nflib_start_child(void *arg) {
+        struct onvm_nf_info *parent_info;
+        struct onvm_nf_info *child_info;
+        int ret;
+
+        parent_info = (struct onvm_nf_info *)arg;
+        parent_info->headroom--;
+        RTE_LOG(INFO, APP, "Starting another copy of service %u, new headroom: %u\n", parent_info->service_id, parent_info->headroom);
+        ret = onvm_nflib_init(first_argc, first_argv, first_nf_tag, &child_info);
+        if (ret < 0) {
+                RTE_LOG(INFO, APP, "Unable to init new NF, exiting...\n");
+                return -1;
+        }
+
+        onvm_nflib_run(child_info, parent_info->nf_pkt_function);
+        return 0;
+}
 
 static struct onvm_nf_info *
 onvm_nflib_info_init(const char *tag)
@@ -590,6 +680,11 @@ onvm_nflib_info_init(const char *tag)
         info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
+        // Set core headroom. This is the number of excess cores we have
+        // or 0, if this is not the master core
+        info->headroom = rte_get_master_lcore() == rte_lcore_id()
+                ? rte_lcore_count() - 1
+                : 0;
         return info;
 }
 
@@ -686,4 +781,10 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
         }
 
+}
+
+int
+onvm_scale(struct onvm_nf_info *info) {
+        onvm_nflib_scale(info);
+        return 0;
 }

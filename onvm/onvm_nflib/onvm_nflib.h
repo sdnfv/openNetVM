@@ -152,7 +152,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_msg *msg);
+onvm_nflib_handle_msg(struct onvm_nf_info *info, struct onvm_nf_msg *msg);
 
 /**
  * Stop this NF and clean up its memory
@@ -201,5 +201,8 @@ onvm_nflib_get_nf(uint16_t id);
 
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
+
+int
+onvm_scale(struct onvm_nf_info *info);
 
 #endif  // _ONVM_NFLIB_H_

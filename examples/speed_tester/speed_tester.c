@@ -253,6 +253,10 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 counter = 0;
         }
 
+        if (counter == 10000000){
+                onvm_scale(nf_info);
+        }
+
         if (ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
                 /* one of our fake pkts to forward */
                 meta->destination = destination;

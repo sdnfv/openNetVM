@@ -186,6 +186,9 @@ struct onvm_nf {
 
 };
 
+/* Function prototype for NF packet handlers */
+typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+
 /*
  * Define a structure to describe one NF
  */
@@ -194,6 +197,10 @@ struct onvm_nf_info {
         uint16_t service_id;
         uint8_t status;
         const char *tag;
+        uint8_t headroom;
+        // Mode this NF is running in (single packet, or direct ring manipulation)
+        uint8_t nf_mode;
+        pkt_handler nf_pkt_function;
 };
 
 /*
