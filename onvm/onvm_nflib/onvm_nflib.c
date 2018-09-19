@@ -85,24 +85,12 @@ struct port_info *ports;
 // ring used for NF -> mgr messages (like startup & shutdown)
 static struct rte_ring *mgr_msg_queue;
 
-// ring used for mgr -> NF messages
-static struct rte_ring *nf_msg_ring;
-
-// rings used to pass packets between NFlib and NFmgr
-static struct rte_ring *tx_ring, *rx_ring;
-
-//data for NFs that handle tx. May not be used
-static struct queue_mgr *nf_tx_mgr;
-
 // Shared data from server. We update statistics here
 struct onvm_nf *nfs;
 
 // Shared data from manager, has information used for nf_side tx
 uint16_t **services;
 uint16_t *nf_per_service_count;
-
-// Shared data for NF info
-//extern struct onvm_nf_info *nf_info;
 
 // Shared pool for all NFs info
 static struct rte_mempool *nf_info_mp;
@@ -352,19 +340,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
 
-        /* Now, map rx and tx rings into nf space */
-        rx_ring = rte_ring_lookup(get_rx_queue_name(nf_info->instance_id));
-        if (rx_ring == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get RX ring - is server process running?\n");
-
-        tx_ring = rte_ring_lookup(get_tx_queue_name(nf_info->instance_id));
-        if (tx_ring == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get TX ring - is server process running?\n");
-
-        nf_msg_ring = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
-        if (nf_msg_ring == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get nf msg ring");
-
         /* Tell the manager we're ready to recieve packets */
         keep_running = 1;
 
@@ -409,12 +384,12 @@ onvm_nflib_run_callback(
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **) pkts, info, handler);
 
                 if (likely(nb_pkts_added > 0)) {
-                        onvm_pkt_process_tx_batch(nf_tx_mgr, pkts, nb_pkts_added, &nfs[info->instance_id]);
+                        onvm_pkt_process_tx_batch(info->nf_tx_mgr, pkts, nb_pkts_added, &nfs[info->instance_id]);
                 }
 
                 /* Flush the packet buffers */
-                onvm_pkt_enqueue_tx_thread(nf_tx_mgr->to_tx_buf, info->instance_id);
-                onvm_pkt_flush_all_nfs(nf_tx_mgr);
+                onvm_pkt_enqueue_tx_thread(info->nf_tx_mgr->to_tx_buf, info->instance_id);
+                onvm_pkt_flush_all_nfs(info->nf_tx_mgr);
 
                 onvm_nflib_dequeue_messages(info);
                 if (callback != ONVM_NO_CALLBACK) {
@@ -436,7 +411,7 @@ onvm_nflib_run(struct onvm_nf_info* info, pkt_handler handler) {
 int
 onvm_nflib_return_pkt(struct onvm_nf_info* nf_info, struct rte_mbuf* pkt) {
         /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
-        if(unlikely(rte_ring_enqueue(tx_ring, pkt) == -ENOBUFS)) {
+        if(unlikely(rte_ring_enqueue(nfs[nf_info->instance_id].tx_q, pkt) == -ENOBUFS)) {
                 rte_pktmbuf_free(pkt);
                 nfs[nf_info->instance_id].stats.tx_drop++;
                 return -ENOBUFS;
@@ -496,6 +471,7 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
 	}
 
 	/* Don't allow conflicting NF modes */
+        
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
@@ -551,7 +527,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
         int ret_act;
 
         /* Dequeue all packets in ring up to max possible. */
-        nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PACKET_READ_SIZE, NULL);
+        nb_pkts = rte_ring_dequeue_burst(nfs[info->instance_id].rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
@@ -583,18 +559,20 @@ static inline void
 onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *msg;
 	struct rte_ring *msg_q;
-	msg_q = rte_ring_lookup(get_msg_queue_name(nf_info->instance_id));
 
 	if (nf_info == NULL) {
 		return; 
 
 	}
+
+        msg_q = nfs[nf_info->instance_id].msg_q;
+
         // Check and see if this NF has any messages from the manager
         if (likely(rte_ring_count(msg_q) == 0)) {
                 return;
         }
         msg = NULL;
-        rte_ring_dequeue(nf_msg_ring, (void**)(&msg));
+        rte_ring_dequeue(msg_q, (void**)(&msg));
         onvm_nflib_handle_msg(nf_info, msg);
         rte_mempool_put(nf_msg_pool, (void*)msg);
 }
@@ -619,7 +597,6 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
 
         if (info->nf_mode != NF_MODE_SINGLE) {
                 RTE_LOG(INFO, APP, "Can only scale NFs running in single mode\n");
-                RTE_LOG(INFO, APP, "NFs mode %d \n", info->nf_mode);
                 return;
         }
 
@@ -685,17 +662,18 @@ onvm_nflib_info_init(const char *tag)
         info->headroom = rte_get_master_lcore() == rte_lcore_id()
                 ? rte_lcore_count() - 1
                 : 0;
+        info->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
+        info->nf_tx_mgr->mgr_type_t = NF; 
+        info->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
+        info->nf_tx_mgr->id = initial_instance_id;
+        info->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
         return info;
 }
 
 static void 
 onvm_nflib_nf_tx_mgr_init(void)
 {
-        nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
-        nf_tx_mgr->mgr_type_t = NF; 
-        nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
-        nf_tx_mgr->id = initial_instance_id;
-        nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
+        return;
 }
 
 
@@ -785,6 +763,27 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 
 int
 onvm_scale(struct onvm_nf_info *info) {
-        onvm_nflib_scale(info);
+        //onvm_nflib_scale(info);
+        //return 0;
+        /// TODO this is hacky to test if th manager can scale nf
+        struct onvm_nf_msg *request_message;
+        int ret;
+        ret = rte_mempool_get(nf_msg_pool, (void**)(&request_message));
+        if(ret != 0) return ret;
+        request_message->msg_type = MSG_SCALE;
+        //request_message->msg_data = req;
+        ret = rte_ring_enqueue(nfs[info->instance_id].msg_q, request_message);
+        if(ret < 0){
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+        /*
+        req->status = NF_WAITING_FOR_MGR;
+        for(; req->status == (uint16_t)NF_WAITING_FOR_MGR ;){
+                sleep(1);
+        }
+        rte_mempool_put(nf_msg_pool, request_message);
+        return req->status;
+        */
         return 0;
 }

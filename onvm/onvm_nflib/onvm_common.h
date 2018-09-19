@@ -201,6 +201,7 @@ struct onvm_nf_info {
         // Mode this NF is running in (single packet, or direct ring manipulation)
         uint8_t nf_mode;
         pkt_handler nf_pkt_function;
+        struct queue_mgr *nf_tx_mgr;
 };
 
 /*

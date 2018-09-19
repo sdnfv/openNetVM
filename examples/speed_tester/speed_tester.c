@@ -253,9 +253,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
                 counter = 0;
         }
 
-        if (counter == 10000000){
-                onvm_scale(nf_info);
-        }
+        static uint32_t spawned = 0;
+        if (counter == 1000000 && spawned == 0){onvm_scale(nf_info);spawned=1;}
 
         if (ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
                 /* one of our fake pkts to forward */
