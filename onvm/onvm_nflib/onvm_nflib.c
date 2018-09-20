@@ -74,7 +74,7 @@
 
 #define ONVM_NO_CALLBACK NULL
 
-typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+//typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
 typedef int(*callback_handler)(void);
 
 /******************************Global Variables*******************************/
@@ -197,8 +197,8 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 /*
  * Scale the NF by launching a new instance, determines the core to scale to
  */
-static inline void
-onvm_nflib_scale(struct onvm_nf_info *info) __attribute__((always_inline));
+//static inline void
+//onvm_nflib_scale(struct onvm_nf_info *info) __attribute__((always_inline));
 
 /*
  * Entry point of a spawned child NF
@@ -559,7 +559,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
 static inline void
 onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *msg;
-	struct rte_ring *msg_q;
+        struct rte_ring *msg_q;
 
         msg_q = nfs[nf_info->instance_id].msg_q;
 
@@ -573,7 +573,7 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         rte_mempool_put(nf_msg_pool, (void*)msg);
 }
 
-static inline void
+int
 onvm_nflib_scale(struct onvm_nf_info *info) {
         unsigned current;
         unsigned core;
@@ -582,18 +582,18 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
 
         if (info->headroom == 0) {
                 RTE_LOG(INFO, APP, "No cores available to scale\n");
-                return;
+                return -1;
         }
 
         current = rte_lcore_id();
         if (current != rte_get_master_lcore()) {
                 RTE_LOG(INFO, APP, "Can only scale from the master lcore\n");
-                return;
+                return -1;
         }
 
         if (info->nf_mode != NF_MODE_SINGLE) {
                 RTE_LOG(INFO, APP, "Can only scale NFs running in single mode\n");
-                return;
+                return -1;
         }
 
         /* Find the next available lcore to use */
@@ -607,11 +607,12 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
                                 RTE_LOG(INFO, APP, "Core is %u busy, skipping...\n", core);
                                 continue;
                         }
-                        return;
+                        return 0;
                 }
         }
 
         RTE_LOG(INFO, APP, "No cores available to scale\n");
+        return -1;
 }
 
 static int
@@ -757,11 +758,12 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 
 }
 
+/* TODO remove, was using this to test that the manager can send the scale message */
 int
 onvm_scale(struct onvm_nf_info *info) {
         struct onvm_nf_msg *request_message;
         int ret;
-        
+
         ret = rte_mempool_get(nf_msg_pool, (void**)(&request_message));
         if(ret != 0) return ret;
         request_message->msg_type = MSG_SCALE;

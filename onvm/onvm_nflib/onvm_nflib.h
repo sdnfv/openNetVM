@@ -199,6 +199,18 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id);
 
+/*
+ * Scale the NF by launching a new instance, determines the core to scale to
+ *
+ * @param id
+ *   An Info struct describing this NF app.
+ * @return
+ *   Error code or 0 if successful.
+ */
+int
+onvm_nflib_scale(struct onvm_nf_info *info);
+
+
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 

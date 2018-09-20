@@ -197,8 +197,9 @@ struct onvm_nf_info {
         uint16_t service_id;
         uint8_t status;
         const char *tag;
+        /* Available cores for NF scaling */
         uint8_t headroom;
-        // Mode this NF is running in (single packet, or direct ring manipulation)
+        /* Advanced ring mode or packet handler mode*/
         uint8_t nf_mode;
         pkt_handler nf_pkt_function;
         struct queue_mgr *nf_tx_mgr;
