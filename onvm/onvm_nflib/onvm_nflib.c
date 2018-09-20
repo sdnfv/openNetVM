@@ -135,12 +135,12 @@ onvm_nflib_info_init(const char *tag);
 /*
  * Function that initialize a nf tx info data structure.
  *
- * Input  : void 
+ * Input  : onvm_nf_info struct pointer  
  * Output : the data structure initialized
  *
  */
 static void 
-onvm_nflib_nf_tx_mgr_init(void);
+onvm_nflib_nf_tx_mgr_init(struct onvm_nf_info *info);
 
 
 /*
@@ -194,9 +194,15 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) __attribute__((always_
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 
+/*
+ * Scale the NF by launching a new instance, determines the core to scale to
+ */
 static inline void
 onvm_nflib_scale(struct onvm_nf_info *info) __attribute__((always_inline));
 
+/*
+ * Entry point of a spawned child NF
+ */
 static int
 onvm_nflib_start_child(void *arg);
 
@@ -263,9 +269,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         /* Initialize the info struct */
         nf_info = onvm_nflib_info_init(nf_tag);
         *nf_info_p = nf_info;
-
-        /* Initialize empty NF's tx manager */
-        onvm_nflib_nf_tx_mgr_init();
 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
@@ -362,8 +365,7 @@ onvm_nflib_run_callback(
         if (info->nf_mode == NF_MODE_RING) {
                 return -1;
         }
-        //something weird is going on here TODO fix
-        info->nf_mode = 1;//NF_MODE_SINGLE;
+        info->nf_mode = NF_MODE_SINGLE;
 
         printf("\nClient process %d handling packets\n", info->instance_id);
 
@@ -471,7 +473,6 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
 	}
 
 	/* Don't allow conflicting NF modes */
-        
         if (nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
@@ -560,11 +561,6 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *msg;
 	struct rte_ring *msg_q;
 
-	if (nf_info == NULL) {
-		return; 
-
-	}
-
         msg_q = nfs[nf_info->instance_id].msg_q;
 
         // Check and see if this NF has any messages from the manager
@@ -600,7 +596,7 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
                 return;
         }
 
-        // Find the next available lcore to use
+        /* Find the next available lcore to use */
         RTE_LOG(INFO, APP, "Currently running on core %u\n", current);
         for (core = rte_get_next_lcore(current, 1, 0); core != RTE_MAX_LCORE; core = rte_get_next_lcore(core, 1, 0)) {
                 state = rte_eal_get_lcore_state(core);
@@ -618,7 +614,6 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
         RTE_LOG(INFO, APP, "No cores available to scale\n");
 }
 
-// The entry point for a child NF
 static int
 onvm_nflib_start_child(void *arg) {
         struct onvm_nf_info *parent_info;
@@ -657,23 +652,24 @@ onvm_nflib_info_init(const char *tag)
         info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
-        // Set core headroom. This is the number of excess cores we have
-        // or 0, if this is not the master core
+        info->nf_mode = NF_MODE_SINGLE;
+        /* Set core headroom = available cores for scaling or 0, if this is not the master core */
         info->headroom = rte_get_master_lcore() == rte_lcore_id()
                 ? rte_lcore_count() - 1
                 : 0;
+        /* Initialize empty NF's tx manager */
+        onvm_nflib_nf_tx_mgr_init(info);
+        return info;
+}
+
+static void 
+onvm_nflib_nf_tx_mgr_init(struct onvm_nf_info *info)
+{
         info->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
         info->nf_tx_mgr->mgr_type_t = NF; 
         info->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
         info->nf_tx_mgr->id = initial_instance_id;
         info->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
-        return info;
-}
-
-static void 
-onvm_nflib_nf_tx_mgr_init(void)
-{
-        return;
 }
 
 
@@ -763,27 +759,16 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 
 int
 onvm_scale(struct onvm_nf_info *info) {
-        //onvm_nflib_scale(info);
-        //return 0;
-        /// TODO this is hacky to test if th manager can scale nf
         struct onvm_nf_msg *request_message;
         int ret;
+        
         ret = rte_mempool_get(nf_msg_pool, (void**)(&request_message));
         if(ret != 0) return ret;
         request_message->msg_type = MSG_SCALE;
-        //request_message->msg_data = req;
         ret = rte_ring_enqueue(nfs[info->instance_id].msg_q, request_message);
         if(ret < 0){
                 rte_mempool_put(nf_msg_pool, request_message);
                 return ret;
         }
-        /*
-        req->status = NF_WAITING_FOR_MGR;
-        for(; req->status == (uint16_t)NF_WAITING_FOR_MGR ;){
-                sleep(1);
-        }
-        rte_mempool_put(nf_msg_pool, request_message);
-        return req->status;
-        */
         return 0;
 }
