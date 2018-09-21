@@ -478,7 +478,7 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
         }
 
         /* We should return the tx_ring associated with the info struct */
-        nf_mode = NF_MODE_RING;
+        info->nf_mode = NF_MODE_RING;
 	return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
 }
 
@@ -495,7 +495,7 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
         }
 
         /* We should return the rx_ring associated with the info struct */
-        nf_mode = NF_MODE_RING;
+        info->nf_mode = NF_MODE_RING;
         return (struct rte_ring *)(&(nfs[info->instance_id].rx_q));
 }
 
@@ -508,7 +508,7 @@ onvm_nflib_get_nf(uint16_t id) {
         }
 
         /* We should return the NF struct referenced by instance id */
-        nf_mode = NF_MODE_RING;
+        nfs[id].info->nf_mode = NF_MODE_RING;
         return &nfs[id];
 }
 
@@ -653,7 +653,7 @@ onvm_nflib_info_init(const char *tag)
         info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
-        info->nf_mode = NF_MODE_SINGLE;
+        info->nf_mode = NF_MODE_UNKNOWN;
         /* Set core headroom = available cores for scaling or 0, if this is not the master core */
         info->headroom = rte_get_master_lcore() == rte_lcore_id()
                 ? rte_lcore_count() - 1
