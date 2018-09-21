@@ -75,7 +75,7 @@ Enter working directory, and compile the application
 
 Test pktgen by:
 
-`$sudo ./app/app/x86_64-native-linuxapp-gcc/pktgen -c 3 -n 1`
+`$sudo ./app/x86_64-native-linuxapp-gcc/pktgen -c 3 -n 1`
 
 Updating configuration for pktgen, three servers are set up for observing the traffic flow: web client ----> port 0 - ONVM - port 1----> web server
 

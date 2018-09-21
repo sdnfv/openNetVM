@@ -134,6 +134,7 @@ Make and test openNetVM
     ```sh
     cd onvm
     make
+	cd ..
     ```
 
 2. Compile example NFs
@@ -141,6 +142,7 @@ Make and test openNetVM
     ```sh
     cd examples
     make
+	cd ..
     ```
 
 3. Run openNetVM manager
