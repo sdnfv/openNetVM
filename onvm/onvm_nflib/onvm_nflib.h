@@ -199,6 +199,20 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id);
 
+/**
+ * Set the setup function for the NF.
+ * Function automatically executes when calling onvm_nflib_run or when scaling.
+ * Works for both advanced rings and normal NF modes, although for advanced 
+ * rings the function must be launched manually in the main thread
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ * @param setup
+ *   A NF setup function that runs before running the NF.
+ */
+void
+onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_entry setup);
+
 /*
  * Scale the NF by launching a new instance, determines the core to scale to
  *
@@ -213,8 +227,5 @@ onvm_nflib_scale(struct onvm_nf_info *info);
 
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
-
-int
-onvm_scale(struct onvm_nf_info *info);
 
 #endif  // _ONVM_NFLIB_H_

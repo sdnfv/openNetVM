@@ -106,6 +106,8 @@ static uint64_t total_latency = 0;
  */
 char *pcap_filename = NULL;
 
+void nf_setup(struct onvm_nf_info *nf_info);
+
 /*
  * Print a usage message
  */
@@ -308,6 +310,12 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
+        /* Testing NF scaling */ 
+        static uint32_t spawned = 0;
+        nf->nf_advanced_rings_function = &run_advanced_rings;
+        if (spawned == 0){while(onvm_nflib_scale(nf_info)==0);spawned=1;}
+
+
         while (keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
@@ -336,23 +344,13 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 }
 
 
-int main(int argc, char *argv[]) {
+/*
+ * Generates fake packets or loads them from a pcap file
+ */
+void
+nf_setup(struct onvm_nf_info *nf_info) {
         uint32_t i;
-        int arg_offset;
         struct rte_mempool *pktmbuf_pool;
-
-        const char *progname = argv[0];
-
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
-
-        argc -= arg_offset;
-        argv += arg_offset;
-
-        if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-        }
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
@@ -446,7 +444,30 @@ int main(int argc, char *argv[]) {
 #ifdef LIBPCAP
         }
 #endif
+}
+
+
+int main(int argc, char *argv[]) {
+        int arg_offset;
+        const char *progname = argv[0];
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+                return -1;
+
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0) {
+                onvm_nflib_stop(nf_info);
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        }
+
+        /* Set the function to execute before running the NF
+         * For advanced rings manually run the function */
+        onvm_nflib_set_setup_function(nf_info, &nf_setup);
+
         if (use_direct_rings) {
+                nf_setup(nf_info);
                 onvm_nflib_nf_ready(nf_info);
                 run_advanced_rings(nf_info);
         } else {

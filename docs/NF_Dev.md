@@ -30,7 +30,7 @@ NF Library
 The NF_Lib Library provides functions to allow each NF to interface with the manager and other NFs.  This library provides the main communication protocol of the system.  To include it, add the line `#include "onvm_nflib.h"` to the top of your c file.
 
 Here are some of the frequently used functions of this library (to see the full API, please review the [NF_Lib header][onvm_nflib.h]):
-  - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info* info)`, initializes all the data structures and memory regions that the NF needs run and communicates with the manager about its existence.  This is required to be called in the main function of an NF.
+  - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info** nf_info_p)`, initializes all the data structures and memory regions that the NF needs run and communicates with the manager about its existence. Fills the passed double pointer with the onvm_nf_info struct. This is required to be called in the main function of an NF.
   - `int onvm_nflib_run(struct onvm_nf_info* info, void(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta))`, is the communication protocol between NF and manager, where the NF provides a pointer to a packet handler function to the manager.  The manager uses this function pointer to pass packets to the NF as it is routing traffic.  This function continuously loops, giving packets one-by-one to the destined NF as they arrive.
 
 ### Advanced Ring Manipulation

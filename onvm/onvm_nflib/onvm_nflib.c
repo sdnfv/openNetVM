@@ -371,6 +371,9 @@ onvm_nflib_run_callback(
         }
         nf->nf_mode = NF_MODE_SINGLE;
 
+        if (nf->nf_setup_function != NULL)
+                nf->nf_setup_function(info);
+
         printf("\nClient process %d handling packets\n", nf->instance_id);
 
         /* Listen for ^C and docker stop so we can exit gracefully */
@@ -520,6 +523,11 @@ onvm_nflib_get_nf(uint16_t id) {
         return &nfs[id];
 }
 
+void
+onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_entry setup) {
+        nfs[info->instance_id].nf_setup_function = setup;
+}
+
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void) {
         return default_chain;
@@ -602,11 +610,6 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
                 return -1;
         }
 
-        if (nf->nf_mode != NF_MODE_SINGLE) {
-                RTE_LOG(INFO, APP, "Can only scale NFs running in single mode\n");
-                return -1;
-        }
-
         /* Find the next available lcore to use */
         RTE_LOG(INFO, APP, "Currently running on core %u\n", current);
         for (core = rte_get_next_lcore(current, 1, 0); core != RTE_MAX_LCORE; core = rte_get_next_lcore(core, 1, 0)) {
@@ -640,8 +643,17 @@ onvm_nflib_start_child(void *arg) {
                 RTE_LOG(INFO, APP, "Unable to init new NF, exiting...\n");
                 return -1;
         }
+        
+        nfs[child_info->instance_id].nf_setup_function = parent->nf_setup_function;
 
-        onvm_nflib_run_callback(child_info, parent->nf_pkt_function, parent->nf_callback_function);
+        if (parent->nf_mode == NF_MODE_SINGLE)
+                onvm_nflib_run_callback(child_info, parent->nf_pkt_function, parent->nf_callback_function);
+        else if (parent->nf_mode == NF_MODE_RING) {
+                if (parent->nf_setup_function != NULL)
+                        parent->nf_setup_function(child_info);
+                onvm_nflib_nf_ready(child_info);
+                parent->nf_advanced_rings_function(child_info);
+        }
         return 0;
 }
 
@@ -736,7 +748,7 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 {
         if (nf_info == NULL) {
 		return;
-	}		
+	}
 
 	struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
