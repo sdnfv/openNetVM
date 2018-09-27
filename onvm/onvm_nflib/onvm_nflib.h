@@ -98,7 +98,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run_callback(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action), int(*callback_handler)(void));
+onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler, callback_handler_func callback_handler);
 
 
 /**
@@ -211,7 +211,7 @@ onvm_nflib_get_nf(uint16_t id);
  *   A NF setup function that runs before running the NF.
  */
 void
-onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_entry setup);
+onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup);
 
 /*
  * Scale the NF by launching a new instance, determines the core to scale to

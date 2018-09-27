@@ -152,14 +152,14 @@ struct port_info {
 };
 
 /* Function prototype for NF packet handlers */
-typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+typedef int(*pkt_handler_func)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
 /* Function prototype for NF callback handlers */
-typedef int(*callback_handler)(void);
+typedef int(*callback_handler_func)(void);
 /* Function prototype for NFs running advanced rings */
 struct onvm_nf_info;
-typedef void(*advanced_rings_entry)(struct onvm_nf_info* nf_info);
+typedef void(*advanced_rings_func)(struct onvm_nf_info* nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void(*setup_entry)(struct onvm_nf_info* nf_info);
+typedef void(*setup_func)(struct onvm_nf_info* nf_info);
 
 /*
  * Define a nf structure with all needed info, including
@@ -177,10 +177,10 @@ struct onvm_nf {
         /* Advanced ring mode or packet handler mode */
         uint8_t nf_mode;
         /* NF specifc functions */
-        pkt_handler nf_pkt_function;
-        callback_handler nf_callback_function;
-        advanced_rings_entry nf_advanced_rings_function;
-        setup_entry nf_setup_function;
+        pkt_handler_func nf_pkt_function;
+        callback_handler_func nf_callback_function;
+        advanced_rings_func nf_advanced_rings_function;
+        setup_func nf_setup_function;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 

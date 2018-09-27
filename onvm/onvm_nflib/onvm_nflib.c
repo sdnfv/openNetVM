@@ -173,7 +173,7 @@ onvm_nflib_handle_signal(int sig);
  * Check if there are packets in this NF's RX Queue and process them
  */
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler handler) __attribute__((always_inline));
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func handler) __attribute__((always_inline));
 
 /*
  * Check if there is a message available for this NF and process it
@@ -355,8 +355,8 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 int
 onvm_nflib_run_callback(
         struct onvm_nf_info* info,
-        pkt_handler handler,
-        callback_handler callback)
+        pkt_handler_func handler,
+        callback_handler_func callback)
 {
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct onvm_nf * nf;
@@ -417,7 +417,7 @@ onvm_nflib_run_callback(
 }
 
 int
-onvm_nflib_run(struct onvm_nf_info* info, pkt_handler handler) {
+onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func handler) {
         return onvm_nflib_run_callback(info, handler, ONVM_NO_CALLBACK);
 }
 
@@ -524,7 +524,7 @@ onvm_nflib_get_nf(uint16_t id) {
 }
 
 void
-onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_entry setup) {
+onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup) {
         nfs[info->instance_id].nf_setup_function = setup;
 }
 
@@ -537,7 +537,7 @@ onvm_nflib_get_default_chain(void) {
 
 
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler handler) {
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func handler) {
         struct onvm_pkt_meta* meta;
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
