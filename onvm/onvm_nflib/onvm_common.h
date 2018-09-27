@@ -151,6 +151,11 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+/* Function prototype for NF packet handlers */
+typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+/* Function prototype for NF callback handlers */
+typedef int(*callback_handler)(void);
+
 /*
  * Define a nf structure with all needed info, including
  * stats from the nfs.
@@ -161,6 +166,16 @@ struct onvm_nf {
         struct rte_ring *msg_q;
         struct onvm_nf_info *info;
         uint16_t instance_id;
+
+        /* Available cores for NF scaling */
+        uint8_t headroom;
+        /* Advanced ring mode or packet handler mode */
+        uint8_t nf_mode;
+        /* NF specifc functions */
+        pkt_handler nf_pkt_function;
+        callback_handler nf_callback_function;
+        /* Struct for NF to NF communication (NF tx) */
+        struct queue_mgr *nf_tx_mgr;
 
         /*
          * Define a structure with stats from the NFs.
@@ -186,9 +201,6 @@ struct onvm_nf {
 
 };
 
-/* Function prototype for NF packet handlers */
-typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
-
 /*
  * Define a structure to describe one NF
  */
@@ -197,12 +209,6 @@ struct onvm_nf_info {
         uint16_t service_id;
         uint8_t status;
         const char *tag;
-        /* Available cores for NF scaling */
-        uint8_t headroom;
-        /* Advanced ring mode or packet handler mode*/
-        uint8_t nf_mode;
-        pkt_handler nf_pkt_function;
-        struct queue_mgr *nf_tx_mgr;
 };
 
 /*

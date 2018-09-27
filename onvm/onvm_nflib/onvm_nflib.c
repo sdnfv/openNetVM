@@ -74,8 +74,6 @@
 
 #define ONVM_NO_CALLBACK NULL
 
-//typedef int(*pkt_handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
-typedef int(*callback_handler)(void);
 
 /******************************Global Variables*******************************/
 
@@ -107,9 +105,6 @@ static uint16_t service_id = -1;
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
 
-// Mode this NF is running in (single packet, or direct ring manipulation)
-static uint8_t nf_mode = NF_MODE_UNKNOWN;
-
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
@@ -140,7 +135,7 @@ onvm_nflib_info_init(const char *tag);
  *
  */
 static void 
-onvm_nflib_nf_tx_mgr_init(struct onvm_nf_info *info);
+onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf);
 
 
 /*
@@ -178,13 +173,13 @@ onvm_nflib_handle_signal(int sig);
  * Check if there are packets in this NF's RX Queue and process them
  */
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) __attribute__((always_inline));
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler handler) __attribute__((always_inline));
 
 /*
  * Check if there is a message available for this NF and process it
  */
 static inline void
-onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) __attribute__((always_inline));
+onvm_nflib_dequeue_messages(struct onvm_nf *nf) __attribute__((always_inline));
 
 /*
  * Set this NF's status to not running and release memory
@@ -193,12 +188,6 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) __attribute__((always_
  */
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
-
-/*
- * Scale the NF by launching a new instance, determines the core to scale to
- */
-//static inline void
-//onvm_nflib_scale(struct onvm_nf_info *info) __attribute__((always_inline));
 
 /*
  * Entry point of a spawned child NF
@@ -269,7 +258,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         /* Initialize the info struct */
         nf_info = onvm_nflib_info_init(nf_tag);
         *nf_info_p = nf_info;
-
+        
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
@@ -340,6 +329,18 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
+
+        /* Set mode to UNKNOWN, to be determined later */
+        nfs[nf_info->instance_id].nf_mode = NF_MODE_UNKNOWN;
+        
+        /* Set core headroom = available cores for scaling or 0, if this is not the master core */
+        nfs[nf_info->instance_id].headroom = rte_get_master_lcore() == rte_lcore_id()
+                ? rte_lcore_count() - 1
+                : 0;
+
+        /* Initialize empty NF's tx manager */
+        onvm_nflib_nf_tx_mgr_init(&nfs[nf_info->instance_id]);
+
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
 
@@ -358,23 +359,30 @@ onvm_nflib_run_callback(
         callback_handler callback)
 {
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-        int ret;
+        struct onvm_nf * nf;
         uint16_t nb_pkts_added;
+        int ret;
+
+        nf = &nfs[info->instance_id];
 
         /* Don't allow conflicting NF modes */
-        if (info->nf_mode == NF_MODE_RING) {
+        if (nf->nf_mode == NF_MODE_RING) {
                 return -1;
         }
-        info->nf_mode = NF_MODE_SINGLE;
+        nf->nf_mode = NF_MODE_SINGLE;
 
-        printf("\nClient process %d handling packets\n", info->instance_id);
+        printf("\nClient process %d handling packets\n", nf->instance_id);
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, onvm_nflib_handle_signal);
         signal(SIGTERM, onvm_nflib_handle_signal);
 
-        if (info->nf_pkt_function == NULL) {
-                info->nf_pkt_function = handler;
+        if (nf->nf_pkt_function == NULL) {
+                nf->nf_pkt_function = handler;
+        }
+
+        if (nf->nf_callback_function == NULL) {
+                nf->nf_callback_function = callback;
         }
 
         printf("Sending NF_READY message to manager...\n");
@@ -383,17 +391,17 @@ onvm_nflib_run_callback(
 
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
-                nb_pkts_added = onvm_nflib_dequeue_packets((void **) pkts, info, handler);
+                nb_pkts_added = onvm_nflib_dequeue_packets((void **) pkts, nf, handler);
 
                 if (likely(nb_pkts_added > 0)) {
-                        onvm_pkt_process_tx_batch(info->nf_tx_mgr, pkts, nb_pkts_added, &nfs[info->instance_id]);
+                        onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pkts, nb_pkts_added, nf);
                 }
 
                 /* Flush the packet buffers */
-                onvm_pkt_enqueue_tx_thread(info->nf_tx_mgr->to_tx_buf, info->instance_id);
-                onvm_pkt_flush_all_nfs(info->nf_tx_mgr);
+                onvm_pkt_enqueue_tx_thread(nf->nf_tx_mgr->to_tx_buf, nf->instance_id);
+                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr);
 
-                onvm_nflib_dequeue_messages(info);
+                onvm_nflib_dequeue_messages(nf);
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)() && keep_running;
                 }
@@ -473,12 +481,12 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
 	}
 
 	/* Don't allow conflicting NF modes */
-        if (nf_mode == NF_MODE_SINGLE) {
+        if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
 
         /* We should return the tx_ring associated with the info struct */
-        info->nf_mode = NF_MODE_RING;
+        nfs[info->instance_id].nf_mode = NF_MODE_RING;
 	return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
 }
 
@@ -490,12 +498,12 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
 	}
 
         /* Don't allow conflicting NF modes */
-        if (nf_mode == NF_MODE_SINGLE) {
+        if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
 
         /* We should return the rx_ring associated with the info struct */
-        info->nf_mode = NF_MODE_RING;
+        nfs[info->instance_id].nf_mode = NF_MODE_RING;
         return (struct rte_ring *)(&(nfs[info->instance_id].rx_q));
 }
 
@@ -503,12 +511,12 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id) {
         /* Don't allow conflicting NF modes */
-        if (nf_mode == NF_MODE_SINGLE) {
+        if (nfs[id].nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
 
         /* We should return the NF struct referenced by instance id */
-        nfs[id].info->nf_mode = NF_MODE_RING;
+        nfs[id].nf_mode = NF_MODE_RING;
         return &nfs[id];
 }
 
@@ -521,14 +529,14 @@ onvm_nflib_get_default_chain(void) {
 
 
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler handler) {
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler handler) {
         struct onvm_pkt_meta* meta;
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
         int ret_act;
 
         /* Dequeue all packets in ring up to max possible. */
-        nb_pkts = rte_ring_dequeue_burst(nfs[info->instance_id].rx_q, pkts, PACKET_READ_SIZE, NULL);
+        nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
@@ -545,23 +553,23 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_info *info, pkt_handler h
                 if(likely(ret_act == 0)) {
                         tx_buf.buffer[tx_buf.count++] = pkts[i];
                 } else {
-                        nfs[info->instance_id].stats.tx_buffer++;
+                        nf->stats.tx_buffer++;
                 }
         }
         if (ONVM_NF_HANDLE_TX) {
                 return nb_pkts;
         } 
 
-        onvm_pkt_enqueue_tx_thread(&tx_buf, info->instance_id);
+        onvm_pkt_enqueue_tx_thread(&tx_buf, nf->instance_id);
         return 0;        
 }
 
 static inline void
-onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
+onvm_nflib_dequeue_messages(struct onvm_nf *nf) {
         struct onvm_nf_msg *msg;
         struct rte_ring *msg_q;
 
-        msg_q = nfs[nf_info->instance_id].msg_q;
+        msg_q = nf->msg_q;
 
         // Check and see if this NF has any messages from the manager
         if (likely(rte_ring_count(msg_q) == 0)) {
@@ -569,18 +577,21 @@ onvm_nflib_dequeue_messages(struct onvm_nf_info *nf_info) {
         }
         msg = NULL;
         rte_ring_dequeue(msg_q, (void**)(&msg));
-        onvm_nflib_handle_msg(nf_info, msg);
+        onvm_nflib_handle_msg(nf->info, msg);
         rte_mempool_put(nf_msg_pool, (void*)msg);
 }
 
 int
 onvm_nflib_scale(struct onvm_nf_info *info) {
+        struct onvm_nf *nf;
         unsigned current;
         unsigned core;
         enum rte_lcore_state_t state;
         int ret;
 
-        if (info->headroom == 0) {
+        nf = &nfs[info->instance_id];
+
+        if (nf->headroom == 0) {
                 RTE_LOG(INFO, APP, "No cores available to scale\n");
                 return -1;
         }
@@ -591,7 +602,7 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
                 return -1;
         }
 
-        if (info->nf_mode != NF_MODE_SINGLE) {
+        if (nf->nf_mode != NF_MODE_SINGLE) {
                 RTE_LOG(INFO, APP, "Can only scale NFs running in single mode\n");
                 return -1;
         }
@@ -602,7 +613,7 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
                 state = rte_eal_get_lcore_state(core);
                 if (state != RUNNING) {
                         RTE_LOG(INFO, APP, "Able to scale to core %u\n", core);
-                        ret = rte_eal_remote_launch(&onvm_nflib_start_child, info, core);
+                        ret = rte_eal_remote_launch(&onvm_nflib_start_child, nf, core);
                         if (ret == -EBUSY) {
                                 RTE_LOG(INFO, APP, "Core is %u busy, skipping...\n", core);
                                 continue;
@@ -617,20 +628,20 @@ onvm_nflib_scale(struct onvm_nf_info *info) {
 
 static int
 onvm_nflib_start_child(void *arg) {
-        struct onvm_nf_info *parent_info;
+        struct onvm_nf *parent;
         struct onvm_nf_info *child_info;
         int ret;
 
-        parent_info = (struct onvm_nf_info *)arg;
-        parent_info->headroom--;
-        RTE_LOG(INFO, APP, "Starting another copy of service %u, new headroom: %u\n", parent_info->service_id, parent_info->headroom);
+        parent = (struct onvm_nf *)arg;
+        parent->headroom--;
+        RTE_LOG(INFO, APP, "Starting another copy of service %u, new headroom: %u\n", parent->info->service_id, parent->headroom);
         ret = onvm_nflib_init(first_argc, first_argv, first_nf_tag, &child_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Unable to init new NF, exiting...\n");
                 return -1;
         }
 
-        onvm_nflib_run(child_info, parent_info->nf_pkt_function);
+        onvm_nflib_run_callback(child_info, parent->nf_pkt_function, parent->nf_callback_function);
         return 0;
 }
 
@@ -653,24 +664,17 @@ onvm_nflib_info_init(const char *tag)
         info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
-        info->nf_mode = NF_MODE_UNKNOWN;
-        /* Set core headroom = available cores for scaling or 0, if this is not the master core */
-        info->headroom = rte_get_master_lcore() == rte_lcore_id()
-                ? rte_lcore_count() - 1
-                : 0;
-        /* Initialize empty NF's tx manager */
-        onvm_nflib_nf_tx_mgr_init(info);
         return info;
 }
 
 static void 
-onvm_nflib_nf_tx_mgr_init(struct onvm_nf_info *info)
+onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf)
 {
-        info->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
-        info->nf_tx_mgr->mgr_type_t = NF; 
-        info->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
-        info->nf_tx_mgr->id = initial_instance_id;
-        info->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
+        nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
+        nf->nf_tx_mgr->mgr_type_t = NF; 
+        nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
+        nf->nf_tx_mgr->id = initial_instance_id;
+        nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
 }
 
 
@@ -756,21 +760,4 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
         }
 
-}
-
-/* TODO remove, was using this to test that the manager can send the scale message */
-int
-onvm_scale(struct onvm_nf_info *info) {
-        struct onvm_nf_msg *request_message;
-        int ret;
-
-        ret = rte_mempool_get(nf_msg_pool, (void**)(&request_message));
-        if(ret != 0) return ret;
-        request_message->msg_type = MSG_SCALE;
-        ret = rte_ring_enqueue(nfs[info->instance_id].msg_q, request_message);
-        if(ret < 0){
-                rte_mempool_put(nf_msg_pool, request_message);
-                return ret;
-        }
-        return 0;
 }

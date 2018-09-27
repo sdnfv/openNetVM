@@ -152,7 +152,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_info *info, struct onvm_nf_msg *msg);
+onvm_nflib_handle_msg(struct onvm_nf_info *nf_info, struct onvm_nf_msg *msg);
 
 /**
  * Stop this NF and clean up its memory
