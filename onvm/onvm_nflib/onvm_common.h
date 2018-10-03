@@ -63,6 +63,16 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
+#define INTERRUPT_SEM           // To enable NF thread interrupt mode wake.  Better to move it as option in Makefile
+
+//#ifdef INTERRUPT_SEM  //move maro to makefile, otherwise uncomemnt or need to include these after including common.h
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+//#endif //INTERRUPT_SEM
+
 //extern uint8_t rss_symmetric_key[40];
 
 //flag operations that should be used on onvm_pkt_meta
@@ -204,8 +214,23 @@ struct onvm_nf {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
-        } stats;
 
+                #ifdef INTERRUPT_SEM
+                volatile uint64_t prev_rx;
+                volatile uint64_t prev_rx_drop;
+                volatile uint64_t prev_tx;
+                volatile uint64_t prev_tx_drop;
+                volatile uint64_t comp_cost;
+                #endif
+         
+        } stats;
+        
+        #ifdef INTERRUPT_SEM
+        const char *sem_name;
+        sem_t *mutex;
+        key_t shm_key;
+        rte_atomic16_t *shm_server;
+        #endif
 };
 
 /*
@@ -247,6 +272,19 @@ struct onvm_service_chain {
 #define _NF_MSG_QUEUE_NAME "NF_%u_MSG_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
+
+/* interrupt semaphore specific updates */
+#ifdef INTERRUPT_SEM
+#define SHMSZ 4                         // size of shared memory segement (page_size)
+#define KEY_PREFIX 123                  // prefix len for key
+#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
+#define MONITOR                         // Unused remove it
+#define ONVM_NUM_WAKEUP_THREADS 1
+#define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
+#define SAMPLING_RATE 1000000           // sampling rate to estimate NFs computation cost
+#define ONVM_SPECIAL_NF 0               // special NF for flow table entry management
+#endif
+
 
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
@@ -307,6 +345,28 @@ static inline int
 onvm_nf_is_valid(struct onvm_nf *nf) {
         return nf && nf->info && nf->info->status == NF_RUNNING;
 }
+#ifdef INTERRUPT_SEM
+/*
+ * Given the rx queue name template above, get the key of the shared memory
+ */
+static inline key_t
+get_rx_shmkey(unsigned id) {
+        return KEY_PREFIX * 10 + id;
+}
+
+/*
+ * Given the sem name template above, get the sem name
+ */
+static inline const char *
+get_sem_name(unsigned id) {
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(MP_CLIENT_SEM_NAME) + 2];
+
+        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_SEM_NAME, id);
+        return buffer;
+}
+#endif
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 

@@ -53,6 +53,15 @@
 #ifndef _ONVM_INIT_H_
 #define _ONVM_INIT_H_
 
+/***************************Standard C library********************************/
+
+//#ifdef INTERRUPT_SEM  //move maro to makefile, otherwise uncomemnt or need to include these after including common.h
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+//#endif //INTERRUPT_SEM
 
 /********************************DPDK library*********************************/
 

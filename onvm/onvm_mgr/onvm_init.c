@@ -386,6 +386,15 @@ init_shm_rings(void) {
         const unsigned ringsize = NF_QUEUE_RINGSIZE;
         const unsigned msgringsize = NF_MSG_QUEUE_SIZE;
 
+        // mutex and semaphores for N
+        #ifdef INTERRUPT_SEM
+        const char * sem_name;
+        sem_t *mutex;
+        key_t key;
+        int shmid;
+        char *shm;
+        #endif
+
         // use calloc since we allocate for all possible NFs
         // ensure that all fields are init to 0 to avoid reading garbage
         // TODO plopreiato, move to creation when a NF starts
@@ -413,7 +422,34 @@ init_shm_rings(void) {
                         rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for NF %u\n", i);
 
                 if (nfs[i].msg_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", i);
+                        rte_exit(EXIT_FAILURE, "Cannot create msg queue for client %u\n", i);
+
+                #ifdef INTERRUPT_SEM
+                sem_name = get_sem_name(i);
+                nfs[i].sem_name = sem_name;
+
+                fprintf(stderr, "sem_name=%s for client %d\n", sem_name, i);
+                mutex = sem_open(sem_name, O_CREAT, 06666, 0);
+                if(mutex == SEM_FAILED) {
+                        fprintf(stderr, "can not create semaphore for client %d\n", i);
+                        sem_unlink(sem_name);
+                        exit(1);
+                }
+                nfs[i].mutex = mutex;
+
+                key = get_rx_shmkey(i);
+                if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+                        fprintf(stderr, "can not create the shared memory segment for client %d\n", i);
+                        exit(1);
+                }
+
+                if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+                        fprintf(stderr, "can not attach the shared segment to the server space for client %d\n", i);
+                               exit(1);
+                    }
+
+                nfs[i].shm_server = (rte_atomic16_t *)shm;
+                #endif
         }
         return 0;
 }

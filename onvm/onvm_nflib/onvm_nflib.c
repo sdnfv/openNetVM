@@ -55,6 +55,13 @@
 #include <getopt.h>
 #include <signal.h>
 
+//#ifdef INTERRUPT_SEM  //move maro to makefile, otherwise uncomemnt or need to include these after including common.h
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+//#endif //INTERRUPT_SEM
 
 /*****************************Internal headers********************************/
 
@@ -113,6 +120,19 @@ static int first_init_flag = 1;
 static int first_argc;
 static char **first_argv;
 static const char *first_nf_tag;
+
+#ifdef INTERRUPT_SEM
+// to track packets per NF <used for sampling computation cost>
+uint64_t counter = 0;
+
+// flag (shared mem variable) to track state of NF and trigger wakeups
+// flag_p=1 => NF sleeping (waiting on semaphore)
+// flag_p=0 => NF is running and processing (not waiting on semaphore)
+static rte_atomic16_t *flag_p;
+
+// Mutex for sem_wait
+static sem_t *mutex;
+#endif  //INTERRUPT_SEM
 
 /***********************Internal Functions Prototypes*************************/
 
@@ -194,6 +214,17 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
  */
 static int
 onvm_nflib_start_child(void *arg);
+
+#ifdef INTERRUPT_SEM
+/*
+ * Function to initalize the shared cpu support
+ *
+ * Input  : Number of NF instances
+ */
+static void
+init_shared_cpu_info(uint16_t instance_id);
+#endif  //INTERRUPT_SEM
+
 
 /************************************API**************************************/
 
@@ -346,6 +377,10 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 
         /* Tell the manager we're ready to recieve packets */
         keep_running = 1;
+
+        #ifdef INTERRUPT_SEM
+        init_shared_cpu_info(nf_info->instance_id);
+        #endif
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
         return retval_final;
@@ -542,12 +577,22 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
         int ret_act;
+        #ifdef INTERRUPT_SEM
+        // To account NFs computation cost (sampled over SAMPLING_RATE packets)
+        uint64_t start_tsc = 0, end_tsc = 0;
+        #endif
 
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
+                #ifdef INTERRUPT_SEM
+                /* For now discard the special NF instance and put all NFs to wait
+                if ((!ONVM_SPECIAL_NF) || (info->instance_id != 1)) {*/
+                rte_atomic16_set(flag_p, 1);
+                sem_wait(mutex);
+                #endif
                 return 0;
         }
 
@@ -556,7 +601,21 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
+                #ifdef INTERRUPT_SEM
+                counter++;
+                meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
+                if (counter % SAMPLING_RATE == 0) {
+                        start_tsc = rte_rdtsc();
+                }
+                #endif
                 ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
+                #ifdef INTERRUPT_SEM
+                if (counter % SAMPLING_RATE == 0) {
+                        end_tsc = rte_rdtsc();
+                        nf->stats.comp_cost = end_tsc - start_tsc;
+                }
+                #endif
+
                 /* NF returns 0 to return packets or 1 to buffer */
                 if(likely(ret_act == 0)) {
                         tx_buf.buffer[tx_buf.count++] = pkts[i];
@@ -739,8 +798,16 @@ onvm_nflib_parse_args(int argc, char *argv[]) {
 static void
 onvm_nflib_handle_signal(int sig)
 {
-        if (sig == SIGINT || sig == SIGTERM)
+        if (sig == SIGINT || sig == SIGTERM) {
                 keep_running = 0;
+                #ifdef INTERRUPT_SEM
+                if ((mutex) && (rte_atomic16_read(flag_p) ==1)) {
+                        rte_atomic16_set(flag_p, 0);
+                        sem_post(mutex);
+                }
+                #endif
+        }
+        /* TODO: Main thread for INTERRUPT_SEM case: Must additionally relinquish SEM, SHM */
 }
 
 static void
@@ -771,5 +838,39 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
                 rte_mempool_put(nf_msg_pool, shutdown_msg);
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
         }
-
 }
+
+#ifdef INTERRUPT_SEM
+static void
+init_shared_cpu_info(uint16_t instance_id) {
+        const char *sem_name;
+        int shmid;
+        key_t key;
+        char *shm;
+
+        sem_name = get_sem_name(instance_id);
+        fprintf(stderr, "sem_name=%s for client %d\n", sem_name, instance_id);
+        mutex = sem_open(sem_name, 0, 0666, 0);
+        if (mutex == SEM_FAILED) {
+                perror("Unable to execute semaphore");
+                fprintf(stderr, "unable to execute semphore for client %d\n", instance_id);
+                sem_close(mutex);
+                exit(1);
+        }
+
+        /* get flag which is shared by server */
+        key = get_rx_shmkey(instance_id);
+        if ((shmid = shmget(key, SHMSZ, 0666)) < 0) {
+                perror("shmget");
+                fprintf(stderr, "unable to Locate the segment for client %d\n", instance_id);
+                exit(1);
+        }
+
+        if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+                fprintf(stderr, "can not attach the shared segment to the client space for client %d\n", instance_id);
+                exit(1);
+        }
+
+        flag_p = (rte_atomic16_t *)shm;
+}
+#endif
