@@ -321,7 +321,7 @@ print_results(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         struct pcap_pkthdr pkt_hdr;
         struct timeval time;
         u_char *packet;

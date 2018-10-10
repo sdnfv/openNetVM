@@ -172,7 +172,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
 	struct udp_hdr *udp;
         static uint32_t counter = 0;
 

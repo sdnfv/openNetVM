@@ -150,7 +150,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
 	struct onvm_flow_entry *flow_entry = NULL;
 	int ret;

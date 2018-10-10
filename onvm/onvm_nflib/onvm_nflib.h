@@ -113,7 +113,7 @@ onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler,
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action));
+onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler);
 
 
 /**
@@ -152,7 +152,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_info *nf_info, struct onvm_nf_msg *msg);
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info);
 
 /**
  * Stop this NF and clean up its memory
@@ -222,7 +222,7 @@ onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup);
  *   Error code or 0 if successful.
  */
 int
-onvm_nflib_scale(struct onvm_nf_info *info);
+onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 
 
 struct onvm_service_chain *

@@ -151,15 +151,24 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+struct onvm_nf_info;
 /* Function prototype for NF packet handlers */
-typedef int(*pkt_handler_func)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);
+typedef int(*pkt_handler_func)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NF callback handlers */
 typedef int(*callback_handler_func)(void);
 /* Function prototype for NFs running advanced rings */
-struct onvm_nf_info;
 typedef void(*advanced_rings_func)(struct onvm_nf_info* nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void(*setup_func)(struct onvm_nf_info* nf_info);
+
+struct onvm_nf_scale_info {
+        struct onvm_nf_info *parent;
+        void *data;
+        setup_func setup_func;
+        pkt_handler_func pkt_func;
+        callback_handler_func callback_func;
+        advanced_rings_func adv_rings_func;
+};
 
 /*
  * Define a nf structure with all needed info, including
@@ -216,6 +225,7 @@ struct onvm_nf_info {
         uint16_t service_id;
         uint8_t status;
         const char *tag;
+        void *data;
 };
 
 /*
