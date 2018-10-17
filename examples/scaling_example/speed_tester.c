@@ -49,6 +49,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
@@ -78,9 +79,6 @@
 #define DEFAULT_PKT_NUM 128
 #define DEFAULT_LAT_PKT_NUM 16
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
-
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
 static uint32_t print_delay = 10000000;
@@ -249,6 +247,13 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
+packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+        (void)pkt;
+        meta->destination = *(uint16_t *)nf_info->data;
+        meta->action = ONVM_NF_ACTION_TONF;
+        return 0;
+}
+static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
@@ -258,23 +263,25 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
         /* Testing NF scaling */ 
         static uint32_t spawned = 0;
-        if (counter == 1000000 && spawned == 0){
-                uint16_t *q = rte_malloc("q", sizeof(uint16_t), 0);
-                *q = destination;
-                *q = (uint16_t)3;
-                struct onvm_nf_scale_info *scale_info = rte_malloc("hehehe", sizeof(struct onvm_nf_scale_info), 0);
-                scale_info->parent = nf_info;
-                scale_info->data = q;
-                scale_info->setup_func = &nf_setup;
-                scale_info->pkt_func = &packet_handler;
-                while(onvm_nflib_scale(scale_info)==0);
-                spawned=1;
+        if (counter == 10000000 && spawned == 0){
+                int ret = 0;
+                while (ret == 0) {
+                        uint16_t *q = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
+                        struct onvm_nf_scale_info *scale_info = rte_malloc("nf_scale_info", sizeof(struct onvm_nf_scale_info), 0);
+                        scale_info->parent = nf_info;
+                        scale_info->instance_id = -1;
+                        scale_info->setup_func = &nf_setup;
+                        scale_info->pkt_func = &packet_handler_child;
+                        *q = (uint16_t) (1 + rand() % 15);
+                        scale_info->data = q;
+                        scale_info->service_id = *q;
+                        ret = onvm_nflib_scale(scale_info);
+                }
+                spawned = 1;
         }
 
         if (ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
                 /* one of our fake pkts to forward */
-                //printf("Actual %d, data %d\n", nf_info->service_id, *(uint16_t*)nf_info->data);
-                //meta->destination = *(uint16_t*)nf_info->data;
                 meta->destination = *(uint16_t *)nf_info->data;
                 meta->action = ONVM_NF_ACTION_TONF;
                 if (measure_latency && ONVM_CHECK_BIT(meta->flags, LATENCY_BIT)) {
@@ -290,6 +297,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 /* Drop real incoming packets */
                 meta->action = ONVM_NF_ACTION_DROP;
         }
+        
         return 0;
 }
 
@@ -329,10 +337,12 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         static uint8_t spawned = 0;
         if (spawned == 0){
                 uint16_t *q = rte_malloc("q", sizeof(uint16_t),0);
-                *q = destination;
+                *q = (uint16_t) (1 + rand() % 15);
                 struct onvm_nf_scale_info *scale_info = rte_malloc("hehehe", sizeof(struct onvm_nf_scale_info), 0);
                 scale_info->parent = nf_info;
                 scale_info->data = q;
+                scale_info->instance_id = -1;
+                scale_info->service_id = *q;
                 scale_info->setup_func = &nf_setup;
                 scale_info->adv_rings_func = &run_advanced_rings;
                 while(onvm_nflib_scale(scale_info)==0);
@@ -451,7 +461,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
                         pmeta = onvm_get_pkt_meta(pkt);
-                        pmeta->destination = destination;
+                        pmeta->destination = *(uint16_t * )nf_info->data;
                         pmeta->action = ONVM_NF_ACTION_TONF;
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                         pkt->hash.rss = i;
@@ -474,6 +484,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
 int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
+        struct onvm_nf_info *nf_info;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
@@ -490,6 +501,7 @@ int main(int argc, char *argv[]) {
          * For advanced rings manually run the function */
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
+        srand(time(NULL));
         nf_info->data = (void *)rte_malloc("nf_specific_data", sizeof(int), 0);
         *(uint16_t*)nf_info->data = nf_info->service_id;
 

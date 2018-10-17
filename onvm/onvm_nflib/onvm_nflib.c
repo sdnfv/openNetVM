@@ -55,6 +55,8 @@
 #include <getopt.h>
 #include <signal.h>
 
+/******************************DPDK libraries*********************************/
+#include "rte_malloc.h"
 
 /*****************************Internal headers********************************/
 
@@ -96,23 +98,11 @@ static struct rte_mempool *nf_info_mp;
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
-// User-given NF Client ID (defaults to manager assigned)
-static uint16_t initial_instance_id = NF_NO_ID;
-
-// User supplied service ID
-static uint16_t service_id = -1;
-
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
-
-// Keeping track of the inital args (but only once), so we can use them again
-static int first_init_flag = 1;
-static int first_argc;
-static char **first_argv;
-static const char *first_nf_tag;
 
 /***********************Internal Functions Prototypes*************************/
 
@@ -157,7 +147,7 @@ onvm_nflib_usage(const char *progname);
  *
  */
 static int
-onvm_nflib_parse_args(int argc, char *argv[]);
+onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info);
 
 
 /*
@@ -195,11 +185,27 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 static int
 onvm_nflib_start_child(void *arg);
 
+static int
+onvm_nflib_dpdk_init(int argc, char *argv[]);
+
+static int
+onvm_nflib_onvm_init(void);
+
+static int
+onvm_nflib_start_nf(struct onvm_nf_info *nf_info);
 /************************************API**************************************/
 
 
-int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p) {
+static int
+onvm_nflib_dpdk_init(int argc, char *argv[]) {
+        int retval_eal = 0;
+        if ((retval_eal = rte_eal_init(argc, argv)) < 0) 
+                return -1;
+        return retval_eal;
+}
+
+static int
+onvm_nflib_onvm_init(void) {
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
@@ -207,43 +213,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         const struct rte_memzone *mz_nf_per_service;
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
-        struct onvm_nf_msg *startup_msg;
-        struct onvm_nf_info *nf_info;
-        int retval_parse, retval_final;
-        int retval_eal = 0;
-
-        if (first_init_flag && (retval_eal = rte_eal_init(argc, argv)) < 0) 
-                return -1;
-
-        /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
-        argc -= retval_eal; argv += retval_eal;
-
-        if (first_init_flag) {
-                /* Keep these for if we need to start another copy */
-                first_argc = argc;
-                first_argv = argv;
-                first_nf_tag = nf_tag;
-                first_init_flag = 0;
-        }
-
-        /* Reset getopt global variables opterr and optind to their default values */
-        opterr = 0; optind = 1;
-
-        if ((retval_parse = onvm_nflib_parse_args(argc, argv)) < 0)
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-
-        /*
-         * Calculate the offset that the nf will use to modify argc and argv for its
-         * getopt call. This is the sum of the number of arguments parsed by
-         * rte_eal_init and parse_nflib_args. This will be decremented by 1 to assure
-         * getopt is looking at the correct index since optind is incremented by 1 each
-         * time "--" is parsed.
-         * This is the value that will be returned if initialization succeeds.
-         */
-        retval_final = (retval_eal + retval_parse) - 1;
-
-        /* Reset getopt global variables opterr and optind to their default values */
-        opterr = 0; optind = 1;
 
         /* Lookup mempool for nf_info struct */
         nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
@@ -254,11 +223,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
         if (nf_msg_pool == NULL)
                 rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
-
-        /* Initialize the info struct */
-        nf_info = onvm_nflib_info_init(nf_tag);
-        *nf_info_p = nf_info;
-        
+ 
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
@@ -291,13 +256,19 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
         scp = mz_scp->addr;
         default_chain = *scp;
-
         onvm_sc_print(default_chain);
 
         mgr_msg_queue = rte_ring_lookup(_MGR_MSG_QUEUE_NAME);
         if (mgr_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
 
+
+        return 0;
+}
+
+static int
+onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
+        struct onvm_nf_msg *startup_msg;
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back memory
@@ -348,6 +319,48 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         keep_running = 1;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
+        return 0;
+}
+
+int
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p) {
+        int retval_parse, retval_final;
+        struct onvm_nf_info *nf_info;
+        int retval_eal = 0;
+
+        retval_eal = onvm_nflib_dpdk_init(argc, argv);
+        if (retval_eal < 0)
+                return retval_eal;
+
+        /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
+        argc -= retval_eal; argv += retval_eal;
+
+        /* Reset getopt global variables opterr and optind to their default values */
+        opterr = 0; optind = 1;
+ 
+        onvm_nflib_onvm_init();
+        /* Initialize the info struct */
+        nf_info = onvm_nflib_info_init(nf_tag);
+        *nf_info_p = nf_info;
+    
+        if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_info)) < 0)
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+         
+        /* Reset getopt global variables opterr and optind to their default values */
+        opterr = 0; optind = 1;
+
+        /*
+         * Calculate the offset that the nf will use to modify argc and argv for its
+         * getopt call. This is the sum of the number of arguments parsed by
+         * rte_eal_init and parse_nflib_args. This will be decremented by 1 to assure
+         * getopt is looking at the correct index since optind is incremented by 1 each
+         * time "--" is parsed.
+         * This is the value that will be returned if initialization succeeds.
+         */
+        retval_final = (retval_eal + retval_parse) - 1;
+
+        onvm_nflib_start_nf(nf_info);
+
         return retval_final;
 }
 
@@ -631,17 +644,29 @@ static int
 onvm_nflib_start_child(void *arg) {
         struct onvm_nf *parent;
         struct onvm_nf_info *child_info;
-        int ret;
         struct onvm_nf_scale_info *child_start_info = (struct onvm_nf_scale_info *) arg;
+        //int ret;
 
         parent = &nfs[child_start_info->parent->instance_id];
         parent->headroom--;
         RTE_LOG(INFO, APP, "Starting another copy of service %u, new headroom: %u\n",parent->info->service_id, parent->headroom);
+
+        /* Initialize the info struct */
+        child_info = onvm_nflib_info_init(parent->info->tag);
+        child_info->service_id = child_start_info->service_id;
+        child_info->instance_id = child_start_info->instance_id;
+
+
+        RTE_LOG(INFO, APP, "NF %d IN USE COUNT %d\n", child_start_info->instance_id, rte_mempool_in_use_count(nf_info_mp));
+        onvm_nflib_start_nf(child_info);
+
+        /*
         ret = onvm_nflib_init(first_argc, first_argv, first_nf_tag, &child_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Unable to init new NF, exiting...\n");
                 return -1;
         }
+        */
         
         nfs[child_info->instance_id].nf_setup_function = child_start_info->setup_func;
         child_info->data = child_start_info->data;
@@ -654,6 +679,7 @@ onvm_nflib_start_child(void *arg) {
                 onvm_nflib_nf_ready(child_info);
                 child_start_info->adv_rings_func(child_info);
         }
+        rte_free(child_start_info);
         return 0;
 }
 
@@ -663,17 +689,18 @@ onvm_nflib_info_init(const char *tag)
         void *mempool_data;
         struct onvm_nf_info *info;
 
+        RTE_LOG(INFO, APP, "NF COUNT-%d, FULL-%d EMPTY-%d IN USE COUNT %d\n", rte_mempool_avail_count(nf_info_mp), rte_mempool_full(nf_info_mp), rte_mempool_empty(nf_info_mp), rte_mempool_in_use_count(nf_info_mp));
         if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
-                rte_exit(EXIT_FAILURE, "Failed to get nf info memory");
+                rte_exit(EXIT_FAILURE, "Failed to get nf info memory\n");
         }
 
         if (mempool_data == NULL) {
-                rte_exit(EXIT_FAILURE, "Client Info struct not allocated");
+                rte_exit(EXIT_FAILURE, "Client Info struct not allocated\n");
         }
 
         info = (struct onvm_nf_info*) mempool_data;
-        info->instance_id = initial_instance_id;
-        info->service_id = service_id;
+        //info->instance_id = initial_instance_id;
+        //info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
         return info;
@@ -685,7 +712,7 @@ onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf)
         nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
         nf->nf_tx_mgr->mgr_type_t = NF; 
         nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
-        nf->nf_tx_mgr->id = initial_instance_id;
+        nf->nf_tx_mgr->id = nf->info->instance_id;//initial_instance_id;
         nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
 }
 
@@ -699,9 +726,11 @@ onvm_nflib_usage(const char *progname) {
 
 
 static int
-onvm_nflib_parse_args(int argc, char *argv[]) {
+onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         const char *progname = argv[0];
         int c;
+        int service_id = -1;
+        int initial_instance_id = NF_NO_ID;
 
         opterr = 0;
         while ((c = getopt (argc, argv, "n:r:")) != -1)
@@ -732,6 +761,8 @@ onvm_nflib_parse_args(int argc, char *argv[]) {
                 fprintf(stderr, "You must provide a nonzero service ID with -r\n");
                 return -1;
         }
+        nf_info->service_id = service_id;
+        nf_info->instance_id = initial_instance_id;
         return optind;
 }
 
@@ -750,9 +781,13 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 		return;
 	}
 
+        if (nf_info->data != NULL)
+                rte_free(nf_info->data);
+
 	struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
 
+        RTE_LOG(INFO, APP, "Cleanup for service %d , inst %d\n", nf_info->service_id, nf_info->instance_id);
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         if (mgr_msg_queue == NULL) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory

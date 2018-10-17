@@ -313,7 +313,7 @@ init_nf_info_pool(void)
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
-        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS,
+        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS*20,
                         NF_INFO_SIZE, NF_INFO_CACHE,
                         0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
 

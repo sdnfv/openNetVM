@@ -163,6 +163,9 @@ typedef void(*setup_func)(struct onvm_nf_info* nf_info);
 
 struct onvm_nf_scale_info {
         struct onvm_nf_info *parent;
+        uint16_t instance_id;
+        uint16_t service_id;
+        char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
@@ -224,6 +227,7 @@ struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
+        uint8_t keep_running;
         const char *tag;
         void *data;
 };
