@@ -34,9 +34,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#Set this to 1 if libpcap is installed to use pcap replay
-ENABLE_PCAP=0
-
 ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
@@ -47,10 +44,10 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = speed_tester
+APP = scaling
 
 # all source are stored in SRCS-y
-SRCS-y := speed_tester.c
+SRCS-y := scaling.c
 
 # OpenNetVM path
 ONVM ?= $(SRCDIR)/../../onvm
@@ -59,11 +56,6 @@ CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
 LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
-
-ifeq ($(ENABLE_PCAP), 1)
-LDFLAGS += -lpcap
-CFLAGS +=-D LIBPCAP
-endif
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

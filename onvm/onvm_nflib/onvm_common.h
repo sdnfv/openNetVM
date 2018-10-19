@@ -50,7 +50,7 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
-#define MAX_NFS 16            // total number of NFs allowed
+#define MAX_NFS 128            // total number of NFs allowed
 #define MAX_SERVICES 16           // total number of unique services allowed
 #define MAX_NFS_PER_SERVICE 8 // max number of NFs per service.
 
@@ -195,6 +195,8 @@ struct onvm_nf {
         setup_func nf_setup_function;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
+        uint8_t children[16];
+        uint16_t parent;
 
         /*
          * Define a structure with stats from the NFs.

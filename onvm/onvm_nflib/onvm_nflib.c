@@ -185,14 +185,29 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 static int
 onvm_nflib_start_child(void *arg);
 
+/*
+ * Initialize dpdk as a secondary proc 
+ *
+ * Input: arc, argv args
+ */
 static int
 onvm_nflib_dpdk_init(int argc, char *argv[]);
 
+/*
+ * Lookup the structs shared with manager
+ *
+ */
 static int
-onvm_nflib_onvm_init(void);
+onvm_nflib_lookup_shared_structs(void);
 
+/*
+ * Start the NF by signaling manager that its ready to recieve packets
+ *
+ * Input: Info struct corresponding to this NF
+ */
 static int
 onvm_nflib_start_nf(struct onvm_nf_info *nf_info);
+
 /************************************API**************************************/
 
 
@@ -205,7 +220,7 @@ onvm_nflib_dpdk_init(int argc, char *argv[]) {
 }
 
 static int
-onvm_nflib_onvm_init(void) {
+onvm_nflib_lookup_shared_structs(void) {
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
         const struct rte_memzone *mz_scp;
@@ -312,6 +327,9 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         /* Initialize empty NF's tx manager */
         onvm_nflib_nf_tx_mgr_init(&nfs[nf_info->instance_id]);
 
+        /* Set the parent id to none */
+        nfs[nf_info->instance_id].parent = 0;
+
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
 
@@ -337,8 +355,10 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 
         /* Reset getopt global variables opterr and optind to their default values */
         opterr = 0; optind = 1;
- 
-        onvm_nflib_onvm_init();
+
+        /* Lookup the info shared or created by the manager */ 
+        onvm_nflib_lookup_shared_structs();
+
         /* Initialize the info struct */
         nf_info = onvm_nflib_info_init(nf_tag);
         *nf_info_p = nf_info;
@@ -373,7 +393,7 @@ onvm_nflib_run_callback(
 {
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct onvm_nf * nf;
-        uint16_t nb_pkts_added;
+        uint16_t nb_pkts_added, i;
         int ret;
 
         nf = &nfs[info->instance_id];
@@ -421,7 +441,12 @@ onvm_nflib_run_callback(
                 }
         }
 
-        // Stop and free
+        /* Wait for children to quit */
+        for (i = 0; i < MAX_NFS; i++)
+                while(nfs[i].parent == nf->instance_id && nfs[i].info != NULL)
+                        sleep(1);
+
+        /* Stop and free */
         onvm_nflib_cleanup(info);
 
         return 0;
@@ -645,7 +670,6 @@ onvm_nflib_start_child(void *arg) {
         struct onvm_nf *parent;
         struct onvm_nf_info *child_info;
         struct onvm_nf_scale_info *child_start_info = (struct onvm_nf_scale_info *) arg;
-        //int ret;
 
         parent = &nfs[child_start_info->parent->instance_id];
         parent->headroom--;
@@ -656,18 +680,9 @@ onvm_nflib_start_child(void *arg) {
         child_info->service_id = child_start_info->service_id;
         child_info->instance_id = child_start_info->instance_id;
 
-
-        RTE_LOG(INFO, APP, "NF %d IN USE COUNT %d\n", child_start_info->instance_id, rte_mempool_in_use_count(nf_info_mp));
         onvm_nflib_start_nf(child_info);
-
-        /*
-        ret = onvm_nflib_init(first_argc, first_argv, first_nf_tag, &child_info);
-        if (ret < 0) {
-                RTE_LOG(INFO, APP, "Unable to init new NF, exiting...\n");
-                return -1;
-        }
-        */
         
+        nfs[child_info->instance_id].parent = parent->instance_id;
         nfs[child_info->instance_id].nf_setup_function = child_start_info->setup_func;
         child_info->data = child_start_info->data;
         
@@ -699,8 +714,6 @@ onvm_nflib_info_init(const char *tag)
         }
 
         info = (struct onvm_nf_info*) mempool_data;
-        //info->instance_id = initial_instance_id;
-        //info->service_id = service_id;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
         return info;
@@ -712,7 +725,7 @@ onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf)
         nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
         nf->nf_tx_mgr->mgr_type_t = NF; 
         nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
-        nf->nf_tx_mgr->id = nf->info->instance_id;//initial_instance_id;
+        nf->nf_tx_mgr->id = nf->info->instance_id;
         nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
 }
 
@@ -787,7 +800,6 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 	struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
 
-        RTE_LOG(INFO, APP, "Cleanup for service %d , inst %d\n", nf_info->service_id, nf_info->instance_id);
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         if (mgr_msg_queue == NULL) {
                 rte_mempool_put(nf_info_mp, nf_info); // give back mermory
