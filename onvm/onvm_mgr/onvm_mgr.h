@@ -112,16 +112,14 @@ struct thread_info {
 };
 
 
-#ifdef INTERRUPT_SEM
 /** NFs wakeup Info: used by manager to update NFs pool and wakeup stats
- */ 
+ */
 struct wakeup_info {
 	unsigned first_client;
 	unsigned last_client;
 	uint64_t num_wakeups;
 	uint64_t prev_num_wakeups;
 };
-#endif //INTERRUPT_SEM
 
 
 #endif  // _ONVM_MGR_H_

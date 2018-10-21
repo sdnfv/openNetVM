@@ -251,6 +251,23 @@ onvm_stats_display_ports(unsigned difftime) {
         }
 }
 
+static void
+onvm_stats_display_client_wakeup_info(int difftime)
+{
+        uint64_t num_wakeups = 0;
+        uint64_t prev_num_wakeups = 0;
+        uint64_t wakeup_rate;
+        unsigned i = 0;
+
+        for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
+                num_wakeups += wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += wakeup_infos[i].prev_num_wakeups;
+                wakeup_infos[i].prev_num_wakeups = wakeup_infos[i].num_wakeups;
+        }
+
+        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+        fprintf(stats_out, "num_wakeups=%"PRIu64", wakeup_rate=%"PRIu64"\n", num_wakeups, wakeup_rate);
+}
 
 static void
 onvm_stats_display_nfs(unsigned difftime) {
@@ -264,25 +281,11 @@ onvm_stats_display_nfs(unsigned difftime) {
         static uint64_t nf_tx_drop_last[MAX_NFS];
         static uint64_t nf_rx_drop_last[MAX_NFS];
 
-        #ifdef INTERRUPT_SEM
         uint64_t rx_qlen;
         uint64_t tx_qlen;
         uint64_t comp_cost;
-        uint64_t num_wakeups = 0;
-        uint64_t prev_num_wakeups = 0;
-        uint64_t wakeup_rate;
-        /* unsigned sleep_time = 1; // This info is not availble anymore:
-                // must move entire wakeup to separate new function  onvm_stats_display_client_wakeup_info(difftime)
-        */
-        for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
-                num_wakeups += wakeup_infos[i].num_wakeups;
-                prev_num_wakeups += wakeup_infos[i].prev_num_wakeups;
-                wakeup_infos[i].prev_num_wakeups = wakeup_infos[i].num_wakeups;
-        }
 
-        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
-        printf("num_wakeups=%"PRIu64", wakeup_rate=%"PRIu64"\n", num_wakeups, wakeup_rate);
-        #endif
+        if (ONVM_INTERRUPT_SEM) onvm_stats_display_client_wakeup_info(difftime);
 
         fprintf(stats_out, "\nNFS\n");
         fprintf(stats_out, "-------\n");
@@ -305,19 +308,11 @@ onvm_stats_display_nfs(unsigned difftime) {
                 const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i])/difftime;
                 const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i])/difftime;
 
-                #ifdef INTERRUPT_SEM
-                rx_qlen = rte_ring_count(nfs[i].rx_q);
-                tx_qlen = rte_ring_count(nfs[i].tx_q);
-                comp_cost = nfs[i].stats.comp_cost;
-                /*
-                printf("instance_id=%d, vol_rate=%"PRIu64", rx_drop_rate=%"PRIu64","
-                " comp_cost=%"PRIu64", serv_rate=%"PRIu64","
-                "serv_drop_rate=%"PRIu64", rx_qlen=%"PRIu64", tx_qlen=%"PRIu64", msg_flag=%d\n",
-                nfs[i].info->instance_id, rx_pps, rx_drop_rate, comp_cost,
-                tx_pps, tx_drop_rate, rx_qlen, tx_qlen, rte_atomic16_read(nfs[i].shm_server));
-                */
-                #endif
-
+                if (ONVM_INTERRUPT_SEM) {
+                        rx_qlen = rte_ring_count(nfs[i].rx_q);
+                        tx_qlen = rte_ring_count(nfs[i].tx_q);
+                        comp_cost = nfs[i].stats.comp_cost;
+                }
 
                 fprintf(stats_out, "NF %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
                                    "        tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n"

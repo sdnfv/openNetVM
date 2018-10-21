@@ -55,14 +55,6 @@
 #include <getopt.h>
 #include <signal.h>
 
-//#ifdef INTERRUPT_SEM  //move maro to makefile, otherwise uncomemnt or need to include these after including common.h
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <semaphore.h>
-#include <fcntl.h>
-//#endif //INTERRUPT_SEM
-
 /*****************************Internal headers********************************/
 
 
@@ -121,7 +113,6 @@ static int first_argc;
 static char **first_argv;
 static const char *first_nf_tag;
 
-#ifdef INTERRUPT_SEM
 // to track packets per NF <used for sampling computation cost>
 uint64_t counter = 0;
 
@@ -132,7 +123,6 @@ static rte_atomic16_t *flag_p;
 
 // Mutex for sem_wait
 static sem_t *mutex;
-#endif  //INTERRUPT_SEM
 
 /***********************Internal Functions Prototypes*************************/
 
@@ -215,7 +205,6 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 static int
 onvm_nflib_start_child(void *arg);
 
-#ifdef INTERRUPT_SEM
 /*
  * Function to initalize the shared cpu support
  *
@@ -223,7 +212,6 @@ onvm_nflib_start_child(void *arg);
  */
 static void
 init_shared_cpu_info(uint16_t instance_id);
-#endif  //INTERRUPT_SEM
 
 
 /************************************API**************************************/
@@ -363,7 +351,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 
         /* Set mode to UNKNOWN, to be determined later */
         nfs[nf_info->instance_id].nf_mode = NF_MODE_UNKNOWN;
-        
+
         /* Set core headroom = available cores for scaling or 0, if this is not the master core */
         nfs[nf_info->instance_id].headroom = rte_get_master_lcore() == rte_lcore_id()
                 ? rte_lcore_count() - 1
@@ -378,9 +366,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         /* Tell the manager we're ready to recieve packets */
         keep_running = 1;
 
-        #ifdef INTERRUPT_SEM
-        init_shared_cpu_info(nf_info->instance_id);
-        #endif
+        if (ONVM_INTERRUPT_SEM) init_shared_cpu_info(nf_info->instance_id);
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
         return retval_final;
@@ -577,22 +563,18 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
         int ret_act;
-        #ifdef INTERRUPT_SEM
         // To account NFs computation cost (sampled over SAMPLING_RATE packets)
         uint64_t start_tsc = 0, end_tsc = 0;
-        #endif
 
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
-                #ifdef INTERRUPT_SEM
-                /* For now discard the special NF instance and put all NFs to wait
-                if ((!ONVM_SPECIAL_NF) || (info->instance_id != 1)) {*/
-                rte_atomic16_set(flag_p, 1);
-                sem_wait(mutex);
-                #endif
+                if (ONVM_INTERRUPT_SEM) {
+                        rte_atomic16_set(flag_p, 1);
+                        sem_wait(mutex);
+                }
                 return 0;
         }
 
@@ -601,20 +583,15 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                #ifdef INTERRUPT_SEM
-                counter++;
-                meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                if (counter % SAMPLING_RATE == 0) {
+                if (ONVM_INTERRUPT_SEM && counter % SAMPLING_RATE == 0) {
+                        counter++;
                         start_tsc = rte_rdtsc();
                 }
-                #endif
                 ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta);
-                #ifdef INTERRUPT_SEM
-                if (counter % SAMPLING_RATE == 0) {
+                if (ONVM_INTERRUPT_SEM && counter % SAMPLING_RATE == 0) {
                         end_tsc = rte_rdtsc();
                         nf->stats.comp_cost = end_tsc - start_tsc;
                 }
-                #endif
 
                 /* NF returns 0 to return packets or 1 to buffer */
                 if(likely(ret_act == 0)) {
@@ -800,12 +777,10 @@ onvm_nflib_handle_signal(int sig)
 {
         if (sig == SIGINT || sig == SIGTERM) {
                 keep_running = 0;
-                #ifdef INTERRUPT_SEM
-                if ((mutex) && (rte_atomic16_read(flag_p) ==1)) {
+                if (ONVM_INTERRUPT_SEM && (mutex) && (rte_atomic16_read(flag_p) ==1)) {
                         rte_atomic16_set(flag_p, 0);
                         sem_post(mutex);
                 }
-                #endif
         }
         /* TODO: Main thread for INTERRUPT_SEM case: Must additionally relinquish SEM, SHM */
 }
@@ -840,7 +815,6 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
         }
 }
 
-#ifdef INTERRUPT_SEM
 static void
 init_shared_cpu_info(uint16_t instance_id) {
         const char *sem_name;
@@ -873,4 +847,3 @@ init_shared_cpu_info(uint16_t instance_id) {
 
         flag_p = (rte_atomic16_t *)shm;
 }
-#endif
