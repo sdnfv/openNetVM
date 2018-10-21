@@ -1,40 +1,26 @@
-TX Speed Tester NF
+Scaling Example NF
 ==
-This program lets you test how fast the manager's TX threads can move packets. It works by creating a batch of packets and then repeatedly sending that batch of packets to itself or another NF.
+This program showcases how to use NF scaling. It shows how to use the scaling api of onvm and showcases a few simple examples. 
 
-Optional Libraries
---
-libpcap library is required for pcap replay functionality.
-To enable pcap replay set `ENABLE_PCAP=1` in the Makefile.
-If libpcap is not installed run:
-```
-sudo apt-get install libpcap-dev
-```
-Example .pcap files
---
-`pcap/` directory has a few example pcap files.
-  - pktgen_big.pcap, pktgen_large.pcap, pktgen_test1.pcap, pktgen_traffic_sample.pcap are taken from the [Pktgen](../../tools/Pktgen/README.md) example pcap files.
-  - 64B_download.pcap, 8K_download.pcap are sample web traffic pcap files.
+Has 2 modes 
+
+ - First by providing the service and dest without the advanced rings mode, the NF will create a child with the service id of the destination. That child will then create additional children up until it runs out of cores.
+ - Second with the advanced rings flag, the NF will create as many children as it can with the same service id and forward packets to dst.
 
 Compilation and Execution
 --
 ```
 cd examples
 make
-cd speed_tester
-./go.sh CORELIST SERVICE_ID DST_ID [PRINT_DELAY] [ADVANCED_RINGS] [PACKET_SIZE] [DEST_MAC] [PCAP_FILE] [MEASURE_LATENCY]
+cd scaling_example
+./go.sh CORELIST SERVICE_ID DST_ID [ADVANCED_RINGS]
 
 OR
 
-sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-a] [-p PRINT_DELAY] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILENAME] [-l]
+sudo ./build/app/scaling -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-a]
 ```
 
 App Specific Arguments
 --
-  - `-d DST`: Destination Service ID to foward to
+  - `-d DST`: Destination Service ID, functionality depends on mode
   - `-a`: Use advanced rings interface instead of default `packet_handler`
-  - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.
-  - `-s PACKET_SIZE`: Size of packet, e.g. `-s 32` allocates 32 bytes for the data segment of `rte_mbuf`.
-  - `-m DEST_MAC`: User specified destination MAC address, e.g. `-m aa:bb:cc:dd:ee:ff` sets the destination address within the ethernet header that is located at the start of the packet data.
-  - `-o PCAP_FILENAME` : The filename of the pcap file to replay
-  - `-l LATENCY` : Enable latency measurement. This should only be enabled on one Speed Tester NF. Packets must be routed back to the same speed tester NF.

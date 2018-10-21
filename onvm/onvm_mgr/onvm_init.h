@@ -91,7 +91,6 @@
 #define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
 
 #define NF_INFO_SIZE sizeof(struct onvm_nf_info)
-#define NF_INFO_CACHE 8
 
 #define NF_MSG_SIZE sizeof(struct onvm_nf_msg)
 #define NF_MSG_CACHE_SIZE 8

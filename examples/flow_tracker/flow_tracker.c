@@ -275,7 +275,7 @@ table_lookup_entry(struct rte_mbuf* pkt, struct state_info *state_info) {
 }
 
 static int
-callback_handler(void) {
+callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((state_info->elapsed_cycles - state_info->last_cycles) / rte_get_timer_hz() > state_info->print_delay) {

@@ -153,19 +153,20 @@ struct port_info {
 
 struct onvm_nf_info;
 /* Function prototype for NF packet handlers */
-typedef int(*pkt_handler_func)(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
+typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NF callback handlers */
-typedef int(*callback_handler_func)(void);
+typedef int(*callback_handler_func)(__attribute__ ((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NFs running advanced rings */
-typedef void(*advanced_rings_func)(struct onvm_nf_info* nf_info);
+typedef void(*advanced_rings_func)(struct onvm_nf_info *nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void(*setup_func)(struct onvm_nf_info* nf_info);
+typedef void(*setup_func)(struct onvm_nf_info *nf_info);
 
+/* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
         struct onvm_nf_info *parent;
         uint16_t instance_id;
         uint16_t service_id;
-        char *tag;
+        const char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
@@ -184,19 +185,18 @@ struct onvm_nf {
         struct onvm_nf_info *info;
         uint16_t instance_id;
 
-        /* Available cores for NF scaling */
-        uint8_t headroom;
+        /* Struct for NF to NF communication (NF tx) */
+        struct queue_mgr *nf_tx_mgr;
+
         /* Advanced ring mode or packet handler mode */
         uint8_t nf_mode;
+        /* Instance ID of parent NF or 0 */
+        uint16_t parent;
         /* NF specifc functions */
         pkt_handler_func nf_pkt_function;
         callback_handler_func nf_callback_function;
         advanced_rings_func nf_advanced_rings_function;
         setup_func nf_setup_function;
-        /* Struct for NF to NF communication (NF tx) */
-        struct queue_mgr *nf_tx_mgr;
-        uint8_t children[16];
-        uint16_t parent;
 
         /*
          * Define a structure with stats from the NFs.
@@ -224,12 +224,12 @@ struct onvm_nf {
 
 /*
  * Define a structure to describe one NF
+ * This structure is available in the NF when processing packets or executing the callback.
  */
 struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
-        uint8_t keep_running;
         const char *tag;
         void *data;
 };

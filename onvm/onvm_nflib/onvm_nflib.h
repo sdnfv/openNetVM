@@ -71,7 +71,7 @@
  *   A uniquely identifiable string for this NF.
  *   For example, can be the application name (e.g. "bridge_nf")
  * @param info
- *   A pointer to the structure containing information relevant to this NF.
+ *   A double pointer to the structure containing information relevant to this NF.
  *   For example, the instance_id and the status of the NF can be found here.
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
@@ -202,8 +202,13 @@ onvm_nflib_get_nf(uint16_t id);
 /**
  * Set the setup function for the NF.
  * Function automatically executes when calling onvm_nflib_run or when scaling.
- * Works for both advanced rings and normal NF modes, although for advanced 
- * rings the function must be launched manually in the main thread
+ * This will be run for "normal" mode NFs (i.e., not using advanced rings, see 'NOTE') on startup. 
+ *
+ * To make a child inherit this setting, use `onvm_nflib_inherit_parent_config` to get a 
+ * scaling struct with the parent's function pointers.
+ *
+ * NOTE: This function doesn't work for advanced rings main NFs, but works for their children.
+ *       For the main NF just manually call the function.
  *
  * @param info
  *   An info struct describing this NF app.
@@ -213,8 +218,34 @@ onvm_nflib_get_nf(uint16_t id);
 void
 onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup);
 
+/**
+ * Allocates an empty scaling config to be filled in by the NF.
+ * Defines the instance_id to NF_NO_ID..
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ * @return
+ *   Pointer to onvm_nf_scale_info structure for running onvm_nflib_scale
+ */
+struct onvm_nf_scale_info *
+onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info);
+
+
+/**
+ * Fill the onvm_nflib_scale_info with the infromation of the parent, inherits
+ * service id, pkt functions(setup, pkt_handler, callback, advanced rings).
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ *   Data pointer for the scale_info.
+ * @return
+ *   Pointer to onvm_nf_scale_info structure which can be used to run onvm_nflib_scale
+ */
+struct onvm_nf_scale_info *
+onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
+
 /*
- * Scale the NF by launching a new instance, determines the core to scale to
+ * Scale the NF determines the core to scale to,and starts a new thread for the NF.
  *
  * @param id
  *   An Info struct describing this NF app.

@@ -1,15 +1,9 @@
 #!/bin/bash
 
 function usage {
-        echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID] [-a] [-s PACKET-SIZE] [-m DEST-MAC]
-        [-c PACKET-NUMBER] [-l]"
-        echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
-        echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
-        echo "$0 3,7,9 1 2 -s 32 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, and packet size of 32"
-        echo "$0 3,7,9 1 2 -s 32 -m aa:bb:cc:dd:ee:ff --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, packet size of 32, and destination MAC address of aa:bb:cc:dd:ee:ff"
-        echo "$0 5 1 2 -o sample_trafic.pcap --> core 5, with Service ID 1, and forwards to service ID 2, replays sample_trafic.pcap packets (make sure to enable pcap functionality, check README for instructions)"
-        echo "$0 5 1 2 -l --> core 5, with Service ID 1, forwards to service ID 2, measures latency"
-        echo "Pass '-a' to signal the NF to use advanced ring manipulation"
+        echo "$0 CPU-LIST SERVICE-ID DST  [-a]"
+        echo "$0 3,4,5,6,7 1 6 --> cores 3 as NF with SID 1 sending to itself, 4,5,6,7 as 4NFs (SID 6) sending to itself"
+        echo "$0 3,4,5,6 1 4 -a --> cores 3,4,5,6 as 4NFs (SID 1) sending to 4 with advanced rings"
         exit 1
 }
 
@@ -21,19 +15,12 @@ dst=$3
 
 shift 3
 
-if [ -z $dst ]
-then
-    usage
-fi
-
-while getopts ":p:n:a" opt; do
+while getopts "a" opt; do
   case $opt in
-    p) print="-p $OPTARG";;
-    n) instance="-n $OPTARG";;
     a) rings="-a";;
     \?) echo "Unknown option -$OPTARG" && usage
     ;;
   esac
 done
 
-exec sudo $SCRIPTPATH/build/app/scaling -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings $size $dest_mac $pcap_filename $pkt_num $latency
+exec sudo $SCRIPTPATH/build/app/scaling -l $cpu -n 3 --proc-type=secondary -- -r $service -- -d $dst $rings

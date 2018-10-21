@@ -436,7 +436,6 @@ nf_setup(struct onvm_nf_info *nf_info) {
 #endif
 }
 
-
 int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];

@@ -145,7 +145,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
-callback_handler(void) {
+callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
         cur_cycles = rte_get_tsc_cycles();
 
         if (((cur_cycles - last_cycle) / rte_get_timer_hz()) > 5) {

@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2018 George Washington University
+ *            2015-2018 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -69,14 +69,10 @@
 
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE  ((uint16_t)32)
-#define SPEED_TESTER_BIT 7
-#define LATENCY_BIT 6
 #define LOCAL_EXPERIMENTAL_ETHER 0x88B5
 #define DEFAULT_PKT_NUM 128
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 
-/* number of package between each print */
-static uint32_t print_delay = 10000000;
 static uint16_t destination;
 static uint8_t use_direct_rings = 0;
 static uint8_t keep_running = 1;
@@ -85,7 +81,7 @@ static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
 /* Default number of packets: 128; user can modify it by -c <packet_number> in command line */
-static uint32_t packet_number = 0;
+static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 void nf_setup(struct onvm_nf_info *nf_info);
 
@@ -94,9 +90,7 @@ void nf_setup(struct onvm_nf_info *nf_info);
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
-                        "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
-                        "[-c <packet_number>] [-l]\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-a]\n\n", progname);
 }
 
 /*
@@ -115,16 +109,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         destination = strtoul(optarg, NULL, 10);
                         dst_flag = 1;
                         break;
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        break;
-               case '?':
+                case '?':
                         usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
+                        if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
                         else
                                 RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
@@ -136,7 +123,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-                RTE_LOG(INFO, APP, "Speed tester NF requires a destination NF with the -d flag.\n");
+                RTE_LOG(INFO, APP, "Destination id not passed, running default example funcitonality.\n");
                 return -1;
         }
 
@@ -144,39 +131,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 /*
- * This function displays stats. It uses ANSI terminal codes to clear
- * screen when called. It is called from a single non-master
- * thread in the server process, when the process is run with more
- * than one lcore enabled.
+ * Basic packet handler, just forwards all packets
  */
-static void
-do_stats_display(struct rte_mbuf* pkt) {
-        static uint64_t last_cycles;
-        static uint64_t cur_pkts = 0;
-        static uint64_t last_pkts = 0;
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-        (void)pkt;
-
-        uint64_t cur_cycles = rte_get_tsc_cycles();
-        cur_pkts += print_delay;
-
-        /* Clear screen and move to top left */
-        printf("%s%s", clr, topLeft);
-
-        printf("Total packets: %9"PRIu64" \n", cur_pkts);
-        printf("TX pkts per second: %9"PRIu64" \n", (cur_pkts - last_pkts)
-                * rte_get_timer_hz() / (cur_cycles - last_cycles));
-        printf("Initial packets created: %u\n", packet_number);
-
-        last_pkts = cur_pkts;
-        last_cycles = cur_cycles;
-
-        printf("\n\n");
-}
-
 static int
-packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         (void)pkt;
         meta->destination = *(uint16_t *)nf_info->data;
         meta->action = ONVM_NF_ACTION_TONF;
@@ -184,54 +142,74 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
         return 0;
 }
 
+/*
+ * Child packet handler showcasing that children can also spawn NFs on their own
+ */
+static int
+packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+        (void)pkt;
+        static int ret = 0;
+        meta->destination = *(uint16_t *)nf_info->data;
+        meta->action = ONVM_NF_ACTION_TONF;
+
+        /* Spawn as many children as possible */
+        while (ret == 0 ) {
+                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_info);
+                uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
+                *state_data = nf_info->service_id; 
+                /* Sets service id of child */
+                scale_info->service_id = destination;
+                /* Run the setup function to generate packets */
+                scale_info->setup_func = &nf_setup;
+                /* Custom packet handler */
+                scale_info->pkt_func = &packet_handler_fwd;
+                /* Insert state data, will be used to forward packets to itself */
+                scale_info->data = state_data;
+
+                /* Spawn the child */
+                ret= onvm_nflib_scale(scale_info);
+                if (ret == 0)
+                        RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_fwd packet function\n", scale_info->service_id);
+        }
+
+        return 0;
+}
+
+/*
+ * Main packet handler
+ */
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
-        static uint32_t counter = 0;
+        (void)pkt;
         static uint32_t spawned = 0;
-        static int ret = 0;
-        if (counter++ == print_delay) {
-                do_stats_display(pkt);
-                counter = 0;
-        }
+        static int ret;
+        struct onvm_nf_scale_info *scale_info;
+        void *data;
 
-        /* Testing NF scaling */ 
-        if (counter == 12345 && spawned == 0){
-                struct onvm_nf_scale_info *scale_info;
-                uint16_t send_to = nf_info->service_id;
-                uint16_t *q;
-                while (ret == 0) {
-                        scale_info = rte_malloc("nf_scale_info", sizeof(struct onvm_nf_scale_info), 0);
-                        q = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
-                        
-                        /* Sets service id of child */
-                        *q = send_to;
-                        scale_info->service_id = ++send_to;
-                        /* Let manager handle instance id assignment */
-                        scale_info->instance_id = -1;
-                        /* Run the setup function to generate packets */
-                        scale_info->setup_func = &nf_setup;
-                        /* Custom packet handler */
-                        scale_info->pkt_func = &packet_handler_child;
-                        /* Insert state data, will be used to forward packets to itself */
-                        scale_info->data = q;
-                        scale_info->parent = nf_info;
-
-                        /* Spawn the child */
-                        ret = onvm_nflib_scale(scale_info);
-                }
-                *(uint16_t *)nf_info->data = *q;
+        /* Testing NF scaling, Spawns one child */ 
+        if (spawned == 0){
                 spawned = 1;
+
+                /* Prepare state data for the child */
+                data = (void *)rte_malloc("nf_state_data", sizeof(uint16_t), 0);
+                *(uint16_t *)data = destination;
+                /* Get the filled in scale struct by inheriting parent properties */
+                scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                scale_info->service_id = destination;
+                scale_info->pkt_func = &packet_handler_child;
+
+                /* Spawn the child */
+                ret = onvm_nflib_scale(scale_info);
+                if (ret == 0)
+                        RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n", scale_info->service_id);
+                else
+                        rte_exit(EXIT_FAILURE, "Can't initialize the first child! Make sure the corelist has at least 2 cores\n");
+
         }
 
-        if (ONVM_CHECK_BIT(meta->flags, SPEED_TESTER_BIT)) {
-                /* one of our fake pkts to forward */
-                meta->destination = *(uint16_t *)nf_info->data;
-                meta->action = ONVM_NF_ACTION_TONF;
-        } else {
-                /* Drop real incoming packets */
-                meta->action = ONVM_NF_ACTION_DROP;
-        }
-        
+        meta->destination = nf_info->service_id;
+        meta->action = ONVM_NF_ACTION_TONF;
+
         return 0;
 }
 
@@ -241,7 +219,6 @@ handle_signal(int sig) {
         if (sig == SIGINT || sig == SIGTERM)
                 keep_running = 0;
 }
-
 
 static void
 run_advanced_rings(struct onvm_nf_info *nf_info) {
@@ -253,13 +230,14 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         volatile struct onvm_nf *nf;
-
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
+        static uint8_t spawned = 0;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, handle_signal);
         signal(SIGTERM, handle_signal);
+
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("[Press Ctrl-C to quit ...]\n");
 
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);
@@ -267,20 +245,19 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         tx_ring = nf->tx_q;
 
         /* Testing NF scaling */ 
-        nf->nf_advanced_rings_function = &run_advanced_rings;
-        static uint8_t spawned = 0;
         if (spawned == 0){
-                uint16_t *q = rte_malloc("q", sizeof(uint16_t),0);
-                *q = (uint16_t) (1 + rand() % 15);
-                struct onvm_nf_scale_info *scale_info = rte_malloc("hehehe", sizeof(struct onvm_nf_scale_info), 0);
-                scale_info->parent = nf_info;
-                scale_info->data = q;
-                scale_info->instance_id = -1;
-                scale_info->service_id = *q;
-                scale_info->setup_func = &nf_setup;
-                scale_info->adv_rings_func = &run_advanced_rings;
-                while(onvm_nflib_scale(scale_info)==0);
+                nf->nf_advanced_rings_function = &run_advanced_rings;
                 spawned=1;
+                struct onvm_nf_scale_info *scale_info;
+                /* Spawn as many children as possible */
+                do {
+                        /* Prepare state data for the child */
+                        void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
+                        *(uint16_t *)data = destination;
+                        /* Get the filled in scale struct by inheriting parent properties */
+                        scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                        RTE_LOG(INFO, APP, "Tring to spawn child SID %u; running advanced_rings\n", scale_info->service_id);
+                } while(onvm_nflib_scale(scale_info)==0);
         }
 
 
@@ -295,7 +272,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                        packet_handler((struct rte_mbuf*)pkts[i], meta, nf_info);
+                        packet_handler_fwd((struct rte_mbuf*)pkts[i], meta, nf_info);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -308,6 +285,12 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
+        for (i = 0; i < MAX_NFS; i++) {
+                struct onvm_nf *nf_cur = onvm_nflib_get_nf(i);
+                while(nf_cur && nf_cur->parent == nf->instance_id && nf_cur->info != NULL) {
+                        sleep(1);
+                }
+        }
         onvm_nflib_stop(nf_info);
 }
 
@@ -316,7 +299,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
  * Generates fake packets or loads them from a pcap file
  */
 void
-nf_setup(struct onvm_nf_info *nf_info) {
+nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
         uint32_t i;
         struct rte_mempool *pktmbuf_pool;
 
@@ -325,9 +308,6 @@ nf_setup(struct onvm_nf_info *nf_info) {
                 onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
-        packet_number = (packet_number? packet_number : DEFAULT_PKT_NUM);
-
-        printf("Creating %u packets to send to %u\n", packet_number, destination);
 
         for (i = 0; i < packet_number; ++i) {
                 struct onvm_pkt_meta* pmeta;
@@ -347,16 +327,14 @@ nf_setup(struct onvm_nf_info *nf_info) {
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
                 pmeta = onvm_get_pkt_meta(pkt);
-                pmeta->destination = *(uint16_t * )nf_info->data;
+                pmeta->destination = *(uint16_t *)nf_info->data;
                 pmeta->action = ONVM_NF_ACTION_TONF;
-                pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
                 pkt->hash.rss = i;
                 pkt->port = 0;
 
                 onvm_nflib_return_pkt(nf_info, pkt);
         }
 }
-
 
 int main(int argc, char *argv[]) {
         int arg_offset;
@@ -379,14 +357,16 @@ int main(int argc, char *argv[]) {
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
         srand(time(NULL));
-        nf_info->data = (void *)rte_malloc("nf_specific_data", sizeof(int), 0);
+        nf_info->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
         *(uint16_t*)nf_info->data = nf_info->service_id;
 
         if (use_direct_rings) {
-                nf_setup(nf_info);
+                printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_nflib_nf_ready(nf_info);
+                nf_setup(nf_info);
                 run_advanced_rings(nf_info);
         } else {
+                printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
                 onvm_nflib_run(nf_info, &packet_handler);
         }
         printf("If we reach here, program is ending\n");
