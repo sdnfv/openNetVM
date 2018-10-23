@@ -244,7 +244,7 @@ onvm_nflib_lookup_shared_structs(void) {
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
         if (nf_msg_pool == NULL)
                 rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
- 
+
         mp = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (mp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mempool for mbufs\n");
@@ -515,25 +515,25 @@ onvm_nflib_stop(struct onvm_nf_info *nf_info) {
 struct rte_ring *
 onvm_nflib_get_tx_ring(struct onvm_nf_info* info) {
         if (info == NULL) {
-		return NULL;
-	}
+                return NULL;
+        }
 
-	/* Don't allow conflicting NF modes */
+        /* Don't allow conflicting NF modes */
         if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
                 return NULL;
         }
 
         /* We should return the tx_ring associated with the info struct */
         nfs[info->instance_id].nf_mode = NF_MODE_RING;
-	return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
+        return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
 }
 
 
 struct rte_ring *
 onvm_nflib_get_rx_ring(struct onvm_nf_info* info) {
-	if (info == NULL) {
-		return NULL;
-	}
+        if (info == NULL) {
+                return NULL;
+        }
 
         /* Don't allow conflicting NF modes */
         if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
@@ -845,15 +845,15 @@ static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 {
         if (nf_info == NULL) {
-		return;
-	}
+                return;
+        }
 
         if (nf_info->data != NULL) {
                 rte_free(nf_info->data);
                 nf_info->data = NULL;
         }
 
-	struct onvm_nf_msg *shutdown_msg;
+        struct onvm_nf_msg *shutdown_msg;
         nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */

@@ -49,7 +49,6 @@
 #include <getopt.h>
 #include <string.h>
 #include <signal.h>
-#include <time.h>
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
@@ -77,10 +76,8 @@ static uint16_t destination;
 static uint8_t use_direct_rings = 0;
 static uint8_t keep_running = 1;
 
-static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
-
-/* Default number of packets: 128; user can modify it by -c <packet_number> in command line */
+static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 void nf_setup(struct onvm_nf_info *nf_info);
@@ -187,7 +184,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         void *data;
 
         /* Testing NF scaling, Spawns one child */ 
-        if (spawned == 0){
+        if (spawned == 0) {
                 spawned = 1;
 
                 /* Prepare state data for the child */
@@ -245,9 +242,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         tx_ring = nf->tx_q;
 
         /* Testing NF scaling */ 
-        if (spawned == 0){
+        if (spawned == 0) {
+                spawned = 1;
+                /* As this is advanced rings if we want the children to inheir the same function we need to set it first */
                 nf->nf_advanced_rings_function = &run_advanced_rings;
-                spawned=1;
                 struct onvm_nf_scale_info *scale_info;
                 /* Spawn as many children as possible */
                 do {
@@ -285,6 +283,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
+        /* Waiting for spawned NFs to exit */
         for (i = 0; i < MAX_NFS; i++) {
                 struct onvm_nf *nf_cur = onvm_nflib_get_nf(i);
                 while(nf_cur && nf_cur->parent == nf->instance_id && nf_cur->info != NULL) {
@@ -356,7 +355,6 @@ int main(int argc, char *argv[]) {
          * For advanced rings manually run the function */
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
-        srand(time(NULL));
         nf_info->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
         *(uint16_t*)nf_info->data = nf_info->service_id;
 
