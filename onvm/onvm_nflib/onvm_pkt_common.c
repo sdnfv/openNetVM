@@ -124,7 +124,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                                 out_buf = tx_mgr->to_tx_buf;
                                 out_buf->buffer[out_buf->count++] = pkts[i];
                                 if (out_buf->count == PACKET_READ_SIZE) {
-                                        onvm_pkt_enqueue_tx_thread(out_buf, nf->instance_id);
+                                        onvm_pkt_enqueue_tx_thread(out_buf, nf);
                                 }
                         }
                 } else {
@@ -238,19 +238,19 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port) {
 }
 
 void 
-onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, uint16_t instance_id) {
+onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf) {
         uint16_t i;
 
         if (pkt_buf->count == 0)
                 return;
 
-        if (unlikely(pkt_buf->count > 0 && rte_ring_enqueue_bulk(nfs[instance_id].tx_q, (void **)pkt_buf->buffer, pkt_buf->count, NULL) == 0)) {
-                nfs[instance_id].stats.tx_drop += pkt_buf->count;
+        if (unlikely(pkt_buf->count > 0 && rte_ring_enqueue_bulk(nf->tx_q, (void **)pkt_buf->buffer, pkt_buf->count, NULL) == 0)) {
+                nf->stats.tx_drop += pkt_buf->count;
                 for (i = 0; i < pkt_buf->count; i++) {
                         rte_pktmbuf_free(pkt_buf->buffer[i]);
                 }
         } else {
-                nfs[instance_id].stats.tx += pkt_buf->count;
+                nf->stats.tx += pkt_buf->count;
         }
         pkt_buf->count = 0;
 }

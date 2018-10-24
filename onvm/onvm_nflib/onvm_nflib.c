@@ -431,7 +431,7 @@ onvm_nflib_run_callback(
                 }
 
                 /* Flush the packet buffers */
-                onvm_pkt_enqueue_tx_thread(nf->nf_tx_mgr->to_tx_buf, nf->instance_id);
+                onvm_pkt_enqueue_tx_thread(nf->nf_tx_mgr->to_tx_buf, nf);
                 onvm_pkt_flush_all_nfs(nf->nf_tx_mgr);
 
                 onvm_nflib_dequeue_messages(nf);
@@ -674,7 +674,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
                 return nb_pkts;
         } 
 
-        onvm_pkt_enqueue_tx_thread(&tx_buf, nf->instance_id);
+        onvm_pkt_enqueue_tx_thread(&tx_buf, nf);
         return 0;
 }
 

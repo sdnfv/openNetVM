@@ -102,6 +102,7 @@
 #define NO_FLAGS 0
 
 #define ONVM_NUM_RX_THREADS 1
+#define ONVM_NUM_TX_THREADS 1
 
 
 /*************************External global variables***************************/
