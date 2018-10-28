@@ -103,6 +103,8 @@
 #define NO_FLAGS 0
 
 #define ONVM_NUM_RX_THREADS 1
+/* Number of non RX/TX threads in manager */
+#define ONVM_NUM_MGR_THREADS 1
 
 
 /*************************External global variables***************************/

@@ -258,7 +258,7 @@ main(int argc, char *argv[]) {
         /* Reserve n cores for: 1 Stats, 1 final Tx out, and ONVM_NUM_RX_THREADS for Rx */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
-        tx_lcores = rte_lcore_count() - rx_lcores - 1;
+        tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_THREADS;
 
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores-1);
