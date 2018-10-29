@@ -93,6 +93,8 @@ static uint8_t keep_running = 1;
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
+/*  track the -c option to see if it has been filled */
+static uint8_t if_c = 0;
 /* Default number of packets: 128; user can modify it by -c <packet_number> in command line */
 static uint32_t packet_number = 0;
 
@@ -166,6 +168,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         break;
 #endif
                 case 'c':
+                        if_c = 1;
                         packet_number = strtoul(optarg, NULL, 10);
                         if (packet_number > MAX_PKT_NUM) {
                                 RTE_LOG(INFO, APP, "Illegal packet number(1 ~ %u) %u!\n",
@@ -401,7 +404,8 @@ int main(int argc, char *argv[]) {
                 }
         } else {
 #endif
-                //packet_number = (packet_number? packet_number : DEFAULT_PKT_NUM);
+                /*  use default number of initial packets if -c has not been used */
+                packet_number = (if_c ? packet_number : DEFAULT_PKT_NUM);
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
