@@ -167,7 +167,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 #endif
                 case 'c':
                         packet_number = strtoul(optarg, NULL, 10);
-                        if (packet_number <= 0 || packet_number > MAX_PKT_NUM) {
+                        if (packet_number > MAX_PKT_NUM) {
                                 RTE_LOG(INFO, APP, "Illegal packet number(1 ~ %u) %u!\n",
                                         MAX_PKT_NUM, packet_number);
                                 return -1;
@@ -401,7 +401,7 @@ int main(int argc, char *argv[]) {
                 }
         } else {
 #endif
-                packet_number = (packet_number? packet_number : DEFAULT_PKT_NUM);
+                //packet_number = (packet_number? packet_number : DEFAULT_PKT_NUM);
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
