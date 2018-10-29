@@ -38,3 +38,4 @@ App Specific Arguments
   - `-m DEST_MAC`: User specified destination MAC address, e.g. `-m aa:bb:cc:dd:ee:ff` sets the destination address within the ethernet header that is located at the start of the packet data.
   - `-o PCAP_FILENAME` : The filename of the pcap file to replay
   - `-l LATENCY` : Enable latency measurement. This should only be enabled on one Speed Tester NF. Packets must be routed back to the same speed tester NF.
+  - `-c PACKET_NUMBER` : Use user specified number of packets in the batch. If not specified then this defaults to 128.
