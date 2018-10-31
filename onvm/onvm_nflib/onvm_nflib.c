@@ -747,8 +747,11 @@ onvm_nflib_start_child(void *arg) {
 
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
-        if (scale_info->service_id == 0 || (scale_info->pkt_func == NULL && scale_info->adv_rings_func == NULL) || (scale_info->pkt_func != NULL && scale_info->adv_rings_func != NULL))
+        if (scale_info->service_id == 0 ||
+            (scale_info->pkt_func == NULL && scale_info->adv_rings_func == NULL) ||
+            (scale_info->pkt_func != NULL && scale_info->adv_rings_func != NULL))
                 return -1;
+
         return 0;
 }
 

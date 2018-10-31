@@ -245,7 +245,7 @@ struct onvm_nf_scale_info *
 onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
 
 /*
- * Scale the NF determines the core to scale to,and starts a new thread for the NF.
+ * Scales the NF. Determines the core to scale to, and starts a new thread for the NF.
  *
  * @param id
  *   An Info struct describing this NF app.
