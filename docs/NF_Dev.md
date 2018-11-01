@@ -37,6 +37,10 @@ Here are some of the frequently used functions of this library (to see the full 
 For advanced NFs, calling `onvm_nf_run` (as described above) is actually optional. There is a second mode where NFs can interface directly with the shared data structures.  Be warned that using this interface means the NF is responsible for its own packets, and the NF Guest Library can make fewer guarantees about overall system performance.  Additionally, the NF is responsible for maintaining its own statistics.  An advanced NF can call `onvm_nflib_get_nf(uint16_t id)` to get the reference to `struct onvm_nf`, which has `struct rte_ring *` for RX and TX, a stat structure for that NF, and the `struct onvm_nf_info`. Alternatively NF can call `onvm_nflib_get_rx_ring(struct onvm_nf_info *info)` or `onvm_nflib_get_tx_ring(struct onvm_nf_info *info)` to get the `struct rte_ring *` for RX and TX, respectively. Finally, note that using any of these functions precludes you from calling `onvm_nf_run`, and calling `onvm_nf_run` precludes you from calling any of these advanced functions (they will return `NULL`).  The first interface you use is the one you get. To start receiving packets, you must first signal to the manager that the NF is ready by calling `onvm_nflib_nf_ready`.  
 Example use of Advanced Rings can be seen in the speed_tester NF.
 
+### Multithreaded NFs, scaling
+NFs can scale by runing multiple threads. For launching more threads the main NF had to be launched with more than 1 core. For running a new thread the NF should call `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)`. The `struct scale_info` has all the required infromation for starting a new child NF, service and instance ids, NF state data, and the packet handling functions. The struct can be obtained either by calling the `onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` and manually filling it in or by inheriting the parent behavior by using `onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)`.
+Example use of Multithreading NF scaling can be seen in the scaling_example NF.
+
 Packet Helper Library
 --
 
