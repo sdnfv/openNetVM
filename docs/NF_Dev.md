@@ -38,8 +38,8 @@ For advanced NFs, calling `onvm_nf_run` (as described above) is actually optiona
 Example use of Advanced Rings can be seen in the speed_tester NF.
 
 ### Multithreaded NFs, scaling
-NFs can scale by running multiple threads. For launching more threads the main NF had to be launched with more than 1 core. For running a new thread the NF should call `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)`. The `struct scale_info` has all the required information for starting a new child NF, service and instance ids, NF state data, and the packet handling functions. The struct can be obtained either by calling the `onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` and manually filling it in or by inheriting the parent behavior by using `onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)`.
-Example use of Multithreading NF scaling can be seen in the scaling_example NF.
+NFs can scale by running multiple threads. For launching more threads the main NF had to be launched with more than 1 core. For running a new thread the NF should call `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)`. The `struct scale_info` has all the required information for starting a new child NF, service and instance ids, NF state data, and the packet handling functions. The struct can be obtained either by calling the `onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` and manually filling it in or by inheriting the parent behavior by using `onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)`. As the spawned NFs are threads they will share all the global variables with its parent, the `onvm_nf_info->data` is a void pointer that should be used for NF state data.
+Example use of Multithreading NF scaling functionality can be seen in the scaling_example NF.
 
 Packet Helper Library
 --
