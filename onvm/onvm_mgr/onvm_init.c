@@ -331,9 +331,9 @@ static int
 init_port(uint8_t port_num) {
         const uint16_t rx_rings = ONVM_NUM_RX_THREADS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
-        /* Currently, we reserve 1 core for stats thread, 1 core for 1 rx thread,
-         * any remanining cores are assigned to tx threads */
-        const uint16_t tx_rings = rte_lcore_count() - rx_rings - ONVM_NUM_MGR_THREADS;
+        /* Set the number of tx_rings equal to the tx threads. Currently, we use 1 stats thread, 1 rx thread,
+         * any remanining threads are assigned to tx threads */
+        const uint16_t tx_rings = rte_lcore_count() - rx_rings - ONVM_NUM_MGR_AUX_THREADS;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
 
         uint16_t q;
