@@ -50,9 +50,9 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
-#define MAX_NFS 256            // total number of NFs allowed
+#define MAX_NFS 128               // total number of NFs allowed
 #define MAX_SERVICES 32           // total number of unique services allowed
-#define MAX_NFS_PER_SERVICE 32 // max number of NFs per service.
+#define MAX_NFS_PER_SERVICE 32    // max number of NFs per service.
 
 #define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
 
@@ -76,7 +76,6 @@ struct onvm_pkt_meta {
         uint16_t src; /* who processed the packet last */
         uint8_t chain_index; /*index of the current step in the service chain*/
         uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
-
 };
 
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
@@ -184,14 +183,13 @@ struct onvm_nf {
         struct rte_ring *msg_q;
         struct onvm_nf_info *info;
         uint16_t instance_id;
-
-        /* Struct for NF to NF communication (NF tx) */
-        struct queue_mgr *nf_tx_mgr;
-
         /* Advanced ring mode or packet handler mode */
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
+        /* Struct for NF to NF communication (NF tx) */
+        struct queue_mgr *nf_tx_mgr;
+
         /* NF specifc functions */
         pkt_handler_func nf_pkt_function;
         callback_handler_func nf_callback_function;
