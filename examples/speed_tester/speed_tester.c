@@ -403,6 +403,10 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         int j;
 
                         struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
+                        if (pkt == NULL) {
+                                printf("Failed to allocate packets\n");
+                                break;
+                        }
 
                         /*set up ether header and set new packet size*/
                         ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkt, packet_size);

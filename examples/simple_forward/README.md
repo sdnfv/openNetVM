@@ -18,4 +18,4 @@ sudo ./build/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- 
 App Specific Arguments
 --
   - `-d <dst>`: destination service ID to foward to
-  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packet.

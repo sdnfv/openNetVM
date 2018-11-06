@@ -1,19 +1,26 @@
-## Release Notes
+# Release Notes
 
-#### About:
-##### Release Cycle:
+### About:
+#### Release Cycle:
 We track active development through the `develop` branch and verified
 stable releases through the `master` branch.  New releases are created and
 tagged with the year and month of their release.  When we tag a release,
 we update `master` to have the latest stable code.
 
-##### Versioning:
+#### Versioning:
 As of 11/06/2017, we are retiring semantic versioning and will instead
 use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-#### v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
+## DRAFT v18.11 (11/18): Config files, Multi threading, Better Statistics, and bug fixes
+**This release is currently under testing in the `develop` branch.**  *These notes will continue to be updated until the final release is made later this month.*
+
+This release adds several new features and causes breaking API changes. 
+
+
+
+## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
 This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 
 
 It also makes minor changes to the setup scripts to work better in NSF CloudLab environments.
@@ -28,7 +35,7 @@ An NSF CloudLab template including OpenNetVM 18.05, mTCP, and some basic network
 
 *No API changes were introduced in this release.*
 
-#### v18.03 (3/27/18): Updated DPDK and preliminary mTCP support
+## v18.03 (3/27/18): Updated DPDK and preliminary mTCP support
 This release updates the DPDK submodule to use version 17.08.  This DPDK update caused breaking changes to its API, so updates have been made to the OpenNetVM manager and example NFs to support this change.
 
 In order to update to the latest version of DPDK you must run:
@@ -59,7 +66,7 @@ Other changes include:
 
 *No API changes were introduced in this release.*
 
-#### v18.1 (1/31/18): Bug Fixes and Speed Tester improvements
+## v18.1 (1/31/18): Bug Fixes and Speed Tester improvements
 This release includes several bug fixes including:
  - Changed macro and inline function declarations to improve compatibility with 3rd party libraries and newer gcc versions (tested with 4.8 and 5.4)
  - Solved memory leak in SDN flow table example
@@ -70,7 +77,7 @@ Improvements:
  
 *No API changes were introduced in this release.*
 
-#### v17.11 (11/16/17): New TX thread architecture, realistic NF examples, better stats, messaging, and more
+## v17.11 (11/16/17): New TX thread architecture, realistic NF examples, better stats, messaging, and more
 Since the last official release there have been substantial changes to openNetVM, including the switch to date based versioning mentioned above. Changes include:
  - New TX architecture: previously NFs enqueued packets into a TX ring that was read by TX threads in the manager, which consumed significant CPU resources. 
  By moving TX thread logic to the NF side, ONVM can run with fewer cores, improving efficiency.  NFs can then directly pass packets which saves enqueueing/dequeuing to an extra ring. TX threads still send packets out the NIC, but NFs primarily do packet passing--it is suggested to run the system with at least 1 TX thread to handle outgoing packets. Despite these changes, TX threads can still perform the same work that they did before. If a user would like to run ONVM with TX threads handling all packet passing, they must set `NF_HANDLE_TX` to `0` in `onvm_common.h` 
@@ -87,10 +94,10 @@ Since the last official release there have been substantial changes to openNetVM
  - [NF--Manager Messaging Interface](https://github.com/sdnfv/openNetVM/commit/125e6dd5e9339b5492723866988edf05ecadcd48): We have expanded the interface between the manager and NFs to allow more flexible message passing. 
  - A multitude of other bug fixes, documentation improvements, etc!
 
-#### v1.1.0 (1/25/17): Refactoring to library, new NFs
+## v1.1.0 (1/25/17): Refactoring to library, new NFs
 This release refactored the code into a proper library, making it easier to include with more advanced NFs. We also added new AES encryption and decryption NFs that operate on UDP packets.
 
-#### v1.0.0 (8/25/16): Refactoring to improve code organization
+## v1.0.0 (8/25/16): Refactoring to improve code organization
 A big set of commits to clean the structure and simplify onvm source code.
 We separated all functions into the main.c of the manager into modules :
  - `onvm_stats` : functions displaying statistics
@@ -107,5 +114,5 @@ Each module comes with a header file with commented prototypes. And each c and h
  - NF `Makefiles` need to be updated to find the path to `onvm_nflib`.
 
 
-#### 4/24/16: Initial Release
+## 4/24/16: Initial Release
 Initial source code release.
