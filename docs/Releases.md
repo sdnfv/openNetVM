@@ -16,7 +16,8 @@ is the month.
 ## DRAFT v18.11 (11/18): Config files, Multi threading, Better Statistics, and bug fixes
 **This release is currently under testing in the `develop` branch.**  *These notes will continue to be updated until the final release is made later this month.*
 
-This release adds several new features and causes breaking API changes.  
+This release adds several new features and causes breaking API changes. 
+
 ### Multi-Threading:
 NFs can now run multiple threads, each with its own set of rings for receiving and transmitting packets. NFs can either start new threads themselves or the NF Manager can send a message to an NF to cause it to scale up.
 
