@@ -19,11 +19,12 @@ function usage {
 
 cpu=$1
 ports=$2
+nf_cores=$3
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-shift 2
+shift 3
 
 if [ -z $ports ]
 then
@@ -58,7 +59,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
+sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
 
 if [ "${stats}" = "-s web" ]
 then

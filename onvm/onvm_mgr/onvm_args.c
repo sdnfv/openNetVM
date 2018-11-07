@@ -74,6 +74,7 @@ uint16_t global_stats_sleep_time = 1;
 /* global var for program name */
 static const char *progname;
 
+mpz_t global_nf_cores;
 
 /***********************Internal Functions prototypes*************************/
 
@@ -94,6 +95,9 @@ static int
 parse_num_services(const char *services);
 
 static int
+parse_nf_cores(const char *services);
+
+static int
 parse_stats_output(const char *stats_output);
 
 static int
@@ -111,6 +115,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         static struct option lgopts[] = {
                 {"port-mask",           required_argument,      NULL,   'p'},
                 {"num-services",        required_argument,      NULL,   'r'},
+                {"nf-cores",            required_argument,      NULL,   'n'},
                 {"default-service",     required_argument,      NULL,   'd'},
                 {"stats-out",           no_argument,            NULL,   's'},
                 {"stats-sleep-time",    no_argument,            NULL,   'z'}
@@ -118,7 +123,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:d:s:z:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:z:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -128,6 +133,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 break;
                         case 'r':
                                 if (parse_num_services(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+                        case 'n':
+                                if (parse_nf_cores(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
@@ -238,6 +249,20 @@ parse_num_services(const char *services) {
                 return -1;
 
         num_services = (uint16_t)temp;
+        return 0;
+}
+
+static int
+parse_nf_cores(const char *services) {
+        //char *end = NULL;
+        //unsigned long temp;
+
+        mpz_set_str(global_nf_cores, services, 16);
+        printf("mpz shit val - %lu\n", mpz_get_ui(global_nf_cores));
+        //temp = strtoul(services, &end, 10);
+        //if (end == NULL || *end != '\0' || temp == 0)
+        //        return -1;
+
         return 0;
 }
 

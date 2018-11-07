@@ -182,7 +182,7 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info);
 /*
  * Entry point of a spawned child NF
  */
-static int
+static void *
 onvm_nflib_start_child(void *arg);
 
 /*
@@ -213,6 +213,14 @@ onvm_nflib_lookup_shared_structs(void);
  */
 static int
 onvm_nflib_start_nf(struct onvm_nf_info *nf_info);
+
+/*
+ * Entry point of the NF main loop
+ *
+ * Input: void pointer, points to the onvm_nf struct
+ */
+void *
+onvm_nflib_thread_main_loop(void *arg);
 
 /************************************API**************************************/
 
@@ -393,11 +401,7 @@ onvm_nflib_run_callback(
         pkt_handler_func handler,
         callback_handler_func callback)
 {
-        struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct onvm_nf * nf;
-        uint16_t nb_pkts_added, i;
-        int ret;
-
         nf = &nfs[info->instance_id];
 
         /* Don't allow conflicting NF modes */
@@ -406,13 +410,36 @@ onvm_nflib_run_callback(
         }
         nf->nf_mode = NF_MODE_SINGLE;
 
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, onvm_nflib_handle_signal);
-        signal(SIGTERM, onvm_nflib_handle_signal);
-
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
         nf->nf_pkt_function = handler;
         nf->nf_callback_function = callback;
+
+        pthread_t main_loop_thread;
+        pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf);
+        pthread_join(main_loop_thread, NULL);
+        return 0;
+}
+
+void *
+onvm_nflib_thread_main_loop(void *arg){
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
+        struct onvm_nf * nf;
+        uint16_t nb_pkts_added, i;
+        struct onvm_nf_info* info;
+        pkt_handler_func handler;
+        callback_handler_func callback;
+        int ret;
+        
+        nf = (struct onvm_nf *)arg;
+        onvm_core_affinitize(4);
+
+        info = nf->info;
+        handler = nf->nf_pkt_function;
+        callback = nf->nf_callback_function;
+
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        signal(SIGINT, onvm_nflib_handle_signal);
+        signal(SIGTERM, onvm_nflib_handle_signal);
 
         /* Runs the NF setup function */
         if (nf->nf_setup_function != NULL)
@@ -448,7 +475,7 @@ onvm_nflib_run_callback(
         /* Stop and free */
         onvm_nflib_cleanup(info);
 
-        return 0;
+        return NULL;
 }
 
 int
@@ -565,19 +592,42 @@ onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup) {
 
 int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
-        unsigned current;
-        unsigned core;
-        enum rte_lcore_state_t state;
+        //unsigned current;
+        //unsigned core;
+        //enum rte_lcore_state_t state;
         int ret;
+        pthread_t app_thread;
 
         if (onvm_nflib_is_scale_info_valid(scale_info) < 0) {
                 RTE_LOG(INFO, APP, "Scale info invalid\n");
                 return -1;
         }
 
-        current = rte_lcore_id();
+        struct onvm_nf_msg *startup_msg;
+        /* Put this NF's info struct onto queue for manager to process startup */
+        if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
+                //rte_mempool_put(nf_info_mp, nf_info); // give back memory
+                rte_exit(EXIT_FAILURE, "Cannot create startup msg");
+        }
+
+        /* Tell the manager we're ready to recieve packets */
+        startup_msg->msg_type = MSG_NF_REQUEST_CPU;
+        startup_msg->msg_data = scale_info;
+        if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
+                //rte_mempool_put(nf_info_mp, nf_info); // give back mermory
+                //rte_mempool_put(nf_msg_pool, startup_msg);
+                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager");
+        }
+
+        RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
+        for (; scale_info->core == 0 ;) {
+                sleep(1);
+        }
+        RTE_LOG(INFO, APP, "Able to scale to core %u\n", scale_info->core);
+        //current = rte_lcore_id();
 
         /* Find the next available lcore to use */
+        /*
         RTE_LOG(INFO, APP, "Currently running on core %u\n", current);
         for (core = rte_get_next_lcore(current, 1, 0); core != RTE_MAX_LCORE; core = rte_get_next_lcore(core, 1, 0)) {
                 state = rte_eal_get_lcore_state(core);
@@ -591,9 +641,17 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                         return 0;
                 }
         }
+        */
+        scale_info->core = 4;
+        ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
 
-        RTE_LOG(INFO, APP, "No cores available to scale\n");
-        return -1;
+        if (ret < 0) {
+                RTE_LOG(INFO, APP, "Failed to create thread\n");
+                return -1;
+        }
+
+        //RTE_LOG(INFO, APP, "No cores available to scale\n");
+        return 0;
 }
 
 struct onvm_nf_scale_info *
@@ -695,12 +753,15 @@ onvm_nflib_dequeue_messages(struct onvm_nf *nf) {
         rte_mempool_put(nf_msg_pool, (void*)msg);
 }
 
-static int
+static void *
 onvm_nflib_start_child(void *arg) {
         struct onvm_nf *parent;
         struct onvm_nf *child;
         struct onvm_nf_info *child_info;
-        struct onvm_nf_scale_info *scale_info = (struct onvm_nf_scale_info *) arg;
+        struct onvm_nf_scale_info *scale_info;
+
+        scale_info = (struct onvm_nf_scale_info *) arg;
+        onvm_core_affinitize(scale_info->core);
 
         parent = &nfs[scale_info->parent->instance_id];
 
@@ -742,7 +803,7 @@ onvm_nflib_start_child(void *arg) {
                 scale_info = NULL;
         }
 
-        return 0;
+        return NULL;
 }
 
 static int

@@ -125,6 +125,7 @@ extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
 extern ONVM_STATS_OUTPUT stats_destination;
 extern uint16_t global_stats_sleep_time;
+extern mpz_t global_nf_cores;
 
 /**********************************Functions**********************************/
 

@@ -46,6 +46,7 @@
 
 #include <rte_mbuf.h>
 #include <rte_ether.h>
+#include <gmp.h>
 
 #include "onvm_msg_common.h"
 
@@ -165,6 +166,7 @@ struct onvm_nf_scale_info {
         struct onvm_nf_info *parent;
         uint16_t instance_id;
         uint16_t service_id;
+        uint16_t core;
         const char *tag;
         void *data;
         setup_func setup_func;
@@ -227,6 +229,7 @@ struct onvm_nf {
 struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
+        uint16_t core;
         uint8_t status;
         const char *tag;
         void *data;

@@ -5,9 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2018 George Washington University
+ *            2015-2018 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -36,60 +35,13 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ * onvm_threading.h - threading helper functionss
  ********************************************************************/
 
+#ifndef _ONVM_THREADING_H_
+#define _ONVM_THREADING_H_
 
-/******************************************************************************
+int onvm_get_core(int core, mpz_t _cpumask);
+int onvm_core_affinitize(int cpu);
 
-                                 onvm_nf.h
-
-     This file contains the prototypes for all functions related to packet
-     processing.
-
-******************************************************************************/
-
-
-#ifndef _ONVM_NF_H_
-#define _ONVM_NF_H_
-
-#include <gmp.h>
-#include "onvm_threading.h"
-
-extern uint16_t next_instance_id;
-
-
-/********************************Interfaces***********************************/
-
-
-/*
- * Interface giving the smallest unsigned integer unused for a NF instance.
- *
- * Output : the unsigned integer 
- *
- */
-uint16_t
-onvm_nf_next_instance_id(void);
-
-
-/*
- * Interface looking through all registered NFs if one needs to start or stop.
- *
- */
-void
-onvm_nf_check_status(void);
-
-
-/*
- * Interface to send a message to a certain NF.
- *
- * Input  : The destination NF instance ID, a constant denoting the message type
- *          (see onvm_nflib/onvm_msg_common.h), and a pointer to a data argument.
- *          The data argument should be allocated in the hugepage region (so it can
- *          be shared), i.e. using rte_malloc
- * Output : 0 if the message was successfully sent, -1 otherwise
- */
-int
-onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data);
-
-
-#endif  // _ONVM_NF_H_
+#endif  // _ONVM_THREADING_H_"

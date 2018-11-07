@@ -61,6 +61,7 @@ CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 CFLAGS += -I$(SRCDIR)/../ -I$(SRCDIR)/../onvm_nflib/ -I$(SRCDIR)/../lib/
 LDFLAGS += $(SRCDIR)/../lib/$(RTE_TARGET)/libonvmhelper.a
 LDFLAGS += $(SRCDIR)/../onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += -lgmp
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.

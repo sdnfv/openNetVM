@@ -55,6 +55,7 @@
 #include <rte_mbuf.h>
 #include "onvm_common.h"
 #include "onvm_pkt_common.h"
+#include "onvm_threading.h"
 
 /************************************API**************************************/
 
