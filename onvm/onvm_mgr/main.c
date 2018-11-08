@@ -255,10 +255,10 @@ main(int argc, char *argv[]) {
         /* clear statistics */
         onvm_stats_clear_all_nfs();
 
-        /* Reserve n cores for: 1 Stats, 1 final Tx out, and ONVM_NUM_RX_THREADS for Rx */
+         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all remaining for Tx */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
-        tx_lcores = rte_lcore_count() - rx_lcores - 1;
+        tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
 
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores-1);

@@ -329,8 +329,10 @@ init_nf_info_pool(void)
  */
 static int
 init_port(uint8_t port_num) {
-        const uint16_t rx_rings = ONVM_NUM_RX_THREADS, tx_rings = MAX_NFS;
+        const uint16_t rx_rings = ONVM_NUM_RX_THREADS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
+        /* Set the number of tx_rings equal to the tx threads. This mimics the onvm_mgr tx thread calculation. */
+        const uint16_t tx_rings = rte_lcore_count() - rx_rings - ONVM_NUM_MGR_AUX_THREADS;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
 
         uint16_t q;
@@ -339,6 +341,7 @@ init_port(uint8_t port_num) {
         printf("Port %u init ... \n", (unsigned)port_num);
         printf("Port %u socket id %u ... \n", (unsigned)port_num, (unsigned)rte_eth_dev_socket_id(port_num));
         printf("Port %u Rx rings %u ... \n", (unsigned)port_num, (unsigned)rx_rings);
+        printf("Port %u Tx rings %u ... \n", (unsigned)port_num, (unsigned)tx_rings);
         fflush(stdout);
 
         /* Standard DPDK port initialisation - config port, then set up
