@@ -57,5 +57,6 @@ done
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
 echo $web_port
 
+cd $ONVM_HOME/onvm_web
 nohup python -m SimpleHTTPServer $web_port &
 export ONVM_WEB_PID=$!
