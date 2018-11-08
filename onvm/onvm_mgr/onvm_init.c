@@ -186,7 +186,7 @@ init(int argc, char *argv[]) {
         ports = mz_port->addr;
         
         /* set up array for NF tx data */
-        mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_services == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for services information\n");
         services = mz_services->addr;
