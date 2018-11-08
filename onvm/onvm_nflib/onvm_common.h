@@ -50,9 +50,9 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
-#define MAX_NFS 16            // total number of NFs allowed
-#define MAX_SERVICES 16           // total number of unique services allowed
-#define MAX_NFS_PER_SERVICE 8 // max number of NFs per service.
+#define MAX_NFS 128               // total number of NFs allowed
+#define MAX_SERVICES 32           // total number of unique services allowed
+#define MAX_NFS_PER_SERVICE 32    // max number of NFs per service.
 
 #define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
 
@@ -76,7 +76,6 @@ struct onvm_pkt_meta {
         uint16_t src; /* who processed the packet last */
         uint8_t chain_index; /*index of the current step in the service chain*/
         uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
-
 };
 
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
@@ -151,6 +150,29 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+struct onvm_nf_info;
+/* Function prototype for NF packet handlers */
+typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
+/* Function prototype for NF callback handlers */
+typedef int(*callback_handler_func)(__attribute__ ((unused)) struct onvm_nf_info *nf_info);
+/* Function prototype for NFs running advanced rings */
+typedef void(*advanced_rings_func)(struct onvm_nf_info *nf_info);
+/* Function prototype for NFs that want extra initalization/setup before running */
+typedef void(*setup_func)(struct onvm_nf_info *nf_info);
+
+/* Information needed to initialize a new NF child thread */
+struct onvm_nf_scale_info {
+        struct onvm_nf_info *parent;
+        uint16_t instance_id;
+        uint16_t service_id;
+        const char *tag;
+        void *data;
+        setup_func setup_func;
+        pkt_handler_func pkt_func;
+        callback_handler_func callback_func;
+        advanced_rings_func adv_rings_func;
+};
+
 /*
  * Define a nf structure with all needed info, including
  * stats from the nfs.
@@ -161,6 +183,18 @@ struct onvm_nf {
         struct rte_ring *msg_q;
         struct onvm_nf_info *info;
         uint16_t instance_id;
+        /* Advanced ring mode or packet handler mode */
+        uint8_t nf_mode;
+        /* Instance ID of parent NF or 0 */
+        uint16_t parent;
+        /* Struct for NF to NF communication (NF tx) */
+        struct queue_mgr *nf_tx_mgr;
+
+        /* NF specifc functions */
+        pkt_handler_func nf_pkt_function;
+        callback_handler_func nf_callback_function;
+        advanced_rings_func nf_advanced_rings_function;
+        setup_func nf_setup_function;
 
         /*
          * Define a structure with stats from the NFs.
@@ -188,12 +222,14 @@ struct onvm_nf {
 
 /*
  * Define a structure to describe one NF
+ * This structure is available in the NF when processing packets or executing the callback.
  */
 struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
         const char *tag;
+        void *data;
 };
 
 /*

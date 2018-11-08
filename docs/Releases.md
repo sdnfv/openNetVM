@@ -18,6 +18,28 @@ is the month.
 
 This release adds several new features and causes breaking API changes. 
 
+### Multi-Threading:
+NFs can now run multiple threads, each with its own set of rings for receiving and transmitting packets. NFs can either start new threads themselves or the NF Manager can send a message to an NF to cause it to scale up.
+
+**Usage:**
+To make an NF start another thread, run the `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` function with a struct holding all the information required to start the new NF thread. This can be used to replicate an NF's threads for scalability, or to support NFs that require several threads performing different types of processing (thus each thread has its own service ID). More info about the Multi-Threading can be found in `docs/NF_Dev.md`. Example use of Multithreading NF scaling can be seen in the `scaling_example` NF.
+
+**API Changes:**
+The prior code relied on global data structures that do not work in a multi-threaded environment. As a result, many of the APIs have been refactored to take a `onvm_nf_info` structure, instead of assuming it is available as a global variable.
+- `onvm_nflib_init(int argc, char *argv[], const char *nf_tag);` --> 
+`int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p)`
+- `void onvm_nflib_stop(void)` -> `onvm_nflib_stop(struct onvm_nf_info *nf_info)` 
+- `int onvm_nflib_return_pkt(struct rte_mbuf* pkt)` -> 
+`int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)`
+- `int pkt_handler_func(struct rte_mbuf* pkt, struct onvm_pkt_meta* action)` -> 
+`int pkt_handler_func(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info)`
+- `int callback_handler_func(void)` -> `int callback_handler_func(__attribute__ ((unused)) struct onvm_nf_info *nf_info)`   
+  
+**API Additions:**
+ - `int onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` launches another NF based on the provided config
+ - `struct onvm_nf_scale_info * onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` for getting a basic empty scaling config
+ - `struct onvm_nf_scale_info * onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)` for getting a scaling config with the same functionality (e.g., service ID) as the parent NF
+ - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop
 
 
 ## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image

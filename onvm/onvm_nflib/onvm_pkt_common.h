@@ -120,7 +120,7 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port);
  * Give packets to TX thread so it can do useful work.
  */
 void 
-onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, uint16_t instance_id);
+onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf);
 
 
 #endif  // _ONVM_PKT_COMMON_H_

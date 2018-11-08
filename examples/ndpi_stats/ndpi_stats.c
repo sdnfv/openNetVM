@@ -321,7 +321,7 @@ print_results(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         struct pcap_pkthdr pkt_hdr;
         struct timeval time;
         u_char *packet;
@@ -357,13 +357,13 @@ int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 

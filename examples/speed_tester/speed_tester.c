@@ -108,6 +108,8 @@ static uint64_t total_latency = 0;
  */
 char *pcap_filename = NULL;
 
+void nf_setup(struct onvm_nf_info *nf_info);
+
 /*
  * Print a usage message
  */
@@ -249,7 +251,7 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -285,7 +287,7 @@ handle_signal(int sig) {
 
 
 static void
-run_advanced_rings(void) {
+run_advanced_rings(struct onvm_nf_info *nf_info) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta* meta;
         uint16_t i, j, nb_pkts;
@@ -318,7 +320,7 @@ run_advanced_rings(void) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                        packet_handler((struct rte_mbuf*)pkts[i], meta);
+                        packet_handler((struct rte_mbuf*)pkts[i], meta, nf_info);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -331,31 +333,21 @@ run_advanced_rings(void) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-        onvm_nflib_stop();
+        onvm_nflib_stop(nf_info);
 }
 
 
-int main(int argc, char *argv[]) {
+/*
+ * Generates fake packets or loads them from a pcap file
+ */
+void
+nf_setup(struct onvm_nf_info *nf_info) {
         uint32_t i;
-        int arg_offset;
         struct rte_mempool *pktmbuf_pool;
-
-        const char *progname = argv[0];
-
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
-                return -1;
-
-        argc -= arg_offset;
-        argv += arg_offset;
-
-        if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-        }
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -400,7 +392,7 @@ int main(int argc, char *argv[]) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        onvm_nflib_return_pkt(pkt);
+                        onvm_nflib_return_pkt(nf_info, pkt);
                 }
         } else {
 #endif
@@ -445,14 +437,36 @@ int main(int argc, char *argv[]) {
                                 *ts = 0;
                         }
 
-                        onvm_nflib_return_pkt(pkt);
+                        onvm_nflib_return_pkt(nf_info, pkt);
                 }
 #ifdef LIBPCAP
         }
 #endif
+}
+
+int main(int argc, char *argv[]) {
+        int arg_offset;
+        const char *progname = argv[0];
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+                return -1;
+
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0) {
+                onvm_nflib_stop(nf_info);
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        }
+
+        /* Set the function to execute before running the NF
+         * For advanced rings manually run the function */
+        onvm_nflib_set_setup_function(nf_info, &nf_setup);
+
         if (use_direct_rings) {
+                nf_setup(nf_info);
                 onvm_nflib_nf_ready(nf_info);
-                run_advanced_rings();
+                run_advanced_rings(nf_info);
         } else {
                 onvm_nflib_run(nf_info, &packet_handler);
         }

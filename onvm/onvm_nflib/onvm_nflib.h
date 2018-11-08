@@ -70,6 +70,9 @@
  * @param tag
  *   A uniquely identifiable string for this NF.
  *   For example, can be the application name (e.g. "bridge_nf")
+ * @param info
+ *   A double pointer to the structure containing information relevant to this NF.
+ *   For example, the instance_id and the status of the NF can be found here.
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
@@ -77,7 +80,7 @@
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p);
 
 
 /**
@@ -86,16 +89,16 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag);
  * loop forever waiting for packets.
  *
  * @param info
- *   an info struct describing this NF app. Must be from a huge page memzone.
+ *   A pointer to the info struct describing this NF app. Must be from a huge page memzone.
  * @param handler
- *   a pointer to the function that will be called on each received packet.
+ *   A pointer to the function that will be called on each received packet.
  * @param callback_handler
- *   a pointer to the callback handler that is called every attempted batch
+ *   A pointer to the callback handler that is called every attempted batch
  * @return
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run_callback(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action), int(*callback_handler)(void));
+onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler, callback_handler_func callback_handler);
 
 
 /**
@@ -103,27 +106,29 @@ onvm_nflib_run_callback(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf
  * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
  *
  * @param info
- *   an info struct describing this NF app. Must be from a huge page memzone.
+ *   An info struct describing this NF. Must be from a huge page memzone.
  * @param handler
- *   a pointer to the function that will be called on each received packet.
+ *   A pointer to the function that will be called on each received packet.
  * @return
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_info* info, int(*handler)(struct rte_mbuf* pkt, struct onvm_pkt_meta* action));
+onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler);
 
 
 /**
  * Return a packet that has previously had the ONVM_NF_ACTION_BUFFER action
  * called on it.
  *
+ * @param info
+ *    Pointer to a struct containing information used to describe this NF.
  * @param pkt
  *    a pointer to a packet that should now have a action other than buffer.
  * @return
  *    0 on success, or a negative value on error.
  */
 int
-onvm_nflib_return_pkt(struct rte_mbuf* pkt);
+onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
 
 /**
  * Inform the manager that the NF is ready to receive packets.
@@ -147,22 +152,25 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_msg *msg);
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info);
 
 /**
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
+ *
+ * @param info
+ *   Pointer to the info struct for this NF.
  */
 void
-onvm_nflib_stop(void);
+onvm_nflib_stop(struct onvm_nf_info *nf_info);
 
 /**
  * Return the tx_ring associated with this NF.
  *
  * @param info
- *   an info struct describing this NF app.
+ *   An info struct describing this NF.
  * @return
- *    pointer to tx_ring structure associated with info, NULL on error.
+ *   Pointer to tx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
 onvm_nflib_get_tx_ring(struct onvm_nf_info* info);
@@ -172,9 +180,9 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info* info);
  * Return the rx_ring associated with this NF.
  *
  * @param info
- *   an info struct describing this NF app.
+ *   An info struct describing this NF app.
  * @return
- *    pointer to rx_ring structure associated with info, NULL on error.
+ *   Pointer to rx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
 onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
@@ -184,12 +192,69 @@ onvm_nflib_get_rx_ring(struct onvm_nf_info* info);
  * Return the nf details associated with this NF.
  *
  * @param id
- *   an instance id of the corresponding NF.
+ *   An instance id of the corresponding NF.
  * @return
- *    pointer to NF structure referenced by instance id, NULL on error.
+ *   Pointer to NF structure referenced by instance id, NULL on error.
  */
 struct onvm_nf *
 onvm_nflib_get_nf(uint16_t id);
+
+/**
+ * Set the setup function for the NF.
+ * Function automatically executes when calling onvm_nflib_run or when scaling.
+ * This will be run for "normal" mode NFs (i.e., not using advanced rings, see 'NOTE') on startup. 
+ *
+ * To make a child inherit this setting, use `onvm_nflib_inherit_parent_config` to get a 
+ * scaling struct with the parent's function pointers.
+ *
+ * NOTE: This function doesn't work for advanced rings main NFs, but works for their children.
+ *       For the main NF just manually call the function.
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ * @param setup
+ *   A NF setup function that runs before running the NF.
+ */
+void
+onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup);
+
+/**
+ * Allocates an empty scaling config to be filled in by the NF.
+ * Defines the instance_id to NF_NO_ID..
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ * @return
+ *   Pointer to onvm_nf_scale_info structure for running onvm_nflib_scale
+ */
+struct onvm_nf_scale_info *
+onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info);
+
+
+/**
+ * Fill the onvm_nflib_scale_info with the infromation of the parent, inherits
+ * service id, pkt functions(setup, pkt_handler, callback, advanced rings).
+ *
+ * @param info
+ *   An info struct describing this NF app.
+ *   Data pointer for the scale_info.
+ * @return
+ *   Pointer to onvm_nf_scale_info structure which can be used to run onvm_nflib_scale
+ */
+struct onvm_nf_scale_info *
+onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
+
+/*
+ * Scales the NF. Determines the core to scale to, and starts a new thread for the NF.
+ *
+ * @param id
+ *   An Info struct describing this NF app.
+ * @return
+ *   Error code or 0 if successful.
+ */
+int
+onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
+
 
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
