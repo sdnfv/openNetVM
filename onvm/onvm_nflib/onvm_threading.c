@@ -116,7 +116,7 @@ onvm_core_affinitize(int cpu)
         //cpu = whichCoreID(cpu);
         
         if (cpu < 0 || cpu >= (int) n) {
-                errno = -EINVAL;
+                //errno = -EINVAL;
                 return -1;
         }
 
