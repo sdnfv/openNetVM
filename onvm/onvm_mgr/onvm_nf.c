@@ -238,6 +238,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
+        cores[nfs[nf_id].core].nf_count--;
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
