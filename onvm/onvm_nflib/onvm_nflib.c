@@ -486,9 +486,6 @@ onvm_nflib_thread_main_loop(void *arg){
         /* Stop and free */
         onvm_nflib_cleanup(info);
 
-        /* Stop and free */
-        onvm_nflib_cleanup(info);
-
         return NULL;
 }
 
