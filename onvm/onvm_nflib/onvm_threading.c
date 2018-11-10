@@ -62,61 +62,51 @@
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
-#include <gmp.h>
 
 #include "onvm_threading.h"
 
-static inline int GetNumCPUs(void);
-pid_t Gettid(void);
-//static inline int whichCoreID(int thread_no);
 /*----------------------------------------------------------------------------*/
-static inline int 
+int 
 GetNumCPUs(void) 
 {
         return sysconf(_SC_NPROCESSORS_ONLN);
 }
-/*----------------------------------------------------------------------------*/
-pid_t 
-Gettid(void)
-{
-        return syscall(__NR_gettid);
-}
-/*----------------------------------------------------------------------------*/
-int
-onvm_get_core(int thread_no, mpz_t _cpumask)
-{
-        int i, cpu_id;
 
-        if (mpz_get_ui(_cpumask) == 0)
-                return thread_no;
-        else {
-                int limit =  mpz_popcount(_cpumask);
-                
-                for (cpu_id = 0, i = 0; i < limit*4; cpu_id++)
-                        if (mpz_tstbit(_cpumask, cpu_id)) {
-                                /*if (thread_no == i)
-                                        return cpu_id;
-                                i++;*/
-                                mpz_clrbit (_cpumask, cpu_id);
-                                return cpu_id;//testing
-                        }
-        }
-        return thread_no;
+int
+onvm_get_core(int preferred_core, struct core_status *cores)
+{
+	int i;
+	int best_core = 0;
+	int min_nf_count = 10000;
+	
+	for (i=0;i<64;i++){
+		if (cores[i].enabled) {
+			if (preferred_core == i) {
+				best_core = i;
+				break;
+			} else if (cores[i].nf_count == 0) {
+				best_core = i;
+				break;
+			} else if (cores[i].nf_count < min_nf_count) {
+				best_core = i;
+				min_nf_count = cores[i].nf_count;
+			}
+			
+		}
+	}
+	cores[best_core].nf_count++;
+
+	return best_core;
 }
-/*----------------------------------------------------------------------------*/
+
 int 
 onvm_core_affinitize(int cpu)
 {
         cpu_set_t cpus;
         size_t n;
-        //mpz_init(_cpumask);
 
-        n = GetNumCPUs();
-
-        //cpu = whichCoreID(cpu);
-        
+	n = GetNumCPUs();
         if (cpu < 0 || cpu >= (int) n) {
-                //errno = -EINVAL;
                 return -1;
         }
 

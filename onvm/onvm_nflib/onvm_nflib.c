@@ -82,6 +82,9 @@
 // Shared data for host port information
 struct port_info *ports;
 
+// Shared data for core infromation
+struct core_status *cores;
+
 // ring used for NF -> mgr messages (like startup & shutdown)
 static struct rte_ring *mgr_msg_queue;
 
@@ -237,6 +240,7 @@ static int
 onvm_nflib_lookup_shared_structs(void) {
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
+        const struct rte_memzone *mz_cores;
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
@@ -279,6 +283,11 @@ onvm_nflib_lookup_shared_structs(void) {
         if (mz_port == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz_port->addr;
+
+        mz_cores = rte_memzone_lookup(MZ_CORES_INFO);
+        if (mz_cores == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get core status structure\n");
+        cores = mz_cores->addr;
 
         mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
         if (mz_scp == NULL)
@@ -343,6 +352,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
 
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
+        RTE_LOG(INFO, APP, "Running on core %d\n", nfs[nf_info->instance_id].core);
 
         keep_running = 1;
 
@@ -402,6 +412,7 @@ onvm_nflib_run_callback(
         callback_handler_func callback)
 {
         struct onvm_nf * nf;
+
         nf = &nfs[info->instance_id];
 
         /* Don't allow conflicting NF modes */
@@ -431,7 +442,7 @@ onvm_nflib_thread_main_loop(void *arg){
         int ret;
         
         nf = (struct onvm_nf *)arg;
-        onvm_core_affinitize(4);
+        onvm_core_affinitize(nf->core);
 
         info = nf->info;
         handler = nf->nf_pkt_function;
@@ -471,6 +482,9 @@ onvm_nflib_thread_main_loop(void *arg){
         for (i = 0; i < MAX_NFS; i++)
                 while(nfs[i].parent == nf->instance_id && nfs[i].info != NULL)
                         sleep(1);
+
+        /* Stop and free */
+        onvm_nflib_cleanup(info);
 
         /* Stop and free */
         onvm_nflib_cleanup(info);
@@ -642,7 +656,7 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 }
         }
         */
-        scale_info->core = 4;
+        //scale_info->core = 4;
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
 
         if (ret < 0) {
@@ -761,7 +775,6 @@ onvm_nflib_start_child(void *arg) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = (struct onvm_nf_scale_info *) arg;
-        onvm_core_affinitize(scale_info->core);
 
         parent = &nfs[scale_info->parent->instance_id];
 

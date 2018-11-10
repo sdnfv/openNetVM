@@ -41,7 +41,10 @@
 #ifndef _ONVM_THREADING_H_
 #define _ONVM_THREADING_H_
 
-int onvm_get_core(int core, mpz_t _cpumask);
+#include "onvm_common.h"
+
+int GetNumCPUs(void);
+int onvm_get_core(int preferred_core, struct core_status *cores);
 int onvm_core_affinitize(int cpu);
 
 #endif  // _ONVM_THREADING_H_"

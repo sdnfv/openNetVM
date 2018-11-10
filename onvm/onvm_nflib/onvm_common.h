@@ -151,6 +151,11 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+struct core_status {
+	uint8_t enabled;
+	uint8_t nf_count;
+};
+
 struct onvm_nf_info;
 /* Function prototype for NF packet handlers */
 typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
@@ -189,7 +194,9 @@ struct onvm_nf {
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
-        /* Struct for NF to NF communication (NF tx) */
+        /* Core the NF is running on */
+	uint16_t core;
+	/* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 
         /* NF specifc functions */
@@ -254,6 +261,7 @@ struct onvm_service_chain {
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
+#define MZ_CORES_INFO "MProc_cores_info"
 #define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"

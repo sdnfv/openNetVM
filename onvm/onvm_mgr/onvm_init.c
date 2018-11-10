@@ -57,6 +57,7 @@
 
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
+struct core_status *cores = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -151,6 +152,7 @@ init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
+        const struct rte_memzone *mz_cores;
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
@@ -185,6 +187,15 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
         ports = mz_port->addr;
         
+	/* set up core status */
+        mz_cores = rte_memzone_reserve(MZ_CORES_INFO, sizeof(*cores) * GetNumCPUs(),
+                                    rte_socket_id(), NO_FLAGS);
+        if (mz_cores == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for core information\n");
+        memset(mz_cores->addr, 0, sizeof(*cores) * 64);
+        cores = mz_cores->addr;
+        
+
         /* set up array for NF tx data */
         mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_services == NULL)
@@ -331,17 +342,17 @@ static int
 init_port(uint8_t port_num) {
         const uint16_t rx_rings = ONVM_NUM_RX_THREADS;
         const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
+        /* Set the number of tx_rings equal to the tx threads. This mimics the onvm_mgr tx thread calculation. */
+        const uint16_t tx_rings = rte_lcore_count() - rx_rings - ONVM_NUM_MGR_AUX_THREADS;
         const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
 
-        unsigned tx_rings;
         uint16_t q;
         int retval;
 
-        tx_rings = rte_lcore_count() - rx_rings - 1;
-
         printf("Port %u init ... \n", (unsigned)port_num);
         printf("Port %u socket id %u ... \n", (unsigned)port_num, (unsigned)rte_eth_dev_socket_id(port_num));
-        printf("Port %u Rx rings %u, Tx rings %u ... \n", (unsigned)port_num, (unsigned)rx_rings, tx_rings);
+        printf("Port %u Rx rings %u ... \n", (unsigned)port_num, (unsigned)rx_rings);
+        printf("Port %u Tx rings %u ... \n", (unsigned)port_num, (unsigned)tx_rings);
         fflush(stdout);
 
         /* Standard DPDK port initialisation - config port, then set up

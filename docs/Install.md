@@ -63,6 +63,7 @@ Set up Environment
 
 3. Set environment variable RTE_SDK to the path of the DPDK library.  Make sure that you are in the DPDK directory
     ```sh
+    cd dpdk
     echo export RTE_SDK=$(pwd) >> ~/.bashrc
     ```
 
@@ -78,7 +79,7 @@ Set up Environment
     echo export ONVM_NUM_HUGEPAGES=1024 >> ~/.bashrc
     ```
 
-    ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK.
+    ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK. Note, NIC PCI device IDs may not be the same across all hosts. In that case, please retrieve this information for your host before setting the variable.
     ```sh
     export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
     ```

@@ -74,7 +74,6 @@ uint16_t global_stats_sleep_time = 1;
 /* global var for program name */
 static const char *progname;
 
-mpz_t global_nf_cores;
 
 /***********************Internal Functions prototypes*************************/
 
@@ -253,16 +252,40 @@ parse_num_services(const char *services) {
 }
 
 static int
-parse_nf_cores(const char *services) {
-        //char *end = NULL;
-        //unsigned long temp;
+parse_nf_cores(const char *nf_coremask) {
+	char *end = NULL;
+        unsigned long pm;
+        uint8_t count = 0;
+	uint32_t max_cores = 64;
 
-        mpz_set_str(global_nf_cores, services, 16);
-        printf("mpz shit val - %lu\n", mpz_get_ui(global_nf_cores));
-        //temp = strtoul(services, &end, 10);
-        //if (end == NULL || *end != '\0' || temp == 0)
-        //        return -1;
+        if (nf_coremask == NULL)
+                return -1;
 
+        /* convert parameter to a number and verify */
+        pm = strtoul(nf_coremask, &end, 16);
+        if (pm == 0) {
+                printf("WARNING: No nf cores are being used.\n");
+                return 0;
+        }
+        if (end == NULL || *end != '\0' || pm == 0)
+                return -1;
+
+        /* loop through bits of the mask and mark ports */
+        while (pm != 0) {
+                if (pm & 0x01) { /* bit is set in mask, use port */
+                        if (count >= max_cores)
+                                printf("WARNING: requested port %u not present"
+                                " - ignoring\n", (unsigned)count);
+                        else {
+				cores[count].enabled = 1;
+				cores[count].nf_count = 0;
+			}
+                }
+                pm = (pm >> 1);
+                count++;
+        }
+	printf("Have %d cores for NFs \n", count);
+ 
         return 0;
 }
 

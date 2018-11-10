@@ -143,8 +143,8 @@ onvm_nf_check_status(void) {
                         break;
                 case MSG_NF_REQUEST_CPU:
                         scale_info = (struct onvm_nf_scale_info*)msg->msg_data;
-                        //mpz_t _cpumask = global_nf_cores;
-                        scale_info->core = onvm_get_core(0, global_nf_cores);
+	                //mpz_t _cpumask = global_nf_cores;
+                        scale_info->core = 1;//TODO rm
                         break;
                 }
 
@@ -204,6 +204,7 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
         nf_info->instance_id = nf_id;
         nfs[nf_id].info = nf_info;
         nfs[nf_id].instance_id = nf_id;
+        nfs[nf_id].core = onvm_get_core(-1, cores);
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;

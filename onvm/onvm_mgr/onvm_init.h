@@ -78,7 +78,7 @@
 #include "onvm_sc_common.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
-
+#include "onvm_threading.h"
 
 /***********************************Macros************************************/
 
@@ -102,6 +102,8 @@
 #define NO_FLAGS 0
 
 #define ONVM_NUM_RX_THREADS 1
+/* Number of auxiliary threads in manager, 1 reserved for stats */
+#define ONVM_NUM_MGR_AUX_THREADS 1
 
 
 /*************************External global variables***************************/
@@ -112,6 +114,7 @@ extern struct rte_ring *incoming_msg_queue;
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
+extern struct core_status *cores;
 
 extern struct rte_mempool *pktmbuf_pool;
 extern struct rte_mempool *nf_msg_pool;
@@ -125,7 +128,6 @@ extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
 extern ONVM_STATS_OUTPUT stats_destination;
 extern uint16_t global_stats_sleep_time;
-extern mpz_t global_nf_cores;
 
 /**********************************Functions**********************************/
 

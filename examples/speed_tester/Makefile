@@ -58,7 +58,7 @@ ONVM ?= $(SRCDIR)/../../onvm
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a -lgmp
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 ifeq ($(ENABLE_PCAP), 1)
 LDFLAGS += -lpcap
