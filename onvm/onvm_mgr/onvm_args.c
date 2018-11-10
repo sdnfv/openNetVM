@@ -256,7 +256,7 @@ parse_nf_cores(const char *nf_coremask) {
 	char *end = NULL;
         unsigned long pm;
         uint8_t count = 0;
-	uint32_t max_cores = 64;
+	uint32_t max_cores = GetNumCPUs();
 
         if (nf_coremask == NULL)
                 return -1;
@@ -274,7 +274,7 @@ parse_nf_cores(const char *nf_coremask) {
         while (pm != 0) {
                 if (pm & 0x01) { /* bit is set in mask, use port */
                         if (count >= max_cores)
-                                printf("WARNING: requested port %u not present"
+                                printf("WARNING: requested core %u out of cpu bounds"
                                 " - ignoring\n", (unsigned)count);
                         else {
 				cores[count].enabled = 1;
@@ -283,6 +283,8 @@ parse_nf_cores(const char *nf_coremask) {
                 }
                 pm = (pm >> 1);
                 count++;
+		if (count == max_cores)
+			break;
         }
 	printf("Have %d cores for NFs \n", count);
  

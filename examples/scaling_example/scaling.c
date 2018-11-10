@@ -142,7 +142,6 @@ packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute
 /*
  * Child packet handler showcasing that children can also spawn NFs on their own
  */
-#if 0
 static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         (void)pkt;
@@ -172,7 +171,6 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
 
         return 0;
 }
-#endif
 
 /*
  * Main packet handler
@@ -195,8 +193,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 /* Get the filled in scale struct by inheriting parent properties */
                 scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
                 scale_info->service_id = destination;
-                //scale_info->pkt_func = &packet_handler_child;
-                scale_info->pkt_func = &packet_handler_fwd;
+                scale_info->pkt_func = &packet_handler_child;
 
                 /* Spawn the child */
                 ret = onvm_nflib_scale(scale_info);
