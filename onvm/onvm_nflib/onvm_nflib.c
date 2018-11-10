@@ -413,6 +413,10 @@ onvm_nflib_run_callback(
 {
         struct onvm_nf * nf;
 
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        signal(SIGINT, onvm_nflib_handle_signal);
+        signal(SIGTERM, onvm_nflib_handle_signal);
+
         nf = &nfs[info->instance_id];
 
         /* Don't allow conflicting NF modes */
@@ -447,10 +451,6 @@ onvm_nflib_thread_main_loop(void *arg){
         info = nf->info;
         handler = nf->nf_pkt_function;
         callback = nf->nf_callback_function;
-
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, onvm_nflib_handle_signal);
-        signal(SIGTERM, onvm_nflib_handle_signal);
 
         /* Runs the NF setup function */
         if (nf->nf_setup_function != NULL)

@@ -52,7 +52,6 @@
 #ifndef _ONVM_NF_H_
 #define _ONVM_NF_H_
 
-#include <gmp.h>
 #include "onvm_threading.h"
 
 extern uint16_t next_instance_id;
