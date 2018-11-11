@@ -284,7 +284,7 @@ onvm_nflib_lookup_shared_structs(void) {
                 rte_exit(EXIT_FAILURE, "Cannot get port info structure\n");
         ports = mz_port->addr;
 
-        mz_cores = rte_memzone_lookup(MZ_CORES_INFO);
+        mz_cores = rte_memzone_lookup(MZ_CORES_STATUS);
         if (mz_cores == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get core status structure\n");
         cores = mz_cores->addr;

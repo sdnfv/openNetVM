@@ -188,7 +188,7 @@ init(int argc, char *argv[]) {
         ports = mz_port->addr;
         
 	/* set up core status */
-        mz_cores = rte_memzone_reserve(MZ_CORES_INFO, sizeof(*cores) * GetNumCPUs(),
+        mz_cores = rte_memzone_reserve(MZ_CORES_STATUS, sizeof(*cores) * GetNumCPUs(),
                                     rte_socket_id(), NO_FLAGS);
         if (mz_cores == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for core information\n");

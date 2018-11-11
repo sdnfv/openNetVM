@@ -3,7 +3,7 @@
 function usage {
         echo "$0 CPU-LIST PORTMASK NF-COREMASK [-r NUM-SERVICES] [-d DEFAULT-SERVICE] [-s STATS-OUTPUT] [-p WEB-PORT-NUMBER] [-z STATS-SLEEP-TIME]"
         # this works well on our 2x6-core nodes
-        echo "$0 0,1,2,6 3 3,4,5 --> cores 0,1,2 and 6 with ports 0 and 1, with NFs running on cores 3,4,5"
+        echo "$0 0,1,2,3 3 0F0 --> cores 0,1,2 and 3 with ports 0 and 1, with NFs running on cores 4,5,6,7"
         echo -e "\tCores will be used as follows in numerical order:"
         echo -e "\t\tRX thread, TX thread, ..., TX thread for last NF, Stats thread"
         echo -e "$0 0,1,2,6 3 -s web"
