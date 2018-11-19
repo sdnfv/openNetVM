@@ -18,6 +18,10 @@ is the month.
 
 This release adds several new features and causes breaking API changes. 
 
+## Minor improvements
+
+**Return packets in bulk**: Adds support for returning packets in bulk instead of one by one by using  `onvm_nflib_return_pkt_bulk`. Useful for functions that buffer a group of packets befor returning them for processing or for NFs that create batches of packets in the fast path. *No breaking API changes.*
+
 ### Multi-Threading:
 NFs can now run multiple threads, each with its own set of rings for receiving and transmitting packets. NFs can either start new threads themselves or the NF Manager can send a message to an NF to cause it to scale up.
 

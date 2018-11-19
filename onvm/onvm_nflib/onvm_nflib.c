@@ -458,13 +458,21 @@ onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func handler) {
 
 int
 onvm_nflib_return_pkt(struct onvm_nf_info* nf_info, struct rte_mbuf* pkt) {
-        /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
-        if(unlikely(rte_ring_enqueue(nfs[nf_info->instance_id].tx_q, pkt) == -ENOBUFS)) {
-                rte_pktmbuf_free(pkt);
-                nfs[nf_info->instance_id].stats.tx_drop++;
+        return onvm_nflib_return_pkt_bulk(nf_info, &pkt, 1);
+}
+
+int
+onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count)  {
+        unsigned int i;
+        if (pkts == NULL || count == 0) return -1;
+        if (unlikely(rte_ring_enqueue_bulk(nfs[nf_info->instance_id].tx_q, (void **)pkts, count, NULL) == 0)) {
+                nfs[nf_info->instance_id].stats.tx_drop += count;
+                for (i = 0; i < count; i++) {
+                        rte_pktmbuf_free(pkts[i]);
+                }
                 return -ENOBUFS;
         }
-        else nfs[nf_info->instance_id].stats.tx_returned++;
+        else nfs[nf_info->instance_id].stats.tx_returned += count;
         return 0;
 }
 
