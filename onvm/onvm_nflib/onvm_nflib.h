@@ -131,7 +131,7 @@ onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
 
 
 /**
- * Return a group of packets that were created by the NF or have previously had the 
+ * Return a group of packets that were created by the NF or have previously had the
  * ONVM_NF_ACTION_BUFFER action called on it.
  *
  * @param pkts
@@ -142,7 +142,7 @@ onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
  *    0 on success, or a negative value on error (-1 if bad arguments, -ENOBUFS if enqueue fails).
  */
 int
-onvm_nflib_return_pkt_bulk(struct rte_mbuf** pkts, uint16_t count);
+onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count);
 
 
 /**
