@@ -432,7 +432,7 @@ onvm_nflib_run_callback(
 
                 /* Flush the packet buffers */
                 onvm_pkt_enqueue_tx_thread(nf->nf_tx_mgr->to_tx_buf, nf);
-                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr);
+                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
 
                 onvm_nflib_dequeue_messages(nf);
                 if (callback != ONVM_NO_CALLBACK) {

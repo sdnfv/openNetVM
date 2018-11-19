@@ -81,36 +81,39 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
  * Interface to send packets to all NFs after processing them.
  *
  * Input : a pointer to the tx queue 
+ *         a pointer to the NF possessing the TX queue.
  *
  */
 void
-onvm_pkt_flush_all_nfs(struct queue_mgr *tx_mgr);
+onvm_pkt_flush_all_nfs(struct queue_mgr *tx_mgr, struct onvm_nf *source_nf);
 
 /*
  * Function to send packets to one NF after processing them.
  *
  * Input : a pointer to the tx queue
+ *         a pointer to the NF possessing the TX queue.
  *
  */
-
 void
-onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id);
+onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id, struct onvm_nf *source_nf);
 
 /*
  * Function to enqueue a packet on one NF's queue.
  *
  * Inputs : a pointer to the tx queue responsible
- *          the number of the port
+ *          a destination nf id
  *          a pointer to the packet
+ *          a pointer to the NF possessing the TX queue.
  *
  */
 void
-onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt);
+onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt, struct onvm_nf *source_nf);
 
 /*
  * Function to send packets to one port after processing them.
  *
  * Input : a pointer to the tx queue
+ *         the number of the port
  *
  */
 void
@@ -118,6 +121,10 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port);
 
 /*
  * Give packets to TX thread so it can do useful work.
+ *
+ * Inputs : a pointer to the packet buf
+ *          a pointer to the NF
+ *
  */
 void 
 onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf);

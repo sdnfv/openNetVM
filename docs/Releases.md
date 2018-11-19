@@ -39,8 +39,15 @@ The prior code relied on global data structures that do not work in a multi-thre
  - `int onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` launches another NF based on the provided config
  - `struct onvm_nf_scale_info * onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` for getting a basic empty scaling config
  - `struct onvm_nf_scale_info * onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)` for getting a scaling config with the same functionality (e.g., service ID) as the parent NF
- - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop
+ - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop  
 
+### Stats Display  
+The console stats display has been improved to aggregate stats when running multiple NFs with the same service_id and to add 2 additional modes, verbose for all stats in human readable format and raw stats dump for easy script parsing. Changed NF tx stat to also includes tonf traffic.
+
+**Usage:**   
+- For normal mode no extra steps are required  
+- For verbose mode run the manager with `-v` flag  
+- For raw stats dump use the `-vv` flag  
 
 ## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
 This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 

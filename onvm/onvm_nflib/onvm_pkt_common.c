@@ -107,7 +107,8 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         // if the packet is drop, then <return value> is 0
                         // and !<return value> is 1.
-                        nf->stats.act_drop += !onvm_pkt_drop(pkts[i]);
+                        nf->stats.act_drop++;
+                        nf->stats.tx += !onvm_pkt_drop(pkts[i]);
                 } else if (meta->action == ONVM_NF_ACTION_NEXT) {
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
@@ -115,10 +116,10 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                         onvm_pkt_process_next_action(tx_mgr, pkts[i], nf);
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         nf->stats.act_tonf++;
-                        onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkts[i]);
+                        onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkts[i], nf);
                 } else if (meta->action == ONVM_NF_ACTION_OUT) {
+                        nf->stats.act_out++;
                         if (tx_mgr->mgr_type_t == MGR) {
-                                nf->stats.act_out++;
                                 onvm_pkt_enqueue_port(tx_mgr, meta->destination, pkts[i]);
                         } else {
                                 out_buf = tx_mgr->to_tx_buf;
@@ -136,18 +137,18 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
 }
 
 void
-onvm_pkt_flush_all_nfs(struct queue_mgr *tx_mgr) {
+onvm_pkt_flush_all_nfs(struct queue_mgr *tx_mgr, struct onvm_nf *source_nf) {
         uint16_t i;
 
         if (tx_mgr == NULL)
                 return;
 
         for (i = 0; i < MAX_NFS; i++)
-                onvm_pkt_flush_nf_queue(tx_mgr, i);
+                onvm_pkt_flush_nf_queue(tx_mgr, i, source_nf);
 }
 
 void
-onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id) {
+onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id, struct onvm_nf *source_nf) {
         uint16_t i;
         struct onvm_nf *nf;
         struct packet_buf *nf_buf;
@@ -171,14 +172,18 @@ onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id) {
                         onvm_pkt_drop(nf_buf->buffer[i]);
                 }
                 nf->stats.rx_drop += nf_buf->count;
+                if (source_nf != NULL) 
+                        source_nf->stats.tx_drop += nf_buf->count;
         } else {
                 nf->stats.rx += nf_buf->count;
+                if (source_nf != NULL)
+                        source_nf->stats.tx += nf_buf->count;
         }
         nf_buf->count = 0;
 }
 
 void
-onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt) {
+onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt, struct onvm_nf *source_nf) {
         struct onvm_nf *nf;
         uint16_t dst_instance_id;
         struct packet_buf *nf_buf;
@@ -191,6 +196,8 @@ onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rt
         dst_instance_id = onvm_sc_service_to_nf_map(dst_service_id, pkt);
         if (dst_instance_id == 0) {
                 onvm_pkt_drop(pkt);
+                if (source_nf != NULL)
+                        source_nf->stats.tx_drop++;
                 return;
         }
 
@@ -198,13 +205,15 @@ onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rt
         nf = &nfs[dst_instance_id];
         if (!onvm_nf_is_valid(nf)) {
                 onvm_pkt_drop(pkt);
+                if (source_nf != NULL)
+                        source_nf->stats.tx_drop++;
                 return;
         }
 
         nf_buf = &tx_mgr->nf_rx_bufs[dst_instance_id];
         nf_buf->buffer[nf_buf->count++] = pkt;
         if (nf_buf->count == PACKET_READ_SIZE) {
-                onvm_pkt_flush_nf_queue(tx_mgr, dst_instance_id);
+                onvm_pkt_flush_nf_queue(tx_mgr, dst_instance_id, source_nf);
         }
 }
 
@@ -303,7 +312,7 @@ onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, str
                         break;
                 case ONVM_NF_ACTION_TONF:
                         nf->stats.act_tonf++;
-                        onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkt);
+                        onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkt, nf);
                         break;
                 case ONVM_NF_ACTION_OUT:
                         nf->stats.act_out++;

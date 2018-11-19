@@ -52,6 +52,8 @@
 #define _ONVM_STATS_H_
 
 #include "cJSON.h"
+#include <time.h>
+#include <locale.h>
 
 #define ONVM_STR_STATS_STDOUT "stdout"
 #define ONVM_STR_STATS_STDERR "stderr"
@@ -75,6 +77,8 @@
                 snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                   \
         } while (0)
 
+#define ONVM_RAW_STATS_DUMP 3
+
 typedef enum {
         ONVM_STATS_NONE = 0,
         ONVM_STATS_STDOUT,
@@ -89,6 +93,16 @@ cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
 cJSON* onvm_json_nf_stats[MAX_NFS];
 
 /*********************************Interfaces**********************************/
+
+
+/*
+ * Function for inializting stats
+ *
+ * Input : Verbosity level
+ *
+ */
+void
+onvm_stats_init(uint8_t verbosity_level);
 
 
 /*
@@ -115,7 +129,7 @@ void onvm_stats_cleanup(void);
  * Input : time passed since last display (to compute packet rate)
  *
  */
-void onvm_stats_display_all(unsigned difftime);
+void onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
 
 
 /*
