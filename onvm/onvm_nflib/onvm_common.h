@@ -48,6 +48,7 @@
 #include <rte_ether.h>
 
 #include "onvm_msg_common.h"
+#include "onvm_config_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
 #define MAX_NFS 128               // total number of NFs allowed

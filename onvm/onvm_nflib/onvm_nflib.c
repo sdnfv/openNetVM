@@ -283,7 +283,6 @@ onvm_nflib_lookup_shared_structs(void) {
         if (mgr_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
 
-
         return 0;
 }
 
@@ -339,6 +338,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         keep_running = 1;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
+
         return 0;
 }
 
@@ -347,6 +347,26 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         int retval_parse, retval_final;
         struct onvm_nf_info *nf_info;
         int retval_eal = 0;
+        int use_config = 0;
+
+        /* Check to see if a config file should be used */
+        if (strcmp(argv[1], "-F") == 0) {
+                use_config = 1;
+                cJSON* config = onvm_config_parse_file(argv[2]);
+                if (config == NULL) {
+                        printf("Could not parse config file\n");
+                        return -1;
+                }
+
+                if (onvm_config_create_nf_arg_list(config, &argc, &argv) < 0) {
+                        printf("Could not create arg list\n");
+                        cJSON_Delete(config);
+                        return -1;
+                }
+
+                cJSON_Delete(config);
+                printf("LOADED CONFIG SUCCESFULLY\n");
+        }
 
         retval_eal = onvm_nflib_dpdk_init(argc, argv);
         if (retval_eal < 0)
@@ -382,6 +402,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         retval_final = (retval_eal + retval_parse) - 1;
 
         onvm_nflib_start_nf(nf_info);
+
+        //Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
+        if (use_config) {
+                return 3;
+        }
 
         return retval_final;
 }

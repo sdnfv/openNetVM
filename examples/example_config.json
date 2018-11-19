@@ -1,0 +1,13 @@
+{
+        "dpdk": {
+                "corelist": "4",
+                "memory_channels": 3,
+                "portmask": 2
+        },
+
+        "onvm": {
+                "output": "stdout",
+                "serviceid": 1,
+                "instanceid": 3
+        }
+}

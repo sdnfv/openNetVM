@@ -34,3 +34,11 @@ Example
 ./examples/aes_encrypt/go.sh 5 1 2
 ./examples/aes_decrypt/go.sh 6 2 3
 ./examples/bridge/go.sh 7 3
+
+
+Config File Support
+---
+This NF supports the NF generating arguments from a config file. For
+additional reading, see [Examples.md](../../docs/Examples.md)
+
+See `../example_config.json` for all possible options that can be set.

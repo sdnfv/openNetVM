@@ -32,6 +32,10 @@ cd ndpi_stats
 
 OR
 
+./go.sh -F CONFIG_FILE [-w FILE_NAME] [-d DEST_NF]
+
+OR
+
 sudo ./build/ndpi_stats -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-w FILE_NAME] [-d DEST_NF]
 ```
 
@@ -39,3 +43,12 @@ App Specific Arguments
 --
   - `-w <file_name>`: result file name to write to.
   - `-d <nf_id>`: OPTIONAL destination NF to send packets to
+
+Config File Support
+--
+This NF supports the NF auto-launching from a config file. Config files
+allow for the setting of DPDK and ONVM arguments, but NF-specific
+arguments must still be manually passed in accordance with the execution
+instructions.
+
+See `example_config.json` for all possible options that can be set.
