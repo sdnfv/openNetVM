@@ -6,8 +6,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2017 George Washington University
-#          2015-2017 University of California Riverside
+#          2015-2018 George Washington University
+#          2015-2018 University of California Riverside
 #          2010-2014 Intel Corporation.
 # All rights reserved.
 #
@@ -39,6 +39,7 @@
 
 import sys
 import argparse
+import os
 
 ONVM_CONST_MGR_THRD = 3
 
@@ -140,35 +141,41 @@ def onvm_corelist():
 	global onvm_mgr_corelist
 	global onvm_nfs_corelist
 
-	mgr_core_index = 0
-	nf_core_index = len(cores)-1
-	rem_cores = len(cores)
+	core_index = 0
+	total_cores = len(cores)
 
 	# Run calculations for openNetVM corelists
 	# ONVM Manager defaults to three threads 1x RX, 1x TX, 1x stat
-	total_mgr_thread = ONVM_CONST_MGR_THRD
 
-	for i in range(0, total_mgr_thread):
-		onvm_mgr_corelist.append(core_map[(0, mgr_core_index)])
-		mgr_core_index += 1
-		rem_cores -= 1
+	while core_index < ONVM_CONST_MGR_THRD:
+		core = core_map.get((0, core_index), None)
+		if core is None:
+			print "Not enough cores: onvm requires {} to run manager. (You have {})".format(ONVM_CONST_MGR_THRD, len(core_map))
+			exit(1)
+		onvm_mgr_corelist.append(core)
+		core_index += 1
 
-	while (rem_cores > 0):
-		if rem_cores >= 3:
-			onvm_mgr_corelist.append(core_map[(0, cores[mgr_core_index])])
-			onvm_nfs_corelist.append(core_map[(0, cores[nf_core_index])])
-			onvm_nfs_corelist.append(core_map[(0, cores[nf_core_index-1])])
-			mgr_core_index += 1
-			nf_core_index -= 2
-			rem_cores -= 3
-		elif rem_cores == 2:
-			onvm_mgr_corelist.append(core_map[(0, cores[mgr_core_index])])
-			onvm_nfs_corelist.append(core_map[(0, cores[nf_core_index])])
-			mgr_core_index += 1
-			nf_core_index -= 1
-			rem_cores -= 2
-		else:
-			break
+	while core_index < total_cores:
+		onvm_nfs_corelist.append(core_map[(0, cores[core_index])])
+		core_index += 1
+
+
+"""
+Reads the output of lscpu to determine if hyperthreading is enabled.
+"""
+def onvm_ht_isEnabled():
+	lscpu_output = os.popen('lscpu -p').readlines()
+	for line in lscpu_output:
+		try:
+			line_csv = line.split(',')
+			phys_core = int(line_csv[0])
+			logical_core = int(line_csv[1])
+			if phys_core != logical_core:
+				return True
+		except ValueError:
+			pass
+
+	return False
 
 """
 Print out openNetVM corelist info
@@ -179,16 +186,21 @@ def onvm_corelist_print():
 
 	onvm_print_header()
 
+	if onvm_ht_isEnabled():
+		print "This script only works if hyperthreading is disabled."
+		print "Run no_hyperthread.sh to disable hyperthreading before "
+		print "running this script again."
+		print ""
+		exit(1)
+
 	print "** MAKE SURE HYPERTHREADING IS DISABLED **"
 	print ""
 	print "openNetVM requires at least three cores for the manager:"
 	print "one for NIC RX, one for statistics, and one for NIC TX."
-	print "After the three cores, the manager needs one core for every two NFs'"
-	print "TX thread"
+ 	print "For rates beyond 10Gbps it may be necessary to run multiple TX"
+	print "or RX threads."
 	print ""
-	print "Each NF running on openNetVM needs its own core too.  One manager"
-	print "TX thread can be used to handle two NFs, but any more becomes"
-	print "inefficient."
+	print "Each NF running on openNetVM needs its own core too."
 	print ""
 
 	print "Use the following information to run openNetVM on this system:"
@@ -204,9 +216,9 @@ def onvm_corelist_print():
 
 	print "\t- openNetVM can handle %d NFs on this system" %(len(onvm_nfs_corelist))
 
-	for i in range(len(onvm_nfs_corelist)-1, -1, -1):
-		print "\t\t- NF %d:" %(len(onvm_nfs_corelist)-1-i),
-		for c in onvm_nfs_corelist[i]:
+	for i, cores in enumerate(onvm_nfs_corelist, 1):
+		print "\t\t- NF %d:" %(i),
+		for c in cores:
 			print "%s" %(c)
 
 def onvm_print_header():

@@ -2,12 +2,31 @@
 
 function usage {
         echo "$0 CPU-LIST SERVICE-ID DST-SERVICE-ID -s SOURCE-IP"
+        echo "$0 -F CONFIG-FILE -- -- -d DST -s SOURCE-IP"
+        echo ""
         echo "$0 4 1 2 -s 10.0.0.31,11.0.0.31 --> core 4, Service ID 1, Destination ID 2, Port 0: 10.0.0.31, Port 1: 11.0.0.31"
+        echo "$0 -F example_config.json 1 -s 10.0.0.31,11.0.0.31 --> loads settings from example_config.json, destination ID 1, Port 0: 10.0.0.31, Port 1: 11.0.0.31"
         exit 1
 }
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
+
+if [ -z $1 ]
+then
+  usage
+fi
+
+if [ $1 = "-F" ]
+then
+  config=$2
+  shift 2
+  exec sudo $SCRIPTPATH/build/app/arp_response -F $config "$@"
+elif [ $1 = "-F" ]
+then
+  usage
+fi
+
 cpu=$1
 service=$2
 dst=$3

@@ -49,8 +49,9 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 LIB    = libonvm.a
 
 # all source are stored in SRCS-y
-SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c onvm_pkt_common.c onvm_threading.c
+SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c onvm_pkt_common.c onvm_config_common.c onvm_threading.c
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += -I$(ONVM_HOME)/onvm/lib
 
 include $(RTE_SDK)/mk/rte.extlib.mk

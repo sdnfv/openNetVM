@@ -2,9 +2,12 @@
 
 function usage {
         echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID] [-a] [-s PACKET-SIZE] [-m DEST-MAC]
-        [-c PACKET-NUMBER] [-l]"
+                 [-c PACKET-NUMBER]"
+        echo "$0 -F config.json -- -- -d DST [remaining NF args]"
+        echo ""
         echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
         echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
+        echo "$0 -F config.json -- -- -d 1 -p 1000 --> loads from config.json, forwards to service ID 2, and print rate of 1000"
         echo "$0 3,7,9 1 2 -s 32 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, and packet size of 32"
         echo "$0 3,7,9 1 2 -s 32 -m aa:bb:cc:dd:ee:ff --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2, packet size of 32, and destination MAC address of aa:bb:cc:dd:ee:ff"
         echo "$0 5 1 2 -o sample_trafic.pcap --> core 5, with Service ID 1, and forwards to service ID 2, replays sample_trafic.pcap packets (make sure to enable pcap functionality, check README for instructions)"
@@ -15,6 +18,22 @@ function usage {
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
+
+if [ -z $1 ]
+then
+  usage
+fi
+
+if [ $1 = "-F" ]
+then
+  config=$2
+  shift 2
+  exec sudo $SCRIPTPATH/build/speed_tester -F $config "$@"
+elif [ $1 = "-F" ]
+then
+  usage
+fi
+
 cpu=$1
 service=$2
 dst=$3

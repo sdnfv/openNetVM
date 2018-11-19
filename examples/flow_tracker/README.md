@@ -14,6 +14,10 @@ cd flow_tracker
 
 OR
 
+./go.sh -F CONFIG_FILE -- -- -d DESTINATION_ID [-p PRINT_DELAY]
+
+OR
+
 sudo ./build/flow_tracker -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- -d DESTINATION_ID [-p PRINT_DELAY]
 ```
 
@@ -23,3 +27,10 @@ App Specific Arguments
     sends packets to the NF using service ID 2
   - `-p <print_delay>`:  Number of seconds between each print (default
     is 5)
+
+Config File Support
+--
+This NF supports the NF generating arguments from a config file. For
+additional reading, see [Examples.md](../../docs/Examples.md)
+
+See `../example_config.json` for all possible options that can be set.

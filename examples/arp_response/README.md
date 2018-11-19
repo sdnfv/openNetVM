@@ -11,6 +11,10 @@ print]
 
 OR
 
+./go -F CONFIG_FILE -- -- -d DESTINATION_ID -s SOURCE_IP_LIST [-p enable print]
+
+OR
+
 sudo ./build/monitor -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- -d DESTINATION_ID -s SOURCE_IP_LIST [-p ENABLE PRINT]
 ```
 
@@ -19,3 +23,10 @@ App Specific Arguments
   - `-d <destination_id>`: the NF will send non-ARP packets to the NF at this service ID, e.g. `-d 2` sends packets to service ID 2
   - `-s <source_ip_list>`: the NF will map each comma separated IP (no spaces) to the corresponding port. Example: `-s 10.0.0.31,11.0.0.31` maps port 0 to 10.0.0.31, and port 1 to 11.0.0.31. If 0.0.0.0 is inputted, the IP will be 0. If too few IPs are inputted, the remaining ports will be ignored.
   - `-p`: Enables printing of log information
+
+Config File Support
+--
+This NF supports the NF generating arguments from a config file. For
+additional reading, see [Examples.md](../../docs/Examples.md)
+
+See `../example_config.json` for all possible options that can be set.

@@ -80,6 +80,7 @@ master_thread_main(void) {
         uint16_t i;
         int shutdown_iter_count;
         const unsigned sleeptime = global_stats_sleep_time;
+        const unsigned verbosity_level = global_verbosity_level;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
@@ -88,14 +89,17 @@ master_thread_main(void) {
                 RTE_LOG(INFO, APP, "\tTo activate, please run $ONVM_HOME/onvm_web/start_web_console.sh\n");
         }
 
+        RTE_LOG(INFO, APP, "Stats verbosity level = %d\n", verbosity_level);
+
         /* Initial pause so above printf is seen */
         sleep(5);
 
+        onvm_stats_init(verbosity_level);
         /* Loop forever: sleep always returns 0 or <= param */
         while ( main_keep_running && sleep(sleeptime) <= sleeptime) {
                 onvm_nf_check_status();
                 if (stats_destination != ONVM_STATS_NONE)
-                        onvm_stats_display_all(sleeptime);
+                        onvm_stats_display_all(sleeptime, verbosity_level);
         }
 
         /* Close out file references and things */
@@ -219,7 +223,7 @@ tx_thread_main(void *arg) {
                 onvm_pkt_flush_all_ports(tx_mgr);
 
                 /* Send a burst to every NF */
-                onvm_pkt_flush_all_nfs(tx_mgr);
+                onvm_pkt_flush_all_nfs(tx_mgr, NULL);
         }
 
         RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());

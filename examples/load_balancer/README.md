@@ -37,6 +37,11 @@ make
 
 OR
 
+./go.sh -F CONFIG_FILE -- -- -c CLIENT_FACE -s SERVER_IFACE -f SERVER_CONFIG [-p
+PRINT_DELAY]
+
+OR
+
 sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [-p PRINT_DELAY]
 ```
 
@@ -46,3 +51,10 @@ App Specific Arguments
   - `SERVER_IFACE` : name of the server interface
   - `SERVER_CONFIG` : backend server config file
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+
+Config File Support
+--
+This NF supports the NF generating arguments from a config file. For
+additional reading, see [Examples.md](../../docs/Examples.md)
+
+See `../example_config.json` for all possible options that can be set.

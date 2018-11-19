@@ -12,6 +12,12 @@ function usage {
 	echo -e "\tRuns OVNM the same as above, but runs the web stats on port 9000 instead of defaulting to 8080"
         echo -e "$0 0,1,2,6 3 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout"
+        echo -e "$0 0,1,2,6 3 -s -v stdout"
+        echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in extra verbose mode"
+        echo -e "$0 0,1,2,6 3 -s stdout"
+        echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in raw data dump mode"
+        echo -e "$0 0,1,2,6 3 -a 0x7f000000000 -s stdout"
+        echo -e "\tRuns ONVM the same way as above, but adds a --base-virtaddr dpdk parameter"
         echo -e "$0 0,1,2,6 3 -r 10 -d 2"
         echo -e "\tRuns ONVM the same way as above, but limits max service IDs to 10 and uses service ID 2 as the default"
         exit 1
@@ -23,6 +29,7 @@ nf_cores=$3
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
+verbosity=1
 
 shift 3
 
@@ -31,18 +38,21 @@ then
     usage
 fi
 
-while getopts "v:r:d:s:p:z:" opt; do
+while getopts "a:r:d:s:p:z:v" opt; do
     case $opt in
-        v) virt_addr="--base-virtaddr=$OPTARG";;
+        a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
         d) def_srvc="-d $optarg";;
         s) stats="-s $OPTARG";;
         p) web_port="$OPTARG";;
         z) stats_sleep_time="-z $OPTARG";;
+        v) verbosity=$(($verbosity+1));;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
 done
+
+verbosity_level="-v $verbosity"
 
 if [ "${stats}" = "-s web" ]
 then
@@ -59,7 +69,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time}
+sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level}
 
 if [ "${stats}" = "-s web" ]
 then

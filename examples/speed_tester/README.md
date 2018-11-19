@@ -26,6 +26,10 @@ cd speed_tester
 
 OR
 
+./go.sh -F CONFIG_FILE -- -- -d DST_ID [-p PRINT_DELAY] [-a ADVANCED_RINGS] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILE] [-l MEASURE_LATENCY]
+
+OR
+
 sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-a] [-p PRINT_DELAY] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILENAME] [-l]
 ```
 
@@ -39,3 +43,10 @@ App Specific Arguments
   - `-o PCAP_FILENAME` : The filename of the pcap file to replay
   - `-l LATENCY` : Enable latency measurement. This should only be enabled on one Speed Tester NF. Packets must be routed back to the same speed tester NF.
   - `-c PACKET_NUMBER` : Use user specified number of packets in the batch. If not specified then this defaults to 128.
+
+Config File Support
+--
+This NF supports the NF generating arguments from a config file. For
+additional reading, see [Examples.md](../../docs/Examples.md)
+
+See `../example_config.json` for all possible options that can be set.

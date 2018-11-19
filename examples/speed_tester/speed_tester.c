@@ -401,6 +401,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
+                struct rte_mbuf *pkts[packet_number];
                 for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta* pmeta;
                         struct ether_hdr *ehdr;
@@ -436,9 +437,9 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 uint64_t* ts = (uint64_t *) rte_pktmbuf_append(pkt, sizeof(uint64_t));
                                 *ts = 0;
                         }
-
-                        onvm_nflib_return_pkt(nf_info, pkt);
+                        pkts[i] = pkt;
                 }
+                onvm_nflib_return_pkt_bulk(nf_info, pkts, packet_number);
 #ifdef LIBPCAP
         }
 #endif

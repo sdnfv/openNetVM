@@ -86,10 +86,10 @@ onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uin
                  */
 
                 (meta->chain_index)++;
-                onvm_pkt_enqueue_nf(rx_mgr, meta->destination, pkts[i]);
+                onvm_pkt_enqueue_nf(rx_mgr, meta->destination, pkts[i], NULL);
         }
 
-        onvm_pkt_flush_all_nfs(rx_mgr);
+        onvm_pkt_flush_all_nfs(rx_mgr, NULL);
 }
 
 

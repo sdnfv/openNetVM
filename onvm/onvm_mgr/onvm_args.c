@@ -71,6 +71,9 @@ ONVM_STATS_OUTPUT stats_destination = ONVM_STATS_NONE;
 /* global var for how long stats should wait before updating - extern in init.h */
 uint16_t global_stats_sleep_time = 1;
 
+/* global var for how verbose the stats output to console is - extern in init.h */
+uint8_t global_verbosity_level = 1;
+
 /* global var for program name */
 static const char *progname;
 
@@ -102,6 +105,8 @@ parse_stats_output(const char *stats_output);
 static int
 parse_stats_sleep_time(const char *sleeptime);
 
+static int
+parse_verbosity_level(const char *verbosity_level);
 
 /*********************************Interfaces**********************************/
 
@@ -117,12 +122,13 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                 {"nf-cores",            required_argument,      NULL,   'n'},
                 {"default-service",     required_argument,      NULL,   'd'},
                 {"stats-out",           no_argument,            NULL,   's'},
-                {"stats-sleep-time",    no_argument,            NULL,   'z'}
+                {"stats-sleep-time",    no_argument,            NULL,   'z'},
+                {"verbocity-level",     no_argument,            NULL,   'v'}
         };
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:z:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:z:v:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -162,6 +168,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                         return -1;
                                 }
                                 break;
+                        case 'v':
+                                if(parse_verbosity_level(optarg) != 0){
+                                        usage();
+                                        return -1;
+                                }
+                                break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
                                 usage();
@@ -184,7 +196,8 @@ usage(void) {
             "\t-r NUM_SERVICES: number of unique serivces allowed. defaults to 16 (optional)\n"
             "\t-d DEFAULT_SERVICE: the service to initially receive packets. defaults to 1 (optional)\n"
             "\t-s STATS_OUTPUT: where to output manager stats (stdout/stderr/web). defaults to NONE (optional)\n"
-            "\t-z STATS_SLEEP_TIME: how long the stats thread should wait before updating the stats (in seconds)\n",
+            "\t-z STATS_SLEEP_TIME: how long the stats thread should wait before updating the stats (in seconds)\n"
+            "\t-v VERBOCITY_LEVEL: verbocity level of the stats output(optional)\n",
             progname);
 }
 
@@ -318,4 +331,17 @@ parse_stats_output(const char *stats_output) {
         } else {
                 return -1;
         }
+}
+ 
+static int
+parse_verbosity_level(const char *verbosity_level){
+        char* end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(verbosity_level, &end, 10);
+        if(end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        global_verbosity_level = (uint16_t)temp;
+        return 0;
 }

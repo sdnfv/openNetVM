@@ -300,7 +300,6 @@ onvm_nflib_lookup_shared_structs(void) {
         if (mgr_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
 
-
         return 0;
 }
 
@@ -357,6 +356,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         keep_running = 1;
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
+
         return 0;
 }
 
@@ -365,6 +365,26 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         int retval_parse, retval_final;
         struct onvm_nf_info *nf_info;
         int retval_eal = 0;
+        int use_config = 0;
+
+        /* Check to see if a config file should be used */
+        if (strcmp(argv[1], "-F") == 0) {
+                use_config = 1;
+                cJSON* config = onvm_config_parse_file(argv[2]);
+                if (config == NULL) {
+                        printf("Could not parse config file\n");
+                        return -1;
+                }
+
+                if (onvm_config_create_nf_arg_list(config, &argc, &argv) < 0) {
+                        printf("Could not create arg list\n");
+                        cJSON_Delete(config);
+                        return -1;
+                }
+
+                cJSON_Delete(config);
+                printf("LOADED CONFIG SUCCESFULLY\n");
+        }
 
         retval_eal = onvm_nflib_dpdk_init(argc, argv);
         if (retval_eal < 0)
@@ -400,6 +420,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         retval_final = (retval_eal + retval_parse) - 1;
 
         onvm_nflib_start_nf(nf_info);
+
+        //Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
+        if (use_config) {
+                return 3;
+        }
 
         return retval_final;
 }
@@ -470,7 +495,7 @@ onvm_nflib_thread_main_loop(void *arg){
 
                 /* Flush the packet buffers */
                 onvm_pkt_enqueue_tx_thread(nf->nf_tx_mgr->to_tx_buf, nf);
-                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr);
+                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
 
                 onvm_nflib_dequeue_messages(nf);
                 if (callback != ONVM_NO_CALLBACK) {
@@ -496,13 +521,21 @@ onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func handler) {
 
 int
 onvm_nflib_return_pkt(struct onvm_nf_info* nf_info, struct rte_mbuf* pkt) {
-        /* FIXME: should we get a batch of buffered packets and then enqueue? Can we keep stats? */
-        if(unlikely(rte_ring_enqueue(nfs[nf_info->instance_id].tx_q, pkt) == -ENOBUFS)) {
-                rte_pktmbuf_free(pkt);
-                nfs[nf_info->instance_id].stats.tx_drop++;
+        return onvm_nflib_return_pkt_bulk(nf_info, &pkt, 1);
+}
+
+int
+onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count)  {
+        unsigned int i;
+        if (pkts == NULL || count == 0) return -1;
+        if (unlikely(rte_ring_enqueue_bulk(nfs[nf_info->instance_id].tx_q, (void **)pkts, count, NULL) == 0)) {
+                nfs[nf_info->instance_id].stats.tx_drop += count;
+                for (i = 0; i < count; i++) {
+                        rte_pktmbuf_free(pkts[i]);
+                }
                 return -ENOBUFS;
         }
-        else nfs[nf_info->instance_id].stats.tx_returned++;
+        else nfs[nf_info->instance_id].stats.tx_returned += count;
         return 0;
 }
 

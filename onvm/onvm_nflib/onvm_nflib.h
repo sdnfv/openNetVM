@@ -116,10 +116,9 @@ onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler,
 int
 onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler);
 
-
 /**
- * Return a packet that has previously had the ONVM_NF_ACTION_BUFFER action
- * called on it.
+ * Return a packet that was created by the NF or has previously had the
+ * ONVM_NF_ACTION_BUFFER action called on it.
  *
  * @param info
  *    Pointer to a struct containing information used to describe this NF.
@@ -130,6 +129,22 @@ onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler);
  */
 int
 onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
+
+
+/**
+ * Return a group of packets that were created by the NF or have previously had the 
+ * ONVM_NF_ACTION_BUFFER action called on it.
+ *
+ * @param pkts
+ *    a pointer to a buffer of packets that should now have an action other than buffer.
+ * @param count
+ *    the number of packets contained within the buffer.
+ * @return
+ *    0 on success, or a negative value on error (-1 if bad arguments, -ENOBUFS if enqueue fails).
+ */
+int
+onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count);
+
 
 /**
  * Inform the manager that the NF is ready to receive packets.

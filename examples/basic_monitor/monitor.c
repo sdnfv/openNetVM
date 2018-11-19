@@ -177,11 +177,11 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int main(int argc, char *argv[]) {
         int arg_offset;
-
         const char *progname = argv[0];
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
+
         argc -= arg_offset;
         argv += arg_offset;
 

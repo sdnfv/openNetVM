@@ -18,6 +18,10 @@ is the month.
 
 This release adds several new features and causes breaking API changes. 
 
+## Minor improvements
+
+**Return packets in bulk**: Adds support for returning packets in bulk instead of one by one by using  `onvm_nflib_return_pkt_bulk`. Useful for functions that buffer a group of packets befor returning them for processing or for NFs that create batches of packets in the fast path. *No breaking API changes.*
+
 ### Multi-Threading:
 NFs can now run multiple threads, each with its own set of rings for receiving and transmitting packets. NFs can either start new threads themselves or the NF Manager can send a message to an NF to cause it to scale up.
 
@@ -33,14 +37,34 @@ The prior code relied on global data structures that do not work in a multi-thre
 `int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)`
 - `int pkt_handler_func(struct rte_mbuf* pkt, struct onvm_pkt_meta* action)` -> 
 `int pkt_handler_func(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info)`
-- `int callback_handler_func(void)` -> `int callback_handler_func(__attribute__ ((unused)) struct onvm_nf_info *nf_info)`   
-  
+- `int callback_handler_func(void)` -> `int callback_handler_func(__attribute__ ((unused)) struct onvm_nf_info *nf_info)`
+
 **API Additions:**
  - `int onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` launches another NF based on the provided config
  - `struct onvm_nf_scale_info * onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` for getting a basic empty scaling config
  - `struct onvm_nf_scale_info * onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)` for getting a scaling config with the same functionality (e.g., service ID) as the parent NF
- - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop
+ - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop  
 
+### Stats Display  
+The console stats display has been improved to aggregate stats when running multiple NFs with the same service_id and to add 2 additional modes, verbose for all stats in human readable format and raw stats dump for easy script parsing. Changed NF tx stat to also includes tonf traffic.
+
+**Usage:**   
+- For normal mode no extra steps are required  
+- For verbose mode run the manager with `-v` flag  
+- For raw stats dump use the `-vv` flag  
+
+### Config File Support:
+ONVM now supports JSON config files, which can be loaded through the API provided in `onvm_config_common.h`. This allows various settings of either the ONVM manager or NFs to be set in a JSON config file and loaded into code, as opposed to needing to be passed in via the command line.
+
+**Usage:**
+ - All example NFs now support passing DPDK and ONVM arguments in a config file by using the `-F config.json` flag when running an NF executable or a `go.sh` script.  See `docs/examples.md` for more details.
+
+**API Changes:**
+- `nflib.c` was not changed from an NF-developer standpoint, but it was modified to include a check for the `-F` flag, which indicates that a config file should be read to launch an NF.
+
+**API Additions:**
+- `cJSON* onvm_config_parse_file(const char* filename)` - Reads a JSON config and stores the contents in a cJSON struct. For further reference on cJSON, see its [documentation](https://github.com/DaveGamble/cJSON).
+- `int onvm_config_create_nf_arg_list(cJSON* config, int* argc, char** argv[])`: Given a cJSON struct and pointers to the original command line arguments, generate a new `argc` and `argv` using the config file values.
 
 ## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
 This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 

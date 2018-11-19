@@ -52,6 +52,39 @@ The openNetVM Packet Helper Library provides an abstraction to support developme
   - Print the whole packet or individual headers of the packet.  These functions can be found [here][onvm_pkt_helper.h:L86].
 
 
+Config File Library
+--
+
+The openNetVM Config File Library provides an abstraction that allows
+NFs to load values from a JSON config file. While NFLib automatically
+loads all DPDK and ONVM arguments when `-F` is passed, a developer can
+add config support directly within the NF to support passing additional
+values.
+
+- NOTE: unless otherwise specified, all DPDK and ONVM arguments are **required**
+- `onvm_config_parse_file(const char* filename)`: Load a JSON config file, and return a pointer to the cJSON struct.
+- This is utilized to launch NFs using values specified in a config
+  file. 
+  `onvm_config_parse_file` can be found [here][onvm_config_common.h:L51]
+- Additional config options can be loaded from within the NF, using cJSON. For further reference on how to access the values from the cJSON object, see the [cJSON docs](https://github.com/DaveGamble/cJSON)
+
+### Sample Config File
+```
+{
+  "dpdk": {
+    "corelist": [STRING: corelist],
+    "memory_channels": [INT: number of memory channels],
+    "portmask": [INT: portmask]
+  },
+
+  "onvm": {
+    "output": [STRING: output loc, either stdout or web],
+    "serviceid": [INT: service ID for NF],
+    "instanceid": [OPTIONAL, INT: this optional arg sets the instance ID of the NF]
+  }
+}
+```
+
 [onvm_mgr]: ../onvm/onvm_mgr
 [onvm_nflib]: ../onvm/onvm_nflib
 [onvm_nflib.h]: ../onvm/onvm_nflib/onvm_nflib.h
@@ -59,6 +92,8 @@ The openNetVM Packet Helper Library provides an abstraction to support developme
 [onvm_pkt_helper.h:L59]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L59
 [onvm_pkt_helper.h:L74]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L74
 [onvm_pkt_helper.h:L86]: ../onvm/onvm_nflib/onvm_pkt_helper.h#L86
+[onvm_config_common.h:L51]: ../onvm/onvm_nflib/onvm_config_common.h#L51
+[onvm_config_common.h:L108]: ../onvm/onvm_nflib/onvm_config_common.h#L108
 [onvm_common.h:L51]: ../onvm/onvm_nflib/onvm_common.h#L51
 [onvm_common.h:L55]: ../onvm/onvm_nflib/onvm_common.h#L55
 [forward]: ../examples/simple_forward/forward.c#L82
