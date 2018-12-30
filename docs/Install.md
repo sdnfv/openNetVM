@@ -185,7 +185,7 @@ Troubleshooting
          - In this case, either kill them manually by hitting Ctrl+C or run `sudo pkill NF_NAME` for every NF that you have ran.
      - The manager and NFs are not running, but something crashed without freeing hugepages.
          - To fix this, please run `sudo rm -rf /mnt/huge/*` to remove all files that contain hugepage data.
-         - An alternative method is to use the dpdk provided tools (the following may have changed since DPDK v18.11): Run `cd dpdk/usertools; sudo ./dpdk-setup.sh` then select "remove hugepage mappings" from the list of options. Then run `$ONVM_HOME/scripts/install.sh` to remount hugepages.
+         - An alternative method is to use the dpdk provided tools (the following may have changed since DPDK v18.11): Run `cd dpdk/usertools; sudo ./dpdk-setup.sh` then select "remove hugepage mappings" from the list of options. Then run `$ONVM_HOME/scripts/setup_environment.sh` to remount hugepages.
 
      - The above two cases are not met, something weird is happening:
          - A reboot might fix this problem and free memory
