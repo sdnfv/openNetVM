@@ -266,10 +266,12 @@ parse_num_services(const char *services) {
 
 static int
 parse_nf_cores(const char *nf_coremask) {
-	char *end = NULL;
+        char *end = NULL;
         unsigned long pm;
+        uint8_t i;
         uint8_t count = 0;
-	uint32_t max_cores = GetNumCPUs();
+        uint8_t num_cores = 0;
+        uint32_t max_cores = GetNumCPUs();
 
         if (nf_coremask == NULL)
                 return -1;
@@ -290,17 +292,29 @@ parse_nf_cores(const char *nf_coremask) {
                                 printf("WARNING: requested core %u out of cpu bounds"
                                 " - ignoring\n", (unsigned)count);
                         else {
-				cores[count].enabled = 1;
-				cores[count].nf_count = 0;
-			}
+                                cores[count].enabled = 1;
+                                cores[count].nf_count = 0;
+                                num_cores++;
+                        }
                 }
                 pm = (pm >> 1);
                 count++;
-		if (count == max_cores)
-			break;
+                if (count == max_cores)
+                        break;
         }
-	printf("Have %d cores for NFs \n", count);
- 
+
+        count = 0;
+        printf("Registered %d cores for NFs: ", num_cores);
+        for (i = 0; i < max_cores; ++i) {
+                if (cores[i].enabled == 1) {
+                        printf("%d", i);
+                        if (count != num_cores - 1)
+                                printf(", ");
+                        count++;
+                }
+        }
+        printf("\n");
+
         return 0;
 }
 
