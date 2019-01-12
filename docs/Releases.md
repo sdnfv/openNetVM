@@ -13,31 +13,32 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## DRAFT v18.11 (11/18): Config files, Multi threading, Better Statistics, and bug fixes
-**This release is currently under testing in the `develop` branch.**  *These notes will continue to be updated until the final release is made later this month.*
+## v18.11 (11/18): Config files, Multithreading, Better Statistics, and bug fixes
+This release adds several new features which cause breaking API changes to existing NFs.  NFs must be updated to support the new API required for multithreading support. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
-This release adds several new features and causes breaking API changes. 
-
-## Minor improvements
-
-**Return packets in bulk**: Adds support for returning packets in bulk instead of one by one by using  `onvm_nflib_return_pkt_bulk`. Useful for functions that buffer a group of packets befor returning them for processing or for NFs that create batches of packets in the fast path. *No breaking API changes.*
-
-### Multi-Threading:
+ ### Multithreading:
 NFs can now run multiple threads, each with its own set of rings for receiving and transmitting packets. NFs can either start new threads themselves or the NF Manager can send a message to an NF to cause it to scale up.
 
 **Usage:**
-To make an NF start another thread, run the `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` function with a struct holding all the information required to start the new NF thread. This can be used to replicate an NF's threads for scalability, or to support NFs that require several threads performing different types of processing (thus each thread has its own service ID). More info about the Multi-Threading can be found in `docs/NF_Dev.md`. Example use of Multithreading NF scaling can be seen in the `scaling_example` NF.
+To make an NF start another thread, run the `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` function with a struct holding all the information required to start the new NF thread. This can be used to replicate an NF's threads for scalability (all with same service ID), or to support NFs that require several threads performing different types of processing (thus each thread has its own service ID). More info about the multithreading can be found in `docs/NF_Dev.md`. Example use of multithreading NF scaling can be seen in the `scaling_example` NF.
 
 **API Changes:**
-The prior code relied on global data structures that do not work in a multi-threaded environment. As a result, many of the APIs have been refactored to take a `onvm_nf_info` structure, instead of assuming it is available as a global variable.
-- `onvm_nflib_init(int argc, char *argv[], const char *nf_tag);` --> 
+The prior code relied on global data structures that do not work in a multithreaded environment. As a result, many of the APIs have been refactored to take an `onvm_nf_info` structure, instead of assuming it is available as a global variable.
+ - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag);` -> 
 `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p)`
-- `void onvm_nflib_stop(void)` -> `onvm_nflib_stop(struct onvm_nf_info *nf_info)` 
+ - `void onvm_nflib_stop(void)` -> `void onvm_nflib_stop(struct onvm_nf_info *nf_info)` 
 - `int onvm_nflib_return_pkt(struct rte_mbuf* pkt)` -> 
 `int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)`
 - `int pkt_handler_func(struct rte_mbuf* pkt, struct onvm_pkt_meta* action)` -> 
 `int pkt_handler_func(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info)`
 - `int callback_handler_func(void)` -> `int callback_handler_func(__attribute__ ((unused)) struct onvm_nf_info *nf_info)`
+- Any existing NFs will need to be modified to support this updated API. Generally this just requires adding a reference to the `onvm_nf_info` struct in the API calls.
+
+NFs also must adjust their Makefiles to include the following libraries:
+```
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
+```
 
 **API Additions:**
  - `int onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)` launches another NF based on the provided config
@@ -46,7 +47,8 @@ The prior code relied on global data structures that do not work in a multi-thre
  - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)` sets the setup function to be automatically executed once before an NF enters the main packet loop  
 
 ### Stats Display  
-The console stats display has been improved to aggregate stats when running multiple NFs with the same service_id and to add 2 additional modes, verbose for all stats in human readable format and raw stats dump for easy script parsing. Changed NF tx stat to also includes tonf traffic.
+The console stats display has been improved to aggregate stats when running multiple NFs with the same service ID and to add two additional modes: verbose for all stats in human readable format and raw stats dump for easy script parsing. The NF TX stat has been updated to also include tonf traffic.
+
 
 **Usage:**   
 - For normal mode no extra steps are required  
@@ -63,8 +65,16 @@ ONVM now supports JSON config files, which can be loaded through the API provide
 - `nflib.c` was not changed from an NF-developer standpoint, but it was modified to include a check for the `-F` flag, which indicates that a config file should be read to launch an NF.
 
 **API Additions:**
-- `cJSON* onvm_config_parse_file(const char* filename)` - Reads a JSON config and stores the contents in a cJSON struct. For further reference on cJSON, see its [documentation](https://github.com/DaveGamble/cJSON).
+ - `cJSON* onvm_config_parse_file(const char* filename)`: Reads a JSON config and stores the contents in a cJSON struct. For further reference on cJSON, see its [documentation](https://github.com/DaveGamble/cJSON).
 - `int onvm_config_create_nf_arg_list(cJSON* config, int* argc, char** argv[])`: Given a cJSON struct and pointers to the original command line arguments, generate a new `argc` and `argv` using the config file values.
+
+### Minor improvements
+
+  - **Return packets in bulk**: Adds support for returning packets in bulk instead of one by one by using  `onvm_nflib_return_pkt_bulk`. Useful for functions that buffer a group of packets before returning them for processing or for NFs that create batches of packets in the fast path. *No breaking API changes.*
+  - **Updated `corehelper.py` script**: Fixed the `scripts/corehelper.py` file so that it correctly reports recommended core usage instructions. The script assumes a single CPU socket system and verifies that hyperthreading is disabled.
+  - **Adjusted default number of TX queues**: Previously, the ONVM manager always started `MAX_NFS` transmit queues on each NIC port. This is unnecessary and causes a problem with SR-IOV and NICs with limited queue support. Now the manager creates one queue per TX thread.
+  - Bug fixes were made to [prevent a crash](https://github.com/sdnfv/openNetVM/commit/087891d9fea3b3ab011254dd405ef9e708d2e43d) of `speed_tester` during allocation of packets when there are no free mbufs and to [fix an invalid path](https://github.com/sdnfv/openNetVM/commit/a7978304914670ae9dfd2e3571af21ec7ed29013) causing an error when attempting to use Pktgen with the `run-pktgen.sh` script. Additionally, a few [minor documentation edits](https://github.com/sdnfv/openNetVM/commit/6005be5724552cda3f84b84e39cdc7bee846194c) were made.
+
 
 ## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
 This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 

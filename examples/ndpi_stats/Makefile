@@ -58,12 +58,14 @@ SRCS-y := ndpi_stats.c ndpi_util.c
 ONVM= $(SRCDIR)/../../onvm
 
 CFLAGS += -O3 $(USER_FLAGS)
-#CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += -I$(ONVM)/onvm_nflib
-LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
 
 CFLAGS += -I$(NDPI_HOME)/src/include
 LDFLAGS += $(NDPI_HOME)/lib/libndpi.a
+
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
 
 LDFLAGS += -lpcap
 

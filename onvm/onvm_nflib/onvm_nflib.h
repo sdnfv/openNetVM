@@ -132,7 +132,7 @@ onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt);
 
 
 /**
- * Return a group of packets that were created by the NF or have previously had the 
+ * Return a group of packets that were created by the NF or have previously had the
  * ONVM_NF_ACTION_BUFFER action called on it.
  *
  * @param pkts
