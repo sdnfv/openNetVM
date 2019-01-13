@@ -38,18 +38,6 @@
  * onvm_threading.c - threading helper functions
  ********************************************************************/
 
-/***************************Standard C library********************************/
-/******************************DPDK libraries*********************************/
-
-/*****************************Internal headers********************************/
-
-
-
-/**********************************Macros*************************************/
-
-/******************************Global Variables*******************************/
-
-/***********************Internal Functions Prototypes*************************/
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -75,28 +63,26 @@ GetNumCPUs(void)
 int
 onvm_get_core(int preferred_core, struct core_status *cores)
 {
-	int i;
-	int best_core = 0;
-	int min_nf_count = 10000;
-	
-	for (i=0;i<64;i++){
-		if (cores[i].enabled) {
-			if (preferred_core == i) {
-				best_core = i;
-				break;
-			} else if (cores[i].nf_count == 0) {
-				best_core = i;
-				break;
-			} else if (cores[i].nf_count < min_nf_count) {
-				best_core = i;
-				min_nf_count = cores[i].nf_count;
-			}
-			
-		}
-	}
-	cores[best_core].nf_count++;
+        int i;
+        int best_core = 0;
+        uint16_t min_nf_count = (uint16_t)-1;
+        
+        for (i = 0; i < 64; ++i){
+                if (cores[i].enabled) {
+                        if (preferred_core == i) {
+                                best_core = i;
+                                break;
+                        } else if (cores[i].nf_count < min_nf_count) {
+                                min_nf_count = cores[i].nf_count;
+                                best_core = i;
+                        }
+                        
+                }
+        }
+        
+        cores[best_core].nf_count++;
 
-	return best_core;
+        return best_core;
 }
 
 int 
@@ -105,7 +91,7 @@ onvm_core_affinitize(int cpu)
         cpu_set_t cpus;
         size_t n;
 
-	n = GetNumCPUs();
+        n = GetNumCPUs();
         if (cpu < 0 || cpu >= (int) n) {
                 return -1;
         }

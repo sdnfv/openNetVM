@@ -112,7 +112,6 @@ onvm_nf_next_instance_id(void) {
 void
 onvm_nf_check_status(void) {
         int i;
-        //int core;
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
@@ -143,7 +142,6 @@ onvm_nf_check_status(void) {
                         break;
                 case MSG_NF_REQUEST_CPU:
                         scale_info = (struct onvm_nf_scale_info*)msg->msg_data;
-	                //mpz_t _cpumask = global_nf_cores;
                         scale_info->core = 1;//TODO rm
                         break;
                 }
@@ -202,9 +200,12 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
+        if (nf_info->core_mode == ONVM_NF_CORE_MANUAL_ASSIGN) 
+                nf_info->core = onvm_get_core(nf_info->core, cores);
+        else if (nf_info->core_mode == ONVM_NF_CORE_MGR_ASSIGN)
+                nf_info->core = onvm_get_core(-1, cores);
         nfs[nf_id].info = nf_info;
         nfs[nf_id].instance_id = nf_id;
-        nfs[nf_id].core = onvm_get_core(-1, cores);
 
         // Let the NF continue its init process
         nf_info->status = NF_STARTING;
@@ -238,7 +239,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
-        cores[nfs[nf_id].core].nf_count--;
+        cores[nf_info->core].nf_count--;
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;

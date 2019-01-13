@@ -45,10 +45,11 @@ then
     usage
 fi
 
-while getopts ":p:n:as:m:o:c:l" opt; do
+while getopts ":p:n:d:as:m:o:c:l" opt; do
   case $opt in
     p) print="-p $OPTARG";;
     n) instance="-n $OPTARG";;
+    d) core_mode="-m $OPTARG";;
     a) rings="-a";;
     s) size="-s $OPTARG";;
     m) dest_mac="-m $OPTARG";;
@@ -60,4 +61,4 @@ while getopts ":p:n:as:m:o:c:l" opt; do
   esac
 done
 
-exec sudo $SCRIPTPATH/build/app/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print $rings $size $dest_mac $pcap_filename $pkt_num $latency
+exec sudo $SCRIPTPATH/build/app/speed_tester -l $cpu -n 3 --proc-type=secondary -- -r $service $instance $core_mode -- -d $dst $print $rings $size $dest_mac $pcap_filename $pkt_num $latency

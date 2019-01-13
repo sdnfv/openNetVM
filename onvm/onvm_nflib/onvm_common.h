@@ -64,6 +64,9 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
+#define ONVM_NF_CORE_MGR_ASSIGN 0
+#define ONVM_NF_CORE_MANUAL_ASSIGN 1
+
 //extern uint8_t rss_symmetric_key[40];
 
 //flag operations that should be used on onvm_pkt_meta
@@ -152,8 +155,8 @@ struct port_info {
 };
 
 struct core_status {
-	uint8_t enabled;
-	uint8_t nf_count;
+        uint8_t enabled;
+        uint8_t nf_count;
 };
 
 struct onvm_nf_info;
@@ -172,6 +175,7 @@ struct onvm_nf_scale_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
+        uint8_t core_mode;
         const char *tag;
         void *data;
         setup_func setup_func;
@@ -195,8 +199,8 @@ struct onvm_nf {
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
         /* Core the NF is running on */
-	uint16_t core;
-	/* Struct for NF to NF communication (NF tx) */
+        //uint16_t core;
+        /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 
         /* NF specifc functions */
@@ -236,6 +240,8 @@ struct onvm_nf {
 struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
+        uint16_t core;
+        uint8_t core_mode;
         uint8_t status;
         const char *tag;
         void *data;

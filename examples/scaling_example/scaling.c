@@ -146,7 +146,7 @@ static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         (void)pkt;
         static int ret = 0;
-	static int spawned = 0;
+        static int spawned = 0;
         meta->destination = *(uint16_t *)nf_info->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
@@ -168,8 +168,8 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
                 ret= onvm_nflib_scale(scale_info);
                 if (ret == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_fwd packet function\n", scale_info->service_id);
-		spawned++;
-	}
+                spawned++;
+        }
 
         return 0;
 }
@@ -245,14 +245,14 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 
         /* Testing NF scaling */ 
         if (spawned_nfs == 0) {
-		/* As this is advanced rings if we want the children to inheir the same function we need to set it first */
+                /* As this is advanced rings if we want the children to inheir the same function we need to set it first */
                 nf->nf_advanced_rings_function = &run_advanced_rings;
                 struct onvm_nf_scale_info *scale_info;
                 /* Spawn as many children as possible */
                 do {
-                	spawned_nfs++;
-			if (spawned_nfs>2)
-				break;
+                        spawned_nfs++;
+                        if (spawned_nfs>2)
+                                break;
                         /* Prepare state data for the child */
                         void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
                         *(uint16_t *)data = destination;
