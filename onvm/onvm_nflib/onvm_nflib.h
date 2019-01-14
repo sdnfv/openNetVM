@@ -54,6 +54,7 @@
 #define _ONVM_NFLIB_H_
 #include <rte_mbuf.h>
 #include "onvm_common.h"
+#include <rte_cycles.h>
 #include "onvm_pkt_common.h"
 #include "onvm_threading.h"
 

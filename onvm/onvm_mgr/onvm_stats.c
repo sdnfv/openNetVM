@@ -196,6 +196,7 @@ onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         }
 
         onvm_stats_flush();
+
 }
 
 
@@ -289,6 +290,23 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
         }
 }
 
+static void
+onvm_stats_display_client_wakeup_info(int difftime)
+{
+        uint64_t num_wakeups = 0;
+        uint64_t prev_num_wakeups = 0;
+        uint64_t wakeup_rate;
+        unsigned i = 0;
+
+        for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
+                num_wakeups += wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += wakeup_infos[i].prev_num_wakeups;
+                wakeup_infos[i].prev_num_wakeups = wakeup_infos[i].num_wakeups;
+        }
+
+        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+        fprintf(stats_out, "num_wakeups=%"PRIu64", wakeup_rate=%"PRIu64"\n", num_wakeups, wakeup_rate);
+}
 
 static void
 onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
@@ -343,6 +361,12 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         }
 
         fprintf(stats_out, "%s", NF_MSG[verbosity_level-1]);
+        uint64_t rx_qlen;
+        uint64_t tx_qlen;
+        uint64_t comp_cost;
+
+        if (ONVM_INTERRUPT_SEM) onvm_stats_display_client_wakeup_info(difftime);
+
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
@@ -379,11 +403,27 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         act_returned_for_service[nfs[i].info->service_id] += act_returned;
                 }
 
+                if (ONVM_INTERRUPT_SEM) {
+                        rx_qlen = rte_ring_count(nfs[i].rx_q);
+                        tx_qlen = rte_ring_count(nfs[i].tx_q);
+                        comp_cost = nfs[i].stats.comp_cost;
+                }
+                /*
+                fprintf(stats_out, "NF %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
+                                   "        tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n"
+                                   "        rx_pps: %9"PRIu64" tx_pps: %9"PRIu64" rx_qlen:  %9"PRIu64" tx_qlen: %9"PRIu64" comp_cost: %9"PRIu64", msg_flag=%d\n",
+                                nfs[i].info->instance_id,
+                                rx, rx_drop, act_next, act_drop, act_returned,
+                                tx, tx_drop, act_out, act_tonf, act_buffer,
+                                rx_pps, tx_pps, rx_qlen, tx_qlen, comp_cost, rte_atomic16_read(nfs[i].shm_server));
+                */
+
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%u,%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n",
+                        fprintf(stats_out, "%s,%u,%u,%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"%"PRIu64"\n",
                                         buffer, nfs[i].info->instance_id, nfs[i].info->service_id,
                                         rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate,
-                                        act_out, act_tonf, act_drop, act_next, act_buffer, act_returned);
+                                        act_out, act_tonf, act_drop, act_next, act_buffer, act_returned,
+                                        rx_qlen, tx_qlen, comp_cost);
                 } else if (verbosity_level == 2) {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n"
                                               "               %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n",

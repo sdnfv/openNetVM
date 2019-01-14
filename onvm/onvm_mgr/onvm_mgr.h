@@ -96,4 +96,30 @@
 /* ID to be assigned to the next NF that starts */
 extern uint16_t next_instance_id;
 
+/** Thread state. This specifies which NFs the thread will handle and
+ *  includes the packet buffers used by the thread for NFs and ports.
+ */
+struct thread_info {
+       unsigned queue_id;
+       unsigned first_cl;
+       unsigned last_cl;
+       /* FIXME: This is confusing since it is non-inclusive. It would be
+        *        better to have this take the first client and the number
+        *        of consecutive clients after it to handle.
+        */
+       struct packet_buf *nf_rx_buf;
+       struct packet_buf *port_tx_buf;
+};
+
+
+/** NFs wakeup Info: used by manager to update NFs pool and wakeup stats
+ */
+struct wakeup_info {
+	unsigned first_client;
+	unsigned last_client;
+	uint64_t num_wakeups;
+	uint64_t prev_num_wakeups;
+};
+
+
 #endif  // _ONVM_MGR_H_

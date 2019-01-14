@@ -66,6 +66,14 @@
 
 #define CORE_ASSIGNMENT_BIT 0
 #define DEDICATED_CORE_BIT 1
+#define INTERRUPT_SEM           // To enable NF thread interrupt mode wake.  Better to move it as option in Makefile
+
+// Std C library includes for shared cpu
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
 
 //extern uint8_t rss_symmetric_key[40];
 
@@ -228,8 +236,17 @@ struct onvm_nf {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
-        } stats;
 
+                volatile uint64_t prev_rx;
+                volatile uint64_t prev_rx_drop;
+                volatile uint64_t prev_tx;
+                volatile uint64_t prev_tx_drop;
+                volatile uint64_t comp_cost;
+        } stats;
+        const char *sem_name;
+        sem_t *mutex;
+        key_t shm_key;
+        rte_atomic16_t *shm_server;
 };
 
 /*
@@ -277,6 +294,15 @@ struct onvm_service_chain {
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
+/* interrupt semaphore specific updates */
+#define SHMSZ 4                         // size of shared memory segement (page_size)
+#define KEY_PREFIX 123                  // prefix len for key
+#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
+#define ONVM_NUM_WAKEUP_THREADS 1
+#define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
+#define SAMPLING_RATE 1000000           // sampling rate to estimate NFs computation cost
+
+
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
 #define NF_STARTING 1           // When a NF is in the startup process and already has an id
@@ -290,6 +316,7 @@ struct onvm_service_chain {
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other
+#define ONVM_INTERRUPT_SEM 1    // should be true if NFs sleep while waiting for packets
 
 
 /*
@@ -337,6 +364,27 @@ get_msg_queue_name(unsigned id) {
 static inline int
 onvm_nf_is_valid(struct onvm_nf *nf) {
         return nf && nf->info && nf->info->status == NF_RUNNING;
+}
+
+/*
+ * Given the rx queue name template above, get the key of the shared memory
+ */
+static inline key_t
+get_rx_shmkey(unsigned id) {
+        return KEY_PREFIX * 10 + id;
+}
+
+/*
+ * Given the sem name template above, get the sem name
+ */
+static inline const char *
+get_sem_name(unsigned id) {
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(MP_CLIENT_SEM_NAME) + 2];
+
+        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_SEM_NAME, id);
+        return buffer;
 }
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
