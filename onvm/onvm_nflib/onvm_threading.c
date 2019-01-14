@@ -61,28 +61,61 @@ GetNumCPUs(void)
 }
 
 int
-onvm_get_core(int preferred_core, struct core_status *cores)
+onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores)
 {
         int i;
+        int max_cores = GetNumCPUs();
         int best_core = 0;
+        int pref_core_id = *core_value;
         uint16_t min_nf_count = (uint16_t)-1;
-        
-        for (i = 0; i < 64; ++i){
-                if (cores[i].enabled) {
-                        if (preferred_core == i) {
-                                best_core = i;
-                                break;
-                        } else if (cores[i].nf_count < min_nf_count) {
+        uint16_t pref_core_nf_count = (uint16_t)-1;
+
+        /* Check status of preffered core */
+        if (ONVM_CHECK_BIT(flags, CORE_ASSIGNMENT_BIT)) {
+                /* If manual core assignment and core is out of bounds */
+                if (pref_core_id < 0 || pref_core_id > max_cores)
+                        return -3;
+
+                if (cores[pref_core_id].enabled && cores[pref_core_id].is_dedicated_core == 0) { 
+                        pref_core_nf_count = cores[pref_core_id].nf_count;
+                }
+        }
+
+        /* Find the most optimal core */
+        for (i = 0; i < max_cores; ++i) {
+                if (cores[i].enabled && cores[i].is_dedicated_core == 0) {
+                        if (cores[i].nf_count < min_nf_count) {
                                 min_nf_count = cores[i].nf_count;
                                 best_core = i;
                         }
-                        
                 }
         }
-        
+
+        /* No cores available, can't launch */
+        if (min_nf_count == (uint16_t)-1) {
+                return -1;
+        }
+
+        /* Currently preferrence only works if there are no NFs running on that core */
+        if (pref_core_nf_count == 0) {
+                best_core = pref_core_id;
+        }
+
+        /* If NF wants a dedicated core and its available, reserve it */
+        if (ONVM_CHECK_BIT(flags, DEDICATED_CORE_BIT)) {
+                if (min_nf_count == 0) {
+                        cores[best_core].is_dedicated_core = 1;
+                } else {
+                        /* Dedicated core option not possible */
+                        *core_value = best_core;
+                        return -2;
+                }
+        }
+
+        *core_value = best_core;
         cores[best_core].nf_count++;
 
-        return best_core;
+        return 0;
 }
 
 int 

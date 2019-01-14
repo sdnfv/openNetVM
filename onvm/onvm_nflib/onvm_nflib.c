@@ -335,6 +335,12 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         } else if(nf_info->status == NF_NO_IDS) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
+        } else if(nf_info->status == NF_NO_CORES) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
+        } else if(nf_info->status == NF_NO_DEDICATED_CORES) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_NO_IDS, "There is no space to assign a dedicated core\n");
         } else if(nf_info->status != NF_STARTING) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
@@ -687,7 +693,7 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info) {
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
         scale_info->parent = parent_info;
         scale_info->instance_id = NF_NO_ID;
-        scale_info->core_mode = ONVM_NF_CORE_MGR_ASSIGN;
+        scale_info->flags = 0;
 
         return scale_info;
 }
@@ -704,7 +710,7 @@ onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data) {
         scale_info->service_id = parent_info->service_id;
         scale_info->tag = parent_info->tag;
         scale_info->core = parent_info->core;
-        scale_info->core_mode = parent_info->core_mode;
+        scale_info->flags = parent_info->flags;
         scale_info->data = data;
         if (parent_nf->nf_mode == NF_MODE_SINGLE) {
                 scale_info->pkt_func = parent_nf->nf_pkt_function;
@@ -799,8 +805,8 @@ onvm_nflib_start_child(void *arg) {
         /* Set child NF service and instance id */
         child_info->service_id = scale_info->service_id;
         child_info->instance_id = scale_info->instance_id;
-        child_info->core = scale_info->core_mode;
-        child_info->core_mode = scale_info->core_mode;
+        child_info->core = scale_info->flags;
+        child_info->flags = scale_info->flags;
 
         RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_info->service_id, child_info->instance_id);
         onvm_nflib_start_nf(child_info);
@@ -863,7 +869,7 @@ onvm_nflib_info_init(const char *tag)
         info = (struct onvm_nf_info*) mempool_data;
         info->instance_id = NF_NO_ID;
         info->core = rte_lcore_id();
-        info->core_mode = ONVM_NF_CORE_MGR_ASSIGN;
+        info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
 
@@ -885,18 +891,20 @@ static void
 onvm_nflib_usage(const char *progname) {
         printf("Usage: %s [EAL args] -- "
                "[-n <instance_id>]"
-               "[-r <service_id>]\n\n", progname);
+               "[-r <service_id>]"
+               "[-m ]"
+               "[-d ]\n\n", progname);
 }
 
 
 static int
 onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         const char *progname = argv[0];
-        int c, initial_instance_id, core_mode;
+        int c, initial_instance_id;
         int service_id = -1;
 
         opterr = 0;
-        while ((c = getopt (argc, argv, "n:r:m:")) != -1)
+        while ((c = getopt (argc, argv, "n:r:md")) != -1)
                 switch (c) {
                 case 'n':
                         initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
@@ -908,9 +916,10 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                         if (service_id == 0) service_id = -1;
                         break;
                 case 'm':
-                        core_mode = (uint8_t) strtoul(optarg, NULL, 10);
-                        //TODO check if its one of the allowed modes
-                        nf_info->core_mode = core_mode;
+                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, CORE_ASSIGNMENT_BIT);
+                        break;
+                case 'd':
+                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, DEDICATED_CORE_BIT);
                         break;
                 case '?':
                         onvm_nflib_usage(progname);

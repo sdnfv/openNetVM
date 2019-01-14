@@ -64,8 +64,8 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
-#define ONVM_NF_CORE_MGR_ASSIGN 0
-#define ONVM_NF_CORE_MANUAL_ASSIGN 1
+#define CORE_ASSIGNMENT_BIT 0
+#define DEDICATED_CORE_BIT 1
 
 //extern uint8_t rss_symmetric_key[40];
 
@@ -157,6 +157,7 @@ struct port_info {
 struct core_status {
         uint8_t enabled;
         uint8_t nf_count;
+        uint8_t is_dedicated_core;
 };
 
 struct onvm_nf_info;
@@ -175,7 +176,7 @@ struct onvm_nf_scale_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
-        uint8_t core_mode;
+        uint8_t flags;
         const char *tag;
         void *data;
         setup_func setup_func;
@@ -198,8 +199,6 @@ struct onvm_nf {
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
-        /* Core the NF is running on */
-        //uint16_t core;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 
@@ -241,7 +240,7 @@ struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
-        uint8_t core_mode;
+        uint8_t flags;
         uint8_t status;
         const char *tag;
         void *data;
@@ -286,6 +285,8 @@ struct onvm_service_chain {
 #define NF_STOPPED 4            // NF has stopped and in the shutdown process
 #define NF_ID_CONFLICT 5        // NF is trying to declare an ID already in use
 #define NF_NO_IDS 6             // There are no available IDs for this NF
+#define NF_NO_CORES 7           // There is not cores available or specidifed core can't be used
+#define NF_NO_DEDICATED_CORES 8 // There is no space for a dedicated core
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other

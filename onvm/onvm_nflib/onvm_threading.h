@@ -44,7 +44,7 @@
 #include "onvm_common.h"
 
 int GetNumCPUs(void);
-int onvm_get_core(int preferred_core, struct core_status *cores);
+int onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores);
 int onvm_core_affinitize(int cpu);
 
 #endif  // _ONVM_THREADING_H_"
