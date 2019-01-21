@@ -46,5 +46,6 @@
 int GetNumCPUs(void);
 int onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores);
 int onvm_core_affinitize(int cpu);
+int thread_block_signals(void);
 
 #endif  // _ONVM_THREADING_H_"

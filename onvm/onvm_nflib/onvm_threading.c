@@ -50,19 +50,17 @@
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
+#include <signal.h>
 
 #include "onvm_threading.h"
 
-/*----------------------------------------------------------------------------*/
 int 
-GetNumCPUs(void) 
-{
+GetNumCPUs(void) {
         return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 int
-onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores)
-{
+onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores) {
         int i;
         int max_cores = GetNumCPUs();
         int best_core = 0;
@@ -119,8 +117,7 @@ onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores)
 }
 
 int 
-onvm_core_affinitize(int cpu)
-{
+onvm_core_affinitize(int cpu) {
         cpu_set_t cpus;
         size_t n;
 
@@ -133,4 +130,14 @@ onvm_core_affinitize(int cpu)
         CPU_SET((unsigned)cpu, &cpus);
 
         return rte_thread_set_affinity(&cpus);
+}
+
+int
+thread_block_signals(void) {
+        sigset_t mask;
+        sigemptyset(&mask); 
+        sigaddset(&mask, SIGINT); 
+        sigaddset(&mask, SIGTERM); 
+
+        return pthread_sigmask(SIG_BLOCK, &mask, NULL);
 }

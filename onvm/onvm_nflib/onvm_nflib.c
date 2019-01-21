@@ -107,17 +107,6 @@ static uint8_t keep_running = 1;
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
-// to track packets per NF <used for sampling computation cost>
-uint64_t counter = 0;
-
-// flag (shared mem variable) to track state of NF and trigger wakeups
-// flag_p=1 => NF sleeping (waiting on semaphore)
-// flag_p=0 => NF is running and processing (not waiting on semaphore)
-static rte_atomic16_t *flag_p;
-
-// Mutex for sem_wait
-static sem_t *mutex;
-
 /***********************Internal Functions Prototypes*************************/
 
 
@@ -164,14 +153,6 @@ static int
 onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info);
 
 
-/*
-* Signal handler to catch SIGINT.
-*
-* Input : int corresponding to the signal catched
-*
-*/
-static void
-onvm_nflib_handle_signal(int sig);
 
 /*
  * Check if there are packets in this NF's RX Queue and process them
@@ -200,7 +181,6 @@ static void *
 onvm_nflib_start_child(void *arg);
 
 /*
-<<<<<<< HEAD
  * Check if the NF info struct is valid
  */
 static int
@@ -245,8 +225,54 @@ onvm_nflib_thread_main_loop(void *arg);
 static void
 init_shared_cpu_info(uint16_t instance_id);
 
+/*
+* Signal handler thread entry point
+* The thread is only spawned from the main thread
+*
+* Input : pointer to onvm_nf info struct
+*
+*/
+void *thread_signal_handler(void *arg);
 /************************************API**************************************/
 
+/* TODO: Resolve globals */
+sigset_t mask;
+
+void *
+thread_signal_handler(void *arg)
+{
+        int signal, s, i;
+        struct onvm_nf *nf = (struct onvm_nf *)arg;
+
+        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        s = sigwait(&mask, &signal);
+        if (s == 0) {
+                printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
+        } else {
+                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        }
+
+        if (signal == SIGINT || signal == SIGTERM) {
+                keep_running = 0;
+                if (ONVM_INTERRUPT_SEM && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                        rte_atomic16_set(nf->flag_p, 0);
+                        sem_post(nf->nf_mutex);
+                }
+
+                /* Also signal spawned children */
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                                if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
+        }
+        printf("Signal handling thread finished, exiting\n");
+
+        return NULL;
+}
 
 static int
 onvm_nflib_dpdk_init(int argc, char *argv[]) {
@@ -374,7 +400,9 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
 
         /* Set the parent id to none */
         nfs[nf_info->instance_id].parent = 0;
-
+        
+        if (ONVM_INTERRUPT_SEM) init_shared_cpu_info(nf_info->instance_id);
+      
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
         RTE_LOG(INFO, APP, "Running on core %d\n", nf_info->core);
@@ -390,6 +418,15 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         struct onvm_nf_info *nf_info;
         int retval_eal = 0;
         int use_config = 0;
+
+        /* It would make sense to put this when the app starts running, but this seems to not function if not placed here */
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
+                printf("Could not set pthread sigmast\n");
+                return -1;
+        }
 
         /* Check to see if a config file should be used */
         if (strcmp(argv[1], "-F") == 0) {
@@ -452,11 +489,8 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 return 3;
         }
 
-        if (ONVM_INTERRUPT_SEM) init_shared_cpu_info(nf_info->instance_id);
-
         return retval_final;
 }
-
 
 int
 onvm_nflib_run_callback(
@@ -464,11 +498,9 @@ onvm_nflib_run_callback(
         pkt_handler_func handler,
         callback_handler_func callback)
 {
+        pthread_t sig_loop_thread;
         struct onvm_nf * nf;
-
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, onvm_nflib_handle_signal);
-        signal(SIGTERM, onvm_nflib_handle_signal);
+        int ret;
 
         nf = &nfs[info->instance_id];
 
@@ -482,8 +514,24 @@ onvm_nflib_run_callback(
         nf->nf_pkt_function = handler;
         nf->nf_callback_function = callback;
 
+        if (nf->parent == 0) {
+                /* Listen for ^C and docker stop so we can exit gracefully */
+                int ret = pthread_create(&sig_loop_thread, NULL, thread_signal_handler, (void *)nf);
+                if (ret != 0) {
+                        printf("Can't start this\n");
+                        return -1;
+                }
+        }
+
         pthread_t main_loop_thread;
-        pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf);
+        ret = pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf);
+        if (ret != 0) {
+                printf("Can't start this\n");
+                return -1;
+        }
+
+        if (nf->parent == 0)
+                pthread_join(sig_loop_thread, NULL);
         pthread_join(main_loop_thread, NULL);
 
         return 0;
@@ -772,8 +820,8 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Probably want to comment this out */
         if(unlikely(nb_pkts == 0)) {
                 if (ONVM_INTERRUPT_SEM) {
-                        rte_atomic16_set(flag_p, 1);
-                        sem_wait(mutex);
+                        rte_atomic16_set(nf->flag_p, 1);
+                        sem_wait(nf->nf_mutex);
                 }
                 return 0;
         }
@@ -783,12 +831,12 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf*)pkts[i]);
-                if (ONVM_INTERRUPT_SEM && counter % SAMPLING_RATE == 0) {
-                        counter++;
+                if (ONVM_INTERRUPT_SEM && nf->counter % SAMPLING_RATE == 0) {
+                        nf->counter++;
                         start_tsc = rte_rdtsc();
                 }
                 ret_act = (*handler)((struct rte_mbuf*)pkts[i], meta, nf->info);
-                if (ONVM_INTERRUPT_SEM && counter % SAMPLING_RATE == 0) {
+                if (ONVM_INTERRUPT_SEM && nf->counter % SAMPLING_RATE == 0) {
                         end_tsc = rte_rdtsc();
                         nf->stats.comp_cost = end_tsc - start_tsc;
                 }
@@ -844,7 +892,7 @@ onvm_nflib_start_child(void *arg) {
         child_info->instance_id = scale_info->instance_id;
         child_info->core = scale_info->flags;
         child_info->flags = scale_info->flags;
-
+        
         RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_info->service_id, child_info->instance_id);
         onvm_nflib_start_nf(child_info);
 
@@ -981,20 +1029,6 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         return optind;
 }
 
-
-static void
-onvm_nflib_handle_signal(int sig)
-{
-        if (sig == SIGINT || sig == SIGTERM) {
-                keep_running = 0;
-                if (ONVM_INTERRUPT_SEM && (mutex) && (rte_atomic16_read(flag_p) ==1)) {
-                        rte_atomic16_set(flag_p, 0);
-                        sem_post(mutex);
-                }
-        }
-        /* TODO: Main thread for INTERRUPT_SEM case: Must additionally relinquish SEM, SHM */
-}
-
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
 {
@@ -1036,14 +1070,16 @@ init_shared_cpu_info(uint16_t instance_id) {
         int shmid;
         key_t key;
         char *shm;
+        struct onvm_nf *nf = &nfs[instance_id];
 
+        printf("Initialize shared cpu info\n");
         sem_name = get_sem_name(instance_id);
         fprintf(stderr, "sem_name=%s for client %d\n", sem_name, instance_id);
-        mutex = sem_open(sem_name, 0, 0666, 0);
-        if (mutex == SEM_FAILED) {
+        nf->nf_mutex = sem_open(sem_name, 0, 0666, 0);
+        if (nf->nf_mutex == SEM_FAILED) {
                 perror("Unable to execute semaphore");
                 fprintf(stderr, "unable to execute semphore for client %d\n", instance_id);
-                sem_close(mutex);
+                sem_close(nf->nf_mutex);
                 exit(1);
         }
 
@@ -1060,5 +1096,6 @@ init_shared_cpu_info(uint16_t instance_id) {
                 exit(1);
         }
 
-        flag_p = (rte_atomic16_t *)shm;
+        nf->flag_p = (rte_atomic16_t *)shm;
+        nf->counter = 0;
 }

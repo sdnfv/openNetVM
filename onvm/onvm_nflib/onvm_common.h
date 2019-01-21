@@ -243,10 +243,24 @@ struct onvm_nf {
                 volatile uint64_t prev_tx_drop;
                 volatile uint64_t comp_cost;
         } stats;
+
+        /* only accessed by mgr should be moved? */
         const char *sem_name;
         sem_t *mutex;
         key_t shm_key;
         rte_atomic16_t *shm_server;
+
+        /* NF accessible shared mem */
+        /* To track packets per NF <used for sampling computation cost> */
+        uint64_t counter;
+        /*
+         * flag (shared mem variable) to track state of NF and trigger wakeups 
+         * flag_p=1 => NF sleeping (waiting on semaphore)
+         * flag_p=0 => NF is running and processing (not waiting on semaphore)
+         */
+        rte_atomic16_t *flag_p;
+        /* Mutex for NF sem_wait */
+        sem_t *nf_mutex;
 };
 
 /*
