@@ -59,6 +59,14 @@
 #include <rte_ethdev.h>
 #include <rte_ether.h>
 
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+
+#include <rte_atomic.h>
+
 #ifdef LIBPCAP
 #include <pcap.h>
 #endif
@@ -109,6 +117,7 @@ static uint64_t total_latency = 0;
 char *pcap_filename = NULL;
 
 void nf_setup(struct onvm_nf_info *nf_info);
+void * signal_handler(void *arg);
 
 /*
  * Print a usage message
@@ -278,13 +287,53 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-
+/*
 static void
 handle_signal(int sig) {
         if (sig == SIGINT || sig == SIGTERM)
                 keep_running = 0;
 }
+*/
 
+void *
+signal_handler(void *arg)
+{
+        int signal, s, i;
+        struct onvm_nf *nf = (struct onvm_nf *)arg;
+
+        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+        s = sigwait(&mask, &signal);
+        if (s == 0) {
+                printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
+        } else {
+                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        }
+
+        if (signal == SIGINT || signal == SIGTERM) {
+                keep_running = 0;
+                if (ONVM_INTERRUPT_SEM && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                        rte_atomic16_set(nf->flag_p, 0);
+                        sem_post(nf->nf_mutex);
+                }
+
+                /* Also signal spawned children */
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                                if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
+        }
+        printf("Signal handling thread finished, exiting\n");
+
+        return NULL;
+}
 
 static void
 run_advanced_rings(struct onvm_nf_info *nf_info) {
@@ -295,19 +344,27 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
-        volatile struct onvm_nf *nf;
+        struct onvm_nf *nf;
+        pthread_t sig_loop_thread; 
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, handle_signal);
-        signal(SIGTERM, handle_signal);
+        //signal(SIGINT, handle_signal);
+        //signal(SIGTERM, handle_signal);
 
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
+        tx_ring = nf->tx_q;        
+
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        int ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
+        if (ret != 0) {
+                printf("Can't start this\n");
+                return;
+        }
 
         while (keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
@@ -315,6 +372,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
+                        rte_atomic16_set(nf->flag_p, 1);
+                        sem_wait(nf->nf_mutex);
                         continue;
                 }
                 /* Process all the packets */
@@ -334,6 +393,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 }
         }
         onvm_nflib_stop(nf_info);
+        pthread_join(sig_loop_thread, NULL);
 }
 
 
