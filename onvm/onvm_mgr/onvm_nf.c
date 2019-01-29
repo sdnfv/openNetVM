@@ -194,6 +194,12 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 return 1;
         }
 
+	if (nf_info->service_id >= MAX_SERVICES) {
+                // This NF service id exceeds the maximum service value
+                nf_info->status = NF_NO_IDS;
+                return 1;
+        }
+
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
         nfs[nf_id].info = nf_info;
