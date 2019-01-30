@@ -158,6 +158,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 }
                         } else {
                                 usage(progname);
+                                return -1;
                         }
                         break;
                 case 'o':
