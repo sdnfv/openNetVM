@@ -182,6 +182,12 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 ? onvm_nf_next_instance_id()
                 : nf_info->instance_id;
 
+        if (nf_info->service_id >= MAX_SERVICES) {
+                // Maximum service ID exceeded
+                nf_info->status = NF_SERVICE_MAX;
+                return 1;
+        }
+
         if (nf_id >= MAX_NFS) {
                 // There are no more available IDs for this NF
                 nf_info->status = NF_NO_IDS;
@@ -193,12 +199,7 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 nf_info->status = NF_ID_CONFLICT;
                 return 1;
         }
-
-	if (nf_info->service_id >= MAX_SERVICES) {
-                // This NF service id exceeds the maximum service value
-                nf_info->status = NF_NO_IDS;
-                return 1;
-        }
+        
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;

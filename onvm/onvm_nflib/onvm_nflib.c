@@ -315,6 +315,9 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         if (nf_info->status == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
+        } else if (nf_info->status == NF_SERVICE_MAX) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_SERVICE_MAX, "Service ID has exceeded the maximum amount\n");
         } else if(nf_info->status == NF_NO_IDS) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
