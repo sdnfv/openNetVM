@@ -200,7 +200,6 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 return 1;
         }
 
-
         if (onvm_nf_is_valid(&nfs[nf_id])) {
                 // This NF is trying to declare an ID already in use
                 nf_info->status = NF_ID_CONFLICT;
