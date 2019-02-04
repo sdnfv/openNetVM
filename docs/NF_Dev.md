@@ -6,7 +6,7 @@ Overview
 
 The openNetVM manager is comprised of two directories: one containing the source code for the [manager][onvm_mgr] and the second containing the source for the [NF_Lib][onvm_nflib].  The manager is responsible for maintaining state bewteen NFs, routing packets between NICs and NFs, and displaying log messages and/or statistics.  The NF_Lib contains useful libraries to initialize and run NFs and libraries to support NF capabilities: [packet helper][pkt_helper], [flow table][flow_table], [flow director][flow_director], [service chains][srvc_chains], and [message passing][msg_passing].
 
-Currently, our platform supports at most 16 NF instances running at once.  This limit is defined in [onvm_common.h][onvm_common.h:L51].
+Currently, our platform supports at most 128 NF instances running at once and a maximum ID value of 32 for NF's. We currently support a maximum of 32 NF instances per service. These limits are defined in [onvm_common.h][onvm_common.h:L51].  These are parameters developed for experimentation of the platform, and are subject to change.
 
 NFs are run with different arguments in three different tiers--DPDK configuration flags, openNetVM configuration flags, and NF configuration flags--which are separated with `--`.
   - DPDK configuration flags:
