@@ -272,6 +272,7 @@ struct onvm_service_chain {
 #define NF_ID_CONFLICT 5        // NF is trying to declare an ID already in use
 #define NF_NO_IDS 6             // There are no available IDs for this NF
 #define NF_SERVICE_MAX 7        // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8          // Maximum amount of NF's per service spawned
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other

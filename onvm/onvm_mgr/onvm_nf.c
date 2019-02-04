@@ -194,6 +194,11 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 return 1;
         }
 
+        if (nf_per_service_count[nf_info->service_id] >= MAX_NFS_PER_SERVICE) {
+                // Maximum amount of NF's per service spawned
+                nf_info->status = NF_SERVICE_COUNT_MAX;
+                return 1;
+        }
 
 
         if (onvm_nf_is_valid(&nfs[nf_id])) {
