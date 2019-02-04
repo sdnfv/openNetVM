@@ -205,7 +205,6 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 nf_info->status = NF_ID_CONFLICT;
                 return 1;
         }
-        
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
