@@ -129,16 +129,22 @@ onvm_nf_check_status(void) {
                 switch (msg->msg_type) {
                 case MSG_NF_STARTING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        onvm_nf_start(nf);
+                        if (onvm_nf_start(nf) == 0) {
+                                onvm_stats_add_event("NF Starting", nf);
+                        }
                         break;
                 case MSG_NF_READY:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        onvm_nf_ready(nf);
+                        if (onvm_nf_ready(nf) == 0) {
+                                onvm_stats_add_event("NF Ready", nf);
+                        }
                         break;
                 case MSG_NF_STOPPING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        if (!onvm_nf_stop(nf))
+                        if (onvm_nf_stop(nf) == 0) {
+                                onvm_stats_add_event("NF Stopping", nf);
                                 num_nfs--;
+                        }
                         break;
                 }
 

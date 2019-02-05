@@ -163,7 +163,7 @@ init(int argc, char *argv[]) {
         if (mz_port == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
         ports = mz_port->addr;
-        
+
         /* set up array for NF tx data */
         mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_services == NULL)
@@ -177,7 +177,7 @@ init(int argc, char *argv[]) {
         if (mz_nf_per_service == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for NF per service information.\n");
         }
-        nf_per_service_count = mz_nf_per_service->addr;  
+        nf_per_service_count = mz_nf_per_service->addr;
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -208,6 +208,9 @@ init(int argc, char *argv[]) {
                 retval = init_port(port_id);
                 if (retval != 0)
                         rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
+                char event_msg_buf[20];
+                sprintf(event_msg_buf, "Port %d initialized", port_id);
+                onvm_stats_add_event(event_msg_buf, NULL);
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));
@@ -503,4 +506,3 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
                 }
         }
 }
-

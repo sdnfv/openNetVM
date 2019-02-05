@@ -86,7 +86,6 @@ master_thread_main(void) {
 
         if (stats_destination == ONVM_STATS_WEB) {
                 RTE_LOG(INFO, APP, "ONVM stats can be viewed through the web console\n");
-                RTE_LOG(INFO, APP, "\tTo activate, please run $ONVM_HOME/onvm_web/start_web_console.sh\n");
         }
 
         RTE_LOG(INFO, APP, "Stats verbosity level = %d\n", verbosity_level);

@@ -116,6 +116,7 @@ onvm_json_reset_objects(void);
 
 static FILE *stats_out;
 static FILE *json_stats_out;
+static FILE *json_events_out;
 
 
 /****************************Global variables***************************************/
@@ -146,14 +147,16 @@ onvm_stats_set_output(ONVM_STATS_OUTPUT output) {
                         case ONVM_STATS_WEB:
                                 stats_out = fopen(ONVM_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
                                 json_stats_out = fopen(ONVM_JSON_STATS_FILE, ONVM_STATS_FOPEN_ARGS);
+                                json_events_out = fopen(ONVM_JSON_EVENTS_FILE, ONVM_STATS_FOPEN_ARGS);
 
                                 if (stats_out == NULL || json_stats_out == NULL) {
                                         rte_exit(-1, "Error opening stats files\n");
                                 }
 
                                 onvm_json_root = NULL;
-                                onvm_json_port_stats_arr = NULL;
-                                onvm_json_nf_stats_arr = NULL;
+                                onvm_json_port_stats_obj = NULL;
+                                onvm_json_nf_stats_obj = NULL;
+                                onvm_json_events_arr = cJSON_CreateArray();
                                 break;
                         default:
                                 rte_exit(-1, "Error handling stats output file\n");
@@ -167,6 +170,7 @@ onvm_stats_cleanup(void) {
         if (stats_destination == ONVM_STATS_WEB) {
                 fclose(stats_out);
                 fclose(json_stats_out);
+                fclose(json_events_out);
         }
 }
 
@@ -191,8 +195,9 @@ onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         onvm_stats_display_ports(difftime, verbosity_level);
         onvm_stats_display_nfs(difftime, verbosity_level);
 
-        if (stats_out != stdout && stats_out != stderr) {
+        if (stats_destination == ONVM_STATS_WEB) {
                 fprintf(json_stats_out, "%s\n", cJSON_Print(onvm_json_root));
+                fprintf(json_events_out, "%s\n", cJSON_Print(onvm_json_events_arr));
         }
 
         onvm_stats_flush();
@@ -217,6 +222,35 @@ onvm_stats_clear_nf(uint16_t id) {
         nfs[id].stats.tx_returned = nfs[id].stats.tx_buffer = 0;
 }
 
+void
+onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
+        if (msg == NULL || stats_destination != ONVM_STATS_WEB) {
+                return;
+        }
+        char event_time_buf[20];
+        time_t time_raw_format;
+        struct tm * ptr_time;
+        time ( &time_raw_format );
+        ptr_time = localtime ( &time_raw_format );
+        if (strftime(event_time_buf, 20, "%F %T", ptr_time) == 0) {
+                perror("Couldn't prepare formatted string");
+        }
+        cJSON* new_event = cJSON_CreateObject();
+        cJSON* source = cJSON_CreateObject();
+        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
+        cJSON_AddStringToObject(new_event, "message", msg);
+        if (nf_info == NULL) {
+                cJSON_AddStringToObject(source, "type", "MGR");
+        } else {
+                cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
+                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
+        }
+        cJSON_AddItemToObject(new_event, "source", source);
+
+        cJSON_AddItemToArray(onvm_json_events_arr, new_event);
+}
+
 
 /****************************Internal functions*******************************/
 
@@ -236,7 +270,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 
         PORT_MSG[0] = PORT_MSG[1] = "PORTS\n-----\n";
         PORT_MSG[2] = "";
-        fprintf(stats_out, "%s", PORT_MSG[verbosity_level-1]); 
+        fprintf(stats_out, "%s", PORT_MSG[verbosity_level-1]);
 
         if (verbosity_level != ONVM_RAW_STATS_DUMP) {
                 for (i = 0; i < ports->num_ports; i++)
@@ -259,7 +293,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                                         nic_rx_pps,
                                         nic_tx_pkts,
                                         nic_tx_pps);
-                        
+
                 } else {
                         fprintf(stats_out, "Port %u - rx: %9"PRIu64"  (%9"PRIu64" pps)\t"
                                         "tx: %9"PRIu64"  (%9"PRIu64" pps)\n",
@@ -274,7 +308,8 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 if (stats_out != stdout && stats_out != stderr) {
                         ONVM_SNPRINTF(port_label, 8, "Port %d", i);
 
-                        cJSON_AddItemToArray(onvm_json_port_stats_arr,
+                        cJSON_AddItemToObject(onvm_json_port_stats_obj,
+                                             port_label,
                                              onvm_json_port_stats[i] = cJSON_CreateObject());
                         cJSON_AddStringToObject(onvm_json_port_stats[i], "Label", port_label);
                         cJSON_AddNumberToObject(onvm_json_port_stats[i], "RX", nic_rx_pps);
@@ -399,8 +434,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 if (stats_out != stdout && stats_out != stderr) {
                         ONVM_SNPRINTF(nf_label, 6, "NF %d", i);
 
-                        cJSON_AddItemToArray(onvm_json_nf_stats_arr,
-                                             onvm_json_nf_stats[i] = cJSON_CreateObject());
+                        cJSON_AddItemToObject(onvm_json_nf_stats_obj,
+                                                nf_label,
+                                                onvm_json_nf_stats[i] = cJSON_CreateObject());
 
                         cJSON_AddStringToObject(onvm_json_nf_stats[i],
                                                 "Label", nf_label);
@@ -412,6 +448,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                                 "TX_Drop_Rate", tx_drop_rate);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i],
                                                 "RX_Drop_Rate", rx_drop_rate);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "service_id", (int16_t)nfs[i].info->service_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
+                                                "instance_id", (int16_t)nfs[i].info->instance_id);
 
                         free(nf_label);
                         nf_label = NULL;
@@ -493,6 +533,7 @@ onvm_stats_flush(void) {
 
         fflush(stats_out);
         fflush(json_stats_out);
+        fflush(json_events_out);
 }
 
 
@@ -504,6 +545,7 @@ onvm_stats_truncate(void) {
 
         stats_out = freopen(NULL, ONVM_STATS_FOPEN_ARGS, stats_out);
         json_stats_out = freopen(NULL, ONVM_STATS_FOPEN_ARGS, json_stats_out);
+        json_events_out = freopen(NULL, ONVM_STATS_FOPEN_ARGS, json_events_out);
 
         /* Ensure we're able to open all the files we need */
         if (stats_out == NULL) {
@@ -528,7 +570,7 @@ onvm_json_reset_objects(void) {
         cJSON_AddStringToObject(onvm_json_root, ONVM_JSON_TIMESTAMP_KEY,
                               ctime(&current_time));
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_PORT_STATS_KEY,
-                              onvm_json_port_stats_arr = cJSON_CreateArray());
+                              onvm_json_port_stats_obj = cJSON_CreateObject());
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY,
-                              onvm_json_nf_stats_arr = cJSON_CreateArray());
+                              onvm_json_nf_stats_obj = cJSON_CreateObject());
 }

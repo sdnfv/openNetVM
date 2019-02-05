@@ -62,6 +62,7 @@
 #define ONVM_STATS_FOPEN_ARGS "w+"
 #define ONVM_STATS_PATH_BASE "../onvm_web/"
 #define ONVM_JSON_STATS_FILE ONVM_STATS_PATH_BASE "onvm_json_stats.json"
+#define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
@@ -87,16 +88,17 @@ typedef enum {
 } ONVM_STATS_OUTPUT;
 
 cJSON* onvm_json_root;
-cJSON* onvm_json_port_stats_arr;
-cJSON* onvm_json_nf_stats_arr;
+cJSON* onvm_json_port_stats_obj;
+cJSON* onvm_json_nf_stats_obj;
 cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
 cJSON* onvm_json_nf_stats[MAX_NFS];
+cJSON* onvm_json_events_arr;
 
 /*********************************Interfaces**********************************/
 
 
 /*
- * Function for inializting stats
+ * Function for initializing stats
  *
  * Input : Verbosity level
  *
@@ -151,6 +153,11 @@ void onvm_stats_clear_all_nfs(void);
  *
  */
 void onvm_stats_clear_nf(uint16_t id);
+
+/*
+ * Interface called by manager when a new event should be created.
+ */
+ void onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf);
 
 
 #endif  // _ONVM_STATS_H_
