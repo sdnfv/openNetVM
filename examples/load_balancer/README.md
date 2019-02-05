@@ -6,7 +6,7 @@ This NF acts as a layer 3, round-robin load balancer. When a packet arrives the 
 App Specific Instuctions
 --
 **Setting up dpdk interfaces**  
-This NF requires 2 DPDK interfaces to work, both can be setup using the `openNetVM/dpdk/tools/dpdk-setup-iface.sh` script.  
+This NF requires 2 DPDK interfaces to work, both can be setup using the mTCP submodule iface setup, which can be found at the [mTCP onvm module install guide][mTCP repo]. 
 
 **Server Config**  
 The server config needs to have the total number of backend servers with their ip and mac address combination, an example config file `server.conf` is provided.  
@@ -58,3 +58,5 @@ This NF supports the NF generating arguments from a config file. For
 additional reading, see [Examples.md](../../docs/Examples.md)
 
 See `../example_config.json` for all possible options that can be set.
+
+[mTCP repo]: https://github.com/mtcp-stack/mtcp/tree/devel#onvm-version

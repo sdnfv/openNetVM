@@ -64,6 +64,10 @@ Install pcap dependency
 
 `sudo apt-get install libpcap-dev`
 
+Download Lua, can be found [here](https://www.lua.org/download.html)  
+Navigate into the downloaded Lua directory and run  
+`sudo make install`
+
 2.2 Build Pktgen Application
 ------------- 
 

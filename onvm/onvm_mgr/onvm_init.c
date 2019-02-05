@@ -105,41 +105,20 @@ static const struct rte_eth_conf port_conf = {
                 .mq_mode        = ETH_MQ_RX_RSS,
                 .max_rx_pkt_len = ETHER_MAX_LEN,
                 .split_hdr_size = 0,
-                .header_split   = 0,                    /* header split disabled */
-                .hw_ip_checksum = 1,                    /* IP checksum offload enabled */
-                .hw_vlan_filter = 0,                    /* VLAN filtering disabled */
-                .jumbo_frame    = 0,                    /* jumbo frame support disabled */
-                .hw_strip_crc   = 1,                    /* CRC stripped by hardware */
+                .offloads       = DEV_RX_OFFLOAD_CHECKSUM,
         },
         .rx_adv_conf = {
                 .rss_conf = {
                         .rss_key = rss_symmetric_key,
-                        .rss_hf  = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP,
+                        .rss_hf  = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP | ETH_RSS_L2_PAYLOAD,
                 },
         },
         .txmode = {
-                .mq_mode = ETH_MQ_TX_NONE,
+                .mq_mode  = ETH_MQ_TX_NONE,
+                .offloads = (DEV_TX_OFFLOAD_IPV4_CKSUM |
+                             DEV_TX_OFFLOAD_UDP_CKSUM  |
+                             DEV_TX_OFFLOAD_TCP_CKSUM)
         },
-};
-
-static const struct rte_eth_rxconf rx_conf = {
-        .rx_thresh = {
-                .pthresh = RX_PTHRESH,
-                .hthresh = RX_HTHRESH,
-                .wthresh = RX_WTHRESH,
-        },
-        .rx_free_thresh = 32,
-};
-
-static const struct rte_eth_txconf tx_conf = {
-        .tx_thresh = {
-                .pthresh = TX_PTHRESH,
-                .hthresh = TX_HTHRESH,
-                .wthresh = TX_WTHRESH,
-        },
-        .tx_free_thresh = 0,
-        .tx_rs_thresh   = 0,
-        .txq_flags      = 0,
 };
 
 
@@ -168,7 +147,7 @@ init(int argc, char *argv[]) {
 #endif
 
         /* get total number of ports */
-        total_ports = rte_eth_dev_count();
+        total_ports = rte_eth_dev_count_avail();
 
         /* set up array for NF tx data */
         mz_nf = rte_memzone_reserve(MZ_NF_INFO, sizeof(*nfs) * MAX_NFS,
@@ -330,10 +309,15 @@ init_nf_info_pool(void)
 static int
 init_port(uint8_t port_num) {
         const uint16_t rx_rings = ONVM_NUM_RX_THREADS;
-        const uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
+        uint16_t rx_ring_size = RTE_MP_RX_DESC_DEFAULT;
         /* Set the number of tx_rings equal to the tx threads. This mimics the onvm_mgr tx thread calculation. */
         const uint16_t tx_rings = rte_lcore_count() - rx_rings - ONVM_NUM_MGR_AUX_THREADS;
-        const uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
+        uint16_t tx_ring_size = RTE_MP_TX_DESC_DEFAULT;
+
+        struct rte_eth_rxconf rxq_conf;
+        struct rte_eth_txconf txq_conf;
+        struct rte_eth_dev_info dev_info;
+        struct rte_eth_conf local_port_conf = port_conf;
 
         uint16_t q;
         int retval;
@@ -346,27 +330,54 @@ init_port(uint8_t port_num) {
 
         /* Standard DPDK port initialisation - config port, then set up
          * rx and tx rings */
+        rte_eth_dev_info_get(port_num, &dev_info);
+        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
+                local_port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+        local_port_conf.rx_adv_conf.rss_conf.rss_hf &=
+                dev_info.flow_type_rss_offloads;
+        if (local_port_conf.rx_adv_conf.rss_conf.rss_hf !=
+                        port_conf.rx_adv_conf.rss_conf.rss_hf) {
+                printf("Port %u modified RSS hash function based on hardware support,"
+                        "requested:%#"PRIx64" configured:%#"PRIx64"\n",
+                        port_num,
+                        port_conf.rx_adv_conf.rss_conf.rss_hf,
+                        local_port_conf.rx_adv_conf.rss_conf.rss_hf);
+        }
+
         if ((retval = rte_eth_dev_configure(port_num, rx_rings, tx_rings,
-                &port_conf)) != 0)
+                &local_port_conf)) != 0)
                 return retval;
 
+        /* Adjust rx,tx ring sizes if not allowed by ethernet device 
+         * TODO if this is ajusted store the new values for future reference */
+        retval = rte_eth_dev_adjust_nb_rx_tx_desc(
+                port_num, &rx_ring_size, &tx_ring_size);
+        if (retval < 0) {
+                rte_panic("Cannot adjust number of descriptors for port %u (%d)\n",
+                          port_num, retval);
+        }
+
+        rxq_conf = dev_info.default_rxconf;
+        rxq_conf.offloads = local_port_conf.rxmode.offloads;
         for (q = 0; q < rx_rings; q++) {
                 retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                &rx_conf, pktmbuf_pool);
+                                &rxq_conf, pktmbuf_pool);
                 if (retval < 0) return retval;
         }
 
+        txq_conf = dev_info.default_txconf;
+        txq_conf.offloads = port_conf.txmode.offloads;
         for (q = 0; q < tx_rings; q++) {
                 retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
                                 rte_eth_dev_socket_id(port_num),
-                                &tx_conf);
+                                &txq_conf);
                 if (retval < 0) return retval;
         }
 
         rte_eth_promiscuous_enable(port_num);
 
-        retval  = rte_eth_dev_start(port_num);
+        retval = rte_eth_dev_start(port_num);
         if (retval < 0) return retval;
 
         printf("done: \n");
@@ -392,7 +403,7 @@ init_shm_rings(void) {
         // use calloc since we allocate for all possible NFs
         // ensure that all fields are init to 0 to avoid reading garbage
         // TODO plopreiato, move to creation when a NF starts
-	for (i = 0; i < MAX_NFS; i++) {
+        for (i = 0; i < MAX_NFS; i++) {
                 /* Create an RX queue for each NF */
                 socket_id = rte_socket_id();
                 rq_name = get_rx_queue_name(i);

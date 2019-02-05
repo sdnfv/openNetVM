@@ -1,8 +1,9 @@
 [submodule "dpdk-1.8.0"]
-	path = dpdk
-	url = ../../sdnfv/onvm-dpdk.git
-    branch = onvm
+        path = dpdk
+        url = https://dpdk.org/git/dpdk
+        branch = master
+        commit = 0da7f445df445630c794897347ee360d6fe6348b
 [submodule "tools/Pktgen/pktgen-dpdk"]
-	path = tools/Pktgen/pktgen-dpdk
-	url = ../../sdnfv/onvm-pktgen.git
-	branch = onvm
+        path = tools/Pktgen/pktgen-dpdk
+        url = ../../sdnfv/onvm-pktgen.git
+        branch = onvm

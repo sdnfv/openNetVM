@@ -9,9 +9,10 @@ _Want to get started quickly?_ Try using our NSF CloudLab profile: https://www.c
 Notes
 --
 
-We have updated our DPDK submodule to point to a new version, v17.08.  If you have already cloned this repository, please update your DPDK submodule by running:
+We have updated our DPDK submodule to point to a new version, v18.11.  If you have already cloned this repository, please update your DPDK submodule by running:
 
 ```
+git submodule sync
 git submodule update --init
 ```
 
