@@ -244,9 +244,10 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         int mapIndex;
         struct rte_mempool *nf_info_mp;
 
-        if(nf_info == NULL || nf_info->status != NF_STOPPED)
+        if(nf_info == NULL || nf_info->status != NF_RUNNING)
                 return 1;
 
+        nf_info->status = NF_STOPPED;
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
 

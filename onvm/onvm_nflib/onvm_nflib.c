@@ -896,7 +896,6 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
         }
 
         struct onvm_nf_msg *shutdown_msg;
-        nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         if (mgr_msg_queue == NULL) {
