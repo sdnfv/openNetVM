@@ -87,7 +87,12 @@ void nf_setup(struct onvm_nf_info *nf_info);
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-a]\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] -- -d <destination> [-a]\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-d DST`: Destination Service ID, functionality depends on mode\n");
+        printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
 }
 
 /*

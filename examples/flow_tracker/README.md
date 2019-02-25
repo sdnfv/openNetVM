@@ -10,7 +10,7 @@ Compilation and Execution
 cd examples
 make
 cd flow_tracker
-./go.sh CORELIST SERVICE_ID DESTINATION_ID [-p PRINT_DELAY]
+./go.sh CORELIST SERVICE_ID -d DESTINATION_ID [-p PRINT_DELAY]
 
 OR
 

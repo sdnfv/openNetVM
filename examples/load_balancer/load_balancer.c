@@ -128,7 +128,14 @@ extern struct port_info *ports;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- client_iface server_iface server_config -p <print_delay>\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] -- [ -c client_iface] [-s server_iface] [-f server_config] -p <print_delay>\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-c CLIENT_IFACE` : name of the client interface\n");
+        printf(" - `-s SERVER_IFACE` : name of the server interface\n");
+        printf(" - `-f SERVER_CONFIG` : backend server config file\n");
+        printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
 
 /*

@@ -17,7 +17,7 @@ Compilation and Execution
 cd examples
 make
 cd aes_decrypt
-./go.sh CORELIST SERVICE_ID DST [PRINT_DELAY]
+./go.sh CORELIST SERVICE_ID -d DST [PRINT_DELAY]
 
 OR
 
@@ -31,9 +31,8 @@ App Specific Arguments
 
 Example
 --
-./examples/aes_encrypt/go.sh 5 1 2
-./examples/aes_decrypt/go.sh 6 2 3
-./examples/bridge/go.sh 7 3
+./examples/aes_encrypt/go.sh 5 1 -d 2
+./examples/aes_decrypt/go.sh 6 2 -d 3
 
 
 Config File Support

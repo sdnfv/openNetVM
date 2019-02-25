@@ -13,7 +13,7 @@ Compilation and Execution
 cd examples
 make
 cd scaling_example
-./go.sh CORELIST SERVICE_ID DST_ID [ADVANCED_RINGS]
+./go.sh CORELIST SERVICE_ID -d DST_ID [ADVANCED_RINGS]
 
 OR
 

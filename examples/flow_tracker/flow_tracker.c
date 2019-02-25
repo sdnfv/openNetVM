@@ -89,7 +89,12 @@ struct state_info *state_info;
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] --d <destination>\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] --d <destination>\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-d <destination_id>`: Service ID to send packets to`\n");
+        printf(" - `-p <print_delay>`:  Number of seconds between each print (default is 5)\n");
 }
 
 /*
