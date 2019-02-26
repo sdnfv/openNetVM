@@ -51,7 +51,7 @@ LIB    = libonvm.a
 # all source are stored in SRCS-y
 SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c onvm_pkt_common.c onvm_config_common.c
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -Werror=strict-aliasing=0 -O3 $(USER_FLAGS)
 CFLAGS += -I$(ONVM_HOME)/onvm/lib
 
 include $(RTE_SDK)/mk/rte.extlib.mk

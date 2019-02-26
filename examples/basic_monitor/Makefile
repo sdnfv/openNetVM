@@ -44,7 +44,7 @@ RTE_TARGET ?= $(RTE_TARGET)
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = basic_monitor
+APP = monitor
 
 # all source are stored in SRCS-y
 SRCS-y := monitor.c
@@ -52,7 +52,7 @@ SRCS-y := monitor.c
 # OpenNetVM path
 ONVM= $(SRCDIR)/../../onvm
 
-CFLAGS += $(WERROR_FLAGS) -O3 -g
+CFLAGS += -O3 -g
 
 CFLAGS += -I$(ONVM)/onvm_nflib
 CFLAGS += -I$(ONVM)/lib

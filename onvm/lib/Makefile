@@ -40,6 +40,7 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
+
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
@@ -51,6 +52,6 @@ LIB    = libonvmhelper.a
 # all source are stored in SRCS-y
 SRCS-y := cJSON.c
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -Werror=implicit-fallthrough=0 -O3 $(USER_FLAGS)
 
 include $(RTE_SDK)/mk/rte.extlib.mk

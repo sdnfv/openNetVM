@@ -45,7 +45,7 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = aes_encrypt
+APP = aesencrypt
 
 # all source are stored in SRCS-y
 SRCS-y := aesencrypt.c aes.c
@@ -53,7 +53,7 @@ SRCS-y := aesencrypt.c aes.c
 # OpenNetVM path
 ONVM= $(SRCDIR)/../../onvm
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS) -Werror=strict-aliasing=0
 
 CFLAGS += -I$(ONVM)/onvm_nflib
 CFLAGS += -I$(ONVM)/lib

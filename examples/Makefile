@@ -7,6 +7,7 @@
 #          2015-2017 George Washington University
 #          2015-2017 University of California Riverside
 #          2016-2017 Hewlett Packard Enterprise Development LP
+#          2010-2014 Intel Corporation.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,28 +36,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-ifeq ($(RTE_SDK),)
-$(error "Please define RTE_SDK environment variable")
-endif
+.PHONY: tags
 
-# To add new examples, append the directory name to this variable
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response nf_router scaling_example
-
-ifeq ($(NDPI_HOME),)
-$(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
-else
-examples +=ndpi_stats
-endif
-
-clean_examples=$(addprefix clean_,$(examples))
-
-.PHONY: $(examples) $(clean_examples)
-
-all : $(examples)
-clean: $(clean_examples)
-
-$(examples):
-	cd $@ && $(MAKE)
-
-$(clean_examples):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+tags:
+	ctags -R .
