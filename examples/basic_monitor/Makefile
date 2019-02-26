@@ -44,7 +44,7 @@ RTE_TARGET ?= $(RTE_TARGET)
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = monitor
+APP = basic_monitor
 
 # all source are stored in SRCS-y
 SRCS-y := monitor.c
