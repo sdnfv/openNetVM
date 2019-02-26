@@ -52,7 +52,7 @@ SRCS-y := scaling.c
 # OpenNetVM path
 ONVM ?= $(SRCDIR)/../../onvm
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS) -Werror=strict-aliasing=0 
+CFLAGS += $(WERROR_FLAGS) -Werror=strict-aliasing=0 -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
 CFLAGS += -I$(ONVM)/lib
