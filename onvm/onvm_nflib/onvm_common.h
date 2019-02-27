@@ -79,12 +79,13 @@ struct onvm_pkt_meta {
         uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
 };
 
-static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
-        return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
-}
 
 static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
         return (struct onvm_pkt_meta*)&pkt->udata64;
+}
+
+static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
+        return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
 }
 
 /*
