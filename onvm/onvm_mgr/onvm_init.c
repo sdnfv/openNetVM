@@ -57,6 +57,7 @@
 
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
+struct core_status *cores = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -130,6 +131,7 @@ init(int argc, char *argv[]) {
         int retval;
         const struct rte_memzone *mz_nf;
         const struct rte_memzone *mz_port;
+        const struct rte_memzone *mz_cores;
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
@@ -163,6 +165,14 @@ init(int argc, char *argv[]) {
         if (mz_port == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
         ports = mz_port->addr;
+  
+        /* set up core status */
+        mz_cores = rte_memzone_reserve(MZ_CORES_STATUS, sizeof(*cores) * onvm_threading_get_num_cores(),
+                                    rte_socket_id(), NO_FLAGS);
+        if (mz_cores == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for core information\n");
+        memset(mz_cores->addr, 0, sizeof(*cores) * 64);
+        cores = mz_cores->addr;
 
         /* set up array for NF tx data */
         mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);

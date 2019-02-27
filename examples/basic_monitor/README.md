@@ -8,7 +8,7 @@ Compilation and Execution
 cd examples
 make
 cd basic_monitor
-./go.sh CORELIST SERVICE_ID [PRINT_DELAY]
+./go.sh SERVICE_ID [PRINT_DELAY]
 
 OR
 

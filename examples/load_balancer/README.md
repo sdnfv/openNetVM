@@ -22,10 +22,10 @@ The Load Balancer NF needs to respond to client and server ARP requests. As `onv
 An example usage of the ARP&LB NF, with the Load Balancer using dpdk0 - 10.0.0.37 and  dpdk1 - 11.0.0.37 for client, server ports respecively. 
 ```
 ARP NF
-./go.sh 4 1 -d 2 -s 10.0.0.37,11.0.0.37
+./go.sh 1 -d 2 -s 10.0.0.37,11.0.0.37
 
 LB NF
-./go.sh 5 2 -c dpdk0 -s dpdk1 -f server.conf 
+./go.sh 2 -c dpdk0 -s dpdk1 -f server.conf 
 ```
 
 
@@ -33,7 +33,7 @@ Compilation and Execution
 --
 ```
 make
-./go.sh CORELIST SERVICE_ID -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [PRINT_DELAY]
+./go.sh SERVICE_ID -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [PRINT_DELAY]
 
 OR
 

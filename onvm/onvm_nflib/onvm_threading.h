@@ -5,9 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2018 George Washington University
+ *            2015-2018 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -36,59 +35,50 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ * onvm_threading.h - threading helper functions
  ********************************************************************/
 
+#ifndef _ONVM_THREADING_H_
+#define _ONVM_THREADING_H_
 
-/******************************************************************************
+#include "onvm_common.h"
 
-                                 onvm_nf.h
-
-     This file contains the prototypes for all functions related to packet
-     processing.
-
-******************************************************************************/
-
-
-#ifndef _ONVM_NF_H_
-#define _ONVM_NF_H_
-
-#include "onvm_threading.h"
-
-extern uint16_t next_instance_id;
-
-
-/********************************Interfaces***********************************/
-
-
-/*
- * Interface giving the smallest unsigned integer unused for a NF instance.
- *
- * Output : the unsigned integer 
- *
+/**
+ * Gets the total number of cores.
  */
-uint16_t
-onvm_nf_next_instance_id(void);
+int onvm_threading_get_num_cores(void);
 
-
-/*
- * Interface looking through all registered NFs if one needs to start or stop.
+/**
+ * Get the core id for a new NF to run on.
+ * If no flags are passed finds the core with the least number of NFs running on it
+ * For manual core assignment: the user picks the core
+ * For dedicated core tries to assign a core for NF with no other NFs running on
+ * that core and then labels the core as busy
  *
- */
-void
-onvm_nf_check_status(void);
-
-
-/*
- * Interface to send a message to a certain NF.
+ * @param core_value
+ *    A pointer to set the core for NF to run on
+ *    if manual core mode is used, a preferred core id is accessed from this pointer
+ * @param flags
+ *    Flags is a bitmask for specific core assignment options
+ *    Bit MANUAL_CORE_ASSIGNMENT_BIT: for manually choosing a core by the user
+ *    Bit DEDICATED_CORE_BIT: asking for a dedicated core 
+ * @param cores
+ *    A pointer to the core_status map containing core information
  *
- * Input  : The destination NF instance ID, a constant denoting the message type
- *          (see onvm_nflib/onvm_msg_common.h), and a pointer to a data argument.
- *          The data argument should be allocated in the hugepage region (so it can
- *          be shared), i.e. using rte_malloc
- * Output : 0 if the message was successfully sent, -1 otherwise
+ * @return
+ *    0 on success
+ *    NF_NO_CORES or NF_NO_DEDICATED_CORES or NF_CORE_OUT_OF_RANGE or NF_CORE_BUSY on error
  */
-int
-onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data);
+int onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores);
 
+/**
+ * Uses the dpdk function to reaffinitize the calling pthread to another core.
+ *
+ * @param info
+ *    An integer core value to bind the pthread to
+ * @return
+ *    0 on success, or a negative value on failure
+ */
+int onvm_threading_core_affinitize(int core);
 
-#endif  // _ONVM_NF_H_
+#endif  // _ONVM_THREADING_H_"

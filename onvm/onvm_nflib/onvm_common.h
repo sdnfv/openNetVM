@@ -64,6 +64,10 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
+/* Used in setting bit flags for core options */
+#define MANUAL_CORE_ASSIGNMENT_BIT 0
+#define DEDICATED_CORE_BIT 1
+
 //extern uint8_t rss_symmetric_key[40];
 
 //flag operations that should be used on onvm_pkt_meta
@@ -151,6 +155,12 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+struct core_status {
+        uint8_t enabled;
+        uint8_t is_dedicated_core;
+        uint16_t nf_count;
+};
+
 struct onvm_nf_info;
 /* Function prototype for NF packet handlers */
 typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
@@ -166,6 +176,8 @@ struct onvm_nf_scale_info {
         struct onvm_nf_info *parent;
         uint16_t instance_id;
         uint16_t service_id;
+        uint16_t core;
+        uint8_t flags;
         const char *tag;
         void *data;
         setup_func setup_func;
@@ -228,6 +240,8 @@ struct onvm_nf {
 struct onvm_nf_info {
         uint16_t instance_id;
         uint16_t service_id;
+        uint16_t core;
+        uint8_t flags;
         uint8_t status;
         const char *tag;
         void *data;
@@ -252,6 +266,7 @@ struct onvm_service_chain {
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
+#define MZ_CORES_STATUS "MProc_cores_info"
 #define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
@@ -264,15 +279,19 @@ struct onvm_service_chain {
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
 /* common names for NF states */
-#define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
-#define NF_STARTING 1           // When a NF is in the startup process and already has an id
-#define NF_RUNNING 2            // Running normally
-#define NF_PAUSED  3            // NF is not receiving packets, but may in the future
-#define NF_STOPPED 4            // NF has stopped and in the shutdown process
-#define NF_ID_CONFLICT 5        // NF is trying to declare an ID already in use
-#define NF_NO_IDS 6             // There are no available IDs for this NF
-#define NF_SERVICE_MAX 7        // Service ID has exceeded the maximum amount
-#define NF_SERVICE_COUNT_MAX 8  // Maximum amount of NF's per service spawned
+#define NF_WAITING_FOR_ID 0      // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_STARTING 1            // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2             // Running normally
+#define NF_PAUSED  3             // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4             // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5         // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6              // There are no available IDs for this NF
+#define NF_SERVICE_MAX 7         // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8   // Maximum amount of NF's per service spawned
+#define NF_NO_CORES 9            // There are no cores available or specified core can't be used
+#define NF_NO_DEDICATED_CORES 10 // There is no space for a dedicated core
+#define NF_CORE_OUT_OF_RANGE 11  // The manually selected core is out of range
+#define NF_CORE_BUSY 12          // The manually selected core is busy
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other

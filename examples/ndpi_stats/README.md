@@ -28,7 +28,7 @@ Set NDPI_HOME env variable to the nDPI root directory.
 cd examples
 make
 cd ndpi_stats
-./go.sh CORELIST SERVICE_ID [FILE_NAME] [DEST_NF]
+./go.sh SERVICE_ID [FILE_NAME] [DEST_NF]
 
 OR
 

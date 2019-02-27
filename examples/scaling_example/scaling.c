@@ -71,8 +71,10 @@
 #define LOCAL_EXPERIMENTAL_ETHER 0x88B5
 #define DEFAULT_PKT_NUM 128
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
+#define DEFAULT_NUM_CHILDREN 1
 
 static uint16_t destination;
+static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
 static uint8_t keep_running = 1;
 
@@ -92,6 +94,7 @@ usage(const char *progname) {
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID, functionality depends on mode\n");
+        printf(" - `-n NUM_CHILDREN`: Sets the number of children for the NF to spawn\n");
         printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
 }
 
@@ -102,7 +105,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:p:a")) != -1) {
+        while ((c = getopt(argc, argv, "d:n:p:a")) != -1) {
                 switch (c) {
                 case 'a':
                         use_direct_rings = 1;
@@ -110,6 +113,13 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
                         dst_flag = 1;
+                        break;
+                case 'n':
+                        num_children = strtoul(optarg, NULL, 10);
+                        if (num_children < DEFAULT_NUM_CHILDREN) {
+                                printf("The number of children should be more or equal than %d\n", DEFAULT_NUM_CHILDREN);
+                                return -1;
+                        }
                         break;
                 case '?':
                         usage(progname);
@@ -150,12 +160,13 @@ packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute
 static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         (void)pkt;
-        static int ret = 0;
+        /* As this is already a child, 1 NF has been spawned */
+        static int spawned_nfs = 1;
         meta->destination = *(uint16_t *)nf_info->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
-        /* Spawn as many children as possible */
-        while (ret == 0 ) {
+        /* Spawn children until we hit the set number */
+        while (spawned_nfs < num_children) {
                 struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_info);
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
                 *state_data = nf_info->service_id; 
@@ -169,9 +180,11 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
                 scale_info->data = state_data;
 
                 /* Spawn the child */
-                ret= onvm_nflib_scale(scale_info);
-                if (ret == 0)
+                if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_fwd packet function\n", scale_info->service_id);
+                else
+                        rte_exit(EXIT_FAILURE, "Can't spawn child\n");
+                spawned_nfs++;
         }
 
         return 0;
@@ -183,14 +196,13 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         (void)pkt;
-        static uint32_t spawned = 0;
-        static int ret;
+        static uint32_t spawned_child = 0;
         struct onvm_nf_scale_info *scale_info;
         void *data;
 
         /* Testing NF scaling, Spawns one child */ 
-        if (spawned == 0) {
-                spawned = 1;
+        if (spawned_child == 0) {
+                spawned_child = 1;
 
                 /* Prepare state data for the child */
                 data = (void *)rte_malloc("nf_state_data", sizeof(uint16_t), 0);
@@ -201,12 +213,10 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 scale_info->pkt_func = &packet_handler_child;
 
                 /* Spawn the child */
-                ret = onvm_nflib_scale(scale_info);
-                if (ret == 0)
+                if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n", scale_info->service_id);
                 else
-                        rte_exit(EXIT_FAILURE, "Can't initialize the first child! Make sure the corelist has at least 2 cores\n");
-
+                        rte_exit(EXIT_FAILURE, "Can't initialize the first child!\n");
         }
 
         meta->destination = nf_info->service_id;
@@ -232,7 +242,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         volatile struct onvm_nf *nf;
-        static uint8_t spawned = 0;
+        static uint8_t spawned_nfs = 0;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, handle_signal);
@@ -241,26 +251,34 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
+        /* Set core affinity, as this is adv rings we do it on our own */
+        onvm_threading_core_affinitize(nf_info->core);
+
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
-        /* Testing NF scaling */ 
-        if (spawned == 0) {
-                spawned = 1;
-                /* As this is advanced rings if we want the children to inheir the same function we need to set it first */
+        /* Testing NF scaling */
+        if (spawned_nfs == 0) {
+                /* As this is advanced rings if we want the children to inherit the same function we need to set it first */
                 nf->nf_advanced_rings_function = &run_advanced_rings;
                 struct onvm_nf_scale_info *scale_info;
-                /* Spawn as many children as possible */
-                do {
+
+                /* Spawn children until we hit the set number */
+                while (spawned_nfs < num_children) {
                         /* Prepare state data for the child */
                         void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
                         *(uint16_t *)data = destination;
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
                         RTE_LOG(INFO, APP, "Tring to spawn child SID %u; running advanced_rings\n", scale_info->service_id);
-                } while(onvm_nflib_scale(scale_info)==0);
+                        if (onvm_nflib_scale(scale_info) == 0)
+                                RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->service_id);
+                        else
+                                rte_exit(EXIT_FAILURE, "Can't initialize the child!\n");
+                        spawned_nfs++;
+                }
         }
 
 

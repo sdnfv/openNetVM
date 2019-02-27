@@ -97,6 +97,9 @@ static int
 parse_num_services(const char *services);
 
 static int
+parse_nf_cores(const char *services);
+
+static int
 parse_stats_output(const char *stats_output);
 
 static int
@@ -116,6 +119,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         static struct option lgopts[] = {
                 {"port-mask",           required_argument,      NULL,   'p'},
                 {"num-services",        required_argument,      NULL,   'r'},
+                {"nf-cores",            required_argument,      NULL,   'n'},
                 {"default-service",     required_argument,      NULL,   'd'},
                 {"stats-out",           no_argument,            NULL,   's'},
                 {"stats-sleep-time",    no_argument,            NULL,   'z'},
@@ -124,7 +128,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:d:s:z:v:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:z:v:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -134,6 +138,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 break;
                         case 'r':
                                 if (parse_num_services(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+                        case 'n':
+                                if (parse_nf_cores(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
@@ -255,7 +265,62 @@ parse_num_services(const char *services) {
 }
 
 static int
-parse_stats_sleep_time(const char *sleeptime){
+parse_nf_cores(const char *nf_coremask) {
+        char *end = NULL;
+        unsigned long pm;
+        uint8_t i;
+        uint8_t count = 0;
+        uint8_t num_cores = 0;
+        uint32_t max_cores = onvm_threading_get_num_cores();
+
+        if (nf_coremask == NULL)
+                return -1;
+
+        /* convert parameter to a number and verify */
+        pm = strtoul(nf_coremask, &end, 16);
+        if (pm == 0) {
+                printf("WARNING: No NF cores are being used.\n");
+                printf("         Restart onvm_mgr with a valid coremask to run NFs.\n");
+                return 0;
+        }
+        if (end == NULL || *end != '\0' || pm == 0)
+                return -1;
+
+        /* loop through bits of the mask and mark ports */
+        while (pm != 0) {
+                if (pm & 0x01) { /* bit is set in mask, use port */
+                        if (count >= max_cores) {
+                                printf("WARNING: requested core %u out of cpu bounds"
+                                " - ignoring\n", (unsigned)count);
+                        } else {
+                                cores[count].enabled = 1;
+                                cores[count].nf_count = 0;
+                                num_cores++;
+                        }
+                }
+                pm = (pm >> 1);
+                count++;
+                if (count == max_cores)
+                        break;
+        }
+
+        count = 0;
+        printf("Registered %d cores for NFs: ", num_cores);
+        for (i = 0; i < max_cores; ++i) {
+                if (cores[i].enabled == 1) {
+                        printf("%d", i);
+                        if (count != num_cores - 1)
+                                printf(", ");
+                        count++;
+                }
+        }
+        printf("\n");
+
+        return 0;
+}
+
+static int
+parse_stats_sleep_time(const char *sleeptime) {
         char* end = NULL;
         unsigned long temp;
 
