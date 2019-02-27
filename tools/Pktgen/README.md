@@ -65,6 +65,8 @@ Install pcap dependency
 `sudo apt-get install libpcap-dev`
 
 Download Lua, can be found [here](https://www.lua.org/download.html)  
+This might require running:  
+`sudo apt-get install libreadline-dev`  
 Navigate into the downloaded Lua directory and run  
 `sudo make install`
 
