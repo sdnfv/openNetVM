@@ -318,6 +318,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         } else if (nf_info->status == NF_SERVICE_MAX) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
+                printf("\nnf_info->status %d", nf_info->status);
         } else if (nf_info->status == NF_SERVICE_COUNT_MAX) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d", MAX_NFS_PER_SERVICE);
