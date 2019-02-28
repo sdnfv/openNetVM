@@ -13,53 +13,61 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.02 (2/19): NFs in Pthreads, CI (Dev repo only), Web Stats Overhaul, Global Launch Script, DPDK 18.11 Update, minor improvments and bug fixes
+## v19.02 (2/19): NFs in Pthreads, CI (Internal repo only), Web Stats Overhaul, Global Launch Script, DPDK 18.11 Update, minor improvments and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
-### NFs in Pthreads:
-NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument.  
+Note: This release makes important changes in how NFs are run and assigned to cores. 
 
-The NF goes through the same dpdk init process on a default core(currently 0 ) and then launches a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function gets affinized to a core obtained from the manager. This change also allows us to scale to the same core which wasn't possible earlier.  
+### Manager Assigned NF Cores:
+NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument. 
 
-The core info is maintained in a memzone and we keep track of what cores are used, by how many NFs, and if the cores are reserved as dedicated. The core decision is always the least used core unless you use specific flags.
+NFs now go through the dpdk init process on a default core (currently 0) and then launch a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function is affinized to a core obtained from the Manager. 
 
-New NFLIB flags:
+The core info is maintained in a memzone and the Manager keeps track of what cores are used, by how many NFs, and if the cores are reserved as dedicated. The Manager always selects the core with the fewest NFs unless a flag is used when starting an NF.
 
-* `-m` manual core decision mode, NF runs on the core supplied if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
-* `-d` dedicated core mode, if a dedicated core is assigned then no other NF may run on that core. If there are no free cores with 0 NFs this will return an error.
+**Usage:**
 
-New onvm_mgr args:
+New Manager arguments:
+  * Hexadecimal bitmask, which tells the onvm_mgr which cores are available for NFs to run on.
 
-* Hexadecimal bitmask, which tells the onvm_mgr which cores are available for NFs to run on.
+The manager now must be run with a command like:
+```sh
+cd onvm
+#./go.sh CORE_LIST PORT_BITMASK NF_CPU_BITMASK -s LOG_MODE
+./go.sh 0,1,2,3 0x3 0xF0 -s stdout
 
-### CI (Dev repo only)
-Adds continuous integration to the openNetVM-dev repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance.  
+```
+With this command the manager runs on cores 0-3, uses ports 1 and 2 (since `0x3` is binary `0b11`), and will start NFs on cores 4-7 (since `0xF0` is binary `0b11110000`)
 
-To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
+New Network Functions arguments: 
+  * `-m` manual core decision mode, NF runs on the core supplied by the `-l` argument if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
+  * `-d` dedicated core mode, if a dedicated core is assigned then no other NF may run on that core. If there are no free cores with 0 NFs this will return an error.
+  
+These arguments can be set as `ONVM_ARGS` as detailed below.
 
-### Web Stats Overhaul 
-Adds a new events system which is used for port initialization and NF's starting, ready, and stopping events. In the future, this should be used for more complex events such as service chain based events, and for core mappings in the future.
-
-Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
-
-Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
+**API Changes/Additions:**
+ - @koolzz fill in
 
 ### Global Launch Script
-The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name(this is based on the assumption that the name matches the NF folder and the build binary). This removes NF specific positional arguments but removes the need to maintain a separate `go.sh` script for each NF.
+The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name (this is based on the assumption that the name matches the NF folder and the build binary). This removes the need to maintain a separate `go.sh` script for each NF but requires some arguments to be explicitly specified.
+
 The script has 2 modes:
  - Simple
     ```sh
-    ./start_nf.sh NF_NAME CORE_ID SERVICE_ID (NF_ARGS)
+    ./start_nf.sh NF_NAME SERVICE_ID (NF_ARGS)
     ./start_nf.sh speed_tester 1 -d 1
-    cd speed_tester && ./go.sh 1 -d 1
     ```
   - Complex
     ```sh
     ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
-    ./start_nf.sh speed_tester -l 0 -n 4 -- -s 2 -i 6 -- -d 5
-    cd speed_tester && ./go.sh  -l 0 -n 4 -- -s 2 -i 6 -- -d 5
+    ./start_nf.sh speed_tester -l 5 -n 4 -- -m -s 2 -i 6 -- -d 5
     ```
-*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory*
+*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
+```sh
+    cd speed_tester && ./go.sh 1 -d 1
+    cd speed_tester && ./go.sh -n 4 -- -s 2 -i 6 -- -d 5
+```
+
 
 ### DPDK 18.11 Update
 DPDK submodule no longer points to our fork, we now point to the upstream DPDK repository. This is because mTCP requirements for DPDK have relaxed and they no longer need to have additional patches on top of it.  
@@ -68,6 +76,24 @@ Also updates Pktgen to 3.6.5 to remain compatible with DPDK v18.11
 The dpdk update involves:
 - Adds NIC ring RSS hashing functions adjustments
 - Adds NIC ring file descriptor size alignment
+
+Run this to ensure the submodule is up to date:
+```sh
+git submodule sync
+git submodule update --init
+```
+
+### Web Stats Overhaul 
+Adds a new event logging system which is used for port initialization and NF starting, ready, and stopping events. In the future, this could be used for more complex logging such as service chain based events and for core mappings.
+
+Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
+
+Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
+
+### CI (Internal dev repo only)
+Adds continuous integration to the openNetVM-dev repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance.  
+
+To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
 
 ### Bug Fixes
  - Fix how NF_STOPPED message is sent/processed. This fixes the double shutdown bug (obsered in mTCP applications), the fast ctrl-c exit bug and the invalid arguments bug. In all of those cases memory would get corrupted, this bug fix resolves these cases.  
