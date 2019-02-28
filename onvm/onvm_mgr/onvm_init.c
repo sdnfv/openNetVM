@@ -208,7 +208,7 @@ init(int argc, char *argv[]) {
                 retval = init_port(port_id);
                 if (retval != 0)
                         rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
-                char event_msg_buf[19];
+                char event_msg_buf[21];
                 sprintf(event_msg_buf, "Port %d initialized", port_id);
                 onvm_stats_add_event(event_msg_buf, NULL);
         }
