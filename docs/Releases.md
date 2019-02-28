@@ -13,6 +13,67 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.02 (2/19): NFs in Pthreads, CI (Dev repo only), Web Stats Overhaul, Global Launch Script, DPDK 18.11 Update, minor improvments and bug fixes
+This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+### NFs in Pthreads:
+NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument.  
+
+The NF goes through the same dpdk init process on a default core(currently 0 ) and then launches a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function gets affinized to a core obtained from the manager. This change also allows us to scale to the same core which wasn't possible earlier.  
+
+The core info is maintained in a memzone and we keep track of what cores are used, by how many NFs, and if the cores are reserved as dedicated. The core decision is always the least used core unless you use specific flags.
+
+New NFLIB flags:
+
+* `-m` manual core decision mode, NF runs on the core supplied if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
+* `-d` dedicated core mode, if a dedicated core is assigned then no other NF may run on that core. If there are no free cores with 0 NFs this will return an error.
+
+New onvm_mgr args:
+
+* Hexadecimal bitmask, which tells the onvm_mgr which cores are available for NFs to run on.
+
+### CI (Dev repo only)
+Adds continuous integration to the openNetVM-dev repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance.  
+
+To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
+
+### Web Stats Overhaul 
+Adds a new events system which is used for port initialization and NF's starting, ready, and stopping events. In the future, this should be used for more complex events such as service chain based events, and for core mappings in the future.
+
+Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
+
+Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
+
+### Global Launch Script
+The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name(this is based on the assumption that the name matches the NF folder and the build binary). This removes NF specific positional arguments but removes the need to maintain a separate `go.sh` script for each NF.
+The script has 2 modes:
+ - Simple
+    ```sh
+    ./start_nf.sh NF_NAME CORE_ID SERVICE_ID (NF_ARGS)
+    ./start_nf.sh speed_tester 1 -d 1
+    cd speed_tester && ./go.sh 1 -d 1
+    ```
+  - Complex
+    ```sh
+    ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
+    ./start_nf.sh speed_tester -l 0 -n 4 -- -s 2 -i 6 -- -d 5
+    cd speed_tester && ./go.sh  -l 0 -n 4 -- -s 2 -i 6 -- -d 5
+    ```
+*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory*
+
+### DPDK 18.11 Update
+DPDK submodule no longer points to our fork, we now point to the upstream DPDK repository. This is because mTCP requirements for DPDK have relaxed and they no longer need to have additional patches on top of it.  
+
+Also updates Pktgen to 3.6.5 to remain compatible with DPDK v18.11
+The dpdk update involves:
+- Adds NIC ring RSS hashing functions adjustments
+- Adds NIC ring file descriptor size alignment
+
+### Bug Fixes
+ - Fix how NF_STOPPED message is sent/processed. This fixes the double shutdown bug (obsered in mTCP applications), the fast ctrl-c exit bug and the invalid arguments bug. In all of those cases memory would get corrupted, this bug fix resolves these cases.  
+ - Add out of bounds checks for NF service ids. Before we were not handling cases when a new NF service id exceeded the MAX_SERVICES value or when launching a new NF would exceed the NF_SERVICE_COUNT_MAX value for the given service id.  
+ - Fix the Speed Tester NF to properly exit when passed an invalid MAC addr argument.  
+
 ## v18.11 (11/18): Config files, Multithreading, Better Statistics, and bug fixes
 This release adds several new features which cause breaking API changes to existing NFs.  NFs must be updated to support the new API required for multithreading support. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
