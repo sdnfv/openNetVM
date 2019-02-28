@@ -149,7 +149,7 @@ Make and test openNetVM
 
 3. Run openNetVM manager
 
-    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), and to use stdout for the statistics console:
+    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), 0xF8 for the NF coremask (cores 4, 5, 6, 7), and to use stdout for the statistics console:
 
     `./onvm/go.sh 0,1,2,3 1 0xF8 -s stdout`
 
@@ -159,7 +159,7 @@ Make and test openNetVM
 
     To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
+    In a new shell, run this command to start the speed_tester, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
 
     ```sh
     cd examples/speed_tester
