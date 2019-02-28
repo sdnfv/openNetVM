@@ -33,7 +33,7 @@ New Manager arguments:
 The manager now must be run with a command like:
 ```sh
 cd onvm
-#./go.sh CORE_LIST PORT_BITMASK NF_CPU_BITMASK -s LOG_MODE
+#./go.sh CORE_LIST PORT_BITMASK NF_CORE_BITMASK -s LOG_MODE
 ./go.sh 0,1,2,3 0x3 0xF0 -s stdout
 
 ```
@@ -45,8 +45,8 @@ New Network Functions arguments:
   
 These arguments can be set as `ONVM_ARGS` as detailed below.
 
-**API Changes/Additions:**
- - @koolzz fill in
+**API Additions:**
+ - `int onvm_threading_core_affinitize(int core)` - Affinitizes the calling thread to a new core. This is used both internally and by the advanced rings NFs to change execution cores.  
 
 ### Global Launch Script
 The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name (this is based on the assumption that the name matches the NF folder and the build binary). This removes the need to maintain a separate `go.sh` script for each NF but requires some arguments to be explicitly specified.
@@ -90,8 +90,8 @@ Also contains a complete rewrite of the web frontend. The existing code which pr
 
 Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
 
-### CI (Internal dev repo only)
-Adds continuous integration to the openNetVM-dev repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance.  
+### CI (Internal repo only)
+Adds continuous integration to the internal repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance. This will be tested internally and extended to support the public repo when ready.  
 
 To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
 
