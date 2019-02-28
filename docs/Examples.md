@@ -27,7 +27,7 @@ The script has 2 modes:
     ```
   - Complex
     ```sh
-    ./start_nf.sh NF_NAME  DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
+    ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
     ./start_nf.sh speed_tester -l 0 -n 4 -- -s 2 -i 6 -- -d 5
     cd speed_tester && ./go.sh  -l 0 -n 4 -- -s 2 -i 6 -- -d 5
     ```
