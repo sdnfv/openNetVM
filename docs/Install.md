@@ -39,11 +39,11 @@ Setup Repositories
     cd openNetVM
     git checkout master
     ```
-    This will ensure you are on the stable, `master` branch. If you want to use potentially buggy features, you can use the default `develop` branch.
+    This will ensure you are on the stable, `master` branch. If you want to use the most recent but potentially buggy features, you can use the default `develop` branch.
 
 2. Initialize DPDK submodule
     ```sh
-	git submodule sync
+    git submodule sync
     git submodule update --init
     ```
 
