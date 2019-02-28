@@ -1,0 +1,8 @@
+config
+githubcreds
+mykeyfile
+repository
+linter-output.txt
+*key
+*.pub
+*.stats
