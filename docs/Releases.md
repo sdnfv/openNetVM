@@ -60,12 +60,12 @@ The script has 2 modes:
   - Complex
     ```sh
     ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
-    ./start_nf.sh speed_tester -l 5 -n 4 -- -m -s 2 -i 6 -- -d 5
+    ./start_nf.sh speed_tester -l 4 -- -s -r 6 -- -d 5
     ```
 *All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
 ```sh
     cd speed_tester && ./go.sh 1 -d 1
-    cd speed_tester && ./go.sh -n 4 -- -s 2 -i 6 -- -d 5
+    cd speed_tester && ./go.sh -l 4 -- -s -r 6 -- -d 5
 ```
 
 
