@@ -8,7 +8,7 @@ contains ONVM and DPDK arguments. An example of this can be seen
 [here](../examples/example_config.json). In addition, the values
 specified in the config file can be overwritten by passing them at the
 command line. The general structure for launching an NF from a config file is
-`./go -F <CONFIG_FILE.json> <DPDK ARGS> -- <ONVM ARGS> -- <NF ARGS>`.
+`./go.sh -F <CONFIG_FILE.json> <DPDK ARGS> -- <ONVM ARGS> -- <NF ARGS>`.
 Any args specified in `<DPDK args>` or `<ONVM ARGS>` will replace the
 corresponding args in the config file. **An important note:** If no DPDK
 or ONVM args are passed, **but** NF args are required, the `-- --` is
@@ -133,17 +133,7 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
       - `# ./examples/start_nf.sh simple_forward 2 -d 1`  
     - Second, start up 1 speed_tester NF and have it forward to service ID 2.
       - `# ./examples/start_nf.sh speed_tester 1 -d 2 -c 16000`
-  4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
-
-
-NF Config Files
---
-All NFs support launching from a JSON config file. By specifying `-F`
-and then a JSON file in either `go.sh` or the NF binary file directly,
-the NF will pull all ONVM and DPDK settings from the file instead of the
-command line. See the `example_config.json` file in each NF directory
-for an example on how to structure the file and all options that can be
-set.
+  4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.  
 
 
 [cores]: ../scripts/corehelper.py
