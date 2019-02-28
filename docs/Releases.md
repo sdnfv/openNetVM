@@ -41,7 +41,7 @@ With this command the manager runs on cores 0-3, uses ports 1 and 2 (since `0x3`
 
 New Network Functions arguments: 
   * `-m` manual core decision mode, NF runs on the core supplied by the `-l` argument if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
-  * `-d` dedicated core mode, if a dedicated core is assigned then no other NF may run on that core. If there are no free cores with 0 NFs this will return an error.
+  * `-s` shared core mode, this will allow multiple NFs to run on the same core. Generally this should be avoided to prevent performance problems. By default, each core is dedicated to a single NF.
   
 These arguments can be set as `ONVM_ARGS` as detailed below.
 
