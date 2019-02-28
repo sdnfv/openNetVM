@@ -84,7 +84,9 @@ static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
 }
 
 static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
-        return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
+
+        struct onvm_pkt_meta* pkt_meta = (struct onvm_pkt_meta*) &pkt->udata64;
+        return pkt_meta->chain_index;
 }
 
 /*
