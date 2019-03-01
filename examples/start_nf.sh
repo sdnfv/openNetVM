@@ -2,18 +2,19 @@
 
 function usage {
         echo "Run the example NF in one of the following ways:"
-        echo "$0 NF-NAME CORE-ID SERVICE-ID [remaining NF args]"
+        echo "$0 NF-NAME SERVICE-ID [remaining NF args]"
         echo "$0 NF-NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS"
         echo "$0 NF-NAME -F config.json [other args]"
         echo ""
-        echo "$0 speed_tester 5 1 -d 1 --> Speed tester NF on core 5, with Service ID 1, and forwards to service ID 1"
-        echo "$0 monitor -l 4 -- -r 1 -n 3 --  --> Basic monitor NF on core 4, with Instance ID 3, Service ID 1"
-        echo "$0 monitor -F config.json --> Basic monitor NF with arguments extracted from the config.json file"
+        echo "$0 speed_tester 1 -d 1  --> Speed tester NF, with Service ID 1, and forwards to service ID 1"
+        echo "$0 speed_tester -l 5 -- -m -r 3 -- -d 2  --> Speed tester NF on core 5 (manually assigned), with Service ID 3, and forwards to service ID 2"
+        echo "$0 monitor -l 0 -- -r 1 -n 3 --  --> Basic monitor NF on core 4, with Instance ID 3, Service ID 1"
+        echo "$0 monitor -F config.json  --> Basic monitor NF with arguments extracted from the config.json file"
         exit 1
 }
 
-# 3 args: NF_NAME + (core and service_id or -F config_name)
-if [ "$#" -lt 3 ]; then
+# 2 args: NF_NAME + (service_id or -F config_name)
+if [ "$#" -lt 2 ]; then
   echo "ERROR: Missing required arguments"
   usage
   exit 1
@@ -25,6 +26,8 @@ NF_NAME=$1
 NF_PATH=$SCRIPTPATH/$NF_NAME
 BINARY=$NF_PATH/build/app/$NF_NAME
 DPDK_BASE_ARGS="-n 3 --proc-type=secondary"
+# For simple mode, only used for initial dpdk startup
+DEFAULT_CORE_ID=0
 
 if [ ! -f $BINARY ]; then
   echo "ERROR: NF executable not found, $BINARY doesn't exist"
@@ -58,11 +61,10 @@ if [[ $dash_dash_cnt -ge 2 ]]; then
   NF_ARGS="$(echo " ""$@" | awk -F "--" '{print $3;}')"
 elif [[ $dash_dash_cnt -eq 0 ]]; then
   # Dealing with required args shared by all NFs
-  cpu=$1
-  service=$2
-  shift 2
+  service=$1
+  shift 1
 
-  DPDK_ARGS="-l $cpu $DPDK_BASE_ARGS"
+  DPDK_ARGS="-l $DEFAULT_CORE_ID $DPDK_BASE_ARGS"
   ONVM_ARGS="-r $service"
   NF_ARGS="$@"
 elif [[ $dash_dash_cnt -eq 1 ]]; then

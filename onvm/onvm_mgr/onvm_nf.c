@@ -54,7 +54,6 @@
 
 uint16_t next_instance_id = 0;
 
-
 /************************Internal functions prototypes************************/
 
 
@@ -175,6 +174,7 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
 
 inline static int
 onvm_nf_start(struct onvm_nf_info *nf_info) {
+        int ret;
         // TODO dynamically allocate memory here - make rx/tx ring
         // take code from init_shm_rings in init.c
         // flush rx/tx queue at the this index to start clean?
@@ -214,6 +214,14 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
+
+        /* If not successful return will contain the error code */
+        ret = onvm_threading_get_core(&nf_info->core, nf_info->flags, cores);
+        if (ret != 0) {
+                nf_info->status = ret;
+                return 1;
+        }
+
         nfs[nf_id].info = nf_info;
         nfs[nf_id].instance_id = nf_id;
 
@@ -250,6 +258,8 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         nf_info->status = NF_STOPPED;
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
+        cores[nf_info->core].nf_count--;
+        cores[nf_info->core].is_dedicated_core = 0;
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;

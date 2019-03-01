@@ -13,6 +13,124 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
+This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+Note: This release makes important changes in how NFs are run and assigned to cores. 
+
+Performance: We are aware of some performance irregularities with this release. For example, the first few times a Basic Monitor NF is run we achieve only ~8 Mpps on a CloudLab Wisconsin c220g2 server. After starting and stopping the NF several times, the performance rises to the expected 14.5 Mpps.
+
+### Manager Assigned NF Cores:
+NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument. 
+
+NFs now go through the dpdk init process on a default core (currently 0) and then launch a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function is affinized to a core obtained from the Manager. 
+
+The core info is maintained in a memzone and the Manager keeps track of what cores are used, by how many NFs, and if the cores are reserved as dedicated. The Manager always selects the core with the fewest NFs unless a flag is used when starting an NF.
+
+**Usage:**
+
+New Manager arguments:
+  * Hexadecimal bitmask, which tells the onvm_mgr which cores are available for NFs to run on.
+
+The manager now must be run with a command like:
+```sh
+cd onvm
+#./go.sh CORE_LIST PORT_BITMASK NF_CORE_BITMASK -s LOG_MODE
+./go.sh 0,1,2,3 0x3 0xF0 -s stdout
+
+```
+With this command the manager runs on cores 0-3, uses ports 1 and 2 (since `0x3` is binary `0b11`), and will start NFs on cores 4-7 (since `0xF0` is binary `0b11110000`)
+
+New Network Functions arguments: 
+  * `-m` manual core decision mode, NF runs on the core supplied by the `-l` argument if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
+  * `-s` shared core mode, this will allow multiple NFs to run on the same core. Generally this should be avoided to prevent performance problems. By default, each core is dedicated to a single NF.
+  
+These arguments can be set as `ONVM_ARGS` as detailed below.
+
+**API Additions:**
+ - `int onvm_threading_core_affinitize(int core)` - Affinitizes the calling thread to a new core. This is used both internally and by the advanced rings NFs to change execution cores.  
+
+### Global Launch Script
+The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name (this is based on the assumption that the name matches the NF folder and the build binary). This removes the need to maintain a separate `go.sh` script for each NF but requires some arguments to be explicitly specified.
+
+The script has 2 modes:
+ - Simple
+    ```sh
+    ./start_nf.sh NF_NAME SERVICE_ID (NF_ARGS)
+    ./start_nf.sh speed_tester 1 -d 1
+    ```
+  - Complex
+    ```sh
+    ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
+    ./start_nf.sh speed_tester -l 4 -- -s -r 6 -- -d 5
+    ```
+*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
+```sh
+    cd speed_tester && ./go.sh 1 -d 1
+    cd speed_tester && ./go.sh -l 4 -- -s -r 6 -- -d 5
+```
+
+
+### DPDK 18.11 Update
+DPDK submodule no longer points to our fork, we now point to the upstream DPDK repository. This is because mTCP requirements for DPDK have relaxed and they no longer need to have additional patches on top of it.  
+
+Also updates Pktgen to 3.6.5 to remain compatible with DPDK v18.11
+The dpdk update involves:
+- Adds NIC ring RSS hashing functions adjustments
+- Adds NIC ring file descriptor size alignment
+
+Run this to ensure the submodule is up to date:
+```sh
+git submodule sync
+git submodule update --init
+```
+
+### Web Stats Overhaul 
+Adds a new event logging system which is used for port initialization and NF starting, ready, and stopping events. In the future, this could be used for more complex logging such as service chain based events and for core mappings.
+
+Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
+
+Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
+
+### Load Generator NF
+Adds a Load Generator NF, which sends packets at a specified rate and size, measures tx and rx throughput (pps) and latency. The load_generator NF continuously allocates and sends new packets of a defined size and at a defined rate using the `callback_handler` function. The max value for the `-t` pkt_rate argument for this NF will depend on the underlying architecture, for best performance increase it up until you see the NF starting to drop packets.
+
+Example usage with a chain of load_generator <-> simple_forward:
+```sh
+cd examples/load_generator
+./go.sh 1 -d 2 -t 4000000 
+
+cd examples/simple_forward
+./go.sh 2 -d 1
+```
+
+Example NF output:
+```
+Time elapsed: 24.50
+
+Tx total packets: 98001437
+Tx packets sent this iteration: 11
+Tx rate (set): 4000000
+Tx rate (average): 3999999.33
+Tx rate (current): 3999951.01
+
+Rx total packets: 94412314
+Rx rate (average): 3853506.69
+Rx rate (current): 4000021.01
+Latency (current mean): 4.38 us
+```
+
+
+### CI (Internal repo only)
+Adds continuous integration to the internal repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance. This will be tested internally and extended to support the public repo when ready.  
+
+To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
+
+### Bug Fixes
+ - Fix how NF_STOPPED message is sent/processed. This fixes the double shutdown bug (observed in mTCP applications), the fast ctrl-c exit bug and the invalid arguments bug. In all of those cases memory would get corrupted, this bug fix resolves these cases.  
+ - Add out of bounds checks for NF service ids. Before we were not handling cases when a new NF service id exceeded the MAX_SERVICES value or when launching a new NF would exceed the NF_SERVICE_COUNT_MAX value for the given service id.  
+ - Fix the Speed Tester NF to properly exit when passed an invalid MAC addr argument.  
+
 ## v18.11 (11/18): Config files, Multithreading, Better Statistics, and bug fixes
 This release adds several new features which cause breaking API changes to existing NFs.  NFs must be updated to support the new API required for multithreading support. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 

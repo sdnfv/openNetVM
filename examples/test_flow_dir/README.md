@@ -9,7 +9,7 @@ Compilation and Execution
 cd examples
 make
 cd test_flow_dir
-./go.sh CORELIST SERVICE_ID -d DST [PRINT_DELAY]
+./go.sh SERVICE_ID -d DST [PRINT_DELAY]
 
 OR
 

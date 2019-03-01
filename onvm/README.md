@@ -7,7 +7,7 @@ Manager
 The openNetVM manager is responsible for orchestrating traffic between NFs.  It handles all Rx/Tx traffic in and out of the system, dynamically manages NFs starting and stopping, and it displays statistics regarding all traffic.
 
 ```
-$sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l CORELIST -n MEMORY_CHANNELS --proc-type=primary -- -p PORTMASK [-r NUM_SERVICES] [-d DEFAULT_SERVICE] [-s STATS_OUTPUT]
+$sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l CORELIST -n MEMORY_CHANNELS --proc-type=primary -- -p PORTMASK -n NF_COREMASK [-r NUM_SERVICES] [-d DEFAULT_SERVICE] [-s STATS_OUTPUT]
 
 Options:
 
@@ -36,6 +36,8 @@ Options:
 	--	secondary commands
 
 		-p	a hexadecimal bit mask of the ports to use.
+
+		-n	a hexadecimal bit mask of cores for NFs to run on.
 
 		-r	an integer specifying the number of services.
 

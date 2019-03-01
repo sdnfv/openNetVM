@@ -312,6 +312,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
+        /* Set core affinity depending on what we got from mgr */
+        /* TODO as this is advanced ring mode it should have access to the core info struct */
+        onvm_threading_core_affinitize(nf_info->core);
+
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, handle_signal);
         signal(SIGTERM, handle_signal);

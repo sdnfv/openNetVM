@@ -78,7 +78,7 @@
 #include "onvm_sc_common.h"
 #include "onvm_flow_table.h"
 #include "onvm_flow_dir.h"
-
+#include "onvm_threading.h"
 
 /***********************************Macros************************************/
 
@@ -114,6 +114,7 @@ extern struct rte_ring *incoming_msg_queue;
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
+extern struct core_status *cores;
 
 extern struct rte_mempool *pktmbuf_pool;
 extern struct rte_mempool *nf_msg_pool;
