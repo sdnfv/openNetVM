@@ -13,10 +13,12 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.02 (2/19): NFs in Pthreads, CI (Internal repo only), Web Stats Overhaul, Global Launch Script, DPDK 18.11 Update, minor improvments and bug fixes
+## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 Note: This release makes important changes in how NFs are run and assigned to cores. 
+
+Performance Note: We are aware of some performance irregularities with this release. For example, the first few times a Basic Monitor NF is run we achieve only ~8 Mpps on a CloudLab Wisconsin c220g2 server. After starting and stopping the NF several times, the performance rises to the expected 14.5 Mpps.
 
 ### Manager Assigned NF Cores:
 NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument. 
@@ -89,6 +91,19 @@ Adds a new event logging system which is used for port initialization and NF sta
 Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
 
 Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
+
+### Load Generator NF
+Adds a Load Generator NF, which sends packets at a specified rate and size and measures the throughput (pps) and latency. Currently, the speed_tester NF creates a set of packets and sends them all at once, the load_generator NF, on the other hand, continuously allocates and sends new packets of a defined size and at a defined rate. It measures the latency and the tx/rx rates. 
+
+Example usage with a chain of load_generator <-> simple_forward:
+```sh
+cd examples/load_generator
+./go.sh 1 -d 2
+
+cd examples/simple_forward
+./go.sh 2 -d 1
+```
+
 
 ### CI (Internal repo only)
 Adds continuous integration to the internal repo. CI will automatically run when a new PR is created or when keyword `@onvm` is mentioned in a pr comment. CI currently reports the linter output and the Speed Tester NF performance. This will be tested internally and extended to support the public repo when ready.  
