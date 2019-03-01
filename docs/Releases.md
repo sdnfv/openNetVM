@@ -18,7 +18,7 @@ This release adds several new features and changes how the onvm_mgr and NFs star
 
 Note: This release makes important changes in how NFs are run and assigned to cores. 
 
-Performance Note: We are aware of some performance irregularities with this release. For example, the first few times a Basic Monitor NF is run we achieve only ~8 Mpps on a CloudLab Wisconsin c220g2 server. After starting and stopping the NF several times, the performance rises to the expected 14.5 Mpps.
+Performance: We are aware of some performance irregularities with this release. For example, the first few times a Basic Monitor NF is run we achieve only ~8 Mpps on a CloudLab Wisconsin c220g2 server. After starting and stopping the NF several times, the performance rises to the expected 14.5 Mpps.
 
 ### Manager Assigned NF Cores:
 NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument. 
@@ -93,15 +93,31 @@ Also contains a complete rewrite of the web frontend. The existing code which pr
 Please note that **CSV download has been removed** with this update as storing this much ongoing data negatively impacts application performance. This sort of data collection would be best implemented via grepping or some similar functionality from onvm console output.
 
 ### Load Generator NF
-Adds a Load Generator NF, which sends packets at a specified rate and size and measures the throughput (pps) and latency. Currently, the speed_tester NF creates a set of packets and sends them all at once, the load_generator NF, on the other hand, continuously allocates and sends new packets of a defined size and at a defined rate. It measures the latency and the tx/rx rates. 
+Adds a Load Generator NF, which sends packets at a specified rate and size, measures tx and rx throughput (pps) and latency. The load_generator NF continuously allocates and sends new packets of a defined size and at a defined rate using the `callback_handler` function. The max value for the `-t` pkt_rate argument for this NF will depend on the underlying architecture, for best performance increase it up until you see the NF starting to drop packets.
 
 Example usage with a chain of load_generator <-> simple_forward:
 ```sh
 cd examples/load_generator
-./go.sh 1 -d 2
+./go.sh 1 -d 2 -t 4000000 
 
 cd examples/simple_forward
 ./go.sh 2 -d 1
+```
+
+Example NF output:
+```
+Time elapsed: 24.50
+
+Tx total packets: 98001437
+Tx packets sent this iteration: 11
+Tx rate (set): 4000000
+Tx rate (average): 3999999.33
+Tx rate (current): 3999951.01
+
+Rx total packets: 94412314
+Rx rate (average): 3853506.69
+Rx rate (current): 4000021.01
+Latency (current mean): 4.38 us
 ```
 
 
