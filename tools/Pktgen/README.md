@@ -11,7 +11,7 @@ This guide is assuming that you have already got openNetVM installed on your mac
 ----------
 
 
-1. Preparation Steps
+1 Preparation Steps  
 ===================
 
 1.1 Check if you have free hugepages
@@ -49,7 +49,7 @@ Network devices using kernel driver
 
 
 
-2. Installation of Pktgen 
+2 Installation of Pktgen 
 ===================
 
 
@@ -65,6 +65,8 @@ Install pcap dependency
 `sudo apt-get install libpcap-dev`
 
 Download Lua, can be found [here](https://www.lua.org/download.html)  
+This might require running:  
+`sudo apt-get install libreadline-dev`  
 Navigate into the downloaded Lua directory and run  
 `sudo make install`
 
@@ -89,16 +91,14 @@ Updating configuration for pktgen, three servers are set up for observing the tr
 
 Script files are located in openNetVM-Scripts
 
-1. Modify directories in run-pktgen.sh. 
-
-2. Modify mac, src/dest ip in pktgen-config.lua.
+1. Modify mac and optionally src/dest ip in the `pktgen-config.lua`.
 
 2.4 Run pktgen
 ------------- 
 
 `$cd openNetVM-Scripts`
 
-`$sudo bash run-pktgen.sh`
+`$sudo bash run-pktgen.sh 1` or `$sudo bash run-pktgen.sh 2` 
 
 If you got your result as below, then you are all set
 ```
@@ -197,6 +197,8 @@ Src MAC Address :  90:e2:ba:5a:f7:90  90:e2:ba:5a:f7:91
 -- Pktgen Ver:2.7.1(DPDK-1.7.0) -------------------------------------------------------------------------------------
 
 ```
+
+Run `start all` to start sending packets.  
 
 Please use `pktgen> quit` for existing. 
 
