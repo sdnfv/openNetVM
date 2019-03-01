@@ -8,12 +8,32 @@ contains ONVM and DPDK arguments. An example of this can be seen
 [here](../examples/example_config.json). In addition, the values
 specified in the config file can be overwritten by passing them at the
 command line. The general structure for launching an NF from a config file is
-`./go -F <CONFIG_FILE.json> <DPDK ARGS> -- <ONVM ARGS> -- <NF ARGS>`.
+`./go.sh -F <CONFIG_FILE.json> <DPDK ARGS> -- <ONVM ARGS> -- <NF ARGS>`.
 Any args specified in `<DPDK args>` or `<ONVM ARGS>` will replace the
 corresponding args in the config file. **An important note:** If no DPDK
 or ONVM args are passed, **but** NF args are required, the `-- --` is
 still required. For documentation on developing with config files, see
 [NF_Dev](NF_Dev.md)
+
+NF Starting Scripts
+--
+The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name(this is based on the assumption that the name matches the NF folder and the build binary). 
+The script has 2 modes:
+ - Simple
+    ```sh
+    ./start_nf.sh NF_NAME SERVICE_ID (NF_ARGS)
+    ./start_nf.sh speed_tester 1 -d 1
+    ```
+  - Complex
+    ```sh
+    ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
+    ./start_nf.sh speed_tester -l 4 -- -s -r 6 -- -d 5
+    ```
+*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
+```sh
+    cd speed_tester && ./go.sh 1 -d 1
+    cd speed_tester && ./go.sh -l 4 -- -s -r 6 -- -d 5
+```
 
 Linear NF Chain
 --
@@ -115,17 +135,7 @@ In this example, we can set up a circular chain of NFs.  Here, traffic does not 
       - `# ./examples/start_nf.sh simple_forward 2 -d 1`  
     - Second, start up 1 speed_tester NF and have it forward to service ID 2.
       - `# ./examples/start_nf.sh speed_tester 1 -d 2 -c 16000`
-  4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.
-
-
-NF Config Files
---
-All NFs support launching from a JSON config file. By specifying `-F`
-and then a JSON file in either `go.sh` or the NF binary file directly,
-the NF will pull all ONVM and DPDK settings from the file instead of the
-command line. See the `example_config.json` file in each NF directory
-for an example on how to structure the file and all options that can be
-set.
+  4. We now have a speed_tester sending packets to service ID 2 who then forwards packets back to service ID 1, the speed_tester.  This is a circular chain of NFs.  
 
 
 [cores]: ../scripts/corehelper.py

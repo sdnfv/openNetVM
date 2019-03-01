@@ -39,11 +39,12 @@ Setup Repositories
     cd openNetVM
     git checkout master
     ```
-    This will ensure you are on the stable, `master` branch. If you want to use potentially buggy features, you can use the default `develop` branch.
+    This will ensure you are on the stable, `master` branch. If you want to use the most recent but potentially buggy features, you can use the default `develop` branch.
 
 2. Initialize DPDK submodule
     ```sh
-    git submodule init && git submodule update
+    git submodule sync
+    git submodule update --init
     ```
 
  **From this point forward, this guide assumes that you are working out of the openNetVM source directory.**
@@ -148,9 +149,9 @@ Make and test openNetVM
 
 3. Run openNetVM manager
 
-    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), and to use stdout for the statistics console:
+    Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), 0xF8 for the NF coremask (cores 4, 5, 6, 7), and to use stdout for the statistics console:
 
-    `./onvm/go.sh 0,1,2,3 1 -s stdout`
+    `./onvm/go.sh 0,1,2,3 1 0xF8 -s stdout`
 
     You should see information regarding the NIC port that openNetVM is using, and openNetVM manager statistics will be displayed.
 
@@ -158,9 +159,12 @@ Make and test openNetVM
 
     To test the system, we will run the speed_tester example NF.  This NF generates a buffer of packets, and sends them to itself to measure the speed of a single NF TX thread.
 
-    In a new shell, run this command to start the speed_tester by giving it one core, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
+    In a new shell, run this command to start the speed_tester, assigning it a service ID of 1, setting its destination service ID to 1, and creating an initial batch of 16000 packets (increasing the packet count from the default 128 is especially important if you run a chain of multiple NFs):
 
-    `./examples/speed_tester/go.sh 5 1 1 -c 16000`
+    ```sh
+    cd examples/speed_tester
+	./go.sh 1 -d 1 -c 16000
+    ```
 
     Once the NF's initialization is completed, you should see the NF display how many packets it is sending to itself.  Go back to the manager to verify that `NF 1` is receiving data.  If this is the case, the openNetVM is working correctly.
 
