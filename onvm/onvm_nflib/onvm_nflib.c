@@ -889,7 +889,7 @@ onvm_nflib_usage(const char *progname) {
                "[-n <instance_id>]"
                "[-r <service_id>]"
                "[-m (manual core assignment flag)]"
-               "[-d (dedicated core flag)]\n\n", progname);
+               "[-s (share core flag)]\n\n", progname);
 }
 
 
@@ -900,7 +900,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         int service_id = -1;
 
         opterr = 0;
-        while ((c = getopt (argc, argv, "n:r:md")) != -1)
+        while ((c = getopt (argc, argv, "n:r:ms")) != -1)
                 switch (c) {
                 case 'n':
                         initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
@@ -914,8 +914,8 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                 case 'm':
                         nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
                         break;
-                case 'd':
-                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, DEDICATED_CORE_BIT);
+                case 's':
+                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, SHARE_CORE_BIT);
                         break;
                 case '?':
                         onvm_nflib_usage(progname);

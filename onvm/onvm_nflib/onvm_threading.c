@@ -79,9 +79,9 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
                         return NF_CORE_BUSY;
 
                 /* If dedicated core requested ensure no NFs are running on that core */
-                if (ONVM_CHECK_BIT(flags, DEDICATED_CORE_BIT)) {
+                if (!ONVM_CHECK_BIT(flags, SHARE_CORE_BIT)) {
                         if (cores[pref_core_id].nf_count == 0)
-                                cores[best_core].is_dedicated_core = 1;
+                                cores[pref_core_id].is_dedicated_core = 1;
                         else 
                                 return NF_NO_DEDICATED_CORES;
                 }
@@ -106,7 +106,7 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
         }
 
         /* If NF wants a dedicated core and its available, reserve it */
-        if (ONVM_CHECK_BIT(flags, DEDICATED_CORE_BIT)) {
+        if (!ONVM_CHECK_BIT(flags, SHARE_CORE_BIT)) {
                 if (min_nf_count == 0) {
                         cores[best_core].is_dedicated_core = 1;
                 } else {

@@ -50,10 +50,10 @@ int onvm_threading_get_num_cores(void);
 
 /**
  * Get the core id for a new NF to run on.
- * If no flags are passed finds the core with the least number of NFs running on it
+ * If no flags are passed finds the core with the least number of NFs running on it, 
+ * will reserve the core unless the share core flag is set
  * For manual core assignment: the user picks the core
- * For dedicated core tries to assign a core for NF with no other NFs running on
- * that core and then labels the core as busy
+ * For shared core will allow other NFs to share assigned core
  *
  * @param core_value
  *    A pointer to set the core for NF to run on
@@ -61,7 +61,7 @@ int onvm_threading_get_num_cores(void);
  * @param flags
  *    Flags is a bitmask for specific core assignment options
  *    Bit MANUAL_CORE_ASSIGNMENT_BIT: for manually choosing a core by the user
- *    Bit DEDICATED_CORE_BIT: asking for a dedicated core 
+ *    Bit SHARE_CORE_BIT: allow other NFs(also with SHARE_CORE_BIT enabled) to start on assigned core 
  * @param cores
  *    A pointer to the core_status map containing core information
  *

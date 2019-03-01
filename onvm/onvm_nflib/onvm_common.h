@@ -66,7 +66,7 @@
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
-#define DEDICATED_CORE_BIT 1
+#define SHARE_CORE_BIT 1
 
 //extern uint8_t rss_symmetric_key[40];
 
