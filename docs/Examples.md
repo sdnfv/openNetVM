@@ -21,17 +21,19 @@ The example NFs can be started using the `start_nf.sh` script. The script can ru
 The script has 2 modes:
  - Simple
     ```sh
-    ./start_nf.sh NF_NAME CORE_ID SERVICE_ID (NF_ARGS)
+    ./start_nf.sh NF_NAME SERVICE_ID (NF_ARGS)
     ./start_nf.sh speed_tester 1 -d 1
-    cd speed_tester && ./go.sh 1 -d 1
     ```
   - Complex
     ```sh
     ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
-    ./start_nf.sh speed_tester -l 0 -n 4 -- -s 2 -i 6 -- -d 5
-    cd speed_tester && ./go.sh  -l 0 -n 4 -- -s 2 -i 6 -- -d 5
+    ./start_nf.sh speed_tester -l 4 -- -s -r 6 -- -d 5
     ```
-*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory*
+*All the NF directories have a symlink to `examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
+```sh
+    cd speed_tester && ./go.sh 1 -d 1
+    cd speed_tester && ./go.sh -l 4 -- -s -r 6 -- -d 5
+```
 
 Linear NF Chain
 --
