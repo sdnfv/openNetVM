@@ -111,7 +111,7 @@ Adds continuous integration to the internal repo. CI will automatically run when
 To achieve this a Flask server listens to events from github, currently only the `openNetVM-dev` repo is setup for this. In the future we plan to expand this functionality to the public `openNetVM` repo.  
 
 ### Bug Fixes
- - Fix how NF_STOPPED message is sent/processed. This fixes the double shutdown bug (obsered in mTCP applications), the fast ctrl-c exit bug and the invalid arguments bug. In all of those cases memory would get corrupted, this bug fix resolves these cases.  
+ - Fix how NF_STOPPED message is sent/processed. This fixes the double shutdown bug (observed in mTCP applications), the fast ctrl-c exit bug and the invalid arguments bug. In all of those cases memory would get corrupted, this bug fix resolves these cases.  
  - Add out of bounds checks for NF service ids. Before we were not handling cases when a new NF service id exceeded the MAX_SERVICES value or when launching a new NF would exceed the NF_SERVICE_COUNT_MAX value for the given service id.  
  - Fix the Speed Tester NF to properly exit when passed an invalid MAC addr argument.  
 
