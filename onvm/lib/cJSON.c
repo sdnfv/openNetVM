@@ -648,7 +648,6 @@ static const char *parse_string(cJSON *item, const char *str, const char **ep)
                             /* depending on the length in bytes this determines the
                              * encoding ofthe first UTF8 byte */
                             *--ptr2 = (uc | firstByteMark[len]);
-                            break;
                     }
                     ptr2 += len;
                     break;
