@@ -151,7 +151,7 @@ Make and test openNetVM
 
     Run openNetVM manager to use 4 cores (1 for displaying statistics, 1 for NIC RX, 1 for NIC TX, and 1 for NF TX), to use 1 NIC port (hexadecimal portmask), 0xF8 for the NF coremask (cores 4, 5, 6, 7), and to use stdout for the statistics console:
 
-    `./onvm/go.sh 0,1,2,3 1 0xF8 -s stdout`
+    `./onvm/go.sh 0,1,2 1 0xF8 -s stdout`
 
     You should see information regarding the NIC port that openNetVM is using, and openNetVM manager statistics will be displayed.
 
