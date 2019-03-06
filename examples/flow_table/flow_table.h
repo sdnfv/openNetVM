@@ -46,8 +46,12 @@
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n"
-                "Requires 2 cores.\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n", progname);
+        printf("Requires 2 cores.\n\n");
+        printf("Flags:\n");
+        printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packet.\n");
 }
 
 struct flow_table_entry {

@@ -6,7 +6,7 @@ This NF acts as a layer 3, round-robin load balancer. When a packet arrives the 
 App Specific Instuctions
 --
 **Setting up dpdk interfaces**  
-This NF requires 2 DPDK interfaces to work, both can be setup using the `openNetVM/dpdk/tools/dpdk-setup-iface.sh` script.  
+This NF requires 2 DPDK interfaces to work, both can be setup using the mTCP submodule iface setup, which can be found at the [mTCP onvm module install guide][mTCP repo]. 
 
 **Server Config**  
 The server config needs to have the total number of backend servers with their ip and mac address combination, an example config file `server.conf` is provided.  
@@ -22,10 +22,10 @@ The Load Balancer NF needs to respond to client and server ARP requests. As `onv
 An example usage of the ARP&LB NF, with the Load Balancer using dpdk0 - 10.0.0.37 and  dpdk1 - 11.0.0.37 for client, server ports respecively. 
 ```
 ARP NF
-./go.sh 4 1 2 -s 10.0.0.37,11.0.0.37
+./go.sh 1 -d 2 -s 10.0.0.37,11.0.0.37
 
 LB NF
-./go.sh 5 2 dpdk0 dpdk1 server.conf 
+./go.sh 2 -c dpdk0 -s dpdk1 -f server.conf 
 ```
 
 
@@ -33,12 +33,11 @@ Compilation and Execution
 --
 ```
 make
-./go.sh CORELIST SERVICE_ID CLIENT_IFACE SERVER_IFACE SERVER_CONFIG [PRINT_DELAY]
+./go.sh SERVICE_ID -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [PRINT_DELAY]
 
 OR
 
-./go.sh -F CONFIG_FILE -- -- -c CLIENT_FACE -s SERVER_IFACE -f SERVER_CONFIG [-p
-PRINT_DELAY]
+./go.sh -F CONFIG_FILE -- -- -c CLIENT_FACE -s SERVER_IFACE -f SERVER_CONFIG [-p PRINT_DELAY]
 
 OR
 
@@ -58,3 +57,5 @@ This NF supports the NF generating arguments from a config file. For
 additional reading, see [Examples.md](../../docs/Examples.md)
 
 See `../example_config.json` for all possible options that can be set.
+
+[mTCP repo]: https://github.com/mtcp-stack/mtcp/tree/devel#onvm-version

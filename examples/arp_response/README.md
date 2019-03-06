@@ -6,8 +6,7 @@ Compilation and Execution
 --
 ```
 make
-./go.sh CORELIST SERVICE_ID DESTINATION_ID -s SOURCE_IP_LIST [-p enable
-print]
+./go.sh SERVICE_ID -d DESTINATION_ID -s SOURCE_IP_LIST [-p enable print]
 
 OR
 

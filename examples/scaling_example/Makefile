@@ -44,7 +44,7 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = scaling
+APP = scaling_example
 
 # all source are stored in SRCS-y
 SRCS-y := scaling.c

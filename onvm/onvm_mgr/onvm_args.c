@@ -271,7 +271,7 @@ parse_nf_cores(const char *nf_coremask) {
         uint8_t i;
         uint8_t count = 0;
         uint8_t num_cores = 0;
-        uint32_t max_cores = GetNumCPUs();
+        uint32_t max_cores = onvm_threading_get_num_cores();
 
         if (nf_coremask == NULL)
                 return -1;
@@ -279,7 +279,8 @@ parse_nf_cores(const char *nf_coremask) {
         /* convert parameter to a number and verify */
         pm = strtoul(nf_coremask, &end, 16);
         if (pm == 0) {
-                printf("WARNING: No nf cores are being used.\n");
+                printf("WARNING: No NF cores are being used.\n");
+                printf("         Restart onvm_mgr with a valid coremask to run NFs.\n");
                 return 0;
         }
         if (end == NULL || *end != '\0' || pm == 0)
@@ -288,10 +289,10 @@ parse_nf_cores(const char *nf_coremask) {
         /* loop through bits of the mask and mark ports */
         while (pm != 0) {
                 if (pm & 0x01) { /* bit is set in mask, use port */
-                        if (count >= max_cores)
+                        if (count >= max_cores) {
                                 printf("WARNING: requested core %u out of cpu bounds"
                                 " - ignoring\n", (unsigned)count);
-                        else {
+                        } else {
                                 cores[count].enabled = 1;
                                 cores[count].nf_count = 0;
                                 num_cores++;
@@ -319,7 +320,7 @@ parse_nf_cores(const char *nf_coremask) {
 }
 
 static int
-parse_stats_sleep_time(const char *sleeptime){
+parse_stats_sleep_time(const char *sleeptime) {
         char* end = NULL;
         unsigned long temp;
 

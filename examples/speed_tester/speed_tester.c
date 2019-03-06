@@ -124,9 +124,20 @@ void * signal_handler(void *arg);
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
-                        "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
-                        "[-c <packet_number>] [-l]\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
+               "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
+               "[-c <packet_number>] [-l]\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-d DST`: Destination Service ID to foward to\n");
+        printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
+        printf(" - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-s PACKET_SIZE`: Size of packet, e.g. `-s 32` allocates 32 bytes for the data segment of `rte_mbuf`.\n");
+        printf(" - `-m DEST_MAC`: User specified destination MAC address, e.g. `-m aa:bb:cc:dd:ee:ff` sets the destination address within the ethernet header that is located at the start of the packet data.\n");
+        printf(" - `-o PCAP_FILENAME` : The filename of the pcap file to replay\n");
+        printf(" - `-l LATENCY` : Enable latency measurement. This should only be enabled on one Speed Tester NF. Packets must be routed back to the same speed tester NF.\n");
+        printf(" - `-c PACKET_NUMBER` : Use user specified number of packets in the batch. If not specified then this defaults to 128.\n");
 }
 
 /*
@@ -167,6 +178,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 }
                         } else {
                                 usage(progname);
+                                return -1;
                         }
                         break;
                 case 'o':
@@ -349,6 +361,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
+
+        /* Set core affinity depending on what we got from mgr */
+        /* TODO as this is advanced ring mode it should have access to the core info struct */
+        onvm_threading_core_affinitize(nf_info->core);
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         //signal(SIGINT, handle_signal);

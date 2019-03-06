@@ -34,7 +34,7 @@ sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c CO
   - This will start a container with two NIC devices mapped in, /dev/uio0 and /dev/uio1, the hugepage directory at `/mnt/huge` mapped in, and the openNetVM source directory at `/root/openNetVM` mapped into the container with the name of Basic_Monitor_NF.
 
     ```bash
-    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/speed_tester/go.sh 5 1 1"
+    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/speed_tester/go.sh 1 -d 1"
     ```
 
   - This will start a container with one NIC device mapped in, /dev/uio0 , the hugepage directory at `/mnt/huge` mapped in, and the openNetVM source directory at `/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF.
@@ -71,13 +71,7 @@ Makefile  aes_decrypt  aes_encrypt  arp_response  basic_monitor  bridge flow_tab
 root@899618eaa98c:/openNetVM/examples# cd basic_monitor/
 root@899618eaa98c:/openNetVM/examples/basic_monitor# ls
 Makefile  README.md  build  go.sh  monitor.c
-root@899618eaa98c:/openNetVM/examples/basic_monitor# ./go.sh
-./go.sh CPU-LIST SERVICE-ID [-p PRINT] [-n NF-ID]
-./go.sh 3 0 --> core 3, Service ID 0
-./go.sh 3,7,9 1 --> cores 3,7, and 9 with Service ID 1
-./go.sh -p 1000 -n 6 3,7,9 1 --> cores 3,7, and 9 with Service ID 1 and
-Print Rate of 1000 and instance ID 6
-root@899618eaa98c:/openNetVM/examples/basic_monitor# ./go.sh 3 1
+root@899618eaa98c:/openNetVM/examples/basic_monitor# ./go.sh 3 -d 1
 ...
 ```
 
@@ -85,7 +79,7 @@ You can also use the optional command argument to run directly the NF inside of 
 The prerequisites are the same as in the case where you connect to the container.
 
 ```bash
-root@nimbnode /root/openNetVM# ./scripts/docker.sh -h /mnt/huge -o /root/openNetVM -n speed_tester_nf -D /dev/uio0,/dev/uio1 -c "./examples/speed_tester/go.sh 5 1 1"
+root@nimbnode /root/openNetVM# ./scripts/docker.sh -h /mnt/huge -o /root/openNetVM -n speed_tester_nf -D /dev/uio0,/dev/uio1 -c "./examples/speed_tester/go.sh 1 -d 1"
 14daebeba1adea581c2998eead16ff7ce7fdc45394c0cc5d6489228aad939711
 root@nimbnode /root/openNetVM# sudo docker stop speed_tester_nf
 speed_tester_nf

@@ -8,7 +8,7 @@ Compilation and Execution
 cd examples
 make
 cd simple_forward
-./go.sh CORELIST SERVICE_ID DST [PRINT_DELAY]
+./go.sh SERVICE_ID -d DST [PRINT_DELAY]
 
 OR
 

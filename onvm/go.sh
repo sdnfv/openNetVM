@@ -6,19 +6,19 @@ function usage {
         echo "$0 0,1,2,3 3 0xF0 --> cores 0,1,2 and 3 with ports 0 and 1, with NFs running on cores 4,5,6,7"
         echo -e "\tCores will be used as follows in numerical order:"
         echo -e "\t\tRX thread, TX thread, ..., TX thread for last NF, Stats thread"
-        echo -e "$0 0,1,2,6 3 0xF0 -s web"
-        echo -e "\tRuns ONVM the same way as above, but prints statistics to the web browswer"
-	echo -e "$0 0,1,2,6 3 0xF0 -s web -p 9000"
-	echo -e "\tRuns OVNM the same as above, but runs the web stats on port 9000 instead of defaulting to 8080"
-        echo -e "$0 0,1,2,6 3 0xF0 -s stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s web"
+        echo -e "\tRuns ONVM the same way as above, but prints statistics to the web browser"
+        echo -e "$0 0,1,2,3 3 0xF0 -s web -p 9000"
+        echo -e "\tRuns OVNM the same as above, but runs the web stats on port 9000 instead of defaulting to 8080"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout"
-        echo -e "$0 0,1,2,6 3 0xF0 -s -v stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s -v stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in extra verbose mode"
-        echo -e "$0 0,1,2,6 3 0xF0 -s stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in raw data dump mode"
-        echo -e "$0 0,1,2,6 3 0xF0 -a 0x7f000000000 -s stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but adds a --base-virtaddr dpdk parameter"
-        echo -e "$0 0,1,2,6 3 0xF0 -r 10 -d 2"
+        echo -e "$0 0,1,2,3 3 0xF0 -r 10 -d 2"
         echo -e "\tRuns ONVM the same way as above, but limits max service IDs to 10 and uses service ID 2 as the default"
         exit 1
 }
@@ -59,13 +59,12 @@ then
     cd ../onvm_web/
     if [ -n "${web_port}" ]
     then
-        ./start_web_console.sh -p "${web_port}"
+        . start_web_console.sh -p "${web_port}"
     else
-        ./start_web_console.sh
+        . start_web_console.sh
     fi
 
-
-    cd ../onvm/
+    cd $ONVM_HOME/onvm
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
@@ -73,5 +72,7 @@ sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary 
 
 if [ "${stats}" = "-s web" ]
 then
+    echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
     kill $ONVM_WEB_PID
+    kill $ONVM_WEB_PID2
 fi

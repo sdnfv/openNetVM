@@ -13,7 +13,7 @@ Compilation and Execution
 cd examples
 make
 cd nf_router
-./go.sh CORELIST SERVICE_ID ROUTER_CONFIG [PRINT_DELAY]
+./go.sh SERVICE_ID -f ROUTER_CONFIG [PRINT_DELAY]
 
 OR
 

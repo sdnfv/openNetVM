@@ -82,7 +82,7 @@
 // Shared data for host port information
 struct port_info *ports;
 
-// Shared data for core infromation
+// Shared data for core information
 struct core_status *cores;
 
 // ring used for NF -> mgr messages (like startup & shutdown)
@@ -233,6 +233,7 @@ init_shared_cpu_info(uint16_t instance_id);
 *
 */
 void *thread_signal_handler(void *arg);
+
 /************************************API**************************************/
 
 /* TODO: Resolve globals */
@@ -259,14 +260,27 @@ thread_signal_handler(void *arg)
                         sem_post(nf->nf_mutex);
                 }
 
+		/* Wait for children to quit */
+		for (i = 0; i < MAX_NFS; i++)
+                while (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                        sleep(1);
+                }
+
+		int children_alive = 1;
                 /* Also signal spawned children */
-                for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
-                                        rte_atomic16_set(nfs[i].flag_p, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
-                        }
+		while (children_alive) {
+                	keep_running = 0;
+			children_alive = 0;
+			for (i = 0; i < MAX_NFS; i++) {
+				if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+					children_alive = 1;
+					if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+						rte_atomic16_set(nfs[i].flag_p, 0);
+						sem_post(nfs[i].nf_mutex);
+					}
+				}
+			}
+			sleep(1);
                 }
         }
         printf("Signal handling thread finished, exiting\n");
@@ -378,6 +392,12 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         if (nf_info->status == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
+        } else if (nf_info->status == NF_SERVICE_MAX) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
+        } else if (nf_info->status == NF_SERVICE_COUNT_MAX) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d", MAX_NFS_PER_SERVICE);
         } else if(nf_info->status == NF_NO_IDS) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
@@ -386,7 +406,14 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
                 rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
         } else if(nf_info->status == NF_NO_DEDICATED_CORES) {
                 rte_mempool_put(nf_info_mp, nf_info);
-                rte_exit(NF_NO_IDS, "There is no space to assign a dedicated core\n");
+                rte_exit(NF_NO_IDS, "There is no space to assign a dedicated core, "
+                                    "or manually selected core has NFs running\n");
+        } else if(nf_info->status == NF_CORE_OUT_OF_RANGE) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_NO_IDS, "Requested core is not enabled or not in range\n");
+        } else if(nf_info->status == NF_CORE_BUSY) {
+                rte_mempool_put(nf_info_mp, nf_info);
+                rte_exit(NF_NO_IDS, "Requested core is busy\n");
         } else if(nf_info->status != NF_STARTING) {
                 rte_mempool_put(nf_info_mp, nf_info);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
@@ -532,6 +559,7 @@ onvm_nflib_run_callback(
 
         if (nf->parent == 0)
                 pthread_join(sig_loop_thread, NULL);
+
         pthread_join(main_loop_thread, NULL);
 
         return 0;
@@ -548,7 +576,7 @@ onvm_nflib_thread_main_loop(void *arg){
         int ret;
 
         nf = (struct onvm_nf *)arg;
-        onvm_core_affinitize(nf->info->core);
+        onvm_threading_core_affinitize(nf->info->core);
 
         info = nf->info;
         handler = nf->nf_pkt_function;
@@ -582,7 +610,7 @@ onvm_nflib_thread_main_loop(void *arg){
 
         /* Wait for children to quit */
         for (i = 0; i < MAX_NFS; i++)
-                while(nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                while (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
                         sleep(1);
                 }
 
@@ -716,13 +744,14 @@ int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         int ret;
         pthread_t app_thread;
-        struct onvm_nf_msg *startup_msg;
 
         if (onvm_nflib_is_scale_info_valid(scale_info) < 0) {
                 RTE_LOG(INFO, APP, "Scale info invalid\n");
                 return -1;
         }
 
+#if 0
+        struct onvm_nf_msg *startup_msg;
         /* Get a startup msg struct to pass to mgr for scaling */
         if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
                 rte_mempool_put(nf_info_mp, scale_info->parent); // give back memory
@@ -753,6 +782,19 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         }
 
         //RTE_LOG(INFO, APP, "No cores available to scale\n");
+#endif
+        ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
+        if (ret < 0) {
+                RTE_LOG(INFO, APP, "Failed to create thread\n");
+                return -1;
+        }
+
+        ret = pthread_detach(app_thread);
+        if (ret < 0) {
+                RTE_LOG(INFO, APP, "Failed to detach thread\n");
+                return -1;
+        }
+
         return 0;
 }
 
@@ -890,9 +932,11 @@ onvm_nflib_start_child(void *arg) {
         /* Set child NF service and instance id */
         child_info->service_id = scale_info->service_id;
         child_info->instance_id = scale_info->instance_id;
+
+        /* Set child NF core options */
         child_info->core = scale_info->flags;
         child_info->flags = scale_info->flags;
-        
+
         RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_info->service_id, child_info->instance_id);
         onvm_nflib_start_nf(child_info);
 
@@ -977,8 +1021,8 @@ onvm_nflib_usage(const char *progname) {
         printf("Usage: %s [EAL args] -- "
                "[-n <instance_id>]"
                "[-r <service_id>]"
-               "[-m ]"
-               "[-d ]\n\n", progname);
+               "[-m (manual core assignment flag)]"
+               "[-s (share core flag)]\n\n", progname);
 }
 
 
@@ -989,7 +1033,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         int service_id = -1;
 
         opterr = 0;
-        while ((c = getopt (argc, argv, "n:r:md")) != -1)
+        while ((c = getopt (argc, argv, "n:r:ms")) != -1)
                 switch (c) {
                 case 'n':
                         initial_instance_id = (uint16_t) strtoul(optarg, NULL, 10);
@@ -1001,10 +1045,10 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                         if (service_id == 0) service_id = -1;
                         break;
                 case 'm':
-                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, CORE_ASSIGNMENT_BIT);
+                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
                         break;
-                case 'd':
-                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, DEDICATED_CORE_BIT);
+                case 's':
+                        nf_info->flags = ONVM_SET_BIT(nf_info->flags, SHARE_CORE_BIT);
                         break;
                 case '?':
                         onvm_nflib_usage(progname);
@@ -1042,7 +1086,6 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info)
         }
 
         struct onvm_nf_msg *shutdown_msg;
-        nf_info->status = NF_STOPPED;
 
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         if (mgr_msg_queue == NULL) {

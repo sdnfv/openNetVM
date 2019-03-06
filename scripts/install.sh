@@ -80,6 +80,15 @@ start_dir=$(pwd)
 # Compile dpdk
 cd $RTE_SDK
 echo "Compiling and installing dpdk in $RTE_SDK"
+
+# Adding ldflags.txt output for mTCP compatibility
+if grep "ldflags.txt" $RTE_SDK/mk/rte.app.mk > /dev/null
+then
+    :
+else
+    sed -i -e 's/O_TO_EXE_STR =/\$(shell if [ \! -d \${RTE_SDK}\/\${RTE_TARGET}\/lib ]\; then mkdir -p \${RTE_SDK}\/\${RTE_TARGET}\/lib\; fi)\nLINKER_FLAGS = \$(call linkerprefix,\$(LDLIBS))\n\$(shell echo \${LINKER_FLAGS} \> \${RTE_SDK}\/\${RTE_TARGET}\/lib\/ldflags\.txt)\nO_TO_EXE_STR =/g' $RTE_SDK/mk/rte.app.mk
+fi
+
 sleep 1
 make config T=$RTE_TARGET
 make T=$RTE_TARGET -j 8

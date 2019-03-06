@@ -8,7 +8,7 @@ Compilation and Exection
 cd examples
 make
 cd flow_table
-./go.sh CORELIST SERVICE_ID [PRINT_DELAY]
+./go.sh SERVICE_ID [PRINT_DELAY]
 
 OR
 

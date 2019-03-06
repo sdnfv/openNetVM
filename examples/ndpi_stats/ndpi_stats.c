@@ -152,7 +152,12 @@ char* formatPackets(float numPkts, char *buf) {
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -d <destination_nf> -w <output_file>\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF_LIB args] -- -d <destination_nf> -w <output_file>\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-w <file_name>`: result file name to write to.\n");
+        printf(" - `-d <nf_id>`: OPTIONAL destination NF to send packets to\n");
 }
 
 /*

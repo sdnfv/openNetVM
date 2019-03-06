@@ -81,7 +81,13 @@ extern struct port_info *ports;
 /*Prints a usage message */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF Lib args] -- -d <destination_id> -s <source_ip> [-p enable printing]\n\n", progname);
+        printf("Usage:\n");
+        printf("%s [EAL args] -- [NF Lib args] -- -d <destination_id> -s <source_ip> [-p enable printing]\n", progname);
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]>\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-d <destination_id>`: the NF will send non-ARP packets to the NF at this service ID, e.g. `-d 2` sends packets to service ID 2\n");
+        printf(" - `-s <source_ip_list>`: the NF will map each comma separated IP (no spaces) to the corresponding port. Example: `-s 10.0.0.31,11.0.0.31` maps port 0 to 10.0.0.31, and port 1 to 11.0.0.31. If 0.0.0.0 is inputted, the IP will be 0. If too few IPs are inputted, the remaining ports will be ignored.\n");
+        printf(" - `-p`: Enables printing of log information\n");
 }
 
 /* Parse how many IPs are in the input string */

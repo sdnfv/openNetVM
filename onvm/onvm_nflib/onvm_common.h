@@ -44,6 +44,13 @@
 
 #include <stdint.h>
 
+/* Std C library includes for shared cpu */
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <rte_mbuf.h>
 #include <rte_ether.h>
 
@@ -64,16 +71,11 @@
 #define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
 
-#define CORE_ASSIGNMENT_BIT 0
-#define DEDICATED_CORE_BIT 1
 #define INTERRUPT_SEM           // To enable NF thread interrupt mode wake.  Better to move it as option in Makefile
 
-// Std C library includes for shared cpu
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <semaphore.h>
-#include <fcntl.h>
+/* Used in setting bit flags for core options */
+#define MANUAL_CORE_ASSIGNMENT_BIT 0
+#define SHARE_CORE_BIT 1
 
 //extern uint8_t rss_symmetric_key[40];
 
@@ -164,8 +166,8 @@ struct port_info {
 
 struct core_status {
         uint8_t enabled;
-        uint8_t nf_count;
         uint8_t is_dedicated_core;
+        uint16_t nf_count;
 };
 
 struct onvm_nf_info;
@@ -318,15 +320,19 @@ struct onvm_service_chain {
 
 
 /* common names for NF states */
-#define NF_WAITING_FOR_ID 0     // First step in startup process, doesn't have ID confirmed by manager yet
-#define NF_STARTING 1           // When a NF is in the startup process and already has an id
-#define NF_RUNNING 2            // Running normally
-#define NF_PAUSED  3            // NF is not receiving packets, but may in the future
-#define NF_STOPPED 4            // NF has stopped and in the shutdown process
-#define NF_ID_CONFLICT 5        // NF is trying to declare an ID already in use
-#define NF_NO_IDS 6             // There are no available IDs for this NF
-#define NF_NO_CORES 7           // There is not cores available or specidifed core can't be used
-#define NF_NO_DEDICATED_CORES 8 // There is no space for a dedicated core
+#define NF_WAITING_FOR_ID 0      // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_STARTING 1            // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2             // Running normally
+#define NF_PAUSED  3             // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4             // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5         // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6              // There are no available IDs for this NF
+#define NF_SERVICE_MAX 7         // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8   // Maximum amount of NF's per service spawned
+#define NF_NO_CORES 9            // There are no cores available or specified core can't be used
+#define NF_NO_DEDICATED_CORES 10 // There is no space for a dedicated core
+#define NF_CORE_OUT_OF_RANGE 11  // The manually selected core is out of range
+#define NF_CORE_BUSY 12          // The manually selected core is busy
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other

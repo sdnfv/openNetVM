@@ -50,36 +50,47 @@
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
-#include <signal.h>
 
 #include "onvm_threading.h"
 
+/*----------------------------------------------------------------------------*/
 int 
-GetNumCPUs(void) {
+onvm_threading_get_num_cores(void) {
         return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 int
-onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores) {
+onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores) {
         int i;
-        int max_cores = GetNumCPUs();
+        int max_cores;
         int best_core = 0;
         int pref_core_id = *core_value;
         uint16_t min_nf_count = (uint16_t)-1;
-        uint16_t pref_core_nf_count = (uint16_t)-1;
+
+        max_cores = onvm_threading_get_num_cores();
 
         /* Check status of preffered core */
-        if (ONVM_CHECK_BIT(flags, CORE_ASSIGNMENT_BIT)) {
+        if (ONVM_CHECK_BIT(flags, MANUAL_CORE_ASSIGNMENT_BIT)) {
                 /* If manual core assignment and core is out of bounds */
-                if (pref_core_id < 0 || pref_core_id > max_cores)
-                        return -3;
+                if (pref_core_id < 0 || pref_core_id > max_cores || !cores[pref_core_id].enabled)
+                        return NF_CORE_OUT_OF_RANGE;
+                /* If used as a dedicated core already */
+                if (cores[pref_core_id].is_dedicated_core != 0)
+                        return NF_CORE_BUSY;
 
-                if (cores[pref_core_id].enabled && cores[pref_core_id].is_dedicated_core == 0) { 
-                        pref_core_nf_count = cores[pref_core_id].nf_count;
+                /* If dedicated core requested ensure no NFs are running on that core */
+                if (!ONVM_CHECK_BIT(flags, SHARE_CORE_BIT)) {
+                        if (cores[pref_core_id].nf_count == 0)
+                                cores[pref_core_id].is_dedicated_core = 1;
+                        else 
+                                return NF_NO_DEDICATED_CORES;
                 }
+
+                cores[pref_core_id].nf_count++;
+                return 0;
         }
 
-        /* Find the most optimal core */
+        /* Find the most optimal core, least NFs running */
         for (i = 0; i < max_cores; ++i) {
                 if (cores[i].enabled && cores[i].is_dedicated_core == 0) {
                         if (cores[i].nf_count < min_nf_count) {
@@ -91,22 +102,17 @@ onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores) {
 
         /* No cores available, can't launch */
         if (min_nf_count == (uint16_t)-1) {
-                return -1;
-        }
-
-        /* Currently preferrence only works if there are no NFs running on that core */
-        if (pref_core_nf_count == 0) {
-                best_core = pref_core_id;
+                return NF_NO_CORES;
         }
 
         /* If NF wants a dedicated core and its available, reserve it */
-        if (ONVM_CHECK_BIT(flags, DEDICATED_CORE_BIT)) {
+        if (!ONVM_CHECK_BIT(flags, SHARE_CORE_BIT)) {
                 if (min_nf_count == 0) {
                         cores[best_core].is_dedicated_core = 1;
                 } else {
                         /* Dedicated core option not possible */
                         *core_value = best_core;
-                        return -2;
+                        return NF_NO_DEDICATED_CORES;
                 }
         }
 
@@ -117,11 +123,11 @@ onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores) {
 }
 
 int 
-onvm_core_affinitize(int cpu) {
+onvm_threading_core_affinitize(int cpu) {
         cpu_set_t cpus;
         size_t n;
 
-        n = GetNumCPUs();
+        n = onvm_threading_get_num_cores();
         if (cpu < 0 || cpu >= (int) n) {
                 return -1;
         }

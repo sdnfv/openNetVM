@@ -129,16 +129,22 @@ onvm_nf_check_status(void) {
                 switch (msg->msg_type) {
                 case MSG_NF_STARTING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        onvm_nf_start(nf);
+                        if (onvm_nf_start(nf) == 0) {
+                                onvm_stats_add_event("NF Starting", nf);
+                        }
                         break;
                 case MSG_NF_READY:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        onvm_nf_ready(nf);
+                        if (onvm_nf_ready(nf) == 0) {
+                                onvm_stats_add_event("NF Ready", nf);
+                        }
                         break;
                 case MSG_NF_STOPPING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
-                        if (!onvm_nf_stop(nf))
+                        if (onvm_nf_stop(nf) == 0) {
+                                onvm_stats_add_event("NF Stopping", nf);
                                 num_nfs--;
+                        }
                         break;
                 case MSG_NF_REQUEST_CPU:
                         scale_info = (struct onvm_nf_scale_info*)msg->msg_data;
@@ -193,6 +199,18 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
                 return 1;
         }
 
+        if (nf_info->service_id >= MAX_SERVICES) {
+                // Service ID must be less than MAX_SERVICES and greater than 0
+                nf_info->status = NF_SERVICE_MAX;
+                return 1;
+        }
+
+        if (nf_per_service_count[nf_info->service_id] >= MAX_NFS_PER_SERVICE) {
+                // Maximum amount of NF's per service spawned
+                nf_info->status = NF_SERVICE_COUNT_MAX;
+                return 1;
+        }
+
         if (onvm_nf_is_valid(&nfs[nf_id])) {
                 // This NF is trying to declare an ID already in use
                 nf_info->status = NF_ID_CONFLICT;
@@ -201,12 +219,11 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
 
         // Keep reference to this NF in the manager
         nf_info->instance_id = nf_id;
-        ret = onvm_get_core(&nf_info->core, nf_info->flags, cores);
-        if (ret == -2) {
-                nf_info->status = NF_NO_DEDICATED_CORES;
-                return 1;
-        } else if (ret < 0) {
-                nf_info->status = NF_NO_CORES;
+
+        /* If not successful return will contain the error code */
+        ret = onvm_threading_get_core(&nf_info->core, nf_info->flags, cores);
+        if (ret != 0) {
+                nf_info->status = ret;
                 return 1;
         }
 
@@ -240,9 +257,10 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         int mapIndex;
         struct rte_mempool *nf_info_mp;
 
-        if(nf_info == NULL || nf_info->status != NF_STOPPED)
+        if(nf_info == NULL || nf_info->status != NF_RUNNING)
                 return 1;
 
+        nf_info->status = NF_STOPPED;
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
         cores[nf_info->core].nf_count--;

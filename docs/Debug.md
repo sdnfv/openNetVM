@@ -43,7 +43,7 @@ The NF/mgr hugepage memory layout discrepency is resolved by using the base virt
 Examples of compex NFs: ndpi_stats, onvm_mtcp epserver
   
 Example onvm_mgr setup:  
-```./go.sh 0,1,2,3 3 -v 0x7f000000000 -s stdout```
+```./go.sh 0,1,2,3 3 0xF0 -v 0x7f000000000 -s stdout```
 
 [dpdk-pdump]: http://dpdk.org/doc/guides/tools/pdump.html#example
 [speed_tester]: ../examples/speed_tester

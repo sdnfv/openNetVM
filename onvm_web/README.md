@@ -1,96 +1,72 @@
-openNetVM Web Console for Statistics
-==
+# openNetVM Web Console for Statistics
 
-About
---
+## About
 
 Resources to view openNetVM Manager statistics through a web console.
 
-The [start web console][start_web] script will run [Python SimpleHTTPServer][simplehttp] on port 8080 by default, or on a port of your specification using the `-p` flag.  See more details for this in the **Usage** section below.
+The [start web console][start_web] script will run cors_server.py (which is an extension of [Python's SimpleHTTPServer][simplehttp] which enables CORS) on port 8080 by default, or on a port of your specification using the `-p` flag. See more details for this in the **Usage** section below.
 
-Configuration
---
-
-You may provide a config.json file in this directory containing the following variables:
-
-* `y_min`: minimum Y value shown on the graphs (default = 0)
-* `y_max`: maximum Y value shown on the graphs (default = 30M)
-* `x_range`: maximum number of seconds shown on the graph on the X axis at once (default = 30)
-* `refresh_rate`: Number of **milliseconds** to update the graphs (default = 3000)
-
-**NOTE:** The refresh rate in the config.json file can be any value, but please know that the manager only updates stats every **1 second** ([main.c:95][sleep_file]).  As such, _please refrain from using refresh rates faster than 1 second_.
-
-If no config.json file is provided, or if invalid options are provided, the system will use the defaults.
-
-An example `config.json` setup is provided below using the default parameters:
-
-```
-{
-        "y_min": 0,
-        "y_max": 30000000,
-        "x_range": 30,
-        "refresh_rate": 3000
-}
-```                                                                
-
-CSV Download
---
-
-The web view also provides the user with the ability to download a CSV containing all data points recorded **by the current browser session**.  Please note that refreshing the page will remove these data points and reset the data the browser has recorded.  Using the [csv analysis script][csv_script], you can obtain meaningful, human readable information from this CSV.
-
-Usage
---
+## Usage
 
 Start the openNetVM Manager following steps in either the [install
 doc][install] or the [example usage guide][examples] and be sure to use
-the `-s` flag supplying the argument `web`.  If the `-s` flag is supplied,
-the web console will automatically be launched for you using the port 
+the `-s` flag supplying the argument `web`. If the `-s` flag is supplied,
+the web console will automatically be launched for you using the port
 number you have specified on the manager (using the manager's `-p` flag).
 If no port is specified, it will run on port 8080.
 
-The following example runs openNetVM with four cores (1 for stats
-display, 1 for NIC Rx, 1 for NIC Tx, and 1 for NF Tx), a portmask of 1
+The following example runs openNetVM with four cores, a portmask of 1
 to use 1 NIC port, and sets the stats output to the web console.
+
 ```sh
 cd onvm
 ./go.sh 0,1,2,3 1 -s web
 ```
 
-The following example runs openNetVM with four cores (1 for stats
-display, 1 for NIC Rx, 1 for NIC Tx, and 1 for NF Tx), a portmask of 1
-to use 1 NIC port, and sets the stats output to the web console.  It also runs
-the web dashhboard on port 9000.
+The following example runs openNetVM with four cores, a portmask of 1
+to use 1 NIC port, and sets the stats output to the web console. It also runs
+the web dashboard on port 9000.
+
 ```sh
 cd onvm
 ./go.sh 0,1,2,3 1 -s web -p 9000
 ```
 
 Doing that will launch openNetVM and use the console to display log
-messages.  It will print out a message stating that the web stats
+messages. It will print out a message stating that the web stats
 console has been setup and information to access it.
 
-If something were to go wrong in the launching of the web stats, we could
-manually start it ourselves by doing the following:
+If something were to go wrong in the launching of the web stats, you could
+manually start it by doing the following:
+
 ```sh
 cd onvm_web
 ./start_web_console.sh
 ```
 
-We could also specify a port argument using the `-p` flag:
+You could also specify a port argument using the `-p` flag:
+
 ```sh
 cd onvm_web
 ./start_web_console.sh -p 9000
 ```
 
+## Design and Implementation
 
-In your web browser, you will see statistics regarding openNetVM NIC
-performance, each NF's Rx and Tx performance, and the raw stats output.
+Within OpenNetVM's [main.c file][onvm_main_c], the master thread initializes the system, starts other threads, then runs the stats in an infinite loop until the user kills or interrupts the process. The stats thread sleeps for a set amount of time, then updates the statistics. When run in web mode, it does this by outputting stats about ports and NFs into `onvm_json_stats.json` and outputting an event list into `onvm_json_events.json`, truncating the existing version of the file and overwriting with each iteration of the loop.
 
+The events system is new and currently events are created for port initialization and NF starting, ready, and stopping. In the future, this should be used for more complex events such as service chain based events, and for core mappings once shared CPU is completed.
+
+The existing code for the web frontend (which primarily used jquery) has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page. The [AppWrapper.react.js][app_wrapper_react_js] makes periodic web requests and updates global state.
+
+Global state is managed via a small publisher/subscriber library located in [pubsub.js][pubsub_js]. This was chosen over Redux as our use case does not require the full overhead of Redux. Our publisher/subscriber library allows React components to easily subscribe to new NF data or new event data upon component mount, and unsubscribe upon component unmount. The NFGraph components enable restoration of previously encountered data onto the graph upon component remount. To maintain performance, [pubsub.js][pubsub_js] only retains the last 40 data points per NF and Port.
+
+**Please note:** If you restart the manager then you will need to refresh the web page to reset the application state.
 
 [install]: ../docs/Install.md
 [examples]: ../docs/Examples.md
 [start_web]: ./start_web_console.sh
-[chartjs]: http://www.chartjs.org/
 [simplehttp]: https://docs.python.org/2/library/simplehttpserver.html
-[csv_script]: ../scripts/csv-analysis.py
-[sleep_file]: https://github.com/sdnfv/openNetVM-dev/blob/master/onvm/onvm_mgr/main.c#L95
+[onvm_main_c]: ../onvm/onvm_mgr/main.c
+[app_wrapper_react_js]: ./react-app/src/AppWrapper.react.js
+[pubsub_js]: ./react-app/src/pubsub.js

@@ -35,7 +35,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_threading.h - threading helper functionss
+ * onvm_threading.h - threading helper functions
  ********************************************************************/
 
 #ifndef _ONVM_THREADING_H_
@@ -43,9 +43,45 @@
 
 #include "onvm_common.h"
 
-int GetNumCPUs(void);
-int onvm_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores);
-int onvm_core_affinitize(int cpu);
-int thread_block_signals(void);
+/**
+ * Gets the total number of cores.
+ */
+int onvm_threading_get_num_cores(void);
 
-#endif  // _ONVM_THREADING_H_"
+/**
+ * Get the core id for a new NF to run on.
+ * If no flags are passed finds the core with the least number of NFs running on it, 
+ * will reserve the core unless the share core flag is set
+ * For manual core assignment: the user picks the core
+ * For shared core will allow other NFs to share assigned core
+ *
+ * @param core_value
+ *    A pointer to set the core for NF to run on
+ *    if manual core mode is used, a preferred core id is accessed from this pointer
+ * @param flags
+ *    Flags is a bitmask for specific core assignment options
+ *    Bit MANUAL_CORE_ASSIGNMENT_BIT: for manually choosing a core by the user
+ *    Bit SHARE_CORE_BIT: allow other NFs(also with SHARE_CORE_BIT enabled) to start on assigned core 
+ * @param cores
+ *    A pointer to the core_status map containing core information
+ *
+ * @return
+ *    0 on success
+ *    NF_NO_CORES or NF_NO_DEDICATED_CORES or NF_CORE_OUT_OF_RANGE or NF_CORE_BUSY on error
+ */
+int onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status *cores);
+
+/**
+ * Uses the dpdk function to reaffinitize the calling pthread to another core.
+ *
+ * @param info
+ *    An integer core value to bind the pthread to
+ * @return
+ *    0 on success, or a negative value on failure
+ */
+int onvm_threading_core_affinitize(int core);
+
+int
+thread_block_signals(void);
+
+#endif  // _ONVM_THREADING_H_
