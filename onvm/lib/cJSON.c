@@ -633,17 +633,17 @@ static const char *parse_string(cJSON *item, const char *str, const char **ep)
                             /* 10xxxxxx */
                             *--ptr2 = ((uc | 0x80) & 0xBF);
                             uc >>= 6;
-                            /* FALLTHRU */
+                            /* FALLTHROUGH */
                         case 3:
                             /* 10xxxxxx */
                             *--ptr2 = ((uc | 0x80) & 0xBF);
                             uc >>= 6;
-                            /* FALLTHRU */
+                            /* FALLTHROUGH */
                         case 2:
                             /* 10xxxxxx */
                             *--ptr2 = ((uc | 0x80) & 0xBF);
                             uc >>= 6;
-                            /* FALLTHRU */
+                            /* FALLTHROUGH */
                         case 1:
                             /* depending on the length in bytes this determines the
                              * encoding ofthe first UTF8 byte */
