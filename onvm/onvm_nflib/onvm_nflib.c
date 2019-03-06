@@ -303,6 +303,33 @@ onvm_nflib_lookup_shared_structs(void) {
         return 0;
 }
 
+int
+onvm_nflib_request_lpm(struct lpm_request *req) {
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) return ret;
+
+        request_message->msg_type = MSG_REQUEST_LPM_REGION;
+        request_message->msg_data = req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        req->status = NF_WAITING_FOR_MGR;
+        for (; req->status == (uint16_t) NF_WAITING_FOR_MGR;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return req->status;
+
+}
+
 static int
 onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *startup_msg;

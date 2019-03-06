@@ -52,6 +52,8 @@
 #include "onvm_nf.h"
 #include "onvm_stats.h"
 
+#include <rte_lpm.h>
+
 uint16_t next_instance_id = 0;
 
 /************************Internal functions prototypes************************/
@@ -89,6 +91,9 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
 
+static void
+init_lpm_region(struct lpm_request *req);
+
 
 /********************************Interfaces***********************************/
 
@@ -115,6 +120,7 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
+        struct lpm_request *req;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
         if (num_msgs == 0) return;
@@ -126,6 +132,11 @@ onvm_nf_check_status(void) {
                 msg = (struct onvm_nf_msg*) msgs[i];
 
                 switch (msg->msg_type) {
+
+                case MSG_REQUEST_LPM_REGION:
+                        req = (struct lpm_request*)msg->msg_data;
+                        init_lpm_region(req);
+                        break;
                 case MSG_NF_STARTING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
                         if (onvm_nf_start(nf) == 0) {
@@ -298,4 +309,20 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         rte_mempool_put(nf_info_mp, (void*)nf_info);
 
         return 0;
+}
+
+static void
+init_lpm_region(struct lpm_request *req) {
+        struct rte_lpm_config conf;
+        struct rte_lpm* lpm_region;
+
+        conf.max_rules = req->max_num_rules;
+        conf.number_tbl8s = req->num_tbl8s;
+
+        lpm_region = rte_lpm_create(req->name, req->socket_id, &conf);
+        if(lpm_region){
+                req->status = 0;
+        }else{
+                req->status = -1;
+        }
 }
