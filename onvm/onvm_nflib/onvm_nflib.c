@@ -750,40 +750,8 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
-#if 0
-        struct onvm_nf_msg *startup_msg;
-        /* Get a startup msg struct to pass to mgr for scaling */
-        if (rte_mempool_get(nf_msg_pool, (void**)(&startup_msg)) != 0) {
-                rte_mempool_put(nf_info_mp, scale_info->parent); // give back memory
-                rte_exit(EXIT_FAILURE, "Cannot create startup msg");
-        }
-
-        /* Tell the manager we're ready to recieve packets */
-        startup_msg->msg_type = MSG_NF_REQUEST_CPU;
-        startup_msg->msg_data = scale_info;
-        if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
-                rte_mempool_put(nf_info_mp, scale_info->parent); // give back mermory
-                rte_mempool_put(nf_msg_pool, startup_msg);
-                rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager");
-        }
-
-        RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; scale_info->core == 0 ;) {
-                sleep(1);
-        }
-
-        RTE_LOG(INFO, APP, "Able to scale to core %u\n", scale_info->core);
-
-        ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
-
-        if (ret < 0) {
-                RTE_LOG(INFO, APP, "Failed to create thread\n");
-                return -1;
-        }
-
-        //RTE_LOG(INFO, APP, "No cores available to scale\n");
-#endif
-        ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
+	sleep(1);
+	ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Failed to create thread\n");
                 return -1;
