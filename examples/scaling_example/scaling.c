@@ -78,7 +78,7 @@ static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
 static uint8_t keep_running = 1;
 
-//static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
+static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
@@ -169,13 +169,13 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribu
         while (spawned_nfs < num_children) {
                 struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_info);
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
-                *state_data = nf_info->service_id + 1;
+                *state_data = nf_info->service_id;
                 /* Sets service id of child */
-                scale_info->service_id = nf_info->service_id+1;//destination;
+                scale_info->service_id = destination;
                 /* Run the setup function to generate packets */
                 scale_info->setup_func = &nf_setup;
-		/* Make NF share cores */
-		scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                /* Make NF share cores */
+                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Custom packet handler */
                 scale_info->pkt_func = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
@@ -213,8 +213,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
+		scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
-                /* Spawn the child */
+                /* Make NF share cores */
+                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+
+		/* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n", scale_info->service_id);
                 else
@@ -336,7 +340,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
         for (i = 0; i < packet_number; ++i) {
                 struct onvm_pkt_meta* pmeta;
                 struct ether_hdr *ehdr;
-                //int j;
+                int j;
 
                 struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
 
@@ -344,12 +348,10 @@ nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
                 ehdr = (struct ether_hdr *) rte_pktmbuf_append(pkt, packet_size);
 
                 /* Using manager mac addr for source*/
-		/*
                 rte_eth_macaddr_get(0, &ehdr->s_addr);
                 for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                         ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                 }
-		*/
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
                 pmeta = onvm_get_pkt_meta(pkt);

@@ -260,28 +260,15 @@ thread_signal_handler(void *arg)
                         sem_post(nf->nf_mutex);
                 }
 
-		/* Wait for children to quit */
-		for (i = 0; i < MAX_NFS; i++)
-                while (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                        sleep(1);
-                }
-
-		int children_alive = 1;
                 /* Also signal spawned children */
-		while (children_alive) {
-                	keep_running = 0;
-			children_alive = 0;
-			for (i = 0; i < MAX_NFS; i++) {
-				if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-					children_alive = 1;
-					if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
-						rte_atomic16_set(nfs[i].flag_p, 0);
-						sem_post(nfs[i].nf_mutex);
-					}
+		for (i = 0; i < MAX_NFS; i++) {
+			if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+				if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+					rte_atomic16_set(nfs[i].flag_p, 0);
+					sem_post(nfs[i].nf_mutex);
 				}
 			}
-			sleep(1);
-                }
+		}
         }
         printf("Signal handling thread finished, exiting\n");
 
@@ -750,8 +737,8 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
-	sleep(1);
-	ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
+        sleep(1);
+        ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Failed to create thread\n");
                 return -1;
