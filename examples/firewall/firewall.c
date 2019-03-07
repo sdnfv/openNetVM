@@ -137,25 +137,26 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                 if(!no_result){
                         switch(rule){
                         case ONVM_NF_ACTION_TONF:
-                                printf("Accepted!\n");
                                 meta->action = ONVM_NF_ACTION_TONF;
                                 meta->destination = destination;
                                 //printf("Dest: %d\n", destination);
+                                RTE_LOG(INFO, APP, "Packet from IP %d has been accepted.\n", ipv4_hdr->src_addr);
                                 break;
                         default:
                                 // if we can't understand the rule, drop it
                                 meta->action = ONVM_NF_ACTION_DROP;
-                                RTE_LOG(INFO, APP, "Packet has been dropped.");
+                                RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.\n", ipv4_hdr->src_addr);
                                 break;
                         }
                 } else {
                         // no matching rule
                         // default action is to drop packets
                         meta->action = ONVM_NF_ACTION_DROP;
-                        RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.", ipv4_hdr->src_addr);
+                        RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.\n", ipv4_hdr->src_addr);
                 }
         } else {
                 // drop all packets that aren't ipv4
+                RTE_LOG(INFO, APP, "Packet received not ipv4\n");
                 meta->action = ONVM_NF_ACTION_DROP;
         }
 
