@@ -246,8 +246,8 @@ int main(int argc, char *argv[]) {
         }
 
         rules_name = cJSON_GetObjectItem(rules_json, "name");
-        rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
-        RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
+        rule_num = cJSON_GetArrayItem(rules_name, "name")->valuestring;
+        //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
 //        if (rules_name->valuestring != NULL) {
 //                RTE_LOG(INFO, APP, "Rules.json name: %s\n", rules_name->valuestring);
