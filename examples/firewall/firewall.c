@@ -243,8 +243,8 @@ int main(int argc, char *argv[]) {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
 
-        name = cJSON_GetObjectItemCaseSensitive(rules_json, "name");
-        if (cJSON_IsString(name) && name->valuestring != NULL) {
+        rules_name = cJSON_GetObjectItem(rules_json, "name");
+        if (cJSON_String(rules_name) && rules_name->valuestring != NULL) {
                 rte_log(INFO, APP, "Rule: %s", name->valuestring);
         }
 
