@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
         }
 
         rules_name = cJSON_GetObjectItem(rules_json, "name");
-        rule_num = cJSON_GetArrayItem(rules_name, 1)->valuestring;
+        rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
         //printf("%d", rule_num);
         int num_rules = cJSON_GetArraySize(rules_name);
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
