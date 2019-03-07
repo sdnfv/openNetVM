@@ -246,10 +246,10 @@ int main(int argc, char *argv[]) {
         }
 
         rules_name = cJSON_GetObjectItem(rules_json, "ip");
-        ip = rules_name->valueint;
         if (rules_name == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
+        ip = rules_name->valueint;
         rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
         //printf("%d", rule_num);
         int num_rules = cJSON_GetArraySize(rules_name);
