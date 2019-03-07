@@ -78,8 +78,8 @@ extern struct port_info *ports;
 // struct for parsing rules
 struct onvm_fw_rule {
         uint32_t src_ip;
-        int depth;
-        int action;
+        uint8_t depth;
+        uint8_t action;
 };
 
 /*
@@ -179,16 +179,18 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         req->name[1] = 'w';
 
         status = onvm_nflib_request_lpm(req);
-	if(status < 0){
-		rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall");
-	}
+
+	    if(status < 0){
+		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall");
+	    }
+
         lpm_tbl = rte_lpm_find_existing("fw");
 
         for(i = 0; i < num_rules; ++i){
                 printf("RULE { ip: %d, depth: %d, action: %d }\n", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if(add_failed){
-                        printf("ERROR ADDING RULE\n");
+                        printf("ERROR ADDING RULE %d\n", add_failed);
                         return 1;
                 }
         }
