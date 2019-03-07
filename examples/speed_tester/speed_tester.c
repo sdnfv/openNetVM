@@ -398,7 +398,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         pkt->data_len = header.caplen;
 
                         /* Copy the packet into the rte_mbuf data section */
-                        rte_memcpy(rte_ctrlmbuf_data(pkt), packet, header.caplen);
+                        rte_memcpy(rte_pktmbuf_mtod(pkt, char*), packet, header.caplen);
 
                         pmeta = onvm_get_pkt_meta(pkt);
                         pmeta->destination = destination;
