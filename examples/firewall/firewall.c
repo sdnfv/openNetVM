@@ -212,7 +212,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
 int main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_fw_rule** rules;
-        int num_rules = 0;
+        int num_rules = 1;
 
         const char *progname = argv[0];
 
