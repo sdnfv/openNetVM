@@ -236,6 +236,7 @@ int main(int argc, char *argv[]) {
         struct cJSON *rules_json = onvm_config_parse_file("rules.json");
         struct cJSON *rules_name = NULL;
         char *rule_num = NULL;
+        int ip = 0;
 
         if (rules_json == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
@@ -244,8 +245,8 @@ int main(int argc, char *argv[]) {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
 
-        rules_name = cJSON_GetObjectItem(rules_json, "name");
-        rule_num = rules_name->valuestring;
+        rules_name = cJSON_GetObjectItem(rules_json, "ip");
+        ip = rules_name->valueint;
         if (rules_name == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
