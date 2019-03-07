@@ -244,8 +244,8 @@ int main(int argc, char *argv[]) {
         }
 
         rules_name = cJSON_GetObjectItem(rules_json, "name");
-        if (cJSON_String(rules_name) && rules_name->valuestring != NULL) {
-                rte_log(INFO, APP, "Rule: %s", name->valuestring);
+        if (rules_name->valuestring != NULL) {
+                RTE_LOG(INFO, APP, "Rules.json name: %s\n", rules_name->valuestring);
         }
 
 
