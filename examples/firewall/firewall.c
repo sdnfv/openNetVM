@@ -185,7 +185,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 	    }
 
         lpm_tbl = rte_lpm_find_existing("fw");
-	    
+
 	    if (lpm_tbl == NULL) {
 	            printf("No existing LPM_TBL\n");
 	    }
@@ -193,6 +193,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         for(i = 0; i < num_rules; ++i){
                 printf("RULE { ip: %d, depth: %d, action: %d }\n", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
+                printf("")
                 if(add_failed){
                         printf("ERROR ADDING RULE %d\n", add_failed);
                         return 1;
@@ -234,7 +235,7 @@ int main(int argc, char *argv[]) {
 
         rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
         rules[0] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
-        rules[0]->src_ip = 10000;
+        rules[0]->src_ip = 110019;
         rules[0]->depth = 0;
         rules[0]->action = ONVM_NF_ACTION_TONF;
 
