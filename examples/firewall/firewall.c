@@ -233,8 +233,8 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json");
-        cJSON *rules_name = NULL;
+        struct cJSON *rules_json = onvm_config_parse_file("rules.json");
+        struct cJSON *rules_name = NULL;
         char *rule_num = NULL;
 
         if (rules_json == NULL) {
@@ -245,6 +245,7 @@ int main(int argc, char *argv[]) {
         }
 
         rules_name = cJSON_GetObjectItem(rules_json, "name");
+        rule_num = rules_name->valuestring;
         if (rules_name == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
