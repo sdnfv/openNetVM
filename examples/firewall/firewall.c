@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
         cJSON *rules_pointer = cJSON_Parse(rules_json);
 
         if (rules_pointer == NULL) {
-                printf("Could not find %s\n, rules_json);
+                printf("Could not find %s\n", rules_json);
         }
         else {
                 prinft("%s found", rules_json);
