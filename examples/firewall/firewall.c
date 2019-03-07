@@ -60,6 +60,7 @@
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_config_common.h"
 
 #define NF_TAG "firewall"
 
@@ -244,7 +245,7 @@ int main(int argc, char *argv[]) {
         lpm_setup(rules, num_rules);
 
         const char* rules_json = "rules.json";
-        cJSON *rules_pointer = cJSON_Parse(rules_json);
+        cJSON *rules_pointer = cJSON_Parse(onvm_config_parse_file(rules_json));
 
         if (rules_pointer == NULL) {
                 printf("Could not find %s\n", rules_json);
