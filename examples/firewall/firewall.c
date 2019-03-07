@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
 
         cJSON *rules_json = onvm_config_parse_file("rules.json");
         cJSON *rules_name = NULL;
-        if (rules_json = NULL) {
+        if (rules_json == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
         else {
