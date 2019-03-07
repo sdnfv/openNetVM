@@ -245,12 +245,11 @@ int main(int argc, char *argv[]) {
         lpm_setup(rules, num_rules);
 
         cJSON *rules_json = onvm_config_parse_file("/openNetVM/examples/firewall/rules.json");
-
         if (rules_json == NULL) {
-                printf("Could not find %s\n", rules_json);
+                RTE_LOG(INFO, APP, "rules.json parsed\n");
         }
         else {
-                printf("%s found", rules_json);
+                printf("Could not parse rules.json\n");
         }
 
 
