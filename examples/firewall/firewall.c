@@ -128,6 +128,7 @@ static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_info* nf_info) {
         struct ipv4_hdr* ipv4_hdr;
         uint32_t rule = 0;
+        uint32_t track_ip = 0;
 
         if(onvm_pkt_is_ipv4(pkt)){
                 ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
@@ -145,17 +146,15 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                                 // if we can't understand the rule, drop it
                                 meta->action = ONVM_NF_ACTION_DROP;
                                 RTE_LOG(INFO, APP, "Packet has been dropped.");
-                                printf("Dropped 1");
                                 break;
                         }
-                }else{
+                } else {
                         // no matching rule
                         // default action is to drop packets
                         meta->action = ONVM_NF_ACTION_DROP;
-                        printf("Dropped 2");
-                        RTE_LOG(INFO, APP, "Packet has been dropped.");
+                        RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.", ipv4_hdr->src_addr);
                 }
-        }else{
+        } else {
                 // drop all packets that aren't ipv4
                 printf("Dropped 3");
                 meta->action = ONVM_NF_ACTION_DROP;
