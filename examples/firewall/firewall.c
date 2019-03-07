@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
         rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
         rules[0] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
         rules[0]->src_ip = 110019;
-        rules[0]->depth = 0;
+        rules[0]->depth = 32;
         rules[0]->action = ONVM_NF_ACTION_TONF;
 
         printf("Num rules: %d\n", num_rules);
