@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
 
         const char* rules_json = "rules.json";
         cJSON *rules_pointer = NULL;
-        rules_pointer = cJSON_parse(rules_json);
+        rules_pointer = cJSON_Parse(rules_json);
 
 
         onvm_nflib_run(nf_info, &packet_handler);
