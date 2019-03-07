@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include "cJSON.h"
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
@@ -241,6 +242,10 @@ int main(int argc, char *argv[]) {
         printf("Num rules: %d\n", num_rules);
 
         lpm_setup(rules, num_rules);
+
+        const char* rules_json = "rules.json";
+        cJSON *rules_pointer = NULL;
+        rules_pointer = cJSON.parse(rules_json);
 
 
         onvm_nflib_run(nf_info, &packet_handler);

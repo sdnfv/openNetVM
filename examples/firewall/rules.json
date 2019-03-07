@@ -1,7 +1,8 @@
 [
 {
-	"ip": "11.0.0.19",
+	"name": "Rule1",
+	"ip": 110019,
 	"depth": 32,
-	"action": "ACCEPT"
+	"action": 0
 }
 ]
