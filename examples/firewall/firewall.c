@@ -244,8 +244,14 @@ int main(int argc, char *argv[]) {
         lpm_setup(rules, num_rules);
 
         const char* rules_json = "rules.json";
-        cJSON *rules_pointer = NULL;
-        rules_pointer = cJSON_Parse(rules_json);
+        cJSON *rules_pointer = cJSON_Parse(rules_json);
+
+        if (rules_pointer == NULL) {
+                printf("Could not find %s\n, rules_json);
+        }
+        else {
+                prinft("%s found", rules_json);
+        }
 
 
         onvm_nflib_run(nf_info, &packet_handler);
