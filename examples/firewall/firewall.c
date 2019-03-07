@@ -220,7 +220,6 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
 int main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_fw_rule** rules;
-        int num_rules = 1;
 
         const char *progname = argv[0];
 
@@ -247,6 +246,8 @@ int main(int argc, char *argv[]) {
 
         rules_name = cJSON_GetObjectItem(rules_json, "name");
         rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
+        printf("%s", rule_num);
+        int num_rules = cJSON_GetArraySize(json_arr);
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
 //        if (rules_name->valuestring != NULL) {
