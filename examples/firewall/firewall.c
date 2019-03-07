@@ -125,6 +125,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 struct rte_lpm* lpm_tbl;
+struct lpm_request* req;
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_info* nf_info) {
@@ -166,7 +167,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
 }
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
-        struct lpm_request* req;
         int i, status;
 
         req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
@@ -234,27 +234,30 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
+        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        if (rules_json == NULL) {
+                RTE_LOG(INFO, APP, "Rules.json parsed\n");
+        }
+        else {
+                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+        }
+
+
+
         rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
         rules[0] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
         rules[0]->src_ip = 110019;
         rules[0]->depth = 32;
         rules[0]->action = ONVM_NF_ACTION_TONF;
-
         printf("Num rules: %d\n", num_rules);
 
         lpm_setup(rules, num_rules);
 
-        cJSON *rules_json = onvm_config_parse_file("/openNetVM/examples/firewall/rules.json");
-        if (rules_json == NULL) {
-                RTE_LOG(INFO, APP, "rules.json parsed\n");
-        }
-        else {
-                printf("Could not parse rules.json\n");
-        }
 
 
         onvm_nflib_run(nf_info, &packet_handler);
         lpm_teardown(rules, num_rules);
+        free(req);
         printf("If we reach here, program is ending");
         return 0;
 }
