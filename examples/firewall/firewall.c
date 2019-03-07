@@ -244,10 +244,10 @@ int main(int argc, char *argv[]) {
 
         lpm_setup(rules, num_rules);
 
-        const char* rules_json = "rules.json";
-        cJSON *rules_pointer = cJSON_Parse(onvm_config_parse_file(rules_json));
+        const char* rules_json = onvm_config_parse_file("/openNetVM/examples/firewall/rules.json");
+        printf("%s", rules_json);
 
-        if (rules_pointer == NULL) {
+        if (rules_json == NULL) {
                 printf("Could not find %s\n", rules_json);
         }
         else {
