@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_json = onvm_config_parse_file("/examples/firewall/rules.json");
         if (rules_json == NULL) {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
