@@ -185,6 +185,10 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 	    }
 
         lpm_tbl = rte_lpm_find_existing("fw");
+	    
+	    if (lpm_tbl == NULL) {
+	            printf("No existing LPM_TBL\n");
+	    }
 
         for(i = 0; i < num_rules; ++i){
                 printf("RULE { ip: %d, depth: %d, action: %d }\n", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
