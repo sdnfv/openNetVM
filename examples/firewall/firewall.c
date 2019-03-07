@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
 
         rules_name = cJSON_GetObjectItem(rules_json, "ip");
         if (rules_name == NULL) {
-                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
         }
         ip = rules_name->valueint;
         rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
