@@ -234,12 +234,18 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        cJSON *rules_json = onvm_config_parse_file("/examples/firewall/rules.json");
-        if (rules_json == NULL) {
-                RTE_LOG(INFO, APP, "Rules.json parsed\n");
+        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_name = NULL;
+        if (rules_json = NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
         else {
-                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+                RTE_LOG(INFO, APP, "Rules.json parsed\n");
+        }
+
+        name = cJSON_GetObjectItemCaseSensitive(rules_json, "name");
+        if (cJSON_IsString(name) && name->valuestring != NULL) {
+                rte_log(INFO, APP, "Rule: %s", name->valuestring);
         }
 
 
@@ -256,8 +262,9 @@ int main(int argc, char *argv[]) {
 
 
         onvm_nflib_run(nf_info, &packet_handler);
-        lpm_teardown(rules, num_rules);
+        free(req->name);
         free(req);
+        lpm_teardown(rules, num_rules);
         printf("If we reach here, program is ending");
         return 0;
 }
