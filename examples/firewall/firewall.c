@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
                 printf("Could not find %s\n", rules_json);
         }
         else {
-                prinft("%s found", rules_json);
+                printf("%s found", rules_json);
         }
 
 
