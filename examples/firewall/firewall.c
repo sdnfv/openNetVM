@@ -156,7 +156,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                 }
         } else {
                 // drop all packets that aren't ipv4
-                printf("Dropped 3");
                 meta->action = ONVM_NF_ACTION_DROP;
         }
 
