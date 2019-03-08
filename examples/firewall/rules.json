@@ -3,5 +3,11 @@
 		"ip": 110019,
 		"depth": 32,
 		"action": 0
+	},
+
+	"rule2": {
+		"ip": 110019,
+		"depth": 32,
+		"action": 0
 	}
 }
