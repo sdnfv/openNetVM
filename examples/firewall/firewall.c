@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
         }
         else {
-                ip = rules_ip->valueint;
+                ip = rules_point->valueint;
                 printf("IP: %d", ip);
         }
 //
