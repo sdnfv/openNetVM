@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
 //        ip = rules_name->valueint;
 //        rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
         //printf("%d", rule_num);
-//        int num_rules = cJSON_GetArraySize(rules_name);
+        int num_rules = 1;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
 //        if (rules_name->valuestring != NULL) {
