@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
         cJSON *rules_point = NULL;
         cJSON *rules_ip = NULL;
         char *rule_num = NULL;
