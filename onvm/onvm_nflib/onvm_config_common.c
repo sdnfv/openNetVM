@@ -81,11 +81,9 @@ onvm_config_parse_file(const char* filename){
                 str_len = (int)strlen(line);
                 strncpy(tmp, line, str_len);
                 tmp += str_len;
-                printf("%s\n", tmp);
         }
 
-        printf("%s", tmp);
-
+        printf("%s\n", json_str);
         json_str[file_length] = '\0';
         fclose(fp);
 
