@@ -234,7 +234,7 @@ struct onvm_fw_rule** setup_rules() {
     while (rules_json != NULL) {
         rules_ip = cJSON_GetObjectItem(rules_json, "ip");
 
-        if (rules_ip == NULL) {
+        if (rules_ip != NULL) {
             ip = rules_ip->valueint;
             printf("IP: %d\n", ip);
         } else {
@@ -242,9 +242,6 @@ struct onvm_fw_rule** setup_rules() {
         }
         rules_json = rules_json->next;
     }
-
-
-
 
 }
 
