@@ -54,6 +54,9 @@ onvm_config_parse_file(const char* filename){
                 return NULL;
         }
 
+        char *path = realpath(filename, NULL);
+        printf("real path %s \n", path);
+
         FILE* fp = NULL;
         int file_length = 0;
         char temp_buf[255];
