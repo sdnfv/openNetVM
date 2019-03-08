@@ -1,7 +1,7 @@
 {
-	"name": "Rule1",
-	"ip": 110019,
-	"depth": 32,
-	"action": 0
+	"rule1": {
+		"ip": 110019,
+		"depth": 32,
+		"action": 0
+	}
 }
-

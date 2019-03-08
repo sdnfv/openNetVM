@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct cJSON *rules_json = onvm_config_parse_file("example_config.json");
+        struct cJSON *rules_json = onvm_config_parse_file("rules.json");
         struct cJSON *rules_name = NULL;
         char *rule_num = NULL;
         int ip = 0;
@@ -247,13 +247,12 @@ int main(int argc, char *argv[]) {
 
         printf("%d", onvm_config_get_item_count(rules_json));
 
-//        rules_name = cJSON_GetObjectItem(rules_json, "ip");
-//        if (rules_name == NULL) {
-//                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
-//        }
-//        ip = rules_name->valueint;
-//        rule_num = cJSON_GetArrayItem(rules_name, 0)->valuestring;
-        //printf("%d", rule_num);
+        rules_name = cJSON_GetObjectItem(rules_json, "ip");
+        if (rules_name == NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
+        }
+        ip = rules_name->valueint;
+
         int num_rules = 1;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
