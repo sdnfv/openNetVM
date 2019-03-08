@@ -80,6 +80,8 @@ onvm_config_parse_file(const char* filename){
                 tmp += str_len;
         }
 
+        printf("%s", tmp);
+
         json_str[file_length] = '\0';
         fclose(fp);
 
