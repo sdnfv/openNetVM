@@ -245,9 +245,9 @@ int main(int argc, char *argv[]) {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
         onvm_config_extract_portmask(rules_json, &ip);
-        printf("ip is : %d", ip);
+        printf("ip is : %d\n", ip);
 
-        printf("%d", onvm_config_get_item_count(rules_json));
+        printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
 //
 //        rules_name = cJSON_GetObjectItem(rules_json, "ip");
 //
