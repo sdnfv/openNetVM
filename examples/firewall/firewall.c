@@ -204,51 +204,6 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         return 0;
 }
 
-struct onvm_fw_rule** setup_rules() {
-    struct onvm_fw_rule** rules;
-    int num_rules, i;
-
-    cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
-    cJSON *rules_point = NULL;
-    cJSON *rules_ip = NULL;
-    char *rule_num = NULL;
-    if (rules_json == NULL) {
-        rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-    }
-
-    num_rules = onvm_config_get_item_count(rules_json);
-    rules = (struct onvm_fw_rule**)malloc(sizeof(struct onvm_fw_rule*) * num_rules);
-
-    while (rules_json != NULL) {
-        int ip = 0;
-
-//
-        rules_point = cJSON_GetObjectItem(rules_json, "ip");
-//
-        if (rules_point == NULL) {
-            rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
-        }
-        else {
-            rules_ip = cJSON_GetObjectItem(rules_point, "ip");
-            if (rules_ip != NULL) {
-                ip = rules_ip->valueint;
-                rules[i]->src_ip = ip;
-                printf("IP: %d", ip);
-                break;
-            }
-            else {
-                rte_exit(EXIT_FAILURE, "IP not retrieved\n");
-            }
-        }
-        rules_json = rules_json->next;
-        i++;
-    }
-    return rules;
-
-
-
-}
-
 static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         int i;
 
@@ -278,39 +233,44 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-//
-        int num_rules = 1;
-    cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
-    cJSON *rules_point = NULL;
-    cJSON *rules_ip = NULL;
-    char *rule_num = NULL;
-    int ip = 0;
+        cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
+        cJSON *rules_point = NULL;
+        cJSON *rules_ip = NULL;
+        char *rule_num = NULL;
+        int ip = 0;
 
-    if (rules_json == NULL) {
-        rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-    }
-    else {
-        RTE_LOG(INFO, APP, "Rules.json parsed\n");
-    }
-
-    printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
-//
-    rules_point = cJSON_GetObjectItem(rules_json, "ip");
-//
-    if (rules_point == NULL) {
-        rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
-    }
-    else {
-        rules_ip = cJSON_GetObjectItem(rules_point, "ip");
-        if (rules_ip != NULL) {
-            ip = rules_ip->valueint;
-            printf("IP: %d", ip);
+        if (rules_json == NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
         else {
-            rte_exit(EXIT_FAILURE, "IP not retrieved\n");
+                RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
-    }
-        //setup_rules();
+
+        printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
+//
+        rules_point = cJSON_GetObjectItem(rules_json, "ip");
+//
+        if (rules_point == NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
+        }
+        else {
+            rules_ip = cJSON_GetObjectItem(rules_point, "ip");
+            if (rules_ip != NULL) {
+                ip = rules_ip->valueint;
+                printf("IP: %d", ip);
+            }
+            else {
+                rte_exit(EXIT_FAILURE, "IP not retrieved\n");
+            }
+        }
+//
+        int num_rules = 1;
+        //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
+
+//        if (rules_name->valuestring != NULL) {
+//                RTE_LOG(INFO, APP, "Rules.json name: %s\n", rules_name->valuestring);
+//        }
+
 
 
         rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
