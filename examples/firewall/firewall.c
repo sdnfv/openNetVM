@@ -194,7 +194,6 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         for(i = 0; i < num_rules; ++i){
                 printf("RULE { ip: %d, depth: %d, action: %d }\n", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
-                printf("Src_ip = %d depth = %d action = %d ", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if(add_failed){
                         printf("ERROR ADDING RULE %d\n", add_failed);
                         return 1;
