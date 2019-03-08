@@ -233,8 +233,9 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct cJSON *rules_json = onvm_config_parse_file("rules.json");
-        struct cJSON *rules_name = NULL;
+        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_point = NULL;
+        cJSON *rules_ip = NULL;
         char *rule_num = NULL;
         int ip = 0;
 
@@ -244,17 +245,24 @@ int main(int argc, char *argv[]) {
         else {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
-        onvm_config_extract_portmask(rules_json, &ip);
-        printf("ip is : %d\n", ip);
 
         printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
 //
-        rules_name = cJSON_GetObjectItem(rules_json, "rule1");
+        rules_point = cJSON_GetObjectItem(rules_json, "rule1");
 //
         if (rules_name == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
         }
-//        ip = rules_name->valueint;
+        else {
+            rules_ip = cJSON_GetObjectItem(rules_point, "ip");
+            if (rules_ip != NULL) {
+                ip = rules_ip->valueint;
+                printf("IP: %d", ip);
+            }
+            else {
+                rte_exit(EXIT_FAILURE, "IP not retrieved\n");
+            }
+        }
 //
         int num_rules = 1;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
