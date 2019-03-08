@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct cJSON *rules_json = onvm_config_parse_file("example_config.json");
+        struct cJSON *rules_json = onvm_config_parse_file("examples/example_config.json");
         struct cJSON *rules_name = NULL;
         char *rule_num = NULL;
         int ip = 0;
