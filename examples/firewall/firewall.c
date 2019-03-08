@@ -245,6 +245,8 @@ int main(int argc, char *argv[]) {
                 RTE_LOG(INFO, APP, "Rules.json parsed\n");
         }
 
+        printf("%d", onvm_config_get_item_count(rules_json));
+
 //        rules_name = cJSON_GetObjectItem(rules_json, "ip");
 //        if (rules_name == NULL) {
 //                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
