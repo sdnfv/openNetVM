@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 //        }
 //        ip = rules_name->valueint;
 //
-//        int num_rules = 1;
+        int num_rules = 1;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
 //        if (rules_name->valuestring != NULL) {
