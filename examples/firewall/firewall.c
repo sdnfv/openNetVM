@@ -238,17 +238,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
     while (rules_json != NULL) {
         rules_ip = cJSON_GetObjectItem(rules_json, "ip");
         depth = cJSON_GetObjectItem(rules_json, "depth");
-        action = cJSON_GetObjectItem(rules_json, "action")
+        action = cJSON_GetObjectItem(rules_json, "action");
 
-        if (rules_ip == NULL){
-            rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
-        }
-        if (depth == NULL) {
-            rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
-        }
-        if (action == NULL) {
-            rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
-        }
+        if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+        if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
+        if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
         rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
         rules[i]->src_ip = rules_ip->valueint;
