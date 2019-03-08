@@ -254,14 +254,8 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
         }
         else {
-            rules_ip = cJSON_GetObjectItem(rules_point, "ip");
-            if (rules_ip != NULL) {
                 ip = rules_ip->valueint;
                 printf("IP: %d", ip);
-            }
-            else {
-                rte_exit(EXIT_FAILURE, "IP not retrieved\n");
-            }
         }
 //
         int num_rules = 1;
