@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
         }
 
         printf("%d", onvm_config_get_item_count(rules_json));
-        cJSON_Print(rules_json)
+        cJSON_Print(rules_json);
 
         rules_name = cJSON_GetObjectItem(rules_json, "ip");
 
