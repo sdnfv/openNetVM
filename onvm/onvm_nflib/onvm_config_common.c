@@ -145,12 +145,14 @@ onvm_config_extract_portmask(cJSON* dpdk_config, int* portmask) {
         struct cJSON* portmask_obj = NULL;
 
         if (dpdk_config == NULL || portmask == NULL) {
+                *portmask = -1;
                 return -1;
         }
 
         portmask_obj = cJSON_GetObjectItem(dpdk_config, "portmask");
 
         if (portmask_obj == NULL) {
+                *portmask = -2;
                 return -1;
         }
 
