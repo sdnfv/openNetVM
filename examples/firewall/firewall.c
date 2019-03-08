@@ -216,6 +216,41 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         }
 }
 
+struct onvm_fw_rule** setup_rules() {
+
+    cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
+    if (rules_json == NULL) {
+        rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+    } else {
+        RTE_LOG(INFO, APP, "Rules.json parsed\n");
+    }
+
+    cJSON *rules_point = NULL;
+    cJSON *rules_ip = NULL;
+    char *rule_num = NULL;
+    int ip = 0;
+
+    printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
+
+
+
+    while (rules_json != NULL) {
+        rules_point = cJSON_GetObjectItem(rules_json, "ip");
+
+        if (rules_point == NULL) {
+            ip = rules_point->valueint;
+            printf("IP: %d", ip);
+        } else {
+            rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+        }
+        rules_json = rules_json->next;
+    }
+
+
+
+
+}
+
 
 int main(int argc, char *argv[]) {
         int arg_offset;
@@ -233,30 +268,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
-        cJSON *rules_point = NULL;
-        cJSON *rules_ip = NULL;
-        char *rule_num = NULL;
-        int ip = 0;
-
-        if (rules_json == NULL) {
-                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-        }
-        else {
-                RTE_LOG(INFO, APP, "Rules.json parsed\n");
-        }
-
-        printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
-//
-        rules_point = cJSON_GetObjectItem(rules_json, "ip");
-//
-        if (rules_point == NULL) {
-                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
-        }
-        else {
-                ip = rules_point->valueint;
-                printf("IP: %d", ip);
-        }
+        setup_rules();
 //
         int num_rules = 1;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
