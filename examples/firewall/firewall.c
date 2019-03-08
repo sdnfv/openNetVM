@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
             rte_exit(EXIT_FAILURE, "IP not retrieved\n");
         }
     }
-        setup_rules();
+        //setup_rules();
 
 
         rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
