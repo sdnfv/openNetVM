@@ -280,7 +280,36 @@ int main(int argc, char *argv[]) {
 
 //
         int num_rules = 1;
-  
+    cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
+    cJSON *rules_point = NULL;
+    cJSON *rules_ip = NULL;
+    char *rule_num = NULL;
+    int ip = 0;
+
+    if (rules_json == NULL) {
+        rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+    }
+    else {
+        RTE_LOG(INFO, APP, "Rules.json parsed\n");
+    }
+
+    printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
+//
+    rules_point = cJSON_GetObjectItem(rules_json, "ip");
+//
+    if (rules_point == NULL) {
+        rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
+    }
+    else {
+        rules_ip = cJSON_GetObjectItem(rules_point, "ip");
+        if (rules_ip != NULL) {
+            ip = rules_ip->valueint;
+            printf("IP: %d", ip);
+        }
+        else {
+            rte_exit(EXIT_FAILURE, "IP not retrieved\n");
+        }
+    }
         setup_rules();
 
 
