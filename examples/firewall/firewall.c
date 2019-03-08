@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 //
         rules_point = cJSON_GetObjectItem(rules_json, "rule1");
 //
-        if (rules_name == NULL) {
+        if (rules_point == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
         }
         else {
