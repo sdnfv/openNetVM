@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct cJSON *rules_json = onvm_config_parse_file("rules.json");
+        struct cJSON *rules_json = onvm_config_parse_file("/openNetVM/examples/firewall/rules.json");
         struct cJSON *rules_name = NULL;
         cJSON_Print(rules_json);
         char *rule_num = NULL;
