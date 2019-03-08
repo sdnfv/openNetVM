@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 
         printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
 //
-        rules_point = cJSON_GetObjectItem(rules_json, "rule1");
+        rules_point = cJSON_GetObjectItem(rules_json, "ip");
 //
         if (rules_point == NULL) {
                 rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
