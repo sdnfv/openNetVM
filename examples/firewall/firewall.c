@@ -249,11 +249,11 @@ int main(int argc, char *argv[]) {
 
         printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
 //
-//        rules_name = cJSON_GetObjectItem(rules_json, "ip");
+        rules_name = cJSON_GetObjectItem(rules_json, "rule1");
 //
-//        if (rules_name == NULL) {
-//                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
-//        }
+        if (rules_name == NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json object not processed\n");
+        }
 //        ip = rules_name->valueint;
 //
         int num_rules = 1;
