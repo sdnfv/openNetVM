@@ -221,7 +221,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
     int i = 0;
     struct onvm_fw_rule** rules;
 
-    cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
+    cJSON *rules_json = onvm_config_parse_file("rules.json");
     if (rules_json == NULL) {
         rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
     }
@@ -235,6 +235,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
 
     rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
 
+    rules_json = rules_json->child;
     while (rules_json != NULL) {
         rules_ip = cJSON_GetObjectItem(rules_json, "ip");
         depth = cJSON_GetObjectItem(rules_json, "depth");
