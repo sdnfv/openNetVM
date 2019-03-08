@@ -217,29 +217,26 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
 }
 
 struct onvm_fw_rule** setup_rules() {
+    int ip;
+    int i = 0;
+    struct onvm_fw_rule** rules;
 
     cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
     if (rules_json == NULL) {
         rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-    } else {
-        RTE_LOG(INFO, APP, "Rules.json parsed\n");
     }
 
-    cJSON *rules_point = NULL;
     cJSON *rules_ip = NULL;
-    char *rule_num = NULL;
-    int ip = 0;
+    int num_rules = onvm_config_get_item_count(rules_json);
 
-    printf("numbers of items: %d\n", onvm_config_get_item_count(rules_json));
-
-
+    rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
 
     while (rules_json != NULL) {
-        rules_point = cJSON_GetObjectItem(rules_json, "ip");
+        rules_ip = cJSON_GetObjectItem(rules_json, "ip");
 
-        if (rules_point == NULL) {
-            ip = rules_point->valueint;
-            printf("IP: %d", ip);
+        if (rules_ip == NULL) {
+            ip = rules_ip->valueint;
+            printf("IP: %d\n", ip);
         } else {
             rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
         }
