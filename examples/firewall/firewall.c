@@ -182,7 +182,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         status = onvm_nflib_request_lpm(req);
 
 	    if(status < 0){
-		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall");
+		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
 	    }
 
         lpm_tbl = rte_lpm_find_existing("fw");
@@ -216,7 +216,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         }
 }
 
-struct onvm_fw_rule** setup_rules() {
+struct onvm_fw_rule** setup_rules(int* total_rules) {
     int ip;
     int i = 0;
     struct onvm_fw_rule** rules;
@@ -227,21 +227,34 @@ struct onvm_fw_rule** setup_rules() {
     }
 
     cJSON *rules_ip = NULL;
+    cJSON *depth = NULL;
+    cJSON *action = NULL;
+
     int num_rules = onvm_config_get_item_count(rules_json);
+    *total_rules = num_rules;
 
     rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
 
     while (rules_json != NULL) {
         rules_ip = cJSON_GetObjectItem(rules_json, "ip");
+        depth = cJSON_GetObjectItem(rules_json, "depth");
+        action = cJSON_GetObjectItem(rules_json, "action")
 
-        if (rules_ip != NULL) {
-            ip = rules_ip->valueint;
-            printf("IP: %d\n", ip);
-        } else {
-            rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
-        }
+        if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+        if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
+        if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
+
+        rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
+        rules[i]->src_ip = rules_ip->valueint;
+        rules[i]->depth = depth->valueint;
+        rules[i]->action = action->valueint;
+
+
         rules_json = rules_json->next;
+        i++;
     }
+
+    return rules;
 
 }
 
@@ -262,9 +275,8 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        setup_rules();
 //
-        int num_rules = 1;
+        int num_rules;
         //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
 
 //        if (rules_name->valuestring != NULL) {
@@ -273,11 +285,7 @@ int main(int argc, char *argv[]) {
 
 
 
-        rules = (struct onvm_fw_rule**)malloc(1 * sizeof(struct onvm_fw_rule*));
-        rules[0] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
-        rules[0]->src_ip = 110019;
-        rules[0]->depth = 32;
-        rules[0]->action = ONVM_NF_ACTION_TONF;
+        rules = setup_rules(&num_rules);
         printf("Num rules: %d\n", num_rules);
 
         lpm_setup(rules, num_rules);
