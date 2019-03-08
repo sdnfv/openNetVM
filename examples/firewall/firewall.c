@@ -209,6 +209,9 @@ struct onvm_fw_rule** setup_rules() {
     int num_rules, i;
 
     cJSON *rules_json = onvm_config_parse_file("rules.json")->child;
+    cJSON *rules_point = NULL;
+    cJSON *rules_ip = NULL;
+    char *rule_num = NULL;
     if (rules_json == NULL) {
         rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
     }
@@ -217,10 +220,7 @@ struct onvm_fw_rule** setup_rules() {
     rules = (struct onvm_fw_rule**)malloc(sizeof(struct onvm_fw_rule*) * num_rules);
 
     while (rules_json != NULL) {
-        cJSON *rules_point = NULL;
-        cJSON *rules_ip = NULL;
-        char *rule_num = NULL;
-        uint32_t ip = 0;
+        int ip = 0;
 
 //
         rules_point = cJSON_GetObjectItem(rules_json, "ip");
@@ -234,6 +234,7 @@ struct onvm_fw_rule** setup_rules() {
                 ip = rules_ip->valueint;
                 rules[i]->src_ip = ip;
                 printf("IP: %d", ip);
+                break;
             }
             else {
                 rte_exit(EXIT_FAILURE, "IP not retrieved\n");
@@ -279,6 +280,7 @@ int main(int argc, char *argv[]) {
 
 //
         int num_rules = 1;
+  
         setup_rules();
 
 
