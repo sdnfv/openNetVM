@@ -737,7 +737,9 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
+        /* Careful, this is required for shared cpu scaling */
         sleep(1);
+
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Failed to create thread\n");

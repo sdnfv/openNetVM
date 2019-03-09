@@ -299,14 +299,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-/*
-static void
-handle_signal(int sig) {
-        if (sig == SIGINT || sig == SIGTERM)
-                keep_running = 0;
-}
-*/
-
 void *
 signal_handler(void *arg)
 {
@@ -365,10 +357,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
         onvm_threading_core_affinitize(nf_info->core);
-
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        //signal(SIGINT, handle_signal);
-        //signal(SIGTERM, handle_signal);
 
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);

@@ -201,7 +201,6 @@ onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         }
 
         onvm_stats_flush();
-
 }
 
 

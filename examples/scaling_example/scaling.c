@@ -213,12 +213,11 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
-		scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                 /* Make NF share cores */
                 scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
-		/* Spawn the child */
+                /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n", scale_info->service_id);
                 else
@@ -278,6 +277,9 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         *(uint16_t *)data = destination;
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                        /* Make NF share cores */
+                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+
                         RTE_LOG(INFO, APP, "Tring to spawn child SID %u; running advanced_rings\n", scale_info->service_id);
                         if (onvm_nflib_scale(scale_info) == 0)
                                 RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->service_id);
