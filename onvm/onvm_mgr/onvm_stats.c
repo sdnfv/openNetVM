@@ -57,6 +57,11 @@
 
 /************************Internal Functions Prototypes************************/
 
+/*
+ * Function helps delete lists of cJSON objects
+ */
+static void
+cJSON_DeleteArray(cJSON **arr, unsigned length);
 
 /*
  * Function displaying statistics for all ports
@@ -171,8 +176,16 @@ onvm_stats_cleanup(void) {
                 fclose(stats_out);
                 fclose(json_stats_out);
                 fclose(json_events_out);
+		/* Delete all JSON objects to free memory*/
+		cJSON_Delete(onvm_json_root);
+		cJSON_Delete(onvm_json_port_stats_obj);
+		cJSON_Delete(onvm_json_nf_stats_obj);
+		cJSON_Delete(onvm_json_events_arr);
+		cJSON_DeleteArray(onvm_json_port_stats, RTE_MAX_ETHPORTS);
+		cJSON_DeleteArray(onvm_json_nf_stats, MAX_NFS);
         }
 }
+
 
 void
 onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
@@ -254,6 +267,15 @@ onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
 
 /****************************Internal functions*******************************/
 
+static void
+cJSON_DeleteArray(cJSON **arr, unsigned length) {
+	if (stats_destination == ONVM_STATS_WEB && arr != NULL && length != 0) {
+		unsigned i;
+		for(i = 0; i < length; i++) {
+			cJSON_Delete(arr[i]);
+		}
+	}
+}
 
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
