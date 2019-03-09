@@ -1,4 +1,5 @@
 config
+webhook-config.json
 githubcreds
 mykeyfile
 repository

@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request
-import requests
 
+import requests
+from ipaddress import ip_address, ip_network
+
+import hmac
 import json
 import sys
 import pprint
@@ -12,6 +15,30 @@ CI_NAME="onvm"
 
 app = Flask(__name__)
 
+def verify_request_ip(request):
+    src_ip = ip_address(u'{}'.format(request.access_route[0]))
+    valid_ips = requests.get('https://api.github.com/meta').json()['hooks']
+
+    for ip in valid_ips:
+        if src_ip in ip_network(ip):
+            return True
+
+    return False
+
+def verify_request_secret(request):
+    header_signature = request.headers.get('X-Hub-Signature')
+    if header_signature is None:
+        return False
+
+    signature = header_signature.split('=')[1]
+
+    mac = hmac.new(str(secret).encode('utf-8'), msg=request.data, digestmod='sha1')
+    if not hmac.compare_digest(mac.hexdigest(), signature):
+        return False
+
+    return True
+
+
 # returns extracted data if it is an event for a PR creation or PR comment creation
 # if it is a PR comment, only return extracted data if it contains the required keyword specified by the global var
 # if it doesn't contain the keyword or is not the correct type of event, return None
@@ -22,6 +49,7 @@ def filter_to_prs_and_pr_comments(json):
 
     if json['action'] == 'opened' and 'pull_request' in json and 'base' in json['pull_request']:
         branch_name = json['pull_request']['base']['label']
+        repo_name = json['repository']['name']
         if branch_name is None:
             return None
 
@@ -32,12 +60,13 @@ def filter_to_prs_and_pr_comments(json):
 
         return {
             "id": number,
+            "repo": repo_name,
             "branch": branch_name,
             "body": "In response to PR creation"
         }
 
     if json['action'] == 'created' and 'issue' in json and json['issue']['state'] == 'open' and 'pull_request' in json['issue'] and 'comment' in json:
-
+        repo_name = json['repository']['name']
         comment_txt = json['comment']['body']
         if KEYWORD not in comment_txt:
             return None
@@ -51,6 +80,7 @@ def filter_to_prs_and_pr_comments(json):
 
         return {
             "id": number,
+            "repo": repo_name,
             "body": comment_txt
         }
 
@@ -58,6 +88,18 @@ def filter_to_prs_and_pr_comments(json):
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
+    
+    if not verify_request_ip(request):
+        print("Incoming webkooh not from a valid Github address")
+        return jsonify({
+            "success": True
+        })
+
+    if not verify_request_secret(request):
+        print("Incoming webhook secret doesn't match configured secret")
+        return jsonify({
+            "success": True
+        })
 
     extracted_data = filter_to_prs_and_pr_comments(request.json)
     if extracted_data is not None:
@@ -73,10 +115,10 @@ def init_ci_pipeline():
 
         if (out):
             print("Can't run CI, another CI run in progress")
-            os.system("./ci_busy.sh config {} \"{}\" \"Another CI run in progress, please try again in 15 minutes\""
-                      .format(extracted_data['id'], extracted_data['body']))
+            os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"Another CI run in progress, please try again in 15 minutes\""
+                      .format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
         else:
-            os.system("./manager.sh config {} \"{}\"".format(extracted_data['id'], extracted_data['body']))
+            os.system("./manager.sh config {} \"{}\" \"{}\"".format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
     else:
         print("Data did not match filter, SKIP CI")
 
@@ -93,12 +135,19 @@ def status():
 if __name__ == "__main__":
     global KEYWORD
 
-    if(len(sys.argv) != 4):
+    if(len(sys.argv) != 5):
         print("Invalid arguments!")
         sys.exit(1)
 
     host = sys.argv[1]
     port = sys.argv[2]
     KEYWORD = sys.argv[3]
+
+    with open (sys.argv[4], 'r') as cfg:
+        webhook_config = json.load(cfg)
+    secret = webhook_config['secret']
+    if secret is None:
+        print("No secret found in webhook config")
+        sys.exit(1)
 
     app.run(host=host, port=port)
