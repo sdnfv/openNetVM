@@ -125,7 +125,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 struct rte_lpm* lpm_tbl;
-struct lpm_request* req;
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_info* nf_info) {
@@ -143,19 +142,19 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                                 meta->action = ONVM_NF_ACTION_TONF;
                                 meta->destination = destination;
                                 //printf("Dest: %d\n", destination);
-                                RTE_LOG(INFO, APP, "Packet from IP %d has been accepted.\n", ipv4_hdr->src_addr);
+                                RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n", ipv4_hdr->src_addr);
                                 break;
                         default:
                                 // if we can't understand the rule, drop it
                                 meta->action = ONVM_NF_ACTION_DROP;
-                                RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                                RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
                                 break;
                         }
                 } else {
                         // no matching rule
                         // default action is to drop packets
                         meta->action = ONVM_NF_ACTION_DROP;
-                        RTE_LOG(INFO, APP, "Packet from IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                        RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
                 }
         } else {
                 // drop all packets that aren't ipv4
@@ -168,6 +167,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         int i, status;
+        struct lpm_request* req;
 
         req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -192,7 +192,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 	    }
 
         for(i = 0; i < num_rules; ++i){
-                printf("RULE { ip: %d, depth: %d, action: %d }\n", rules[i]->src_ip, rules[i]->depth, rules[i]->action);
+                printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if(add_failed){
                         printf("ERROR ADDING RULE %d\n", add_failed);
@@ -206,61 +206,62 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         int i;
 
-        if(rules){
-                for(i = 0; i < num_rules; ++i){
-                        if(rules[i]) free(rules[i]);
-                }
-
-                free(rules);
+        if(rules) {
+            for(i = 0; i < num_rules; ++i){
+                if(rules[i]) free(rules[i]);
+            }
+            free(rules);
         }
 }
 
 struct onvm_fw_rule** setup_rules(int* total_rules) {
-    int ip;
-    int i = 0;
-    struct onvm_fw_rule** rules;
+        int ip, num_rules;
+        int i = 0;
+        struct onvm_fw_rule** rules;
 
-    cJSON *rules_json = onvm_config_parse_file("rules.json");
-    if (rules_json == NULL) {
-        rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-    }
+        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_ip = NULL;
+        cJSON *depth = NULL;
+        cJSON *action = NULL;
 
-    cJSON *rules_ip = NULL;
-    cJSON *depth = NULL;
-    cJSON *action = NULL;
+        if (rules_json == NULL) {
+            rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+        }
 
-    int num_rules = onvm_config_get_item_count(rules_json);
-    *total_rules = num_rules;
+        num_rules = onvm_config_get_item_count(rules_json);
+        *total_rules = num_rules;
+        rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
+        rules_json = rules_json->child;
 
-    rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
+        while (rules_json != NULL) {
+            rules_ip = cJSON_GetObjectItem(rules_json, "ip");
+            depth = cJSON_GetObjectItem(rules_json, "depth");
+            action = cJSON_GetObjectItem(rules_json, "action");
 
-    rules_json = rules_json->child;
-    while (rules_json != NULL) {
-        rules_ip = cJSON_GetObjectItem(rules_json, "ip");
-        depth = cJSON_GetObjectItem(rules_json, "depth");
-        action = cJSON_GetObjectItem(rules_json, "action");
+            if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+            if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
+            if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
-        if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
-        if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
-        if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
+            rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
+            rules[i]->src_ip = rules_ip->valueint;
+            rules[i]->depth = depth->valueint;
+            rules[i]->action = action->valueint;
+            rules_json = rules_json->next;
+            i++;
+        }
+        cJSON_Delete(rules_json);
+        cJSON_Delete(depth);
+        cJSON_Delete(action);
+        cJSON_Delete(rules_ip);
 
-        rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
-        rules[i]->src_ip = rules_ip->valueint;
-        rules[i]->depth = depth->valueint;
-        rules[i]->action = action->valueint;
 
-
-        rules_json = rules_json->next;
-        i++;
-    }
-
-    return rules;
+        return rules;
 
 }
 
 
 int main(int argc, char *argv[]) {
-        int arg_offset;
+        int arg_offset, num_rules;
         struct onvm_fw_rule** rules;
 
         const char *progname = argv[0];
@@ -275,26 +276,10 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-//
-        int num_rules;
-        //RTE_LOG(INFO, APP, "Rules.json name: %s\n", rule_num);
-
-//        if (rules_name->valuestring != NULL) {
-//                RTE_LOG(INFO, APP, "Rules.json name: %s\n", rules_name->valuestring);
-//        }
-
-
-
         rules = setup_rules(&num_rules);
-        printf("Num rules: %d\n", num_rules);
-
         lpm_setup(rules, num_rules);
 
-
-
         onvm_nflib_run(nf_info, &packet_handler);
-        free(req->name);
-        free(req);
         lpm_teardown(rules, num_rules);
         printf("If we reach here, program is ending");
         return 0;
