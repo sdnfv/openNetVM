@@ -240,8 +240,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        char dir[PATH_MAX];
-        if (getcwd(dir, sizeof(dir) != NULL)) {
+        char dir[PATH_MAX] = getcwd(dir, sizeof(dir));
+        if (dir != NULL)) {
             printf("Directory: %s\n", dir);
         }
 
