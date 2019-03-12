@@ -219,13 +219,16 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        cJSON *rules_json = onvm_config_parse_file("examples/rules.json");
+        cJSON *rules_json = onvm_config_parse_file("rules.json");
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
-            rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+            rules_json = onvm_config_parse_file("firewall/rules.json");
+            if (rules_json == NULL) {
+                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+            }
         }
 
         num_rules = onvm_config_get_item_count(rules_json);
