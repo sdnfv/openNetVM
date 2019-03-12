@@ -184,6 +184,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                 }
                 meta->action = ONVM_NF_ACTION_DROP;
         }
+        rte_free(req);
 
         return 0;
 }
@@ -233,7 +234,6 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
                 if(rules[i]) free(rules[i]);
             }
             free(rules);
-            rte_free(req);
         }
 }
 
