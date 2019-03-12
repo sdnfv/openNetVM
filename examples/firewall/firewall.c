@@ -73,7 +73,6 @@
 
 static uint16_t destination;
 static int debug = 0;
-struct lpm_request* req;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -135,6 +134,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
             RTE_LOG(INFO, APP, "Speed tester NF requires a destination NF with the -d flag.\n");
             return -1;
         }
+        if (!debug) {
+            RTE_LOG(INFO, APP, "Running normal mode, use -b flag to enable debug mode\n");
+        }
         return optind;
 }
 
@@ -169,7 +171,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                                 }
                                 break;
                         }
-                } else {
+                }
+                else {
                         // no matching rule
                         // default action is to drop packets
                         meta->action = ONVM_NF_ACTION_DROP;
@@ -177,20 +180,20 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                             RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
                         }
                 }
-        } else {
+        }
+        else {
                 // drop all packets that aren't ipv4
                 if (debug) {
                     RTE_LOG(INFO, APP, "Packet received not ipv4\n");
                 }
                 meta->action = ONVM_NF_ACTION_DROP;
         }
-        rte_free(req);
-
         return 0;
 }
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         int i, status;
+        struct lpm_request* req;
 
         req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -202,7 +205,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         req->name[0] = 'f';
         req->name[1] = 'w';
 
-        status = onvm_nflib_request_lpm(req);
+        status = onvm_nflib_request_lpm(req); // Closing then starting this NF causes a status < 0
 
 	    if(status < 0){
 		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
