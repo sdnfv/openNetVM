@@ -257,8 +257,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
                     char *par = dirname(dir);
                     char *rules = strcat(par, "/rules.json");
                     printf("dir name: %s\n", rules);
+                    rules_json = onvm_config_parse_file(rules);
             }
-            rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+            if (rules_json == NULL) {
+                    rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+            }
         }
 
         num_rules = onvm_config_get_item_count(rules_json);
