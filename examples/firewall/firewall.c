@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <libgen.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <limits.h>
@@ -251,6 +252,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
+            char dir[PATH_MAX];
+            if (getcwd(dir, sizeof(dir)) > 0) {
+                    char *par = dirname(dir);
+                    printf("dir name: %s\n", par);
+            }
             rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
 
