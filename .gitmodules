@@ -5,5 +5,5 @@
         commit = 0da7f445df445630c794897347ee360d6fe6348b
 [submodule "tools/Pktgen/pktgen-dpdk"]
         path = tools/Pktgen/pktgen-dpdk
-        url = ../../sdnfv/onvm-pktgen.git
-        branch = onvm
+        url = http://dpdk.org/git/apps/pktgen-dpdk
+        commit = 3942af7912f244c3e5f9e70b761851c9662019eb 
