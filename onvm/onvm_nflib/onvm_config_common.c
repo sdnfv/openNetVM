@@ -49,7 +49,7 @@
 #define IS_NULL_OR_EMPTY_STRING(s) ((s) == NULL || strncmp(s, "", 1) == 0 ? 1 : 0)
 
 cJSON*
-onvm_config_parse_file(const char* filename){
+onvm_config_parse_file(const char* filename) {
         if (IS_NULL_OR_EMPTY_STRING(filename)) {
                 return NULL;
         }
