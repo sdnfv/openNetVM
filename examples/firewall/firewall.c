@@ -249,10 +249,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
             rules_json = rules_json->next;
             i++;
         }
-//        cJSON_Delete(rules_json);
-//        cJSON_Delete(depth);
-//        cJSON_Delete(action);
-//        cJSON_Delete(rules_ip);
+        cJSON_Delete(rules_json);
 
 
         return rules;

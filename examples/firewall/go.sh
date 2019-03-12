@@ -1,32 +1,13 @@
 #!/bin/bash
 
-function usage {
-        echo "$0 CPU-LIST SERVICE-ID [-p PRINT] [-n NF-ID]"
-        echo "$0 3 0 --> core 3, Service ID 0"
-        echo "$0 3,7,9 1 --> cores 3,7, and 9 with Service ID 1"
-        echo "$0 -p 1000 -n 6 3,7,9 1 --> cores 3,7, and 9 with Service ID 1 and Print Rate of 1000 and instance ID 6"
-        exit 1
-}
+#The go.sh script is a convinient way to run start_nf.sh without specifying NF_NAME
 
-SCRIPT=$(readlink -f "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-cpu=$1
-service=$2
+NF_DIR=${PWD##*/}
 
-shift 3
-
-if [ -z $service ]
-then
-    usage
+if [ ! -f ../start_nf.sh ]; then
+  echo "ERROR: The ./go.sh script can only be used from the NF folder"
+  echo "If running from other directory use examples/start_nf.sh"
+  exit 1
 fi
 
-while getopts ":p:n:" opt; do
-  case $opt in
-    p) print="-p $OPTARG";;
-    n) instance="-n $OPTARG";;
-    \?) echo "Unknown option -$OPTARG" && usage
-    ;;
-  esac
-done
-
-exec sudo $SCRIPTPATH/build/firewall -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- $print
+../start_nf.sh $NF_DIR "$@"
