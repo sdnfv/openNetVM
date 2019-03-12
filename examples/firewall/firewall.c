@@ -255,7 +255,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    printf("dir name: %s\n", par);
+                    char *rules = strcat(par, "/rules.json");
+                    printf("dir name: %s\n", rules);
             }
             rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
