@@ -72,6 +72,7 @@
 #define NUM_TBLS 8
 
 static uint16_t destination;
+static int debug = 0;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -99,16 +100,20 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c;
+        int c, dst_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:p:")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:b:")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
+                        dst_flag = 1;
                         break;
                 case 'p':
                         RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
                         break;
+                case 'b':
+                        RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
+                        debug = 1;
                 case '?':
                         usage(progname);
                         if (optopt == 'p')
@@ -122,6 +127,11 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         usage(progname);
                         return -1;
                 }
+        }
+
+        if (!dst_flag) {
+            RTE_LOG(INFO, APP, "Speed tester NF requires a destination NF with the -d flag.\n");
+            return -1;
         }
         return optind;
 }
@@ -144,23 +154,33 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                                 meta->action = ONVM_NF_ACTION_TONF;
                                 meta->destination = destination;
                                 //printf("Dest: %d\n", destination);
-                                RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n", ipv4_hdr->src_addr);
+                                if (debug) {
+                                    RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
+                                            ipv4_hdr->src_addr);
+                                }
                                 break;
                         default:
                                 // if we can't understand the rule, drop it
                                 meta->action = ONVM_NF_ACTION_DROP;
-                                RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                                if (debug) {
+                                    RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n",
+                                            ipv4_hdr->src_addr);
+                                }
                                 break;
                         }
                 } else {
                         // no matching rule
                         // default action is to drop packets
                         meta->action = ONVM_NF_ACTION_DROP;
-                        RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                        if (debug) {
+                            RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                        }
                 }
         } else {
                 // drop all packets that aren't ipv4
-                RTE_LOG(INFO, APP, "Packet received not ipv4\n");
+                if (debug) {
+                    RTE_LOG(INFO, APP, "Packet received not ipv4\n");
+                }
                 meta->action = ONVM_NF_ACTION_DROP;
         }
 
@@ -220,9 +240,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
+
         char dir[PATH_MAX];
-        getcwd(dir, sizeof(dir));
-        printf("Directory: %s\n", dir);
+        if (getcwd(dir, sizeof(dir) != NULL) {
+            printf("Directory: %s\n", dir);
+        }
 
         cJSON *rules_json = onvm_config_parse_file("rules.json");
         cJSON *rules_ip = NULL;
