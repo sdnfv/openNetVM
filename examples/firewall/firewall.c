@@ -256,7 +256,6 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
                     char *rules = strcat(par, "/rules.json");
-                    printf("dir name: %s\n", rules);
                     rules_json = onvm_config_parse_file(rules);
             }
             if (rules_json == NULL) {
