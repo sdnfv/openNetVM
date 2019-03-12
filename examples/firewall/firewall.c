@@ -240,11 +240,6 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        char dir[PATH_MAX] = getcwd(dir, sizeof(dir));
-        if (dir != NULL)) {
-            printf("Directory: %s\n", dir);
-        }
-
         cJSON *rules_json = onvm_config_parse_file("rules.json");
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
