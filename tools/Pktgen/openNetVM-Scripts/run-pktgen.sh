@@ -40,14 +40,17 @@
 # These are the interfaces that you do not want to use for Pktgen-DPDK
 BLACK_LIST="-b 0000:05:00.0 -b 0000:05:00.1"
 
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
 # Path for pktgen
-PKTGEN_HOME="$ONVM_HOME/tools/Pktgen/pktgen-dpdk/"
+PKTGEN_HOME="$SCRIPTPATH/../pktgen-dpdk/"
 
 # Path for pktgen binary
 PKTGEN_BUILD="./app/x86_64-native-linuxapp-gcc/pktgen"
 
 # Path for pktgen config
-PKTGEN_CONFIG="$ONVM_HOME/tools/Pktgen/openNetVM-Scripts/pktgen-config.lua"
+PKTGEN_CONFIG="$SCRIPTPATH/pktgen-config.lua"
 
 if [ "$#" -lt 1 ] ; then
     echo "Pass an argument for port count"
@@ -58,11 +61,10 @@ fi
 PORT_NUM=$1
 
 echo "Starting pktgen"
-
-if [ $PORT_NUM = 2 ]; then
-    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p $PORT_MASK -P -m "[1:3].0 [4:8].1" -f $PKTGEN_CONFIG)
-elif [ $PORT_NUM = 1 ]; then
-    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p $PORT_MASK -P -m "[1:8].0" -f $PKTGEN_CONFIG)
+if [ $PORT_NUM  -eq "2" ]; then
+    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p 0x3 $PORT_MASK -P -m "[1:2].0, [3:4].1" -f $PKTGEN_CONFIG)
+elif [ $PORT_NUM -eq "1" ]; then
+    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p 0x1 $PORT_MASK -P -m "[1:2].0" -f $PKTGEN_CONFIG)
 else
     echo "Only supports 1 or 2 ports"
     exit 0
