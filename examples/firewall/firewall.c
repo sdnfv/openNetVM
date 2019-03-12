@@ -153,7 +153,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
                         case ONVM_NF_ACTION_TONF:
                                 meta->action = ONVM_NF_ACTION_TONF;
                                 meta->destination = destination;
-                                //printf("Dest: %d\n", destination);
                                 if (debug) {
                                     RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
                                             ipv4_hdr->src_addr);
@@ -242,7 +241,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         struct onvm_fw_rule** rules;
 
         char dir[PATH_MAX];
-        if (getcwd(dir, sizeof(dir) != NULL) {
+        if (getcwd(dir, sizeof(dir) != NULL)) {
             printf("Directory: %s\n", dir);
         }
 
