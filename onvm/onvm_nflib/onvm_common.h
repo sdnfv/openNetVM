@@ -50,11 +50,12 @@
 #include "onvm_msg_common.h"
 #include "onvm_config_common.h"
 
-#define ONVM_MAX_CHAIN_LENGTH 4   // the maximum chain length
-#define MAX_NFS 128               // total number of NFs allowed
-#define MAX_SERVICES 32           // total number of unique services allowed
-#define MAX_NFS_PER_SERVICE 32    // max number of NFs per service.
+#define ONVM_MAX_CHAIN_LENGTH 4 // the maximum chain length
+#define MAX_NFS 128             // total number of NFs allowed
+#define MAX_SERVICES 32         // total number of unique services allowed
+#define MAX_NFS_PER_SERVICE 32  // max number of NFs per service.
 
+#define NUM_MBUFS 32768         // total number of mbufs
 #define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
 
 #define PACKET_READ_SIZE ((uint16_t)32)

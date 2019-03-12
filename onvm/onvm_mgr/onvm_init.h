@@ -83,8 +83,6 @@
 /***********************************Macros************************************/
 
 
-#define MBUFS_PER_NF 1536
-#define MBUFS_PER_PORT 1536
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 #define RX_MBUF_DATA_SIZE 2048
