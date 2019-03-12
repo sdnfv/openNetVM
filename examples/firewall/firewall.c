@@ -219,7 +219,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        cJSON *rules_json = onvm_config_parse_file("/examples/rules.json");
+        cJSON *rules_json = onvm_config_parse_file("examples/rules.json");
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
