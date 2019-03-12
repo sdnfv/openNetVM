@@ -43,6 +43,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <unistd.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <sys/queue.h>
@@ -218,6 +220,9 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
+        char dir[PATH_MAX];
+        getcwd(dir, sizeof(dir));
+        printf("Directory: %s\n", dir);
 
         cJSON *rules_json = onvm_config_parse_file("rules.json");
         cJSON *rules_ip = NULL;
@@ -225,10 +230,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
-            rules_json = onvm_config_parse_file("firewall/rules.json");
-            if (rules_json == NULL) {
-                rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
-            }
+            rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
         }
 
         num_rules = onvm_config_get_item_count(rules_json);
