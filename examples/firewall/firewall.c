@@ -246,7 +246,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         }
 }
 
-struct onvm_fw_rule** setup_rules(int* total_rules, const char* rules_file) {
+struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
