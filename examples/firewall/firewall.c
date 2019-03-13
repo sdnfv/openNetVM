@@ -315,6 +315,7 @@ int main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
+        printf("Rule_file is %s\n", rule_file);
 
         rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
