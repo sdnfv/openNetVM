@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        rules = setup_rules(&num_rules, rule_file);
+        rules = setup_rules(&num_rules, &rule_file);
         lpm_setup(rules, num_rules);
         onvm_nflib_run(nf_info, &packet_handler);
         lpm_teardown(rules, num_rules);
