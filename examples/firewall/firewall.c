@@ -246,12 +246,12 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         }
 }
 
-struct onvm_fw_rule** setup_rules(int* total_rules) {
+struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
@@ -260,11 +260,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    char *rules = strcat(par, "/rules.json");
+                    char *rules = strcat(par, "/%s", rules_file);
                     rules_json = onvm_config_parse_file(rules);
             }
             if (rules_json == NULL) {
-                    rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+                    rte_exit(EXIT_FAILURE, "%s file could not be parsed\n", rules_file);
             }
         }
 
@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        rules = setup_rules(&num_rules);
+        rules = setup_rules(&num_rules, rules_file);
         lpm_setup(rules, num_rules);
         onvm_nflib_run(nf_info, &packet_handler);
         lpm_teardown(rules, num_rules);
