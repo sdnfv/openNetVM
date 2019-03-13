@@ -120,7 +120,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'f':
                         rule_file = malloc(sizeof(char) * (strlen(optarg) + 1));
                         strcpy(rule_file, optarg);
-                        rule_file[strlen(optarg)+1] = NULL;
                         printf("rules_file: %s\n", rule_file);
                         break;
                 case '?':
@@ -252,6 +251,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
+        printf("%d\n", strlen(rules_file));
+        char *tmp_file = malloc(sizeof(char) * strlen(rules_file))
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
