@@ -118,7 +118,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rule_file = malloc(strlen(optarg) + 1);
+                        rule_file = malloc(strlen(optarg) + 2);
                         strcpy(rule_file, optarg);
                         printf("rules_file: %s\n", rule_file);
                         break;
@@ -315,7 +315,6 @@ int main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-        printf("Rule_file is %s\n", rule_file);
 
         rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
