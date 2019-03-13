@@ -251,7 +251,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
-        printf("%d\n", strlen(rules_file));
+        printf("%ld\n", strlen(rules_file));
         char *tmp_file = malloc(sizeof(char) * strlen(rules_file))
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
