@@ -74,7 +74,7 @@
 
 static uint16_t destination;
 static int debug = 0;
-char rule_file[PATH_MAX];
+const char rule_file[PATH_MAX];
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
