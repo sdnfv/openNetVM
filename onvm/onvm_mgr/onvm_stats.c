@@ -176,7 +176,6 @@ onvm_stats_cleanup(void) {
         }
 }
 
-
 void
 onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         time_t time_raw_format;
