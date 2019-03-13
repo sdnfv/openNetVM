@@ -255,11 +255,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
-        printf("File is %s\n", rules_file);
 
         if (rules_json == NULL) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
+                    printf("File is %s\n", rules_file);
                     char *par = dirname(dir);
                     char *slash = "/";
                     char *set_dir = strcat(slash, rules_file);
