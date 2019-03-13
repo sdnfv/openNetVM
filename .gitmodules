@@ -6,4 +6,5 @@
 [submodule "tools/Pktgen/pktgen-dpdk"]
         path = tools/Pktgen/pktgen-dpdk
         url = http://dpdk.org/git/apps/pktgen-dpdk
-        commit = 3942af7912f244c3e5f9e70b761851c9662019eb 
+        branch = master
+        commit = 4199555481cd08fe08e32986c94e59836ca1cd4f 
