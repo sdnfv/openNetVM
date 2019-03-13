@@ -250,12 +250,13 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
-        printf("File is %s\n", rules_file);
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
+        printf("File is %s\n", rules_file);
+
 
         if (rules_json == NULL) {
             char dir[PATH_MAX];
