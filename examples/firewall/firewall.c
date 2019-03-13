@@ -118,7 +118,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rule_file = optarg;
+                        rule_file = malloc(strlen(optarg) + 1);
+                        strcopy(rule_file, optarg);
                         printf("rules_file: %s\n", rule_file);
                         break;
                 case '?':
