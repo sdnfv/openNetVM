@@ -251,7 +251,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
-        char *test = strcat("This is a test", rules_file);
+        char *test = "Hello";
         printf("test worked %s", test);
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
@@ -262,11 +262,11 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         if (rules_json == NULL) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
-                    char *par = dirname(dir);
+                    char par[MAX_PATH] = dirname(dir);
                     char *slash = "/";
-                    char *set_dir = strcat(slash, rules_file);
+                    strcat(slash, rules_file);
                     printf("set_dir is: %s", set_dir);
-                    char *rules_set = strcat(par, set_dir);
+                    strcat(par, set_dir);
                     rules_json = onvm_config_parse_file(rules_set);
             }
             if (rules_json == NULL) {
