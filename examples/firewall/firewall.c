@@ -262,7 +262,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
                     char *slash = "/";
-                    char *set_dir = strcat(slash, rules_file)
+                    char *set_dir = strcat(slash, rules_file);
                     char *rules_set = strcat(par, set_dir);
                     rules_json = onvm_config_parse_file(rules_set);
             }
