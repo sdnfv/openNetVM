@@ -118,7 +118,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rules_file = optarg;
+                        rule_file = optarg;
                         printf("rules_file: %s\n", rule_file);
                         break;
                 case '?':
