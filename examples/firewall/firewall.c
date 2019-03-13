@@ -246,7 +246,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         }
 }
 
-struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
+struct onvm_fw_rule** setup_rules(int* total_rules, const char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
@@ -260,9 +260,9 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    char *set_dir = strcat("/", rules_file)
-                    char *rules = strcat(par, set_dir);
-                    rules_json = onvm_config_parse_file(rules);
+                    char *set_dir = strcat("/", rules_file);
+                    char *rules_set = strcat(par, set_dir);
+                    rules_json = onvm_config_parse_file(rules_set);
             }
             if (rules_json == NULL) {
                     rte_exit(EXIT_FAILURE, "%s file could not be parsed\n", rules_file);
