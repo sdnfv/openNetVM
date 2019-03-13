@@ -251,6 +251,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
+        char *test = strcat("This is a test", rules_file);
+        printf("test worked %s", test);
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
