@@ -265,14 +265,11 @@ init(int argc, char *argv[]) {
  */
 static int
 init_mbuf_pools(void) {
-        const unsigned num_mbufs = (MAX_NFS * MBUFS_PER_NF) \
-                        + (ports->num_ports * MBUFS_PER_PORT);
-
         /* don't pass single-producer/single-consumer flags to mbuf create as it
          * seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' [%u mbufs] ...\n",
-                        PKTMBUF_POOL_NAME, num_mbufs);
-        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, num_mbufs,
+                        PKTMBUF_POOL_NAME, NUM_MBUFS);
+        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, NUM_MBUFS,
                         MBUF_SIZE, MBUF_CACHE_SIZE,
                         sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init,
                         NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
