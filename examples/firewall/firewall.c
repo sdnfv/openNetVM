@@ -74,7 +74,7 @@
 
 static uint16_t destination;
 static int debug = 0;
-char *rule_file = NULL;
+char rule_file[PATH_MAX];
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -118,7 +118,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rule_file = malloc(strlen(optarg) + 10);
                         strcpy(rule_file, optarg);
                         printf("rules_file: %s\n", rule_file);
                         break;
@@ -251,8 +250,6 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
-        char *test = "Hello";
-        printf("test worked %s", test);
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
@@ -262,10 +259,9 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         if (rules_json == NULL) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
-                    char par[MAX_PATH] = dirname(dir);
+                    char *par = dirname(dir);
                     char *slash = "/";
                     strcat(slash, rules_file);
-                    printf("set_dir is: %s", set_dir);
                     strcat(par, set_dir);
                     rules_json = onvm_config_parse_file(rules_set);
             }
