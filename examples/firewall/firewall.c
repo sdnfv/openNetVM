@@ -74,6 +74,7 @@
 
 static uint16_t destination;
 static int debug = 0;
+char *rule_file;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -103,7 +104,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:p:b")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:b:f")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
@@ -115,6 +116,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'b':
                         RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
                         debug = 1;
+                        break;
+                case 'f':
+                        rules_file = optarg;
+                        printf("rules_file: %s\n", rule_file);
                         break;
                 case '?':
                         usage(progname);
