@@ -74,7 +74,7 @@
 
 static uint16_t destination;
 static int debug = 0;
-const char rule_file[PATH_MAX];
+char *rule_file;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -118,7 +118,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
+                        rule_file = malloc(sizeof(char) * (strlen(optarg) + 1));
                         strcpy(rule_file, optarg);
+                        rule_file[strlen(optarg)+1] = NULL;
                         printf("rules_file: %s\n", rule_file);
                         break;
                 case '?':
