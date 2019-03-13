@@ -170,9 +170,9 @@ onvm_stats_cleanup(void) {
                 fclose(stats_out);
                 fclose(json_stats_out);
                 fclose(json_events_out);
-		/* Delete all JSON objects to free memory */
-		cJSON_Delete(onvm_json_root);
-		cJSON_Delete(onvm_json_events_arr);
+                /* Delete all JSON objects to free memory */
+                cJSON_Delete(onvm_json_root);
+                cJSON_Delete(onvm_json_events_arr);
         }
 }
 
