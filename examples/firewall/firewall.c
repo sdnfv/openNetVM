@@ -262,8 +262,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
                     char *par = dirname(dir);
                     char *slash = "/";
                     strcat(slash, rules_file);
-                    strcat(par, set_dir);
-                    rules_json = onvm_config_parse_file(rules_set);
+                    //strcat(par, set_dir);
+                    //rules_json = onvm_config_parse_file(rules_set);
             }
             if (rules_json == NULL) {
                     rte_exit(EXIT_FAILURE, "%s file could not be parsed\n", rules_file);
