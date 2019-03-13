@@ -104,7 +104,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:p:b:f")) != -1) {
+        while ((c = getopt (argc, argv, "d:p:b:f:")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
