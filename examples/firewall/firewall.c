@@ -262,7 +262,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
 
         if (rules_json == NULL) {
             char directory[PATH_MAX];
-            if (getcwd(dir, sizeof(directory)) > 0) {
+            if (getcwd(directory, sizeof(directory)) > 0) {
                     char *parent = dirname(directory);
                     char *slash_tmp = calloc(strlen(rules_file), sizeof(char));
                     slash_tmp[0] = '/';
