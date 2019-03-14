@@ -108,10 +108,12 @@ def init_ci_pipeline():
 
     extracted_data = filter_to_prs_and_pr_comments(request.json)
     if extracted_data is not None:
-        if (extracted_data['user'] in authorized_users):
+        if (extracted_data['repo'] == 'openNetVM-dev' or extracted_data['user'] in authorized_users):
             print("This is an authorized user")
         else:
-            print("This user is not authorized")
+            print("ERROR: This user is not authorized")
+            os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
+                      .format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
             return jsonify({
                 "success": True
             })
