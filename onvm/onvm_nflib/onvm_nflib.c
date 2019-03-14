@@ -312,7 +312,7 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
         if (ret != 0) return ret;
 
         request_message->msg_type = MSG_REQUEST_LPM_REGION;
-        request_message->msg_data = lpm_req;  
+        request_message->msg_data = lpm_req;
 
         ret = rte_ring_enqueue(mgr_msg_queue, request_message);
         if (ret < 0) {
