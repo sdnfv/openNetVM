@@ -146,6 +146,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
         if (!rules_init) {
             RTE_LOG(INFO, APP, "Please specify a rules JSON file with -f FILE_NAME\n");
+            return -1;
         }
         return optind;
 }
