@@ -104,7 +104,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, rules_init = 0;
 
-        while ((c = getopt (argc, argv, "d:p:b:f")) != -1) {
+        while ((c = getopt (argc, argv, "d:f:p:b")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
@@ -113,18 +113,21 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'p':
                         RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
                         break;
-                case 'b':
-                        RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
-                        debug = 1;
-                        break;
+
                 case 'f':
                         rule_file = malloc(sizeof(char) * (strlen(optarg)));
                         strcpy(rule_file, optarg);
                         rules_init = 1;
                         break;
+                case 'b':
+                        RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
+                        debug = 1;
+                        break;
                 case '?':
                         usage(progname);
                         if (optopt == 'p')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        if (optopt == 'd')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
