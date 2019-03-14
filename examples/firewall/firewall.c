@@ -121,7 +121,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         rules_init = 1;
                         break;
                 case 'b':
-                        RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
+                        RTE_LOG(INFO, APP, "Debug mode enabled; printing the source IP addresses of each incoming packet as well as drop/forward status\n");
                         debug = 1;
                         break;
                 case '?':
@@ -129,6 +129,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         if (optopt == 'p')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        if (optopt == 'f')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -252,7 +254,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
             }
             free(rules);
         }
-        
+
         if (req) {
             rte_free(req);
         }
