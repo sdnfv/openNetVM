@@ -118,7 +118,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rule_file = malloc(sizeof(char) * (strlen(optarg) + 40));
+                        rule_file = malloc(sizeof(char) * (strlen(optarg) + 1));
                         strcpy(rule_file, optarg);
                         printf("rules_file: %s\n", rule_file);
                         break;
@@ -262,7 +262,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             char slash_tmp[strlen(rules_file)+1];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    char slash_tmp[strlen(rules_file)+1];
+                    char slash_tmp[strlen(rules_file)];
+                    slash_tmp[0] = '/';
                     char *file_slash = strcat(slash_tmp, rules_file);
                     printf("%s", file_slash);
                     //strcat(par, set_dir);
