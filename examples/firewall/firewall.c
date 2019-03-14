@@ -261,7 +261,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    char slash_tmp[strlen(rules_file)] = {0};
+                    char *slash_tmp = calloc(strlen(rules_file));
                     slash_tmp[0] = '/';
                     char *file_slash = strcat(slash_tmp, rules_file);
                     printf("%s", file_slash);
