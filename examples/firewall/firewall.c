@@ -74,9 +74,11 @@
 
 static uint16_t destination;
 static int debug = 0;
+char *rule_file = NULL;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
+struct lpm_request* req;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -101,9 +103,9 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0;
+        int c, dst_flag = 0, rules_init = 0;
 
-        while ((c = getopt (argc, argv, "d:p:b")) != -1) {
+        while ((c = getopt (argc, argv, "d:f:p:b")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
@@ -112,13 +114,23 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'p':
                         RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
                         break;
+
+                case 'f':
+                        rule_file = malloc(sizeof(char) * (strlen(optarg)));
+                        strcpy(rule_file, optarg);
+                        rules_init = 1;
+                        break;
                 case 'b':
-                        RTE_LOG(INFO, APP, "Debug mode enabled, printing packet drops/forwards\n");
+                        RTE_LOG(INFO, APP, "Debug mode enabled; printing the source IP addresses of each incoming packet as well as drop/forward status\n");
                         debug = 1;
                         break;
                 case '?':
                         usage(progname);
                         if (optopt == 'p')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        if (optopt == 'd')
+                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                        if (optopt == 'f')
                                 RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                         else if (isprint(optopt))
                                 RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -137,6 +149,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
         if (!debug) {
             RTE_LOG(INFO, APP, "Running normal mode, use -b flag to enable debug mode\n");
+        }
+        if (!rules_init) {
+            RTE_LOG(INFO, APP, "Please specify a rules JSON file with -f FILE_NAME\n");
+            return -1;
         }
         return optind;
 }
@@ -194,7 +210,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         int i, status;
-        struct lpm_request* req;
 
         req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -239,27 +254,35 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
             }
             free(rules);
         }
+
+        if (req) {
+            rte_free(req);
+        }
 }
 
-struct onvm_fw_rule** setup_rules(int* total_rules) {
+struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         int ip, num_rules;
         int i = 0;
         struct onvm_fw_rule** rules;
 
-        cJSON *rules_json = onvm_config_parse_file("rules.json");
+        cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
-            char dir[PATH_MAX];
-            if (getcwd(dir, sizeof(dir)) > 0) {
-                    char *par = dirname(dir);
-                    char *rules = strcat(par, "/rules.json");
-                    rules_json = onvm_config_parse_file(rules);
+            char directory[PATH_MAX];
+            if (getcwd(directory, sizeof(directory)) > 0) {
+                    char *parent = dirname(directory);
+                    char *slash_tmp = calloc(strlen(rules_file), sizeof(char));
+                    slash_tmp[0] = '/';
+                    char *file_slash = strcat(slash_tmp, rules_file);
+                    char *rules_temp = strcat(parent, file_slash);
+                    rules_json = onvm_config_parse_file(rules_temp);
+                    free(slash_tmp);
             }
             if (rules_json == NULL) {
-                    rte_exit(EXIT_FAILURE, "Rules.json file could not be parsed\n");
+                    rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file is within /examples or examples/firewall\n", rules_file);
             }
         }
 
@@ -285,6 +308,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules) {
             i++;
         }
         cJSON_Delete(rules_json);
+        free(rule_file);
+
         return rules;
 }
 
@@ -305,10 +330,10 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        rules = setup_rules(&num_rules);
+        rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
         onvm_nflib_run(nf_info, &packet_handler);
         lpm_teardown(rules, num_rules);
-        printf("If we reach here, program is ending");
+        printf("If we reach here, program is ending\n");
         return 0;
 }

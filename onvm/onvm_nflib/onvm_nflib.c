@@ -304,7 +304,7 @@ onvm_nflib_lookup_shared_structs(void) {
 }
 
 int
-onvm_nflib_request_lpm(struct lpm_request *req) {
+onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
         struct onvm_nf_msg *request_message;
         int ret;
 
@@ -312,7 +312,7 @@ onvm_nflib_request_lpm(struct lpm_request *req) {
         if (ret != 0) return ret;
 
         request_message->msg_type = MSG_REQUEST_LPM_REGION;
-        request_message->msg_data = req;
+        request_message->msg_data = lpm_req;
 
         ret = rte_ring_enqueue(mgr_msg_queue, request_message);
         if (ret < 0) {
@@ -320,13 +320,13 @@ onvm_nflib_request_lpm(struct lpm_request *req) {
                 return ret;
         }
 
-        req->status = NF_WAITING_FOR_MGR;
-        for (; req->status == (uint16_t) NF_WAITING_FOR_MGR;) {
+        lpm_req->status = NF_WAITING_FOR_MGR;
+        for (; lpm_req->status == (uint16_t) NF_WAITING_FOR_MGR;) {
                 sleep(1);
         }
 
         rte_mempool_put(nf_msg_pool, request_message);
-        return req->status;
+        return lpm_req->status;
 
 }
 
