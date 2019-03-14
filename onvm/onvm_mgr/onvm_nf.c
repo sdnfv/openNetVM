@@ -92,7 +92,7 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
 
 static void
-init_lpm_region(struct lpm_request *req);
+init_lpm_region(struct lpm_request *req_lpm);
 
 
 /********************************Interfaces***********************************/
@@ -120,7 +120,7 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
-        struct lpm_request *req;
+        struct lpm_request *req_lpm;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
         if (num_msgs == 0) return;
@@ -134,8 +134,8 @@ onvm_nf_check_status(void) {
                 switch (msg->msg_type) {
 
                 case MSG_REQUEST_LPM_REGION:
-                        req = (struct lpm_request*)msg->msg_data;
-                        init_lpm_region(req);
+                        req_lpm = (struct lpm_request*)msg->msg_data;
+                        init_lpm_region(req_lpm);
                         break;
                 case MSG_NF_STARTING:
                         nf = (struct onvm_nf_info*)msg->msg_data;
@@ -312,17 +312,17 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 }
 
 static void
-init_lpm_region(struct lpm_request *req) {
+init_lpm_region(struct lpm_request *req_lpm) {
         struct rte_lpm_config conf;
         struct rte_lpm* lpm_region;
 
-        conf.max_rules = req->max_num_rules;
-        conf.number_tbl8s = req->num_tbl8s;
+        conf.max_rules = req_lpm->max_num_rules;
+        conf.number_tbl8s = req_lpm->num_tbl8s;
 
-        lpm_region = rte_lpm_create(req->name, req->socket_id, &conf);
+        lpm_region = rte_lpm_create(req_lpm->name, req_lpm->socket_id, &conf);
         if(lpm_region){
-                req->status = 0;
+                req_lpm->status = 0;
         }else{
-                req->status = -1;
+                req_lpm->status = -1;
         }
 }
