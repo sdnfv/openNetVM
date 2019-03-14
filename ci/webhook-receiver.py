@@ -50,6 +50,7 @@ def filter_to_prs_and_pr_comments(json):
     if json['action'] == 'opened' and 'pull_request' in json and 'base' in json['pull_request']:
         branch_name = json['pull_request']['base']['label']
         repo_name = json['repository']['name']
+        user_name = json['pull_request']['user']['login']
         if branch_name is None:
             return None
 
@@ -62,12 +63,15 @@ def filter_to_prs_and_pr_comments(json):
             "id": number,
             "repo": repo_name,
             "branch": branch_name,
+            "user": user_name,
             "body": "In response to PR creation"
         }
 
     if json['action'] == 'created' and 'issue' in json and json['issue']['state'] == 'open' and 'pull_request' in json['issue'] and 'comment' in json:
         repo_name = json['repository']['name']
         comment_txt = json['comment']['body']
+        user_name = json['comment']['user']['login']
+
         if KEYWORD not in comment_txt:
             return None
         if json['sender']['login'] == CI_NAME:
@@ -81,6 +85,7 @@ def filter_to_prs_and_pr_comments(json):
         return {
             "id": number,
             "repo": repo_name,
+            "user": user_name,
             "body": comment_txt
         }
 
@@ -103,6 +108,14 @@ def init_ci_pipeline():
 
     extracted_data = filter_to_prs_and_pr_comments(request.json)
     if extracted_data is not None:
+        if (extracted_data['user'] in authorized_users):
+            print("This is an authorized user")
+        else:
+            print("This user is not authorized")
+            return jsonify({
+                "success": True
+            })
+
         print("Data matches filter, we should RUN CI")
         print(extracted_data)
 
@@ -146,6 +159,7 @@ if __name__ == "__main__":
     with open (sys.argv[4], 'r') as cfg:
         webhook_config = json.load(cfg)
     secret = webhook_config['secret']
+    authorized_users = webhook_config['authorized-users']
     if secret is None:
         print("No secret found in webhook config")
         sys.exit(1)
