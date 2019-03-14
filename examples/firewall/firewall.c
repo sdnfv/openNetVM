@@ -74,7 +74,7 @@
 
 static uint16_t destination;
 static int debug = 0;
-char *rule_file;
+char *rule_file = NULL;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -102,7 +102,7 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0;
+        int c, dst_flag = 0, rules_init = 0;
 
         while ((c = getopt (argc, argv, "d:p:b:f:")) != -1) {
                 switch (c) {
@@ -120,7 +120,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 case 'f':
                         rule_file = malloc(sizeof(char) * (strlen(optarg)));
                         strcpy(rule_file, optarg);
-                        printf("rules_file: %s\n", rule_file);
+                        rules_init = 1;
                         break;
                 case '?':
                         usage(progname);
@@ -143,6 +143,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
         if (!debug) {
             RTE_LOG(INFO, APP, "Running normal mode, use -b flag to enable debug mode\n");
+        }
+        if (!rules_init) {
+            RTE_LOG(INFO, APP, "Please specify a rules JSON file with -f FILE_NAME\n");
         }
         return optind;
 }
@@ -260,18 +263,18 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         if (rules_json == NULL) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
-                    char *par = dirname(dir);
+                    char *parent = dirname(dir);
                     char *slash_tmp = calloc(strlen(rules_file), sizeof(char));
                     slash_tmp[0] = '/';
                     char *file_slash = strcat(slash_tmp, rules_file);
-                    char *rules_temp = strcat(par, file_slash);
-                    printf("%s", rules_temp);
+                    char *rules_temp = strcat(parent, file_slash);
                     rules_json = onvm_config_parse_file(rules_temp);
             }
             if (rules_json == NULL) {
-                    rte_exit(EXIT_FAILURE, "%s file could not be parsed\n", rules_file);
+                    rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file is within /examples or examples/firewall\n", rules_file);
             }
         }
+
         num_rules = onvm_config_get_item_count(rules_json);
         *total_rules = num_rules;
         rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
@@ -294,6 +297,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             i++;
         }
         cJSON_Delete(rules_json);
+        free(rule_file);
+        free(slash_tmp);
         return rules;
 }
 
