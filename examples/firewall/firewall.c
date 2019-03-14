@@ -144,7 +144,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-            RTE_LOG(INFO, APP, "Speed tester NF requires a destination NF with the -d flag.\n");
+            RTE_LOG(INFO, APP, "Firewall NF requires a destination NF with the -d flag.\n");
             return -1;
         }
         if (!debug) {

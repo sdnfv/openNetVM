@@ -1,20 +1,22 @@
-Basic Monitor
+Firewall
 ==
-Basic Monitor is an NF which prints information regarding incoming packets and then sends it out of the system.
+The Firewall NF is an NF which drops/forwards packets based on LPM rules.
 
 Compilation and Execution
 --
 ```
 cd examples
 make
-cd basic_monitor
-./go.sh CORELIST SERVICE_ID [PRINT_DELAY]
+cd firewall
+./go.sh INSTANCE_ID -d SERVICE_ID
 
 OR
 
-sudo ./build/monitor -l CORELIST -n NUM_MEMORY_CHANNELS --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+cd examples
+./start_nf firewall INSTANCE_ID -d SERVICE_ID
 ```
 
 App Specific Arguments
 --
-  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
+  - `-b specifies a debug mode. Prints when packets are dropped/forwarded.
+
