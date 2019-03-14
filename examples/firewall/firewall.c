@@ -261,14 +261,15 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
-            char dir[PATH_MAX];
-            if (getcwd(dir, sizeof(dir)) > 0) {
-                    char *parent = dirname(dir);
+            char directory[PATH_MAX];
+            if (getcwd(dir, sizeof(directory)) > 0) {
+                    char *parent = dirname(directory);
                     char *slash_tmp = calloc(strlen(rules_file), sizeof(char));
                     slash_tmp[0] = '/';
                     char *file_slash = strcat(slash_tmp, rules_file);
                     char *rules_temp = strcat(parent, file_slash);
                     rules_json = onvm_config_parse_file(rules_temp);
+                    free(slash_tmp);
             }
             if (rules_json == NULL) {
                     rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file is within /examples or examples/firewall\n", rules_file);
@@ -298,7 +299,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         }
         cJSON_Delete(rules_json);
         free(rule_file);
-        free(slash_tmp);
+
         return rules;
 }
 
