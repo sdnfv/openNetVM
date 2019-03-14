@@ -118,8 +118,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         debug = 1;
                         break;
                 case 'f':
-                        rule_file = malloc(sizeof(char) * (strlen(optarg) + 2));
-                        printf("%ld", strlen(optarg));
+                        rule_file = malloc(sizeof(char) * (strlen(optarg) + 40));
                         strcpy(rule_file, optarg);
                         printf("rules_file: %s\n", rule_file);
                         break;
@@ -254,6 +253,9 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         struct onvm_fw_rule** rules;
         printf("%ld\n", strlen(rules_file));
         char *tmp_file = malloc(sizeof(char) * strlen(rules_file));
+        strcpy(tmp_file, rules_file);
+        printf("%ld\n", strlen(rules_file));
+
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
