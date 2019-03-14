@@ -203,19 +203,19 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         int i, status;
-        struct lpm_request* request;
+        struct lpm_request* req;
 
-        request = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
+        req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
-        if(!request) return 0;
+        if(!req) return 0;
 
-        request->max_num_rules = 1024;
-        request->num_tbl8s = 24;
-        request->socket_id = rte_socket_id();
-        request->name[0] = 'f';
-        request->name[1] = 'w';
+        req->max_num_rules = 1024;
+        req->num_tbl8s = 24;
+        req->socket_id = rte_socket_id();
+        req->name[0] = 'f';
+        req->name[1] = 'w';
 
-        status = onvm_nflib_request_lpm(request); // Closing then starting this NF causes a status < 0
+        status = onvm_nflib_request_lpm(req); // Closing then starting this NF causes a status < 0
 
 	    if(status < 0){
 		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
