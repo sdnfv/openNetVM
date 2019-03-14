@@ -78,6 +78,7 @@ char *rule_file = NULL;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
+struct lpm_request* req;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -207,7 +208,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         int i, status;
-        struct lpm_request* req;
 
         req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -251,6 +251,10 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
                 if(rules[i]) free(rules[i]);
             }
             free(rules);
+        }
+        
+        if (req) {
+            rte_free(req);
         }
 }
 
