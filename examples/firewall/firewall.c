@@ -255,9 +255,10 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         char *tmp_file = malloc(sizeof(char) * strlen(rules_file));
         strcpy(tmp_file, rules_file);
         printf("%ld\n", strlen(tmp_file));
+        char *test = "Hia";
 
 
-        cJSON *rules_json = onvm_config_parse_file(tmp_file);
+        cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
         cJSON *depth = NULL;
         cJSON *action = NULL;
@@ -266,8 +267,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             char dir[PATH_MAX];
             if (getcwd(dir, sizeof(dir)) > 0) {
                     char *par = dirname(dir);
-                    char *slash = "/";
-                    strcat(slash, tmp_file);
+                    strcat("/", rules_file);
                     //strcat(par, set_dir);
                     //rules_json = onvm_config_parse_file(rules_set);
             }
