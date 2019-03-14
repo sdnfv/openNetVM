@@ -265,6 +265,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
                     char *slash = malloc(strlen(rules_file) + 1);
                     slash[0] = '/';
                     strcat(slash, rules_file);
+                    printf("%s", slash);
                     //strcat(par, set_dir);
                     //rules_json = onvm_config_parse_file(rules_set);
             }
