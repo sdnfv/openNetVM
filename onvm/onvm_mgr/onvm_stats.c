@@ -57,6 +57,7 @@
 
 /************************Internal Functions Prototypes************************/
 
+
 /*
  * Function displaying statistics for all ports
  *
@@ -255,6 +256,7 @@ onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
 
 
 /****************************Internal functions*******************************/
+
 
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
