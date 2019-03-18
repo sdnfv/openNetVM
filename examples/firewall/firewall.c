@@ -114,7 +114,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
             case 'p':
                 RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
                 break;
-
             case 'f':
                 rule_file = malloc(sizeof(char) * (strlen(optarg)));
                 strcpy(rule_file, optarg);
@@ -165,7 +164,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
     uint32_t rule = 0;
     uint32_t track_ip = 0;
 
-    if(onvm_pkt_is_ipv4(pkt)) {
+    if (onvm_pkt_is_ipv4(pkt)) {
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         int ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
 
@@ -193,8 +192,7 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
                 }
             }
         }
-    }
-    else {
+    } else {
         if (debug) {
             RTE_LOG(INFO, APP, "Packet received not ipv4\n");
         }
@@ -208,7 +206,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 
     firewall_req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
-    if(!firewall_req) return 0;
+    if (!firewall_req) return 0;
 
     firewall_req->max_num_rules = 1024;
     firewall_req->num_tbl8s = 24;
@@ -218,7 +216,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 
     status = onvm_nflib_request_lpm(firewall_req);
 
-    if(status < 0) {
+    if (status < 0) {
         rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
     }
 
@@ -240,11 +238,11 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
     return 0;
 }
 
-static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
+static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules) {
     int i;
 
     if (rules) {
-        for(i = 0; i < num_rules; ++i){
+        for(i = 0; i < num_rules; ++i) {
             if(rules[i]) free(rules[i]);
         }
         free(rules);
@@ -321,6 +319,7 @@ int main(int argc, char *argv[]) {
     rules = setup_rules(&num_rules, rule_file);
     lpm_setup(rules, num_rules);
     onvm_nflib_run(nf_info, &packet_handler);
+
     lpm_teardown(rules, num_rules);
     printf("If we reach here, program is ending\n");
     return 0;
