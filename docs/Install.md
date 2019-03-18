@@ -29,7 +29,7 @@ Check System
    ```sh
    sudo apt-get install libnuma-dev
    ```
-   Verify that your system is up to date before installing this package:
+   If installing libnuma-dev fails, your system may not be up to date. To fix this, run:
    ```sh
    sudo apt-get update
    ```
