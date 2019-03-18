@@ -78,17 +78,16 @@ char *rule_file = NULL;
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
-struct lpm_request* req;
-struct rte_lpm* lpm_tbl;
+struct lpm_request* firewall_req;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
 
 // struct for parsing rules
 struct onvm_fw_rule {
-        uint32_t src_ip;
-        uint8_t depth;
-        uint8_t action;
+    uint32_t src_ip;
+    uint8_t depth;
+    uint8_t action;
 };
 
 /*
@@ -96,7 +95,7 @@ struct onvm_fw_rule {
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
+    printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
 }
 
 /*
@@ -104,229 +103,225 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0, rules_init = 0;
+    int c, dst_flag = 0, rules_init = 0;
 
-        while ((c = getopt (argc, argv, "d:f:p:b")) != -1) {
-                switch (c) {
-                case 'd':
-                        destination = strtoul(optarg, NULL, 10);
-                        dst_flag = 1;
-                        break;
-                case 'p':
-                        RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
-                        break;
+    while ((c = getopt (argc, argv, "d:f:p:b")) != -1) {
+        switch (c) {
+            case 'd':
+                destination = strtoul(optarg, NULL, 10);
+                dst_flag = 1;
+                break;
+            case 'p':
+                RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
+                break;
 
-                case 'f':
-                        rule_file = malloc(sizeof(char) * (strlen(optarg)));
-                        strcpy(rule_file, optarg);
-                        rules_init = 1;
-                        break;
-                case 'b':
-                        RTE_LOG(INFO, APP, "Debug mode enabled; printing the source IP addresses of each incoming packet as well as drop/forward status\n");
-                        debug = 1;
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        if (optopt == 'f')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
-                }
+            case 'f':
+                rule_file = malloc(sizeof(char) * (strlen(optarg)));
+                strcpy(rule_file, optarg);
+                rules_init = 1;
+                break;
+            case 'b':
+                RTE_LOG(INFO, APP, "Debug mode enabled; printing the source IP addresses of each incoming packet as well as drop/forward status\n");
+                debug = 1;
+                break;
+            case '?':
+                usage(progname);
+                if (optopt == 'p')
+                    RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                if (optopt == 'd')
+                    RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                if (optopt == 'f')
+                    RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                else if (isprint(optopt))
+                    RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                else
+                    RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                return -1;
+            default:
+                usage(progname);
+                return -1;
         }
+    }
 
-        if (!dst_flag) {
-            RTE_LOG(INFO, APP, "Firewall NF requires a destination NF with the -d flag.\n");
-            return -1;
-        }
-        if (!debug) {
-            RTE_LOG(INFO, APP, "Running normal mode, use -b flag to enable debug mode\n");
-        }
-        if (!rules_init) {
-            RTE_LOG(INFO, APP, "Please specify a rules JSON file with -f FILE_NAME\n");
-            return -1;
-        }
-        return optind;
+    if (!dst_flag) {
+        RTE_LOG(INFO, APP, "Firewall NF requires a destination NF with the -d flag.\n");
+        return -1;
+    }
+    if (!debug) {
+        RTE_LOG(INFO, APP, "Running normal mode, use -b flag to enable debug mode\n");
+    }
+    if (!rules_init) {
+        RTE_LOG(INFO, APP, "Please specify a rules JSON file with -f FILE_NAME\n");
+        return -1;
+    }
+    return optind;
 }
 
+struct rte_lpm* lpm_tbl;
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info* nf_info) {
-        struct ipv4_hdr* ipv4_hdr;
-        uint32_t rule = 0;
-        uint32_t track_ip = 0;
+    struct ipv4_hdr* ipv4_hdr;
+    uint32_t rule = 0;
+    uint32_t track_ip = 0;
 
-        if(onvm_pkt_is_ipv4(pkt)){
-                ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
+    if(onvm_pkt_is_ipv4(pkt)) {
+        ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
+        int ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
 
-                int no_result = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
-                if(!no_result){
-                        switch(rule){
-                        case ONVM_NF_ACTION_TONF:
-                                meta->action = ONVM_NF_ACTION_TONF;
-                                meta->destination = destination;
-                                if (debug) {
-                                    RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
-                                            ipv4_hdr->src_addr);
-                                }
-                                break;
-                        default:
-                                // if we can't understand the rule, drop it
-                                meta->action = ONVM_NF_ACTION_DROP;
-                                if (debug) {
-                                    RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n",
-                                            ipv4_hdr->src_addr);
-                                }
-                                break;
+        if (ret) {
+            meta->action = ONVM_NF_ACTION_DROP;
+            if (debug) {
+                RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+            } else {
+                switch (rule) {
+                    case ONVM_NF_ACTION_TONF:
+                        meta->action = ONVM_NF_ACTION_TONF;
+                        meta->destination = destination;
+                        if (debug) {
+                            RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
+                                    ipv4_hdr->src_addr);
                         }
-                }
-                else {
-                        // no matching rule
-                        // default action is to drop packets
+                        break;
+                    default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         if (debug) {
-                            RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                            RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n",
+                                    ipv4_hdr->src_addr);
                         }
+                        break;
                 }
+            }
         }
-        else {
-                // drop all packets that aren't ipv4
-                if (debug) {
-                    RTE_LOG(INFO, APP, "Packet received not ipv4\n");
-                }
-                meta->action = ONVM_NF_ACTION_DROP;
+    }
+    else {
+        if (debug) {
+            RTE_LOG(INFO, APP, "Packet received not ipv4\n");
         }
-        return 0;
+        meta->action = ONVM_NF_ACTION_DROP;
+    }
+    return 0;
 }
 
 static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
-        int i, status;
+    int i, status;
 
-        req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
+    firewall_req = (struct lpm_request*)rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
-        if(!req) return 0;
+    if(!firewall_req) return 0;
 
-        req->max_num_rules = 1024;
-        req->num_tbl8s = 24;
-        req->socket_id = rte_socket_id();
-        req->name[0] = 'f';
-        req->name[1] = 'w';
+    firewall_req->max_num_rules = 1024;
+    firewall_req->num_tbl8s = 24;
+    firewall_req->socket_id = rte_socket_id();
+    firewall_req->name[0] = 'f';
+    firewall_req->name[1] = 'w';
 
-        status = onvm_nflib_request_lpm(req); // Closing then starting this NF causes a status < 0
+    status = onvm_nflib_request_lpm(firewall_req); // Closing then starting this NF causes a status < 0
 
-	    if(status < 0){
-		        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
-	    }
+    if(status < 0){
+        rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
+    }
 
-        lpm_tbl = rte_lpm_find_existing("fw");
+    lpm_tbl = rte_lpm_find_existing("fw");
 
-	    if (lpm_tbl == NULL) {
-	            printf("No existing LPM_TBL\n");
-	    }
+    if (lpm_tbl == NULL) {
+        printf("No existing LPM_TBL\n");
+    }
 
-        for(i = 0; i < num_rules; ++i){
-                printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
-                int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
-                if(add_failed){
-                        printf("ERROR ADDING RULE %d\n", add_failed);
-                        return 1;
-                }
+    for(i = 0; i < num_rules; ++i){
+        printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
+        int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
+        if(add_failed){
+            printf("ERROR ADDING RULE %d\n", add_failed);
+            return 1;
         }
+    }
 
-        return 0;
+    return 0;
 }
 
 static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
-        int i;
+    int i;
 
-        if(rules) {
-            for(i = 0; i < num_rules; ++i){
-                if(rules[i]) free(rules[i]);
-            }
-            free(rules);
+    if(rules) {
+        for(i = 0; i < num_rules; ++i){
+            if(rules[i]) free(rules[i]);
         }
+        free(rules);
+    }
 
-        if (req) {
-            free(req);
-        }
+    if (firewall_req) {
+        free(firewall_req);
+    }
 
-        if (lpm_tbl) {
-            rte_lpm_free(lpm_tbl);
-        }
+    if (lpm_tbl) {
+        rte_lpm_free(lpm_tbl);
+    }
 }
 
 struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
-        int ip, num_rules;
-        int i = 0;
-        struct onvm_fw_rule** rules;
+    int ip, num_rules;
+    int i = 0;
+    struct onvm_fw_rule** rules;
 
-        cJSON *rules_json = onvm_config_parse_file(rules_file);
-        cJSON *rules_ip = NULL;
-        cJSON *depth = NULL;
-        cJSON *action = NULL;
+    cJSON *rules_json = onvm_config_parse_file(rules_file);
+    cJSON *rules_ip = NULL;
+    cJSON *depth = NULL;
+    cJSON *action = NULL;
 
-        if (rules_json == NULL) {
-            rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
-                                           " is within /examples or examples/firewall\n", rules_file);
-        }
+    if (rules_json == NULL) {
+        rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
+                               " is within /examples or examples/firewall\n", rules_file);
+    }
 
-        num_rules = onvm_config_get_item_count(rules_json);
-        *total_rules = num_rules;
-        rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
-        rules_json = rules_json->child;
+    num_rules = onvm_config_get_item_count(rules_json);
+    *total_rules = num_rules;
+    rules = (struct onvm_fw_rule**)malloc(num_rules * sizeof(struct onvm_fw_rule*));
+    rules_json = rules_json->child;
 
-        while (rules_json != NULL) {
-            rules_ip = cJSON_GetObjectItem(rules_json, "ip");
-            depth = cJSON_GetObjectItem(rules_json, "depth");
-            action = cJSON_GetObjectItem(rules_json, "action");
+    while (rules_json != NULL) {
+        rules_ip = cJSON_GetObjectItem(rules_json, "ip");
+        depth = cJSON_GetObjectItem(rules_json, "depth");
+        action = cJSON_GetObjectItem(rules_json, "action");
 
-            if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
-            if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
-            if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
+        if (rules_ip == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+        if (depth == NULL) rte_exit(EXIT_FAILURE, "Depth not found/invalid\n");
+        if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
-            rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
-            rules[i]->src_ip = rules_ip->valueint;
-            rules[i]->depth = depth->valueint;
-            rules[i]->action = action->valueint;
-            rules_json = rules_json->next;
-            i++;
-        }
-        cJSON_Delete(rules_json);
-        free(rule_file);
+        rules[i] = (struct onvm_fw_rule*)malloc(sizeof(struct onvm_fw_rule));
+        rules[i]->src_ip = rules_ip->valueint;
+        rules[i]->depth = depth->valueint;
+        rules[i]->action = action->valueint;
+        rules_json = rules_json->next;
+        i++;
+    }
+    cJSON_Delete(rules_json);
+    free(rule_file);
 
-        return rules;
+    return rules;
 }
 
 
 int main(int argc, char *argv[]) {
-        int arg_offset, num_rules;
-        struct onvm_fw_rule** rules;
+    int arg_offset, num_rules;
+    struct onvm_fw_rule** rules;
 
-        const char *progname = argv[0];
+    const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
-        argc -= arg_offset;
-        argv += arg_offset;
+    if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+        return -1;
+    argc -= arg_offset;
+    argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
-                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
-        }
+    if (parse_app_args(argc, argv, progname) < 0) {
+        onvm_nflib_stop(nf_info);
+        rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+    }
 
-        rules = setup_rules(&num_rules, rule_file);
-        lpm_setup(rules, num_rules);
-        onvm_nflib_run(nf_info, &packet_handler);
-        lpm_teardown(rules, num_rules);
-        printf("If we reach here, program is ending\n");
-        return 0;
+    rules = setup_rules(&num_rules, rule_file);
+    lpm_setup(rules, num_rules);
+    onvm_nflib_run(nf_info, &packet_handler);
+    lpm_teardown(rules, num_rules);
+    printf("If we reach here, program is ending\n");
+    return 0;
 }
