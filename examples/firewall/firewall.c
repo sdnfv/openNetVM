@@ -160,7 +160,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 struct rte_lpm* lpm_tbl;
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, struct onvm_nf_info* nf_info) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info* nf_info) {
         struct ipv4_hdr* ipv4_hdr;
         uint32_t rule = 0;
         uint32_t track_ip = 0;
@@ -258,6 +258,7 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         if (req) {
             rte_free(req);
         }
+        }
 }
 
 struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
@@ -271,19 +272,8 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
         cJSON *action = NULL;
 
         if (rules_json == NULL) {
-            char directory[PATH_MAX];
-            if (getcwd(directory, sizeof(directory)) > 0) {
-                    char *parent = dirname(directory);
-                    char *slash_tmp = calloc(strlen(rules_file), sizeof(char));
-                    slash_tmp[0] = '/';
-                    char *file_slash = strcat(slash_tmp, rules_file);
-                    char *rules_temp = strcat(parent, file_slash);
-                    rules_json = onvm_config_parse_file(rules_temp);
-                    free(slash_tmp);
-            }
-            if (rules_json == NULL) {
-                    rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file is within /examples or examples/firewall\n", rules_file);
-            }
+            rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
+                                           " is within /examples or examples/firewall\n", rules_file);
         }
 
         num_rules = onvm_config_get_item_count(rules_json);
