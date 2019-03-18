@@ -79,6 +79,7 @@ char *rule_file = NULL;
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
 struct lpm_request* req;
+struct rte_lpm* lpm_tbl;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -157,7 +158,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         return optind;
 }
 
-struct rte_lpm* lpm_tbl;
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info* nf_info) {
