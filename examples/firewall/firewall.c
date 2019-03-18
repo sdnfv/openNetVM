@@ -258,7 +258,6 @@ static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
         if (req) {
             rte_free(req);
         }
-        }
 }
 
 struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
