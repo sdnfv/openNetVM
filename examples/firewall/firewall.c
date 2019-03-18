@@ -216,9 +216,9 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
     firewall_req->name[0] = 'f';
     firewall_req->name[1] = 'w';
 
-    status = onvm_nflib_request_lpm(firewall_req); // Closing then starting this NF causes a status < 0
+    status = onvm_nflib_request_lpm(firewall_req);
 
-    if(status < 0){
+    if(status < 0) {
         rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
     }
 
@@ -228,7 +228,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
         printf("No existing LPM_TBL\n");
     }
 
-    for(i = 0; i < num_rules; ++i){
+    for (i = 0; i < num_rules; ++i) {
         printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
         int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
         if(add_failed){
@@ -243,7 +243,7 @@ static int lpm_setup(struct onvm_fw_rule** rules, int num_rules) {
 static void lpm_teardown(struct onvm_fw_rule** rules, int num_rules){
     int i;
 
-    if(rules) {
+    if (rules) {
         for(i = 0; i < num_rules; ++i){
             if(rules[i]) free(rules[i]);
         }
