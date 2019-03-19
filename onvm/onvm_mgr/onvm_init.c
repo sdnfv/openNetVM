@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                   onvm_init.c
@@ -48,12 +47,9 @@
 
 ******************************************************************************/
 
-
 #include "onvm_mgr/onvm_init.h"
 
-
 /********************************Global variables*****************************/
-
 
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
@@ -68,17 +64,22 @@ uint16_t *nf_per_service_count;
 struct onvm_service_chain *default_chain;
 struct onvm_service_chain **default_sc_p;
 
-
 /*************************Internal Functions Prototypes***********************/
 
-static int init_mbuf_pools(void);
-static int init_nf_info_pool(void);
-static int init_nf_msg_pool(void);
-static int init_port(uint8_t port_num);
-static int init_shm_rings(void);
-static int init_info_queue(void);
-static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
-
+static int
+init_mbuf_pools(void);
+static int
+init_nf_info_pool(void);
+static int
+init_nf_msg_pool(void);
+static int
+init_port(uint8_t port_num);
+static int
+init_shm_rings(void);
+static int
+init_info_queue(void);
+static void
+check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 
 /*****************Internal Configuration Structs and Constants*****************/
 
@@ -102,29 +103,25 @@ static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 #define TX_WTHRESH 0  /* Default values of TX write-back threshold reg. */
 
 static const struct rte_eth_conf port_conf = {
-        .rxmode = {
-                .mq_mode        = ETH_MQ_RX_RSS,
-                .max_rx_pkt_len = ETHER_MAX_LEN,
-                .split_hdr_size = 0,
-                .offloads       = DEV_RX_OFFLOAD_CHECKSUM,
+    .rxmode =
+        {
+            .mq_mode = ETH_MQ_RX_RSS,
+            .max_rx_pkt_len = ETHER_MAX_LEN,
+            .split_hdr_size = 0,
+            .offloads = DEV_RX_OFFLOAD_CHECKSUM,
         },
-        .rx_adv_conf = {
-                .rss_conf = {
-                        .rss_key = rss_symmetric_key,
-                        .rss_hf  = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP | ETH_RSS_L2_PAYLOAD,
+    .rx_adv_conf =
+        {
+            .rss_conf =
+                {
+                    .rss_key = rss_symmetric_key, .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP | ETH_RSS_L2_PAYLOAD,
                 },
         },
-        .txmode = {
-                .mq_mode  = ETH_MQ_TX_NONE,
-                .offloads = (DEV_TX_OFFLOAD_IPV4_CKSUM |
-                             DEV_TX_OFFLOAD_UDP_CKSUM  |
-                             DEV_TX_OFFLOAD_TCP_CKSUM)
-        },
+    .txmode = {.mq_mode = ETH_MQ_TX_NONE,
+               .offloads = (DEV_TX_OFFLOAD_IPV4_CKSUM | DEV_TX_OFFLOAD_UDP_CKSUM | DEV_TX_OFFLOAD_TCP_CKSUM)},
 };
 
-
 /*********************************Interfaces**********************************/
-
 
 int
 init(int argc, char *argv[]) {
@@ -152,38 +149,37 @@ init(int argc, char *argv[]) {
         total_ports = rte_eth_dev_count_avail();
 
         /* set up array for NF tx data */
-        mz_nf = rte_memzone_reserve(MZ_NF_INFO, sizeof(*nfs) * MAX_NFS,
-                                rte_socket_id(), NO_FLAGS);
+        mz_nf = rte_memzone_reserve(MZ_NF_INFO, sizeof(*nfs) * MAX_NFS, rte_socket_id(), NO_FLAGS);
         if (mz_nf == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for nf information\n");
         memset(mz_nf->addr, 0, sizeof(*nfs) * MAX_NFS);
         nfs = mz_nf->addr;
 
         /* set up ports info */
-        mz_port = rte_memzone_reserve(MZ_PORT_INFO, sizeof(*ports),
-                                    rte_socket_id(), NO_FLAGS);
+        mz_port = rte_memzone_reserve(MZ_PORT_INFO, sizeof(*ports), rte_socket_id(), NO_FLAGS);
         if (mz_port == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
         ports = mz_port->addr;
-  
+
         /* set up core status */
         mz_cores = rte_memzone_reserve(MZ_CORES_STATUS, sizeof(*cores) * onvm_threading_get_num_cores(),
-                                    rte_socket_id(), NO_FLAGS);
+                                       rte_socket_id(), NO_FLAGS);
         if (mz_cores == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for core information\n");
         memset(mz_cores->addr, 0, sizeof(*cores) * 64);
         cores = mz_cores->addr;
 
         /* set up array for NF tx data */
-        mz_services = rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);
+        mz_services =
+            rte_memzone_reserve(MZ_SERVICES_INFO, sizeof(uint16_t *) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_services == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for services information\n");
         services = mz_services->addr;
         for (i = 0; i < num_services; i++) {
-                services[i] = rte_calloc("one service NFs",
-                        MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
+                services[i] = rte_calloc("one service NFs", MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
         }
-        mz_nf_per_service = rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
+        mz_nf_per_service =
+            rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_nf_per_service == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for NF per service information.\n");
         }
@@ -241,8 +237,7 @@ init(int argc, char *argv[]) {
         printf("Default service chain: send to sdn NF\n");
 
         /* set up service chain pointer shared to NFs*/
-        mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
-                                   rte_socket_id(), NO_FLAGS);
+        mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *), rte_socket_id(), NO_FLAGS);
         if (mz_scp == NULL)
                 rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
         memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
@@ -255,9 +250,7 @@ init(int argc, char *argv[]) {
         return 0;
 }
 
-
 /*****************************Internal functions******************************/
-
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
@@ -267,12 +260,10 @@ static int
 init_mbuf_pools(void) {
         /* don't pass single-producer/single-consumer flags to mbuf create as it
          * seems faster to use a cache instead */
-        printf("Creating mbuf pool '%s' [%u mbufs] ...\n",
-                        PKTMBUF_POOL_NAME, NUM_MBUFS);
-        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, NUM_MBUFS,
-                        MBUF_SIZE, MBUF_CACHE_SIZE,
-                        sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init,
-                        NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
+        printf("Creating mbuf pool '%s' [%u mbufs] ...\n", PKTMBUF_POOL_NAME, NUM_MBUFS);
+        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, NUM_MBUFS, MBUF_SIZE, MBUF_CACHE_SIZE,
+                                          sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init, NULL,
+                                          rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
 
         return (pktmbuf_pool == NULL); /* 0  on success */
 }
@@ -281,14 +272,12 @@ init_mbuf_pools(void) {
  * Set up a mempool to store nf_msg structs
  */
 static int
-init_nf_msg_pool(void)
-{
+init_nf_msg_pool(void) {
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MSG_POOL_NAME);
-        nf_msg_pool = rte_mempool_create(_NF_MSG_POOL_NAME, MAX_NFS * NF_MSG_QUEUE_SIZE,
-                        NF_INFO_SIZE, NF_MSG_CACHE_SIZE,
-                        0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
+        nf_msg_pool = rte_mempool_create(_NF_MSG_POOL_NAME, MAX_NFS * NF_MSG_QUEUE_SIZE, NF_INFO_SIZE,
+                                         NF_MSG_CACHE_SIZE, 0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
 
         return (nf_msg_pool == NULL); /* 0 on success */
 }
@@ -297,14 +286,12 @@ init_nf_msg_pool(void)
  * Set up a mempool to store nf_info structs
  */
 static int
-init_nf_info_pool(void)
-{
+init_nf_info_pool(void) {
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
-        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS,
-                        NF_INFO_SIZE, 0,
-                        0, NULL, NULL, NULL, NULL, rte_socket_id(), NO_FLAGS);
+        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS, NF_INFO_SIZE, 0, 0, NULL, NULL, NULL, NULL,
+                                          rte_socket_id(), NO_FLAGS);
 
         return (nf_info_pool == NULL); /* 0 on success */
 }
@@ -343,52 +330,46 @@ init_port(uint8_t port_num) {
         rte_eth_dev_info_get(port_num, &dev_info);
         if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
                 local_port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
-        local_port_conf.rx_adv_conf.rss_conf.rss_hf &=
-                dev_info.flow_type_rss_offloads;
-        if (local_port_conf.rx_adv_conf.rss_conf.rss_hf !=
-                        port_conf.rx_adv_conf.rss_conf.rss_hf) {
-                printf("Port %u modified RSS hash function based on hardware support,"
-                        "requested:%#"PRIx64" configured:%#"PRIx64"\n",
-                        port_num,
-                        port_conf.rx_adv_conf.rss_conf.rss_hf,
-                        local_port_conf.rx_adv_conf.rss_conf.rss_hf);
+        local_port_conf.rx_adv_conf.rss_conf.rss_hf &= dev_info.flow_type_rss_offloads;
+        if (local_port_conf.rx_adv_conf.rss_conf.rss_hf != port_conf.rx_adv_conf.rss_conf.rss_hf) {
+                printf(
+                    "Port %u modified RSS hash function based on hardware support,"
+                    "requested:%#" PRIx64 " configured:%#" PRIx64 "\n",
+                    port_num, port_conf.rx_adv_conf.rss_conf.rss_hf, local_port_conf.rx_adv_conf.rss_conf.rss_hf);
         }
 
-        if ((retval = rte_eth_dev_configure(port_num, rx_rings, tx_rings,
-                &local_port_conf)) != 0)
+        if ((retval = rte_eth_dev_configure(port_num, rx_rings, tx_rings, &local_port_conf)) != 0)
                 return retval;
 
-        /* Adjust rx,tx ring sizes if not allowed by ethernet device 
+        /* Adjust rx,tx ring sizes if not allowed by ethernet device
          * TODO if this is ajusted store the new values for future reference */
-        retval = rte_eth_dev_adjust_nb_rx_tx_desc(
-                port_num, &rx_ring_size, &tx_ring_size);
+        retval = rte_eth_dev_adjust_nb_rx_tx_desc(port_num, &rx_ring_size, &tx_ring_size);
         if (retval < 0) {
-                rte_panic("Cannot adjust number of descriptors for port %u (%d)\n",
-                          port_num, retval);
+                rte_panic("Cannot adjust number of descriptors for port %u (%d)\n", port_num, retval);
         }
 
         rxq_conf = dev_info.default_rxconf;
         rxq_conf.offloads = local_port_conf.rxmode.offloads;
         for (q = 0; q < rx_rings; q++) {
-                retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
-                                rte_eth_dev_socket_id(port_num),
-                                &rxq_conf, pktmbuf_pool);
-                if (retval < 0) return retval;
+                retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size, rte_eth_dev_socket_id(port_num), &rxq_conf,
+                                                pktmbuf_pool);
+                if (retval < 0)
+                        return retval;
         }
 
         txq_conf = dev_info.default_txconf;
         txq_conf.offloads = port_conf.txmode.offloads;
         for (q = 0; q < tx_rings; q++) {
-                retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
-                                rte_eth_dev_socket_id(port_num),
-                                &txq_conf);
-                if (retval < 0) return retval;
+                retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size, rte_eth_dev_socket_id(port_num), &txq_conf);
+                if (retval < 0)
+                        return retval;
         }
 
         rte_eth_promiscuous_enable(port_num);
 
         retval = rte_eth_dev_start(port_num);
-        if (retval < 0) return retval;
+        if (retval < 0)
+                return retval;
 
         printf("done: \n");
 
@@ -404,9 +385,9 @@ static int
 init_shm_rings(void) {
         unsigned i;
         unsigned socket_id;
-        const char * rq_name;
-        const char * tq_name;
-        const char * msg_q_name;
+        const char *rq_name;
+        const char *tq_name;
+        const char *msg_q_name;
         const unsigned ringsize = NF_QUEUE_RINGSIZE;
         const unsigned msgringsize = NF_MSG_QUEUE_SIZE;
 
@@ -420,15 +401,12 @@ init_shm_rings(void) {
                 tq_name = get_tx_queue_name(i);
                 msg_q_name = get_msg_queue_name(i);
                 nfs[i].instance_id = i;
-                nfs[i].rx_q = rte_ring_create(rq_name,
-                                ringsize, socket_id,
-                                RING_F_SC_DEQ);                 /* multi prod, single cons */
-                nfs[i].tx_q = rte_ring_create(tq_name,
-                                ringsize, socket_id,
-                                RING_F_SC_DEQ);                 /* multi prod, single cons */
-                nfs[i].msg_q = rte_ring_create(msg_q_name,
-                                msgringsize, socket_id,
-                                RING_F_SC_DEQ);                 /* multi prod, single cons */
+                nfs[i].rx_q =
+                    rte_ring_create(rq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
+                nfs[i].tx_q =
+                    rte_ring_create(tq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
+                nfs[i].msg_q =
+                    rte_ring_create(msg_q_name, msgringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
 
                 if (nfs[i].rx_q == NULL)
                         rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for NF %u\n", i);
@@ -446,13 +424,9 @@ init_shm_rings(void) {
  * Allocate a rte_ring for newly created NFs
  */
 static int
-init_info_queue(void)
-{
-        incoming_msg_queue = rte_ring_create(
-                _MGR_MSG_QUEUE_NAME,
-                MAX_NFS,
-                rte_socket_id(),
-                RING_F_SC_DEQ); // MP enqueue (default), SC dequeue
+init_info_queue(void) {
+        incoming_msg_queue = rte_ring_create(_MGR_MSG_QUEUE_NAME, MAX_NFS, rte_socket_id(),
+                                             RING_F_SC_DEQ);  // MP enqueue (default), SC dequeue
 
         if (incoming_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create incoming msg queue\n");
@@ -464,7 +438,7 @@ init_info_queue(void)
 static void
 check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
 #define CHECK_INTERVAL 100 /* 100ms */
-#define MAX_CHECK_TIME 90 /* 9s (90 * 100ms) in total */
+#define MAX_CHECK_TIME 90  /* 9s (90 * 100ms) in total */
         uint8_t portid, count, all_ports_up, print_flag = 0;
         struct rte_eth_link link;
 
@@ -480,14 +454,14 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
                         /* print link status if flag set */
                         if (print_flag == 1) {
                                 if (link.link_status)
-                                        printf("Port %d Link Up - speed %u "
-                                                "Mbps - %s\n", ports->id[portid],
-                                                (unsigned)link.link_speed,
-                                (link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
-                                        ("full-duplex") : ("half-duplex\n"));
+                                        printf(
+                                            "Port %d Link Up - speed %u "
+                                            "Mbps - %s\n",
+                                            ports->id[portid], (unsigned)link.link_speed,
+                                            (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? ("full-duplex")
+                                                                                       : ("half-duplex\n"));
                                 else
-                                        printf("Port %d Link Down\n",
-                                                (uint8_t)ports->id[portid]);
+                                        printf("Port %d Link Down\n", (uint8_t)ports->id[portid]);
                                 continue;
                         }
                         /* clear all_ports_up flag if any link down */
