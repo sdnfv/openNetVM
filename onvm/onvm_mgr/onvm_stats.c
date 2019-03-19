@@ -357,7 +357,6 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 tx_for_service[i] = 0;
                 rx_drop_for_service[i] = 0;
                 tx_drop_for_service[i] = 0;
-                ;
                 rx_pps_for_service[i] = 0;
                 tx_pps_for_service[i] = 0;
                 rx_drop_rate_for_service[i] = 0;
