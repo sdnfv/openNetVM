@@ -590,6 +590,12 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
                 RTE_LOG(INFO, APP, "Received scale message...\n");
                 onvm_nflib_scale((struct onvm_nf_scale_info*)msg->msg_data);
                 break;
+        case MSG_CHANGE_CORE:
+                RTE_LOG(INFO, APP, "Recieved relocation message...\n"); 
+                RTE_LOG(INFO, APP, "Moving NF to core %d\n", *(uint16_t *)msg->msg_data); 
+                onvm_threading_core_affinitize(*(uint16_t *)msg->msg_data);
+                rte_free(msg->msg_data);
+                break;
         case MSG_NOOP:
         default:
                 break;

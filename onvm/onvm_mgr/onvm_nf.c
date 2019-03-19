@@ -89,6 +89,26 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
 
+/*
+ * Function to remap NF core mappings
+ *
+ * Input  : a possibly free core_id 
+ * Output : an error code
+ *
+ */
+inline static int
+onvm_nf_reassign_cores(uint16_t candidate_core);
+
+/*
+ * Function to remap NF core mappings
+ *
+ * Input  : pointer to nf that need to be moved
+ *          new_core value of where nf should be moved
+ * Output : an error code
+ *
+ */
+inline int 
+onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 
 /********************************Interfaces***********************************/
 
@@ -249,7 +269,9 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info) {
         uint16_t nf_id;
         uint16_t service_id;
+        uint16_t nf_core;
         int mapIndex;
+        int core_reasignment;
         struct rte_mempool *nf_info_mp;
 
         if(nf_info == NULL || nf_info->status != NF_RUNNING)
@@ -258,8 +280,12 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         nf_info->status = NF_STOPPED;
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
-        cores[nf_info->core].nf_count--;
-        cores[nf_info->core].is_dedicated_core = 0;
+
+        /* As this NF stopped we can reevaluate core mappings */
+        nf_core = nf_info->core;
+        core_reasignment = 0;//onvm_threading_is_reasignment_possible(nf_core);
+        cores[nf_core].nf_count--;
+        cores[nf_core].is_dedicated_core = 0;
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
@@ -297,5 +323,61 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         rte_mempool_put(nf_info_mp, (void*)nf_info);
 
+        if (core_reasignment == 0) {
+                onvm_nf_reassign_cores(nf_core);
+        }
+
+        return 0;
+}
+                
+inline int
+onvm_nf_reassign_cores(uint16_t updated_core) {
+        int i;
+        int candidate_core;
+        int max_nfs_per_core;
+        int candidate_nf_id;
+
+        candidate_core = 0;
+        candidate_nf_id = 0;
+        max_nfs_per_core = 0;
+
+        /* TODO most of this logic should be in the nflib threading.c file */
+        for (i = 0; i < onvm_threading_get_num_cores(); i++) {
+                if (cores[i].nf_count > max_nfs_per_core) {
+                        max_nfs_per_core = cores[i].nf_count;
+                        candidate_core = i;
+                }
+        }
+
+        if (max_nfs_per_core == 1 || cores[updated_core].nf_count >= max_nfs_per_core)
+                return 0;
+
+        for (i = 0; i < MAX_NFS; i++) {
+                /*
+                 * TODO this isn't really ideal, just chooses one of the NFs 
+                 * if we do this based off NF load this would be impressive, @Deep
+                 *
+                 */
+                if (!onvm_nf_is_valid(&nfs[i]))
+                        continue;
+                if (nfs[i].info->core == candidate_core) {
+                        candidate_nf_id = nfs[i].info->instance_id;
+                }
+        }
+
+        if (!onvm_nf_is_valid(&nfs[candidate_nf_id]))
+                return -1;
+
+        return onvm_nf_relocate_nf(candidate_nf_id, updated_core);
+}
+
+inline int onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
+        uint16_t *msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
+        *msg_data = new_core;
+        onvm_nf_send_msg(dest, MSG_CHANGE_CORE, msg_data);
+
+        /* We probably need logic that handles if everything is succesfull */
+
+        cores[new_core].nf_count++;
         return 0;
 }
