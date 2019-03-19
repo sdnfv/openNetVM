@@ -415,7 +415,7 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
 
         strncpy((*onvm_argv)[0], FLAG_R, strlen(FLAG_R));
 
-        sprintf(service_id_string, "%d", service_id);
+        snprintf(service_id_string, sizeof(char) * MAX_SERVICE_ID_SIZE, "%d", service_id);
         (*onvm_argv)[1] = service_id_string;
 
         if (*onvm_argc > 2) {
@@ -431,7 +431,7 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
                         return -1;
                 }
                 strncpy((*onvm_argv)[2], FLAG_N, strlen(FLAG_N));
-                sprintf(instance_id_string, "%d", instance_id);
+                snprintf(instance_id_string, sizeof(char) * MAX_SERVICE_ID_SIZE, "%d", instance_id);
                 (*onvm_argv)[3] = instance_id_string;
         }
 
@@ -444,6 +444,7 @@ onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_arg
         int mem_channels = 0;
         char* mem_channels_string = NULL;
         size_t* arg_size = NULL;
+        size_t mem_channels_string_size;
         int i = 0;
 
         if (dpdk_config == NULL || dpdk_argc == NULL || dpdk_argv == NULL) {
@@ -480,13 +481,14 @@ onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_arg
                 return -1;
         }
 
-        mem_channels_string = (char*)malloc(sizeof(char) * 3);
+        mem_channels_string_size = sizeof(char) * 3;
+        mem_channels_string = (char*)malloc(mem_channels_string_size);
         if (mem_channels_string == NULL) {
                 printf("Unable to allocate space for memory channels string\n");
                 return -1;
         }
 
-        sprintf(mem_channels_string, "%d", mem_channels);
+        snprintf(mem_channels_string, mem_channels_string_size, "%d", mem_channels);
 
         arg_size[0] = strlen(FLAG_L);
         arg_size[1] = strlen(core_string);
