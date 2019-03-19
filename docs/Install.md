@@ -21,13 +21,17 @@ Check System
     ```sh
     sudo apt-get install build-essential linux-headers-$(uname -r) git
     ```
-4. Assure your kernel suppors uio
+4. Assure your kernel supports uio
     ```sh
     locate uio
     ```
 5. Install libnuma
    ```sh
    sudo apt-get install libnuma-dev
+   ```
+   If installing libnuma-dev fails, your system may not be up to date. To fix this, run:
+   ```sh
+   sudo apt-get update
    ```
 
 Setup Repositories
