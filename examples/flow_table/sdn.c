@@ -136,9 +136,9 @@ datapath_handle_read(struct datapath *dp) {
         count = msgbuf_read(dp->inbuf, dp->sock);  // read any queued data
         if (count <= 0) {
                 fprintf(stderr, "controller msgbuf_read() = %d:  ", count);
-                if (count < 0)
+                if (count < 0) {
                         perror("msgbuf_read");
-                else {
+                } else {
                         fprintf(stderr, " closed connection ");
                 }
                 fprintf(stderr, "... exiting\n");

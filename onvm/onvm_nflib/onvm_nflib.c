@@ -546,8 +546,10 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf **pkts,
                         rte_pktmbuf_free(pkts[i]);
                 }
                 return -ENOBUFS;
-        } else
+        } else {
                 nfs[nf_info->instance_id].stats.tx_returned += count;
+        }
+
         return 0;
 }
 
@@ -568,6 +570,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info) {
                 rte_mempool_put(nf_msg_pool, startup_msg);
                 return ret;
         }
+
         return 0;
 }
 
