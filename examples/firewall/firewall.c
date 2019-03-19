@@ -76,26 +76,39 @@ static uint16_t destination;
 static int debug = 0;
 char *rule_file = NULL;
 
-/* Struct that contains information about this NF */
+/* Structs that contain information about this NF/set up LPM rules */
 struct onvm_nf_info *nf_info;
 struct lpm_request* firewall_req;
+static struct onvm_pkt_stats stats;
+struct rte_lpm* lpm_tbl;
 
-/* shared data structure containing host port info */
+/* Number of packets between each print */
+static uint32_t print_delay = 10000000;
+
+/* Shared data structure containing host port info */
 extern struct port_info *ports;
 
-// struct for parsing rules
+/* Struct for the firewall LPM rules */
 struct onvm_fw_rule {
     uint32_t src_ip;
     uint8_t depth;
     uint8_t action;
 };
 
+/* Struct for printing stats */
+struct onvm_pkt_stats {
+    uint64_t pkt_drop;
+    uint64_t pkt_accept;
+    uint64_t pkt_total;
+};
+
+
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-    printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n\n", progname);
+    printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay> -f <rules file>\n\n", progname);
 }
 
 /*
@@ -112,7 +125,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 dst_flag = 1;
                 break;
             case 'p':
-                RTE_LOG(INFO, APP, "print_delay = %d\n", 0);
+                print_delay = strtoul(optarg, NULL, 10);
+                RTE_LOG(INFO, APP, "Print delay = %d\n", print_delay);
                 break;
             case 'f':
                 rule_file = malloc(sizeof(char) * (strlen(optarg)));
@@ -156,11 +170,30 @@ parse_app_args(int argc, char *argv[], const char *progname) {
     return optind;
 }
 
-struct rte_lpm* lpm_tbl;
+/*
+ * This function displays stats. It uses ANSI terminal codes to clear
+ * screen when called. It is called from a single non-master
+ * thread in the server process, when the process is run with more
+ * than one lcore enabled.
+ */
+static void
+do_stats_display(void) {
+    const char clr[] = { 27, '[', '2', 'J', '\0' };
+    const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+
+    /* Clear screen and move to top left */
+    printf("%s%s", clr, topLeft);
+    printf("Packets Dropped: %lu\n", stats.pkt_drop);
+    printf("Packets Accepted: %lu\n", stats.pkt_accept);
+    printf("Packets Total: %lu", stats.pkt_total);
+
+    printf("\n\n");
+}
 
 static int
 packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info* nf_info) {
     struct ipv4_hdr* ipv4_hdr;
+    static uint32_t counter = 0;
     uint32_t rule = 0;
     uint32_t track_ip = 0;
 
@@ -170,6 +203,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
 
         if (ret) {
             meta->action = ONVM_NF_ACTION_DROP;
+            stats.pkt_drop++;
+            stats.pkt_total++;
             if (debug) {
                 RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
             } else {
@@ -177,6 +212,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
                     case ONVM_NF_ACTION_TONF:
                         meta->action = ONVM_NF_ACTION_TONF;
                         meta->destination = destination;
+                        stats.pkt_accept++;
+                        stats.pkt_total++;
                         if (debug) {
                             RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
                                     ipv4_hdr->src_addr);
@@ -184,6 +221,8 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
                         break;
                     default:
                         meta->action = ONVM_NF_ACTION_DROP;
+                        stats.pkt_drop++;
+                        stats.pkt_total++;
                         if (debug) {
                             RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n",
                                     ipv4_hdr->src_addr);
@@ -196,8 +235,16 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
         if (debug) {
             RTE_LOG(INFO, APP, "Packet received not ipv4\n");
         }
+        stats.pkt_drop++;
+        stats.pkt_total++;
         meta->action = ONVM_NF_ACTION_DROP;
     }
+
+    if (++counter == print_delay) {
+        do_stats_display();
+        counter = 0;
+    }
+
     return 0;
 }
 
@@ -278,7 +325,7 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
             strcat(cwd, rules_file);
             rules_json = onvm_config_parse_file(cwd);
         }
-        
+
         if (rules_json == NULL) {
             rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
                                    " is within /examples/firewall\n", rules_file);
@@ -312,10 +359,12 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
     return rules;
 }
 
-
 int main(int argc, char *argv[]) {
     int arg_offset, num_rules;
     struct onvm_fw_rule** rules;
+
+    stats.pkt_drop = 0;
+    stats.pkt_accept = 0;
 
     const char *progname = argv[0];
 
