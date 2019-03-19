@@ -268,8 +268,21 @@ struct onvm_fw_rule** setup_rules(int* total_rules, char* rules_file) {
     cJSON *action = NULL;
 
     if (rules_json == NULL) {
-        rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
-                               " is within /examples or examples/firewall\n", rules_file);
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) == NULL) {
+            rte_exit(EXIT_FAILURE, "Current directory could not be opened. rules file not obtained\n");
+        }
+        else {
+            char *firewall_dir = "/firewall/";
+            strcat(cwd, firewall_dir);
+            strcat(cwd, rules_file);
+            rules_json = onvm_config_parse_file(cwd);
+        }
+        
+        if (rules_json == NULL) {
+            rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure rules file"
+                                   " is within /examples/firewall\n", rules_file);
+        }
     }
 
     num_rules = onvm_config_get_item_count(rules_json);
