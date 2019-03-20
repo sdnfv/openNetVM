@@ -1,6 +1,6 @@
 Firewall
 ==
-The Firewall NF is an NF which drops/forwards packets based on LPM rules.
+The Firewall NF drops/forwards packets based on LPM rules specified in the  rules.json file.
 
 Compilation and Execution
 --
@@ -8,23 +8,16 @@ Compilation and Execution
 cd examples
 make
 cd firewall
-./go.sh INSTANCE_ID -d SERVICE_ID -f RULES_FILE
+./go.sh SERVICE_ID -d DESTINATION_ID -f RULES_FILE
 
-OR
+OR 
 
-./go.sh INSTANCE_ID -d SERVICE_ID -f RULES_FILE -b 
-
-cd examples
-./start_nf firewall INSTANCE_ID -d SERVICE_ID -f RULES_FILE
-
-OR
-
-./start_nf firewall INSTANCE_ID -d SERVICE_ID -f RULES_FILE -b
-
+./go.sh -F CONFIG_FILE -- -- -d DST -f RULES_FILE [-p PRINT_DELAY] [-b debug mode]
 ```
 
 App Specific Arguments
 --
-  - `-b specifies a debug mode. Prints when packets are dropped/forwarded.
-  - `-f specifies a rules file. These are rules used for LPM lookup.
+  - `-b`: specifies debug mode. Prints individual packet source ip addresses.
+  - `-f <rules_file>`: rules used for LPM lookup.
+  - `-p <print_delay`: number of packets between each print, e.g. -p 1 prints every packets.
 
