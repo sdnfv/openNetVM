@@ -137,3 +137,41 @@ onvm_threading_core_affinitize(int cpu) {
 
         return rte_thread_set_affinity(&cpus);
 }
+
+int
+onvm_threading_find_nf_to_reassign_core(uint16_t updated_core, struct core_status *cores) {
+        int i;
+        int candidate_nf_id, candidate_core;
+        int max_nfs_per_core;
+
+        candidate_core = candidate_nf_id = max_nfs_per_core = 0;
+
+        for (i = 0; i < onvm_threading_get_num_cores(); i++) {
+                if (cores[i].nf_count > max_nfs_per_core) {
+                        max_nfs_per_core = cores[i].nf_count;
+                        candidate_core = i;
+                }
+        }
+
+        /* Core reasignment isn't required if there is nf_count doesn't exceed 1 NF per core
+         * or if the stopped NF was running on the most used core */
+        if (max_nfs_per_core == 1 || cores[updated_core].nf_count >= max_nfs_per_core)
+                return 0;
+
+        /* Chooses one of the NFs running on candidate core 
+         * TODO (@Deep) if we do this based of NF load this would be impressive, we should 
+         * maintain a variable in onvm_nf struct describing NF load and choose the candidate based on that */
+        for (i = 0; i < MAX_NFS; i++) {
+                if (onvm_nf_is_valid(&nfs[i]) && nfs[i].info->core == candidate_core) {
+                        candidate_nf_id = nfs[i].info->instance_id;
+                        break;
+                }
+        }
+
+        /* Sanity check, should not happen */
+        if (candidate_nf_id == 0) {
+                rte_exit(EXIT_FAILURE, "Cannot locate NF running on core %u", candidate_core);
+        }
+
+        return candidate_nf_id;
+}

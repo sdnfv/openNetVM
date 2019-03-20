@@ -43,6 +43,12 @@
 
 #include "onvm_common.h"
 
+/********************************Global variables*****************************/
+
+extern struct onvm_nf *nfs;
+
+/********************************Interfaces***********************************/
+
 /**
  * Gets the total number of cores.
  */
@@ -80,5 +86,20 @@ int onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_sta
  *    0 on success, or a negative value on failure
  */
 int onvm_threading_core_affinitize(int core);
+
+/**
+ * Based on current core usage decides if any NF should be moved to passed candidate core.
+ *
+ * @param candidate_core
+ *    An integer core value to possibly move a NF to
+ * @param cores
+ *    A pointer to the core_status map containing core information
+ *
+ * @return
+ *    An instance ID of a candidate NF that should be moved to candidate_core
+ */
+int
+onvm_threading_find_nf_to_reassign_core(uint16_t candidate_core, struct core_status *cores);
+
 
 #endif  // _ONVM_THREADING_H_"
