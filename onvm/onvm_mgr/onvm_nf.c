@@ -90,7 +90,7 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
 
 /*
- * Function to move a NF to another core
+ * Function to move a NF to another core.
  *
  * Input  : instance id of the NF that needs to be moved
  *          new_core value of where the NF should be moved
@@ -323,13 +323,13 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 inline int onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
         uint16_t *msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
         *msg_data = new_core;
-        
+
         cores[nfs[dest].info->core].nf_count--;
-        
+
         onvm_nf_send_msg(dest, MSG_CHANGE_CORE, msg_data);
 
-        /* We probably need logic that handles if everything is succesfull */
-        
+        /* We probably need logic that handles if everything is successful */
+
         /* TODO Add core number */
         onvm_stats_add_event("Moved NF to new core", nfs[dest].info);
 
