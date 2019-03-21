@@ -142,7 +142,6 @@ onvm_nf_check_status(void) {
                         nf = (struct onvm_nf_info*)msg->msg_data;
                         if (onvm_nf_stop(nf) == 0) {
                                 onvm_stats_add_event("NF Stopping", nf);
-                                num_nfs--;
                         }
                         break;
                 }
@@ -249,20 +248,44 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info) {
         uint16_t nf_id;
         uint16_t service_id;
+        uint16_t nf_status;
         int mapIndex;
         struct rte_mempool *nf_info_mp;
 
-        if(nf_info == NULL || nf_info->status != NF_RUNNING)
+        if (nf_info == NULL)
+                return 1;
+
+        nf_id = nf_info->instance_id;
+        service_id = nf_info->service_id;
+        nf_status = nf_info->status;
+
+        /* Cleanup should only happen if NF was starting or running */
+        if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)
                 return 1;
 
         nf_info->status = NF_STOPPED;
-        nf_id = nf_info->instance_id;
-        service_id = nf_info->service_id;
+
+        /* Remove the NF from the core it was running on */
         cores[nf_info->core].nf_count--;
         cores[nf_info->core].is_dedicated_core = 0;
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
+
+        /* Free info struct */
+        /* Lookup mempool for nf_info struct */
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
+                return 1;
+
+        rte_mempool_put(nf_info_mp, (void*)nf_info);
+
+        /* Further cleanup is only required if NF was succesfully started */
+        if (nf_status != NF_RUNNING && nf_status != NF_PAUSED)
+                return 0;
+
+        /* Decrease the total number of RUNNING NFs */
+        num_nfs--;
 
         /* Reset stats */
         onvm_stats_clear_nf(nf_id);
@@ -288,14 +311,6 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
                         services[service_id][mapIndex + 1] = 0;
                 }
         }
-
-        /* Free info struct */
-        /* Lookup mempool for nf_info struct */
-        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
-        if (nf_info_mp == NULL)
-                return 1;
-
-        rte_mempool_put(nf_info_mp, (void*)nf_info);
 
         return 0;
 }
