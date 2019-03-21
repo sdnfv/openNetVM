@@ -218,7 +218,7 @@ init(int argc, char *argv[]) {
                 retval = init_port(port_id);
                 if (retval != 0)
                         rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
-                char event_msg_buf[20];
+                char event_msg_buf[22];
                 sprintf(event_msg_buf, "Port %d initialized", port_id);
                 onvm_stats_add_event(event_msg_buf, NULL);
         }
@@ -235,7 +235,7 @@ init(int argc, char *argv[]) {
         default_chain = onvm_sc_create();
         retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
         if (retval == ENOSPC) {
-                printf("chain length can not be larger than the maximum chain length\n");
+                printf("Chain length can not be larger than the maximum chain length\n");
                 exit(1);
         }
         printf("Default service chain: send to sdn NF\n");
@@ -244,7 +244,7 @@ init(int argc, char *argv[]) {
         mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *),
                                    rte_socket_id(), NO_FLAGS);
         if (mz_scp == NULL)
-                rte_exit(EXIT_FAILURE, "Canot reserve memory zone for service chain pointer\n");
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for service chain pointer\n");
         memset(mz_scp->addr, 0, sizeof(struct onvm_service_chain *));
         default_sc_p = mz_scp->addr;
         *default_sc_p = default_chain;
