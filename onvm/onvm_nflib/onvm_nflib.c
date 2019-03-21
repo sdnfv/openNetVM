@@ -327,7 +327,6 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 
         rte_mempool_put(nf_msg_pool, request_message);
         return lpm_req->status;
-
 }
 
 static int
