@@ -257,7 +257,7 @@ struct onvm_service_chain_entry {
 };
 
 struct lpm_request {
-    char name[24];
+    char name[64];
     uint32_t max_num_rules;
     uint32_t num_tbl8s;
     int socket_id;

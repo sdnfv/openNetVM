@@ -207,7 +207,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         stats.pkt_drop++;
                         stats.pkt_total++;
                         if (debug) {
-                                RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n", ipv4_hdr->src_addr);
+                                RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n", ipv4_hdr->src_addr);
                         }
                 } else {
                         switch (rule) {
@@ -217,7 +217,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                                         stats.pkt_accept++;
                                         stats.pkt_total++;
                                         if (debug) {
-                                                RTE_LOG(INFO, APP, "Packet from source IP %d has been accepted.\n",
+                                                RTE_LOG(INFO, APP, "Packet from source IP %u has been accepted.\n",
                                                         ipv4_hdr->src_addr);
                                         }
                                         break;
@@ -226,7 +226,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                                         stats.pkt_drop++;
                                         stats.pkt_total++;
                                         if (debug) {
-                                                RTE_LOG(INFO, APP, "Packet from source IP %d has been dropped.\n",
+                                                RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n",
                                                         ipv4_hdr->src_addr);
                                         }
                                         break;
@@ -251,16 +251,18 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         int i, status;
+        char name[64];
 
         firewall_req = (struct lpm_request *) rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
         if (!firewall_req) return 0;
 
+        snprintf(name, sizeof(name), "fw%d-%"PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
         firewall_req->max_num_rules = 1024;
         firewall_req->num_tbl8s = 24;
         firewall_req->socket_id = rte_socket_id();
-        firewall_req->name[0] = 'f';
-        firewall_req->name[1] = 'w';
+        strcpy(firewall_req->name, name);
+
 
         status = onvm_nflib_request_lpm(firewall_req);
 
@@ -268,7 +270,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
                 rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
         }
 
-        lpm_tbl = rte_lpm_find_existing("fw");
+        lpm_tbl = rte_lpm_find_existing(name);
 
         if (lpm_tbl == NULL) {
                 printf("No existing LPM_TBL\n");
