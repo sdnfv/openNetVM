@@ -195,62 +195,55 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         struct ipv4_hdr *ipv4_hdr;
         static uint32_t counter = 0;
+        int ret;
         uint32_t rule = 0;
         uint32_t track_ip = 0;
-
-        if (onvm_pkt_is_ipv4(pkt)) {
-                ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-                int ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
-
-                if (ret) {
-                        meta->action = ONVM_NF_ACTION_DROP;
-                        stats.pkt_drop++;
-                        stats.pkt_total++;
-                        if (debug) {
-                                RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n", ipv4_hdr->src_addr);
-                        }
-                } else {
-                        switch (rule) {
-                                case 0:
-                                        meta->action = ONVM_NF_ACTION_TONF;
-                                        meta->destination = destination;
-                                        stats.pkt_accept++;
-                                        stats.pkt_total++;
-                                        if (debug) {
-                                                RTE_LOG(INFO, APP, "Packet from source IP %u has been accepted.\n",
-                                                        ipv4_hdr->src_addr);
-                                        }
-                                        break;
-                                default:
-                                        meta->action = ONVM_NF_ACTION_DROP;
-                                        stats.pkt_drop++;
-                                        stats.pkt_total++;
-                                        if (debug) {
-                                                RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n",
-                                                        ipv4_hdr->src_addr);
-                                        }
-                                        break;
-                        }
-                }
-        } else {
-                if (debug) {
-                        RTE_LOG(INFO, APP, "Packet received not ipv4\n");
-                }
-                stats.pkt_drop++;
-                stats.pkt_total++;
-                meta->action = ONVM_NF_ACTION_DROP;
-        }
 
         if (++counter == print_delay) {
                 do_stats_display();
                 counter = 0;
         }
 
+        if (!onvm_pkt_is_ipv4(pkt)) {
+                if (debug) RTE_LOG(INFO, APP, "Packet received not ipv4\n");
+                stats.pkt_drop++;
+                stats.pkt_total++;
+                meta->action = ONVM_NF_ACTION_DROP;
+                return 0;
+        }
+
+        ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
+        ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
+
+        if (ret) {
+                meta->action = ONVM_NF_ACTION_DROP;
+                stats.pkt_drop++;
+                stats.pkt_total++;
+                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n", ipv4_hdr->src_addr);
+                return 0;
+        }
+
+        switch (rule) {
+                case 0:
+                        meta->action = ONVM_NF_ACTION_TONF;
+                        meta->destination = destination;
+                        stats.pkt_accept++;
+                        stats.pkt_total++;
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been accepted.\n", ipv4_hdr->src_addr);
+                        break;
+                default:
+                        meta->action = ONVM_NF_ACTION_DROP;
+                        stats.pkt_drop++;
+                        stats.pkt_total++;
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n",ipv4_hdr->src_addr);
+                        break;
+        }
+
         return 0;
 }
 
 static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
-        int i, status;
+        int i, status, ret;
         char name[64];
 
         firewall_req = (struct lpm_request *) rte_malloc(NULL, sizeof(struct lpm_request), 0);
@@ -262,7 +255,6 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         firewall_req->num_tbl8s = 24;
         firewall_req->socket_id = rte_socket_id();
         strcpy(firewall_req->name, name);
-
 
         status = onvm_nflib_request_lpm(firewall_req);
 
@@ -279,9 +271,9 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         for (i = 0; i < num_rules; ++i) {
                 printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth,
                        rules[i]->action);
-                int add_failed = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
-                if (add_failed) {
-                        printf("ERROR ADDING RULE %d\n", add_failed);
+                ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
+                if (ret < 0) {
+                        printf("ERROR ADDING RULE %d\n", ret);
                         return 1;
                 }
         }

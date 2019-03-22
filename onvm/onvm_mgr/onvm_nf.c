@@ -320,9 +320,9 @@ init_lpm_region(struct lpm_request *req_lpm) {
         conf.number_tbl8s = req_lpm->num_tbl8s;
 
         lpm_region = rte_lpm_create(req_lpm->name, req_lpm->socket_id, &conf);
-        if(lpm_region){
+        if (lpm_region) {
                 req_lpm->status = 0;
-        }else{
+        } else {
                 req_lpm->status = -1;
         }
 }
