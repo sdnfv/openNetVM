@@ -99,6 +99,7 @@ struct onvm_fw_rule {
 struct onvm_pkt_stats {
         uint64_t pkt_drop;
         uint64_t pkt_accept;
+        uint64_t pkt_not_ipv4;
         uint64_t pkt_total;
 };
 
@@ -185,6 +186,7 @@ do_stats_display(void) {
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
         printf("Packets Dropped: %lu\n", stats.pkt_drop);
+        printf("Packets not IPv4: %lu\n", stats.pkt_not_ipv4);
         printf("Packets Accepted: %lu\n", stats.pkt_accept);
         printf("Packets Total: %lu", stats.pkt_total);
 
@@ -206,7 +208,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
         if (!onvm_pkt_is_ipv4(pkt)) {
                 if (debug) RTE_LOG(INFO, APP, "Packet received not ipv4\n");
-                stats.pkt_drop++;
+                stats.pkt_not_ipv4++;
                 stats.pkt_total++;
                 meta->action = ONVM_NF_ACTION_DROP;
                 return 0;
