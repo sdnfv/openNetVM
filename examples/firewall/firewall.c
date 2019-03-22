@@ -200,8 +200,6 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((
     if (onvm_pkt_is_ipv4(pkt)) {
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         int ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
-//        printf("Rule %d\n", rule);
-//        printf("Ret %d\n", ret);
 
         if (ret) {
             meta->action = ONVM_NF_ACTION_DROP;
