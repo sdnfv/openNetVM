@@ -42,19 +42,19 @@
 #define _GNU_SOURCE
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
-#include <rte_per_lcore.h>
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
+#include <rte_per_lcore.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include "onvm_threading.h"
 
 /*----------------------------------------------------------------------------*/
-int 
+int
 onvm_threading_get_num_cores(void) {
         return sysconf(_SC_NPROCESSORS_ONLN);
 }
@@ -82,7 +82,7 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
                 if (!ONVM_CHECK_BIT(flags, SHARE_CORE_BIT)) {
                         if (cores[pref_core_id].nf_count == 0)
                                 cores[pref_core_id].is_dedicated_core = 1;
-                        else 
+                        else
                                 return NF_NO_DEDICATED_CORES;
                 }
 
@@ -122,13 +122,13 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
         return 0;
 }
 
-int 
+int
 onvm_threading_core_affinitize(int cpu) {
         cpu_set_t cpus;
         size_t n;
 
         n = onvm_threading_get_num_cores();
-        if (cpu < 0 || cpu >= (int) n) {
+        if (cpu < 0 || cpu >= (int)n) {
                 return -1;
         }
 

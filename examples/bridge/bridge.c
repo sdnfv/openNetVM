@@ -38,20 +38,20 @@
  * bridge.c - send all packets from one port out the other.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
+#include <sys/queue.h>
+#include <unistd.h>
 
 #include <rte_common.h>
-#include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_mbuf.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -72,7 +72,7 @@ usage(const char *progname) {
         printf("Usage:\n");
         printf("%s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n", progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
-        printf("Flags:\n");        
+        printf("Flags:\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
 
@@ -83,23 +83,23 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt (argc, argv, "p:")) != -1) {
+        while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
         return optind;
@@ -112,12 +112,12 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct rte_mbuf* pkt) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+do_stats_display(struct rte_mbuf *pkt) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
 
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -129,13 +129,12 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Type : %d\n", pkt->packet_type);
-        printf("Number of packet processed : %"PRIu64"\n", pkt_process);
+        printf("Number of packet processed : %" PRIu64 "\n", pkt_process);
 
         ip = onvm_pkt_ipv4_hdr(pkt);
-        if(ip != NULL) {
+        if (ip != NULL) {
                 onvm_pkt_print(pkt);
-        }
-        else {
+        } else {
                 printf("Not IP4\n");
         }
 
@@ -152,16 +151,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
         if (pkt->port == 0) {
                 meta->destination = 1;
-        }
-        else {
+        } else {
                 meta->destination = 0;
         }
         meta->action = ONVM_NF_ACTION_OUT;
         return 0;
 }
 
-
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
         int arg_offset;
 
         const char *progname = argv[0];
