@@ -44,51 +44,53 @@
 
 #include <stdint.h>
 
-#include <rte_mbuf.h>
 #include <rte_ether.h>
+#include <rte_mbuf.h>
 
-#include "onvm_msg_common.h"
 #include "onvm_config_common.h"
+#include "onvm_msg_common.h"
 
-#define ONVM_MAX_CHAIN_LENGTH 4 // the maximum chain length
-#define MAX_NFS 128             // total number of NFs allowed
-#define MAX_SERVICES 32         // total number of unique services allowed
-#define MAX_NFS_PER_SERVICE 32  // max number of NFs per service.
+#define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
+#define MAX_NFS 128              // total number of NFs allowed
+#define MAX_SERVICES 32          // total number of unique services allowed
+#define MAX_NFS_PER_SERVICE 32   // max number of NFs per service.
 
-#define NUM_MBUFS 32767         // total number of mbufs (2^15 - 1)
-#define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
+#define NUM_MBUFS 32767          // total number of mbufs (2^15 - 1)
+#define NF_QUEUE_RINGSIZE 16384  // size of queue for NFs
 
 #define PACKET_READ_SIZE ((uint16_t)32)
 
-#define ONVM_NF_ACTION_DROP 0   // drop packet
-#define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
-#define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_DROP 0  // drop packet
+#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-//extern uint8_t rss_symmetric_key[40];
+// extern uint8_t rss_symmetric_key[40];
 
-//flag operations that should be used on onvm_pkt_meta
+// flag operations that should be used on onvm_pkt_meta
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
 #define ONVM_SET_BIT(flags, n) ((flags) | (1 << (n)))
 #define ONVM_CLEAR_BIT(flags, n) ((flags) & (0 << (n)))
 
 struct onvm_pkt_meta {
-        uint8_t action; /* Action to be performed */
+        uint8_t action;       /* Action to be performed */
         uint16_t destination; /* where to go next */
-        uint16_t src; /* who processed the packet last */
-        uint8_t chain_index; /*index of the current step in the service chain*/
-        uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
+        uint16_t src;         /* who processed the packet last */
+        uint8_t chain_index;  /*index of the current step in the service chain*/
+        uint8_t flags;        /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
 };
 
-static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
-        return (struct onvm_pkt_meta*)&pkt->udata64;
+static inline struct onvm_pkt_meta *
+onvm_get_pkt_meta(struct rte_mbuf *pkt) {
+        return (struct onvm_pkt_meta *)&pkt->udata64;
 }
 
-static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
+static inline uint8_t
+onvm_get_pkt_chain_index(struct rte_mbuf *pkt) {
         struct onvm_pkt_meta* pkt_meta = (struct onvm_pkt_meta*) &pkt->udata64;
         return pkt_meta->chain_index;
 }
@@ -106,10 +108,10 @@ static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
  */
 /*******************************Data Structures*******************************/
 
-/*  
+/*
  * Packets may be transported by a tx thread or by an NF.
- * This data structure encapsulates data specific to  
- * tx threads. 
+ * This data structure encapsulates data specific to
+ * tx threads.
  */
 struct tx_thread_info {
         unsigned first_nf;
@@ -132,7 +134,7 @@ struct packet_buf {
  * */
 struct queue_mgr {
         unsigned id;
-        enum {NF, MGR} mgr_type_t;
+        enum { NF, MGR } mgr_type_t;
         union {
                 struct tx_thread_info *tx_thread_info;
                 struct packet_buf *to_tx_buf;
@@ -140,11 +142,11 @@ struct queue_mgr {
         struct packet_buf *nf_rx_bufs;
 };
 
-struct rx_stats{
+struct rx_stats {
         uint64_t rx[RTE_MAX_ETHPORTS];
 };
 
-struct tx_stats{
+struct tx_stats {
         uint64_t tx[RTE_MAX_ETHPORTS];
         uint64_t tx_drop[RTE_MAX_ETHPORTS];
 };
@@ -165,13 +167,14 @@ struct core_status {
 
 struct onvm_nf_info;
 /* Function prototype for NF packet handlers */
-typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
+typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+                                __attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NF callback handlers */
-typedef int(*callback_handler_func)(__attribute__ ((unused)) struct onvm_nf_info *nf_info);
+typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NFs running advanced rings */
-typedef void(*advanced_rings_func)(struct onvm_nf_info *nf_info);
+typedef void (*advanced_rings_func)(struct onvm_nf_info *nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void(*setup_func)(struct onvm_nf_info *nf_info);
+typedef void (*setup_func)(struct onvm_nf_info *nf_info);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
@@ -232,7 +235,6 @@ struct onvm_nf {
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
         } stats;
-
 };
 
 /*
@@ -281,23 +283,22 @@ struct onvm_service_chain {
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
 /* common names for NF states */
-#define NF_WAITING_FOR_ID 0      // First step in startup process, doesn't have ID confirmed by manager yet
-#define NF_STARTING 1            // When a NF is in the startup process and already has an id
-#define NF_RUNNING 2             // Running normally
-#define NF_PAUSED  3             // NF is not receiving packets, but may in the future
-#define NF_STOPPED 4             // NF has stopped and in the shutdown process
-#define NF_ID_CONFLICT 5         // NF is trying to declare an ID already in use
-#define NF_NO_IDS 6              // There are no available IDs for this NF
-#define NF_SERVICE_MAX 7         // Service ID has exceeded the maximum amount
-#define NF_SERVICE_COUNT_MAX 8   // Maximum amount of NF's per service spawned
-#define NF_NO_CORES 9            // There are no cores available or specified core can't be used
-#define NF_NO_DEDICATED_CORES 10 // There is no space for a dedicated core
-#define NF_CORE_OUT_OF_RANGE 11  // The manually selected core is out of range
-#define NF_CORE_BUSY 12          // The manually selected core is busy
+#define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_STARTING 1             // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2              // Running normally
+#define NF_PAUSED 3               // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4              // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5          // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6               // There are no available IDs for this NF
+#define NF_SERVICE_MAX 7          // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8    // Maximum amount of NF's per service spawned
+#define NF_NO_CORES 9             // There are no cores available or specified core can't be used
+#define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
+#define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
+#define NF_CORE_BUSY 12           // The manually selected core is busy
 
 #define NF_NO_ID -1
-#define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other
-
+#define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
 
 /*
  * Given the rx queue name template above, get the queue name

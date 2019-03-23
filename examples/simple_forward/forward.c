@@ -38,20 +38,20 @@
  * forward.c - an example using onvm. Forwards packets to a DST NF.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
+#include <sys/queue.h>
+#include <unistd.h>
 
 #include <rte_common.h>
-#include <rte_mbuf.h>
 #include <rte_ip.h>
+#include <rte_mbuf.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -63,7 +63,6 @@ struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
-
 
 static uint32_t destination;
 
@@ -89,27 +88,27 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
         while ((c = getopt(argc, argv, "d:p:")) != -1) {
                 switch (c) {
-                case 'd':
-                        destination = strtoul(optarg, NULL, 10);
-                        dst_flag = 1;
-                        break;
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                        case 'd':
+                                destination = strtoul(optarg, NULL, 10);
+                                dst_flag = 1;
+                                break;
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
 
@@ -128,11 +127,11 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct rte_mbuf* pkt) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+do_stats_display(struct rte_mbuf *pkt) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -143,7 +142,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("N°   : %"PRIu64"\n", pkt_process);
+        printf("N°   : %" PRIu64 "\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -167,8 +166,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
         int arg_offset;
 
         const char *progname = argv[0];
