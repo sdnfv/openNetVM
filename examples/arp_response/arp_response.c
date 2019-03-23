@@ -38,24 +38,24 @@
  * arp_response.c - an example using onvm. If it receives an ARP packet, send a response.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
+#include <sys/queue.h>
+#include <unistd.h>
 
-#include <rte_common.h>
-#include <rte_mbuf.h>
-#include <rte_ip.h>
-#include <rte_ether.h>
 #include <rte_arp.h>
-#include <rte_mempool.h>
+#include <rte_common.h>
+#include <rte_ether.h>
+#include <rte_ip.h>
 #include <rte_malloc.h>
+#include <rte_mbuf.h>
+#include <rte_mempool.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -85,8 +85,13 @@ usage(const char *progname) {
         printf("%s [EAL args] -- [NF Lib args] -- -d <destination_id> -s <source_ip> [-p enable printing]\n", progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]>\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-d <destination_id>`: the NF will send non-ARP packets to the NF at this service ID, e.g. `-d 2` sends packets to service ID 2\n");
-        printf(" - `-s <source_ip_list>`: the NF will map each comma separated IP (no spaces) to the corresponding port. Example: `-s 10.0.0.31,11.0.0.31` maps port 0 to 10.0.0.31, and port 1 to 11.0.0.31. If 0.0.0.0 is inputted, the IP will be 0. If too few IPs are inputted, the remaining ports will be ignored.\n");
+        printf(
+            " - `-d <destination_id>`: the NF will send non-ARP packets to the NF at this service ID, e.g. `-d 2` "
+            "sends packets to service ID 2\n");
+        printf(
+            " - `-s <source_ip_list>`: the NF will map each comma separated IP (no spaces) to the corresponding port. "
+            "Example: `-s 10.0.0.31,11.0.0.31` maps port 0 to 10.0.0.31, and port 1 to 11.0.0.31. If 0.0.0.0 is "
+            "inputted, the IP will be 0. If too few IPs are inputted, the remaining ports will be ignored.\n");
         printf(" - `-p`: Enables printing of log information\n");
 }
 
@@ -141,53 +146,53 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         while ((c = getopt(argc, argv, "d:s:p")) != -1) {
-                switch(c) {
-                case 'd':
-                        state_info->nf_destination = strtoul(optarg, NULL, 10);
-                        dst_flag = 1;
-                        RTE_LOG(INFO, APP, "Sending packets to service ID %d\n", state_info->nf_destination);
-                        break;
-                case 's':
-                        num_ips = get_ip_count(optarg, delim);
-                        if (num_ips > ports->num_ports) {
-                                RTE_LOG(INFO, APP, "Too many IPs were entered!\n");
-                                return -1;
-                        }
-
-                        if (num_ips < 0) {
-                                RTE_LOG(INFO, APP, "Invalid IP pointer\n");
-                                return -1;
-                        }
-
-                        token = strtok_r(optarg, delim, &buffer);
-                        while (token != NULL) {
-                                result = onvm_pkt_parse_ip(token, &state_info->source_ips[current_ip]);
-                                if (result < 0) {
-                                        RTE_LOG(INFO, APP, "Invalid IP entered");
+                switch (c) {
+                        case 'd':
+                                state_info->nf_destination = strtoul(optarg, NULL, 10);
+                                dst_flag = 1;
+                                RTE_LOG(INFO, APP, "Sending packets to service ID %d\n", state_info->nf_destination);
+                                break;
+                        case 's':
+                                num_ips = get_ip_count(optarg, delim);
+                                if (num_ips > ports->num_ports) {
+                                        RTE_LOG(INFO, APP, "Too many IPs were entered!\n");
                                         return -1;
                                 }
-                                ++current_ip;
-                                token = strtok_r(NULL, delim, &buffer);
-                        }
 
-                        ip_flag = 1;
-                        break;
-                case 'p':
-                        state_info->print_flag = 1;
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
-                        else if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character\n");
+                                if (num_ips < 0) {
+                                        RTE_LOG(INFO, APP, "Invalid IP pointer\n");
+                                        return -1;
+                                }
 
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                                token = strtok_r(optarg, delim, &buffer);
+                                while (token != NULL) {
+                                        result = onvm_pkt_parse_ip(token, &state_info->source_ips[current_ip]);
+                                        if (result < 0) {
+                                                RTE_LOG(INFO, APP, "Invalid IP entered");
+                                                return -1;
+                                        }
+                                        ++current_ip;
+                                        token = strtok_r(NULL, delim, &buffer);
+                                }
+
+                                ip_flag = 1;
+                                break;
+                        case 'p':
+                                state_info->print_flag = 1;
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
+                                else if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character\n");
+
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
 
@@ -230,13 +235,13 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         out_pkt->data_len = pkt_size;
         out_pkt->pkt_len = pkt_size;
 
-        //SET ETHER HEADER INFO
+        // SET ETHER HEADER INFO
         eth_hdr = onvm_pkt_ether_hdr(out_pkt);
         ether_addr_copy(&ports->mac[port], &eth_hdr->s_addr);
         eth_hdr->ether_type = rte_cpu_to_be_16(ETHER_TYPE_ARP);
         ether_addr_copy(tha, &eth_hdr->d_addr);
 
-        //SET ARP HDR INFO
+        // SET ARP HDR INFO
         out_arp_hdr = rte_pktmbuf_mtod_offset(out_pkt, struct arp_hdr *, sizeof(struct ether_hdr));
 
         out_arp_hdr->arp_hrd = rte_cpu_to_be_16(ARP_HRD_ETHER);
@@ -251,7 +256,7 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         out_arp_hdr->arp_data.arp_tip = tip;
         ether_addr_copy(tha, &out_arp_hdr->arp_data.arp_tha);
 
-        //SEND PACKET OUT/SET METAINFO
+        // SEND PACKET OUT/SET METAINFO
         pmeta = onvm_get_pkt_meta(out_pkt);
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
@@ -277,9 +282,11 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 switch (rte_cpu_to_be_16(in_arp_hdr->arp_op)) {
                         case ARP_OP_REQUEST:
                                 if (in_arp_hdr->arp_data.arp_tip == state_info->source_ips[ports->id[pkt->port]]) {
-                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
+                                        result =
+                                            send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
                                         if (state_info->print_flag) {
-                                                printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port, ports->id[pkt->port], result);
+                                                printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,
+                                                       ports->id[pkt->port], result);
                                         }
                                         meta->action = ONVM_NF_ACTION_DROP;
                                         return 0;
@@ -290,7 +297,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                                 break;
                         default:
                                 if (state_info->print_flag) {
-                                        printf("ARP with opcode %d, port %d (ID %d) DROPPED\n", rte_cpu_to_be_16(in_arp_hdr->arp_op),pkt->port, ports->id[pkt->port]);
+                                        printf("ARP with opcode %d, port %d (ID %d) DROPPED\n",
+                                               rte_cpu_to_be_16(in_arp_hdr->arp_op), pkt->port, ports->id[pkt->port]);
                                 }
                 }
         }
@@ -300,7 +308,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
