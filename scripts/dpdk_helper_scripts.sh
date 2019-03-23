@@ -34,7 +34,7 @@ create_mnt_huge()
 remove_mnt_huge()
 {
     echo "Unmounting /mnt/huge and removing directory"
-    grep -s '/mnt/huge' /proc/mountsi > /dev/null
+    grep -s '/mnt/huge' /proc/mounts > /dev/null
     if [ $? -eq 0 ] ; then
         sudo umount /mnt/huge
     fi
