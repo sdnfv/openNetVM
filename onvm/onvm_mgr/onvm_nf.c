@@ -310,7 +310,9 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 }
 
 inline int onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
-        uint16_t *msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
+        uint16_t *msg_data;
+               
+        msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
         *msg_data = new_core;
 
         cores[nfs[dest].info->core].nf_count--;

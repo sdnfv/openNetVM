@@ -140,11 +140,10 @@ onvm_threading_core_affinitize(int cpu) {
 
 int
 onvm_threading_find_nf_to_reassign_core(uint16_t candidate_core, struct core_status *cores) {
+        uint16_t candidate_nf_id, most_used_core, max_nfs_per_core;
         int i;
-        int candidate_nf_id, most_used_core;
-        int max_nfs_per_core;
 
-        most_used_core = candidate_nf_id = max_nfs_per_core = 0;
+        candidate_nf_id = most_used_core = max_nfs_per_core = 0;
 
         for (i = 0; i < onvm_threading_get_num_cores(); i++) {
                 if (cores[i].nf_count > max_nfs_per_core) {

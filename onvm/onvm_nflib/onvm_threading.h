@@ -104,5 +104,4 @@ onvm_threading_core_affinitize(int core);
 int
 onvm_threading_find_nf_to_reassign_core(uint16_t candidate_core, struct core_status *cores);
 
-
 #endif  // _ONVM_THREADING_H_"
