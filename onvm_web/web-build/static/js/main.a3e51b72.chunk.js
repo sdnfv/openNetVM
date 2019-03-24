@@ -69,7 +69,7 @@
             }).length && delete y[e],
           null != n && (O[e] = n));
       }
-      var S = (function(e) {
+      var R = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
@@ -239,9 +239,9 @@
             t
           );
         })(a.PureComponent),
-        A = n(17),
-        I = n(20),
-        R = n.n(I),
+        S = n(17),
+        A = n(20),
+        I = n.n(A),
         F = {
           x: { label: { text: "X Axis", position: "outer-center" } },
           y: { label: { text: "Y Axis", position: "outer-middle" } }
@@ -272,7 +272,7 @@
                 }
               }),
               (n.dataCallback = function(e, t) {
-                var a = Object(A.a)({}, n.state.graphData),
+                var a = Object(S.a)({}, n.state.graphData),
                   o = a.columns;
                 o[0].push(t),
                   (o[0] = n.trimToSize(o[0], 40)),
@@ -301,7 +301,7 @@
                   var e = D(this.props.nfLabel, this.dataCallback);
                   if (e) {
                     console.log("Graph Restore: " + this.props.nfLabel);
-                    var t = Object(A.a)({}, this.state.graphData);
+                    var t = Object(S.a)({}, this.state.graphData);
                     (t.columns = e), this.setState({ graphData: t });
                   }
                 }
@@ -360,7 +360,7 @@
                     a.createElement(
                       g.c.Body,
                       null,
-                      a.createElement(R.a, {
+                      a.createElement(I.a, {
                         data: this.state.graphData,
                         axis: F,
                         legend: { show: !0 },
@@ -567,11 +567,12 @@
               ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
-              )).state = { instanceId: null, serviceId: null }),
+              )).state = { instanceId: null, serviceId: null, core: null }),
               (n.dataCallback = function(e, t) {
                 n.setState({
                   instanceId: e.instance_id,
-                  serviceId: e.service_id
+                  serviceId: e.service_id,
+                  core: e.core
                 });
               }),
               n
@@ -599,7 +600,8 @@
                 value: function() {
                   var e = this.state,
                     t = e.serviceId,
-                    n = e.instanceId;
+                    n = e.instanceId,
+                    o = e.core;
                   return a.createElement(
                     g.c,
                     { title: "NF Info" },
@@ -624,6 +626,16 @@
                           g.g.Col,
                           { alignContent: "right" },
                           a.createElement(g.a, { color: "default" }, n)
+                        )
+                      ),
+                      a.createElement(
+                        g.g.Row,
+                        null,
+                        a.createElement(g.g.Col, null, "Core"),
+                        a.createElement(
+                          g.g.Col,
+                          { alignContent: "right" },
+                          a.createElement(g.a, { color: "default" }, o)
                         )
                       )
                     )
@@ -651,6 +663,7 @@
               (n.eventHandler = function(e) {
                 var t = parseInt(n.state.nfLabel.replace("NF ", ""));
                 console.log(e),
+                  console.log("Kevin is Here"),
                   "NF" === e.source.type &&
                     e.source.instance_id === t &&
                     n.setState(function(t) {
@@ -773,7 +786,7 @@
           c.a,
           null,
           a.createElement(
-            S,
+            R,
             null,
             a.createElement(
               c.a,
@@ -829,4 +842,4 @@
   },
   [[23, 2, 1]]
 ]);
-//# sourceMappingURL=main.e7aa6cb0.chunk.js.map
+//# sourceMappingURL=main.a3e51b72.chunk.js.map
