@@ -271,7 +271,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         }
 
         for (i = 0; i < num_rules; ++i) {
-                printf("RULE %d: { ip: %d, depth: %d, action: %d }\n", i, rules[i]->src_ip, rules[i]->depth,
+                printf("RULE %d: { ip: %u.%u.%u.%u, depth: %d, action: %d }\n", i, (rules[i]->src_ip) & 0xFF, (rules[i]->src_ip >> 8) & 0xFF, (rules[i]->src_ip >> 16) & 0xFF,(rules[i]->src_ip >> 24) & 0xFF, rules[i]->depth,
                        rules[i]->action);
                 ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if (ret < 0) {
@@ -332,7 +332,7 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
                 rules[i] = (struct onvm_fw_rule *) malloc(sizeof(struct onvm_fw_rule));
-                rules[i]->src_ip = rules_ip->valueint;
+                onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
                 rules[i]->depth = depth->valueint;
                 rules[i]->action = action->valueint;
                 rules_json = rules_json->next;
