@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                                  onvm_pkt_common.c
 
@@ -47,12 +46,9 @@
 
 ******************************************************************************/
 
-
 #include "onvm_pkt_common.h"
 
-
 /**********************Internal Functions Prototypes**************************/
-
 
 /*
  * Function to enqueue a packet on one port's queue.
@@ -76,7 +72,6 @@ onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *
 static inline void
 onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, struct onvm_nf *nf);
 
-
 /*
  * Helper function to drop a packet.
  *
@@ -88,9 +83,7 @@ onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, str
 static int
 onvm_pkt_drop(struct rte_mbuf *pkt);
 
-
 /**********************************Interfaces*********************************/
-
 
 void
 onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf) {
@@ -102,7 +95,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                 return;
 
         for (i = 0; i < tx_count; i++) {
-                meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                meta = (struct onvm_pkt_meta *)&(((struct rte_mbuf *)pkts[i])->udata64);
                 meta->src = nf->instance_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         // if the packet is drop, then <return value> is 0
@@ -166,13 +159,12 @@ onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id, struct onvm_nf
         if (!onvm_nf_is_valid(nf))
                 return;
 
-        if (rte_ring_enqueue_bulk(nf->rx_q, (void **)nf_buf->buffer,
-                        nf_buf->count, NULL) == 0) {
+        if (rte_ring_enqueue_bulk(nf->rx_q, (void **)nf_buf->buffer, nf_buf->count, NULL) == 0) {
                 for (i = 0; i < nf_buf->count; i++) {
                         onvm_pkt_drop(nf_buf->buffer[i]);
                 }
                 nf->stats.rx_drop += nf_buf->count;
-                if (source_nf != NULL) 
+                if (source_nf != NULL)
                         source_nf->stats.tx_drop += nf_buf->count;
         } else {
                 nf->stats.rx += nf_buf->count;
@@ -183,11 +175,11 @@ onvm_pkt_flush_nf_queue(struct queue_mgr *tx_mgr, uint16_t nf_id, struct onvm_nf
 }
 
 void
-onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt, struct onvm_nf *source_nf) {
+onvm_pkt_enqueue_nf(struct queue_mgr *tx_mgr, uint16_t dst_service_id, struct rte_mbuf *pkt,
+                    struct onvm_nf *source_nf) {
         struct onvm_nf *nf;
         uint16_t dst_instance_id;
         struct packet_buf *nf_buf;
-
 
         if (tx_mgr == NULL || pkt == NULL)
                 return;
@@ -231,10 +223,7 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port) {
                 return;
 
         tx_stats = &(ports->tx_stats);
-        sent = rte_eth_tx_burst(port,
-                                tx_mgr->id,
-                                port_buf->buffer,
-                                port_buf->count);
+        sent = rte_eth_tx_burst(port, tx_mgr->id, port_buf->buffer, port_buf->count);
         if (unlikely(sent < port_buf->count)) {
                 for (i = sent; i < port_buf->count; i++) {
                         onvm_pkt_drop(port_buf->buffer[i]);
@@ -246,14 +235,15 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port) {
         port_buf->count = 0;
 }
 
-void 
+void
 onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf) {
         uint16_t i;
 
         if (pkt_buf->count == 0)
                 return;
 
-        if (unlikely(pkt_buf->count > 0 && rte_ring_enqueue_bulk(nf->tx_q, (void **)pkt_buf->buffer, pkt_buf->count, NULL) == 0)) {
+        if (unlikely(pkt_buf->count > 0 &&
+                     rte_ring_enqueue_bulk(nf->tx_q, (void **)pkt_buf->buffer, pkt_buf->count, NULL) == 0)) {
                 nf->stats.tx_drop += pkt_buf->count;
                 for (i = 0; i < pkt_buf->count; i++) {
                         rte_pktmbuf_free(pkt_buf->buffer[i]);
@@ -264,9 +254,7 @@ onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf) {
         pkt_buf->count = 0;
 }
 
-
 /****************************Internal functions*******************************/
-
 
 inline static void
 onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *buf) {
@@ -282,10 +270,8 @@ onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *
         }
 }
 
-
 inline static void
 onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, struct onvm_nf *nf) {
-
         if (tx_mgr == NULL || pkt == NULL || nf == NULL)
                 return;
 
@@ -324,9 +310,7 @@ onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, str
         (meta->chain_index)++;
 }
 
-
 /*******************************Helper function*******************************/
-
 
 static int
 onvm_pkt_drop(struct rte_mbuf *pkt) {

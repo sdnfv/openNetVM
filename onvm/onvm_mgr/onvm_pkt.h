@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                  onvm_pkt.h
@@ -49,13 +48,10 @@
 
 ******************************************************************************/
 
-
 #ifndef _ONVM_PKT_H_
 #define _ONVM_PKT_H_
 
-
 /*********************************Interfaces**********************************/
-
 
 /*
  * Interface to process packets in a given RX queue.
@@ -77,7 +73,6 @@ onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uin
 void
 onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr);
 
-
 /*
  * Interface to drop a batch of packets.
  *
@@ -87,6 +82,5 @@ onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr);
  */
 void
 onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size);
-
 
 #endif  // _ONVM_PKT_H_

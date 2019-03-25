@@ -46,20 +46,20 @@
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>
 
-#include <rte_ether.h>
 #include <rte_ethdev.h>
+#include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
-#include <rte_mempool.h>
 #include <rte_memcpy.h>
+#include <rte_mempool.h>
 
 int
-onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info *ports) {
-        struct ether_hdr *eth;
+onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info* ports) {
+        struct ether_hdr* eth;
 
-        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+        if (unlikely(pkt == NULL)) {  // We do not expect to swap macs for empty packets
                 return -1;
         }
 
@@ -79,10 +79,10 @@ onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_p
 }
 
 int
-onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info *ports) {
-        struct ether_hdr *eth;
+onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info* ports) {
+        struct ether_hdr* eth;
 
-        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+        if (unlikely(pkt == NULL)) {  // We do not expect to swap macs for empty packets
                 return -1;
         }
 
@@ -106,10 +106,10 @@ onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct po
 }
 
 int
-onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info *ports) {
-        struct ether_hdr *eth;
+onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info* ports) {
+        struct ether_hdr* eth;
 
-        if (unlikely(pkt == NULL)) { // We do not expect to swap macs for empty packets
+        if (unlikely(pkt == NULL)) {  // We do not expect to swap macs for empty packets
                 return -1;
         }
 
@@ -137,14 +137,16 @@ onvm_pkt_ether_hdr(struct rte_mbuf* pkt) {
         if (unlikely(pkt == NULL)) {
                 return NULL;
         }
-        return rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+        return rte_pktmbuf_mtod(pkt, struct ether_hdr*);
 }
 
 struct tcp_hdr*
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
         struct ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
 
-        if (unlikely(ipv4 == NULL)) {  // Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
+        if (unlikely(
+                ipv4 ==
+                NULL)) {  // Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
                 return NULL;
         }
 
@@ -160,7 +162,9 @@ struct udp_hdr*
 onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
         struct ipv4_hdr* ipv4 = onvm_pkt_ipv4_hdr(pkt);
 
-        if (unlikely(ipv4 == NULL)) {  // Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
+        if (unlikely(
+                ipv4 ==
+                NULL)) {  // Since we aren't dealing with IPv6 packets for now, we can ignore anything that isn't IPv4
                 return NULL;
         }
 
@@ -187,7 +191,6 @@ onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt) {
         return ipv4;
 }
 
-
 int
 onvm_pkt_is_tcp(struct rte_mbuf* pkt) {
         return onvm_pkt_tcp_hdr(pkt) != NULL;
@@ -202,7 +205,6 @@ int
 onvm_pkt_is_ipv4(struct rte_mbuf* pkt) {
         return onvm_pkt_ipv4_hdr(pkt) != NULL;
 }
-
 
 void
 onvm_pkt_print(struct rte_mbuf* pkt) {
@@ -237,15 +239,24 @@ onvm_pkt_print_tcp(struct tcp_hdr* hdr) {
 
         printf("Flags: %" PRIx16 "\n", flags);
         printf("\t(");
-        if ((flags >> 8) & 0x1) printf("NS,");
-        if ((flags >> 7) & 0x1) printf("CWR,");
-        if ((flags >> 6) & 0x1) printf("ECE,");
-        if ((flags >> 5) & 0x1) printf("URG,");
-        if ((flags >> 4) & 0x1) printf("ACK,");
-        if ((flags >> 3) & 0x1) printf("PSH,");
-        if ((flags >> 2) & 0x1) printf("RST,");
-        if ((flags >> 1) & 0x1) printf("SYN,");
-        if (flags        & 0x1) printf("FIN,");
+        if ((flags >> 8) & 0x1)
+                printf("NS,");
+        if ((flags >> 7) & 0x1)
+                printf("CWR,");
+        if ((flags >> 6) & 0x1)
+                printf("ECE,");
+        if ((flags >> 5) & 0x1)
+                printf("URG,");
+        if ((flags >> 4) & 0x1)
+                printf("ACK,");
+        if ((flags >> 3) & 0x1)
+                printf("PSH,");
+        if ((flags >> 2) & 0x1)
+                printf("RST,");
+        if ((flags >> 1) & 0x1)
+                printf("SYN,");
+        if (flags & 0x1)
+                printf("FIN,");
         printf(")\n");
 
         printf("Window Size: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->rx_win));
@@ -272,8 +283,10 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         uint8_t flags = (hdr->fragment_offset >> 13) & 0b111;  // there are three 1-bit flags, but only 2 are used
         printf("Flags: %" PRIx8 "\n", flags);
         printf("\t(");
-        if ((flags >> 1) & 0x1) printf("DF,");
-        if ( flags       & 0x1) printf("MF,");
+        if ((flags >> 1) & 0x1)
+                printf("DF,");
+        if (flags & 0x1)
+                printf("MF,");
         printf("\n");
 
         printf("Fragment Offset: %" PRIu16 "\n", rte_be_to_cpu_16(hdr->fragment_offset) & 0b1111111111111);
@@ -292,25 +305,26 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
 
         printf("Header Checksum: %" PRIu16 "\n", hdr->hdr_checksum);
         printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->src_addr,
-                hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 24) & 0xFF);
+               hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF,
+               (hdr->src_addr >> 24) & 0xFF);
         printf("Destination IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->dst_addr,
-                hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 24) & 0xFF);
+               hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF,
+               (hdr->dst_addr >> 24) & 0xFF);
 }
 
-void onvm_pkt_print_ether(struct ether_hdr* hdr) {
-        const char *type = NULL;
+void
+onvm_pkt_print_ether(struct ether_hdr* hdr) {
+        const char* type = NULL;
         if (unlikely(hdr == NULL)) {
                 return;
         }
-        printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                        hdr->s_addr.addr_bytes[0], hdr->s_addr.addr_bytes[1],
-                        hdr->s_addr.addr_bytes[2], hdr->s_addr.addr_bytes[3],
-                        hdr->s_addr.addr_bytes[4], hdr->s_addr.addr_bytes[5]);
-        printf("Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                        hdr->d_addr.addr_bytes[0], hdr->d_addr.addr_bytes[1],
-                        hdr->d_addr.addr_bytes[2], hdr->d_addr.addr_bytes[3],
-                        hdr->d_addr.addr_bytes[4], hdr->d_addr.addr_bytes[5]);
-        switch(hdr->ether_type) {
+        printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->s_addr.addr_bytes[0], hdr->s_addr.addr_bytes[1],
+               hdr->s_addr.addr_bytes[2], hdr->s_addr.addr_bytes[3], hdr->s_addr.addr_bytes[4],
+               hdr->s_addr.addr_bytes[5]);
+        printf("Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->d_addr.addr_bytes[0], hdr->d_addr.addr_bytes[1],
+               hdr->d_addr.addr_bytes[2], hdr->d_addr.addr_bytes[3], hdr->d_addr.addr_bytes[4],
+               hdr->d_addr.addr_bytes[5]);
+        switch (hdr->ether_type) {
                 case ETHER_TYPE_IPv4:
                         type = "IPv4";
                         break;
@@ -343,7 +357,7 @@ void onvm_pkt_print_ether(struct ether_hdr* hdr) {
 }
 
 int
-onvm_pkt_parse_ip(char *ip_str, uint32_t *dest) {
+onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
         int ret;
         int ip[4];
 
@@ -359,8 +373,8 @@ onvm_pkt_parse_ip(char *ip_str, uint32_t *dest) {
         return 0;
 }
 
-int 
-onvm_pkt_parse_mac(char * mac_str, uint8_t* dest) {
+int
+onvm_pkt_parse_mac(char* mac_str, uint8_t* dest) {
         int ret, i;
         int mac[ETHER_ADDR_LEN];
 
@@ -373,7 +387,7 @@ onvm_pkt_parse_mac(char * mac_str, uint8_t* dest) {
                 return -1;
         }
 
-        for (i = 0; i < ETHER_ADDR_LEN; i++){
+        for (i = 0; i < ETHER_ADDR_LEN; i++) {
                 dest[i] = mac[i];
         }
         return 0;
@@ -404,7 +418,7 @@ onvm_pkt_get_checksum_offload_flags(uint8_t port_id) {
  * except that this implementation can process packets with IP options.
  */
 static uint16_t
-calculate_tcpudp_cksum(const struct ipv4_hdr *ip, const void *l4_hdr, const uint32_t l3_len, uint8_t protocol) {
+calculate_tcpudp_cksum(const struct ipv4_hdr* ip, const void* l4_hdr, const uint32_t l3_len, uint8_t protocol) {
         uint32_t cksum = 0;
         uint32_t l4_len = ip->total_length - l3_len;
 
@@ -440,17 +454,17 @@ calculate_tcpudp_cksum(const struct ipv4_hdr *ip, const void *l4_hdr, const uint
  * exception that this implementation can process packets with IP options.
  */
 static uint16_t
-calculate_ip_cksum(const struct ipv4_hdr *ip, const uint32_t l3_len) {
+calculate_ip_cksum(const struct ipv4_hdr* ip, const uint32_t l3_len) {
         uint16_t cksum = rte_raw_cksum(ip, l3_len);
         return (cksum == 0xffff) ? cksum : ~cksum;
 }
 
 void
-onvm_pkt_set_checksums(struct rte_mbuf *pkt) {
+onvm_pkt_set_checksums(struct rte_mbuf* pkt) {
         uint32_t hw_cksum_support = onvm_pkt_get_checksum_offload_flags(pkt->port);
-        struct ipv4_hdr *ip = onvm_pkt_ipv4_hdr(pkt);
-        struct tcp_hdr *tcp = onvm_pkt_tcp_hdr(pkt);
-        struct udp_hdr *udp = onvm_pkt_udp_hdr(pkt);
+        struct ipv4_hdr* ip = onvm_pkt_ipv4_hdr(pkt);
+        struct tcp_hdr* tcp = onvm_pkt_tcp_hdr(pkt);
+        struct udp_hdr* udp = onvm_pkt_udp_hdr(pkt);
 
         if (ip != NULL) {
                 ip->hdr_checksum = 0;
