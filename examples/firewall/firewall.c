@@ -221,7 +221,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 meta->action = ONVM_NF_ACTION_DROP;
                 stats.pkt_drop++;
                 stats.pkt_total++;
-                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n", ipv4_hdr->src_addr);
+                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                 return 0;
         }
 
@@ -231,13 +231,13 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         meta->destination = destination;
                         stats.pkt_accept++;
                         stats.pkt_total++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been accepted.\n", ipv4_hdr->src_addr);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been accepted\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                         break;
                 default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         stats.pkt_drop++;
                         stats.pkt_total++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u has been dropped.\n",ipv4_hdr->src_addr);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                         break;
         }
 
