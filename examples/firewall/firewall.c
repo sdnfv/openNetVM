@@ -79,7 +79,7 @@ char *rule_file = NULL;
 /* Structs that contain information about this NF/set up LPM rules */
 struct onvm_nf_info *nf_info;
 struct lpm_request *firewall_req;
-static struct onvm_pkt_stats stats;
+static struct firewall_pkt_stats stats;
 struct rte_lpm *lpm_tbl;
 
 /* Number of packets between each print */
