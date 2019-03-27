@@ -291,7 +291,7 @@ struct onvm_service_chain {
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
 /* common names for NF states */
-#define NF_WAITING_FOR_ID 0      // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
 #define NF_STARTING 1            // When a NF is in the startup process and already has an id
 #define NF_RUNNING 2             // Running normally
 #define NF_PAUSED  3             // NF is not receiving packets, but may in the future
