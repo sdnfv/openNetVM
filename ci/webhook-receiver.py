@@ -3,6 +3,9 @@ from flask import Flask, jsonify, request
 import requests
 from ipaddress import ip_address, ip_network
 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
+
 import hmac
 import json
 import sys
@@ -14,6 +17,32 @@ EVENT_URL = "/github-webhook"
 CI_NAME="onvm"
 
 app = Flask(__name__)
+
+def decrypt_secret():
+    secret_file = open(webhook_config['secret-file'], "rb")
+    private_key = RSA.import_key(open(webhook_config['private-key-file']).read())
+
+    enc_session_key, nonce, tag, ciphertext = \
+       [ secret_file.read(x) for x in (private_key.size_in_bytes(), 16, 16, -1) ]
+
+    # Decrypt the session key with the private RSA key
+    cipher_rsa = PKCS1_OAEP.new(private_key)
+    session_key = cipher_rsa.decrypt(enc_session_key)
+
+    # Decrypt the data with the AES session key
+    cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
+    data = cipher_aes.decrypt_and_verify(ciphertext, tag)
+
+    # Clear memory
+    secret_file = private_key = enc_session_key = nonce = tag = ciphertext = None
+    del secret_file
+    del private_key
+    del enc_session_key
+    del nonce
+    del tag
+    del ciphertext
+    
+    return data
 
 def verify_request_ip(request):
     src_ip = ip_address(u'{}'.format(request.access_route[0]))
@@ -31,13 +60,18 @@ def verify_request_secret(request):
         return False
 
     signature = header_signature.split('=')[1]
+    secret = decrypt_secret()
 
-    mac = hmac.new(str(secret).encode('utf-8'), msg=request.data, digestmod='sha1')
-    if not hmac.compare_digest(mac.hexdigest(), signature):
-        return False
+    mac = hmac.new(secret, msg=request.data, digestmod='sha1')
+    secret_comparison = hmac.compare_digest(mac.hexdigest(), signature)
 
-    return True
+    # Memory cleanup
+    header_signature = secret = signature = None
+    del header_signature
+    del secret
+    del signature
 
+    return secret_comparison
 
 # returns extracted data if it is an event for a PR creation or PR comment creation
 # if it is a PR comment, only return extracted data if it contains the required keyword specified by the global var
@@ -160,10 +194,9 @@ if __name__ == "__main__":
 
     with open (sys.argv[4], 'r') as cfg:
         webhook_config = json.load(cfg)
-    secret = webhook_config['secret']
     authorized_users = webhook_config['authorized-users']
-    if secret is None:
-        print("No secret found in webhook config")
+    if authorized_users is None:
+        print("No authroized users found in webhook config")
         sys.exit(1)
 
     app.run(host=host, port=port)
