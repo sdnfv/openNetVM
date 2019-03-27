@@ -336,7 +336,9 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 i++;
         }
         cJSON_Delete(rules_json);
-        free(rule_file);
+        if (rule_file) {
+                free(rule_file);
+        }
 
         return rules;
 }
