@@ -96,20 +96,19 @@ struct onvm_fw_rule {
 };
 
 /* Struct for printing stats */
-struct onvm_pkt_stats {
+struct firewall_pkt_stats {
         uint64_t pkt_drop;
         uint64_t pkt_accept;
         uint64_t pkt_not_ipv4;
         uint64_t pkt_total;
 };
 
-
 /*
  * Print a usage message
  */
 static void
 usage(const char *progname) {
-        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay> -f <rules file>\n\n", progname);
+        printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay> -f <rules file> [-b]\n\n", progname);
 }
 
 /*
@@ -209,7 +208,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         if (!onvm_pkt_is_ipv4(pkt)) {
                 if (debug) RTE_LOG(INFO, APP, "Packet received not ipv4\n");
                 stats.pkt_not_ipv4++;
-                stats.pkt_total++;
                 meta->action = ONVM_NF_ACTION_DROP;
                 return 0;
         }
@@ -217,10 +215,9 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
 
-        if (ret) {
+        if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
                 stats.pkt_drop++;
-                stats.pkt_total++;
                 if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                 return 0;
         }
@@ -230,16 +227,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         meta->action = ONVM_NF_ACTION_TONF;
                         meta->destination = destination;
                         stats.pkt_accept++;
-                        stats.pkt_total++;
                         if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been accepted\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                         break;
                 default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         stats.pkt_drop++;
-                        stats.pkt_total++;
                         if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                         break;
         }
+        stats.pkt_total++;
 
         return 0;
 }
