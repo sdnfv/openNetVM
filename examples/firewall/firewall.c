@@ -205,6 +205,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 counter = 0;
         }
 
+        stats.pkt_total++;
+
         if (!onvm_pkt_is_ipv4(pkt)) {
                 if (debug) RTE_LOG(INFO, APP, "Packet received not ipv4\n");
                 stats.pkt_not_ipv4++;
@@ -235,7 +237,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
                         break;
         }
-        stats.pkt_total++;
 
         return 0;
 }
