@@ -586,8 +586,8 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
                         onvm_nflib_scale((struct onvm_nf_scale_info *)msg->msg_data);
                         break;
                 case MSG_CHANGE_CORE:
-                        RTE_LOG(INFO, APP, "Received relocation message...\n"); 
-                        RTE_LOG(INFO, APP, "Moving NF to core %d\n", *(uint16_t *)msg->msg_data); 
+                        RTE_LOG(INFO, APP, "Received relocation message...\n");
+                        RTE_LOG(INFO, APP, "Moving NF to core %d\n", *(uint16_t *)msg->msg_data);
                         info->core = *(uint16_t *)msg->msg_data;
                         onvm_threading_core_affinitize(info->core);
                         rte_free(msg->msg_data);

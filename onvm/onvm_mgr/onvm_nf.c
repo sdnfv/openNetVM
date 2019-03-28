@@ -92,7 +92,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info);
  * Output : an error code
  *
  */
-inline int 
+inline int
 onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 
 /********************************Interfaces***********************************/
@@ -311,7 +311,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
 inline int onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
         uint16_t *msg_data;
-               
+
         msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
         *msg_data = new_core;
 
