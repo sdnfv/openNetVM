@@ -256,6 +256,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         strcpy(firewall_req->name, name);
 
         status = onvm_nflib_request_lpm(firewall_req);
+        //printf("%d", firewall_req->max_num_rules);
 
         if (status < 0) {
                 rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
@@ -276,6 +277,8 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
                         return 1;
                 }
         }
+        free(firewall_req);
+
 
         return 0;
 }
@@ -288,10 +291,6 @@ static void lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
                         if (rules[i]) free(rules[i]);
                 }
                 free(rules);
-        }
-
-        if (firewall_req) {
-                free(firewall_req);
         }
 
         if (lpm_tbl) {
@@ -336,9 +335,6 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 i++;
         }
         cJSON_Delete(rules_json);
-        if (rule_file) {
-                free(rule_file);
-        }
 
         return rules;
 }
