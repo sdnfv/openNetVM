@@ -1,3 +1,4 @@
+access_log
 config
 webhook-config.json
 encrypted_secret.bin

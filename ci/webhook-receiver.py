@@ -12,11 +12,26 @@ import sys
 import pprint
 import os
 import subprocess
+import logging
 
 EVENT_URL = "/github-webhook"
 CI_NAME="onvm"
 
 app = Flask(__name__)
+
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.basicConfig(filename="access_log", filemode='a',
+                    format='%(asctime)s, %(name)s %(levelname)s %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
+
+def get_request_info(request_ctx):
+    return "Request details: IP: {}, User: {}, Repo: {}, ID: {}, Body: {}.".format(request_ctx['src_ip'], request_ctx['user'], request_ctx['repo'], request_ctx['id'], request_ctx['body'])
+
+def log_access_granted(request_ctx, custom_msg):
+    logging.info("Access GRANTED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
+
+def log_access_denied(request_ctx, custom_msg):
+    logging.info("Access DENIED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
 
 def decrypt_secret():
     secret_file = open(webhook_config['secret-file'], "rb")
@@ -44,8 +59,9 @@ def decrypt_secret():
     
     return data
 
-def verify_request_ip(request):
-    src_ip = ip_address(u'{}'.format(request.access_route[0]))
+def verify_request_ip(request_ctx):
+    src_ip = request_ctx['src_ip']
+    print (src_ip)
     valid_ips = requests.get('https://api.github.com/meta').json()['hooks']
 
     for ip in valid_ips:
@@ -54,15 +70,15 @@ def verify_request_ip(request):
 
     return False
 
-def verify_request_secret(request):
-    header_signature = request.headers.get('X-Hub-Signature')
+def verify_request_secret(request_ctx):
+    header_signature = request_ctx['X-Hub-Signature']
     if header_signature is None:
         return False
 
     signature = header_signature.split('=')[1]
     secret = decrypt_secret()
 
-    mac = hmac.new(secret, msg=request.data, digestmod='sha1')
+    mac = hmac.new(secret, msg=request_ctx['data'], digestmod='sha1')
     secret_comparison = hmac.compare_digest(mac.hexdigest(), signature)
 
     # Memory cleanup
@@ -73,7 +89,7 @@ def verify_request_secret(request):
 
     return secret_comparison
 
-# returns extracted data if it is an event for a PR creation or PR comment creation
+# Returns extracted data if it is an event for a PR creation or PR comment creation
 # if it is a PR comment, only return extracted data if it contains the required keyword specified by the global var
 # if it doesn't contain the keyword or is not the correct type of event, return None
 def filter_to_prs_and_pr_comments(json):
@@ -85,6 +101,7 @@ def filter_to_prs_and_pr_comments(json):
         branch_name = json['pull_request']['base']['label']
         repo_name = json['repository']['name']
         user_name = json['pull_request']['user']['login']
+
         if branch_name is None:
             return None
 
@@ -127,59 +144,55 @@ def filter_to_prs_and_pr_comments(json):
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
+    request_ctx = filter_to_prs_and_pr_comments(request.json)
+    if request_ctx is None:
+        logging.debug("Request filter doesn't match request")
+        return jsonify({"success": True})
     
-    if not verify_request_ip(request):
-        print("Incoming webkooh not from a valid Github address")
-        return jsonify({
-            "success": True
-        })
+    request_ctx['src_ip'] = ip_address(u'{}'.format(request.access_route[0]))
+    request_ctx['X-Hub-Signature'] = request.headers.get('X-Hub-Signature')
+    request_ctx['data'] = request.data
 
-    if not verify_request_secret(request):
+    if not verify_request_ip(request_ctx):
+        print("Incoming webhook not from a valid Github address")
+        log_access_denied(request_ctx, "Incoming webhook not from a valid Github address")
+        return jsonify({"success": True})
+
+    if not verify_request_secret(request_ctx):
         print("Incoming webhook secret doesn't match configured secret")
-        return jsonify({
-            "success": True
-        })
+        log_access_denied(request_ctx, "Incoming webhook has an invalid secret")
+        return jsonify({"success": True})
 
-    extracted_data = filter_to_prs_and_pr_comments(request.json)
-    if extracted_data is not None:
-        if (extracted_data['repo'] == 'openNetVM-dev' or extracted_data['user'] in authorized_users):
-            print("This is an authorized user")
-        else:
-            print("ERROR: This user is not authorized")
-            os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
-                      .format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
-            return jsonify({
-                "success": True
-            })
+    if (request_ctx['repo'] == 'openNetVM' and request_ctx['user'] not in authorized_users):
+        print("Incoming request is from an unathorized user")
+        log_access_denied("Incoming request is from an unathorized user")
+        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
+                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
+        return jsonify({"success": True})
 
-        print("Data matches filter, we should RUN CI")
-        print(extracted_data)
+    print("Request matches filter, we should RUN CI. {}".format(get_request_info(request_ctx)))
 
-        # Check if there is another CI run in progress
-        proc1 = subprocess.Popen(['ps', 'cax'], stdout=subprocess.PIPE)
-        proc2 = subprocess.Popen(['grep', 'manager.sh'], stdin=proc1.stdout,
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc1.stdout.close()
-        out, err = proc2.communicate()
+    # Check if there is another CI run in progress
+    proc1 = subprocess.Popen(['ps', 'cax'], stdout=subprocess.PIPE)
+    proc2 = subprocess.Popen(['grep', 'manager.sh'], stdin=proc1.stdout,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc1.stdout.close()
+    out, err = proc2.communicate()
 
-        if (out):
-            print("Can't run CI, another CI run in progress")
-            os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"Another CI run in progress, please try again in 15 minutes\""
-                      .format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
-        else:
-            os.system("./manager.sh config {} \"{}\" \"{}\"".format(extracted_data['id'], extracted_data['repo'], extracted_data['body']))
+    if (out):
+        print("Can't run CI, another CI run in progress")
+        log_access_granted(request_ctx, "CI busy, posting busy msg")
+        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"Another CI run in progress, please try again in 15 minutes\""
+                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
     else:
-        print("Data did not match filter, SKIP CI")
+        log_access_granted(request_ctx, "Running CI")
+        os.system("./manager.sh config {} \"{}\" \"{}\"".format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
 
-    return jsonify({
-        "success": True
-    })
+    return jsonify({"status": "ONLINE"})
 
 @app.route("/status", methods=['GET'])
 def status():
-    return jsonify({
-        "status": "ONLINE"
-    })
+    return jsonify({"status": "ONLINE"})
 
 if __name__ == "__main__":
     global KEYWORD
@@ -194,9 +207,11 @@ if __name__ == "__main__":
 
     with open (sys.argv[4], 'r') as cfg:
         webhook_config = json.load(cfg)
+
     authorized_users = webhook_config['authorized-users']
     if authorized_users is None:
         print("No authroized users found in webhook config")
         sys.exit(1)
 
+    logging.info("Starting the CI service")
     app.run(host=host, port=port)
