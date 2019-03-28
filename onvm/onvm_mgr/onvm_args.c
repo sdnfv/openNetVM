@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                   onvm_args.c
@@ -48,13 +47,10 @@
 
 ******************************************************************************/
 
-
 #include "onvm_mgr/onvm_args.h"
 #include "onvm_mgr/onvm_stats.h"
 
-
 /******************************Global variables*******************************/
-
 
 /* global var for number of currently active NFs - extern in header init.h */
 uint16_t num_nfs;
@@ -77,21 +73,16 @@ uint8_t global_verbosity_level = 1;
 /* global var for program name */
 static const char *progname;
 
-
 /***********************Internal Functions prototypes*************************/
-
 
 static void
 usage(void);
 
-
 static int
 parse_portmask(uint8_t max_ports, const char *portmask);
 
-
 static int
 parse_default_service(const char *services);
-
 
 static int
 parse_num_services(const char *services);
@@ -110,21 +101,16 @@ parse_verbosity_level(const char *verbosity_level);
 
 /*********************************Interfaces**********************************/
 
-
 int
 parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         int option_index, opt;
         char **argvopt = argv;
 
         static struct option lgopts[] = {
-                {"port-mask",           required_argument,      NULL,   'p'},
-                {"num-services",        required_argument,      NULL,   'r'},
-                {"nf-cores",            required_argument,      NULL,   'n'},
-                {"default-service",     required_argument,      NULL,   'd'},
-                {"stats-out",           no_argument,            NULL,   's'},
-                {"stats-sleep-time",    no_argument,            NULL,   'z'},
-                {"verbocity-level",     no_argument,            NULL,   'v'}
-        };
+            {"port-mask", required_argument, NULL, 'p'}, {"num-services", required_argument, NULL, 'r'},
+            {"nf-cores", required_argument, NULL, 'n'},  {"default-service", required_argument, NULL, 'd'},
+            {"stats-out", no_argument, NULL, 's'},       {"stats-sleep-time", no_argument, NULL, 'z'},
+            {"verbocity-level", no_argument, NULL, 'v'}};
 
         progname = argv[0];
 
@@ -163,13 +149,13 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 onvm_stats_set_output(stats_destination);
                                 break;
                         case 'z':
-                                if(parse_stats_sleep_time(optarg) != 0){
+                                if (parse_stats_sleep_time(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
                                 break;
                         case 'v':
-                                if(parse_verbosity_level(optarg) != 0){
+                                if (parse_verbosity_level(optarg) != 0) {
                                         usage();
                                         return -1;
                                 }
@@ -184,9 +170,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
         return 0;
 }
 
-
 /*****************************Internal functions******************************/
-
 
 static void
 usage(void) {
@@ -200,7 +184,6 @@ usage(void) {
             "\t-v VERBOCITY_LEVEL: verbocity level of the stats output(optional)\n",
             progname);
 }
-
 
 static int
 parse_portmask(uint8_t max_ports, const char *portmask) {
@@ -224,10 +207,12 @@ parse_portmask(uint8_t max_ports, const char *portmask) {
         while (pm != 0) {
                 if (pm & 0x01) { /* bit is set in mask, use port */
                         if (count >= max_ports)
-                                printf("WARNING: requested port %u not present"
-                                " - ignoring\n", (unsigned)count);
+                                printf(
+                                    "WARNING: requested port %u not present"
+                                    " - ignoring\n",
+                                    (unsigned)count);
                         else
-                            ports->id[ports->num_ports++] = count;
+                                ports->id[ports->num_ports++] = count;
                 }
                 pm = (pm >> 1);
                 count++;
@@ -235,7 +220,6 @@ parse_portmask(uint8_t max_ports, const char *portmask) {
 
         return 0;
 }
-
 
 static int
 parse_default_service(const char *services) {
@@ -249,7 +233,6 @@ parse_default_service(const char *services) {
         default_service = (uint16_t)temp;
         return 0;
 }
-
 
 static int
 parse_num_services(const char *services) {
@@ -290,8 +273,10 @@ parse_nf_cores(const char *nf_coremask) {
         while (pm != 0) {
                 if (pm & 0x01) { /* bit is set in mask, use port */
                         if (count >= max_cores) {
-                                printf("WARNING: requested core %u out of cpu bounds"
-                                " - ignoring\n", (unsigned)count);
+                                printf(
+                                    "WARNING: requested core %u out of cpu bounds"
+                                    " - ignoring\n",
+                                    (unsigned)count);
                         } else {
                                 cores[count].enabled = 1;
                                 cores[count].nf_count = 0;
@@ -321,11 +306,11 @@ parse_nf_cores(const char *nf_coremask) {
 
 static int
 parse_stats_sleep_time(const char *sleeptime) {
-        char* end = NULL;
+        char *end = NULL;
         unsigned long temp;
 
         temp = strtoul(sleeptime, &end, 10);
-        if(end == NULL || *end != '\0' || temp == 0)
+        if (end == NULL || *end != '\0' || temp == 0)
                 return -1;
 
         global_stats_sleep_time = (uint16_t)temp;
@@ -347,14 +332,14 @@ parse_stats_output(const char *stats_output) {
                 return -1;
         }
 }
- 
+
 static int
-parse_verbosity_level(const char *verbosity_level){
-        char* end = NULL;
+parse_verbosity_level(const char *verbosity_level) {
+        char *end = NULL;
         unsigned long temp;
 
         temp = strtoul(verbosity_level, &end, 10);
-        if(end == NULL || *end != '\0' || temp == 0)
+        if (end == NULL || *end != '\0' || temp == 0)
                 return -1;
 
         global_verbosity_level = (uint16_t)temp;
