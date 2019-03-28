@@ -292,18 +292,18 @@ struct onvm_service_chain {
 
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
-#define NF_STARTING 1            // When a NF is in the startup process and already has an id
-#define NF_RUNNING 2             // Running normally
-#define NF_PAUSED  3             // NF is not receiving packets, but may in the future
-#define NF_STOPPED 4             // NF has stopped and in the shutdown process
-#define NF_ID_CONFLICT 5         // NF is trying to declare an ID already in use
-#define NF_NO_IDS 6              // There are no available IDs for this NF
-#define NF_SERVICE_MAX 7         // Service ID has exceeded the maximum amount
-#define NF_SERVICE_COUNT_MAX 8   // Maximum amount of NF's per service spawned
-#define NF_NO_CORES 9            // There are no cores available or specified core can't be used
-#define NF_NO_DEDICATED_CORES 10 // There is no space for a dedicated core
-#define NF_CORE_OUT_OF_RANGE 11  // The manually selected core is out of range
-#define NF_CORE_BUSY 12          // The manually selected core is busy
+#define NF_STARTING 1             // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2              // Running normally
+#define NF_PAUSED  3              // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4              // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5          // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6               // There are no available IDs for this NF
+#define NF_SERVICE_MAX 7          // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8    // Maximum amount of NF's per service spawned
+#define NF_NO_CORES 9             // There are no cores available or specified core can't be used
+#define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
+#define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
+#define NF_CORE_BUSY 12           // The manually selected core is busy
 #define NF_WAITING_FOR_MGR 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
