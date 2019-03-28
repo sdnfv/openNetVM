@@ -256,7 +256,6 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         strcpy(firewall_req->name, name);
 
         status = onvm_nflib_request_lpm(firewall_req);
-        //printf("%d", firewall_req->max_num_rules);
 
         if (status < 0) {
                 rte_exit(EXIT_FAILURE, "Cannot get lpm region for firewall\n");
