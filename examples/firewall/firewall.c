@@ -276,7 +276,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
                         return 1;
                 }
         }
-        free(firewall_req);
+        rte_free(firewall_req);
 
 
         return 0;
