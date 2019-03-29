@@ -79,6 +79,10 @@ master_thread_main(void) {
         int shutdown_iter_count;
         const unsigned sleeptime = global_stats_sleep_time;
         const unsigned verbosity_level = global_verbosity_level;
+        const uint32_t time_to_live = global_time_to_live;
+        const uint32_t pkt_limit = global_pkt_limit;
+        const uint64_t start_time = rte_get_tsc_cycles();
+        uint64_t total_rx_pkts;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
@@ -87,6 +91,10 @@ master_thread_main(void) {
         }
 
         RTE_LOG(INFO, APP, "Stats verbosity level = %d\n", verbosity_level);
+        if (time_to_live)
+                RTE_LOG(INFO, APP, "Manager time to live = %u\n", global_time_to_live);
+        if (pkt_limit)
+                RTE_LOG(INFO, APP, "Manager packet limit = %u\n", global_pkt_limit);
 
         /* Initial pause so above printf is seen */
         sleep(5);
@@ -97,6 +105,21 @@ master_thread_main(void) {
                 onvm_nf_check_status();
                 if (stats_destination != ONVM_STATS_NONE)
                         onvm_stats_display_all(sleeptime, verbosity_level);
+
+                if (time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= time_to_live)) {
+                        printf("Time to live exceeded, shutting down\n");
+                        main_keep_running = 0;
+                }
+
+                if (pkt_limit) {
+                        total_rx_pkts = 0;
+                        for (i = 0; i < ports->num_ports; i++)
+                                total_rx_pkts += ports->rx_stats.rx[ports->id[i]];
+                        if (unlikely(total_rx_pkts >= (uint64_t) pkt_limit * PKT_TTL_MULTIPLIER)) {
+                                printf("Packet limit exceeded, shutting down\n");
+                                main_keep_running = 0;
+                        }
+                }
         }
 
         /* Close out file references and things */

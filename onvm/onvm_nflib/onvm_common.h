@@ -76,6 +76,11 @@
 #define ONVM_SET_BIT(flags, n) ((flags) | (1 << (n)))
 #define ONVM_CLEAR_BIT(flags, n) ((flags) & (0 << (n)))
 
+/* Measured in millions of packets */
+#define PKT_TTL_MULTIPLIER 1000000
+/* Measured in seconds */
+#define TIME_TTL_MULTIPLIER 1
+
 struct onvm_pkt_meta {
         uint8_t action;       /* Action to be performed */
         uint16_t destination; /* where to go next */
@@ -208,7 +213,7 @@ struct onvm_nf {
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 
-        /* NF specifc functions */
+        /* NF specific functions */
         pkt_handler_func nf_pkt_function;
         callback_handler_func nf_callback_function;
         advanced_rings_func nf_advanced_rings_function;
@@ -248,6 +253,11 @@ struct onvm_nf_info {
         uint8_t flags;
         uint8_t status;
         const char *tag;
+        /* If set NF will stop after time reaches time_to_live */
+        uint16_t time_to_live;
+        /* If set NF will stop after pkts TX reach pkt_limit */
+        uint16_t pkt_limit;
+        /* Pointer to NF defined state data */
         void *data;
 };
 

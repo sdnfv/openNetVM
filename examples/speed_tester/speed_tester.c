@@ -309,6 +309,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         uint16_t i, j, nb_pkts;
         void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
+        uint64_t start_time;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         volatile struct onvm_nf *nf;
@@ -328,6 +329,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+
+        start_time = rte_get_tsc_cycles();
 
         while (keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
@@ -351,6 +354,16 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         }
                 } else {
                         nf->stats.tx += tx_batch_size;
+                }
+
+                if (nf_info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
+                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf_info->time_to_live)) {
+                        printf("Time to live exceeded, shutting down\n");
+                        keep_running = 0;
+                }
+                if (nf_info->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                        printf("Packet limit exceeded, shutting down\n");
+                        keep_running = 0;
                 }
         }
         onvm_nflib_stop(nf_info);

@@ -363,6 +363,11 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
         RTE_LOG(INFO, APP, "Running on core %d\n", nf_info->core);
 
+        if (nf_info->time_to_live)
+                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf_info->time_to_live);
+        if (nf_info->pkt_limit)
+                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf_info->pkt_limit);
+
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         return 0;
@@ -477,6 +482,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf_info *info;
         pkt_handler_func handler;
         callback_handler_func callback;
+        uint64_t start_time;
         int ret;
 
         nf = (struct onvm_nf *)arg;
@@ -495,6 +501,8 @@ onvm_nflib_thread_main_loop(void *arg) {
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
+        start_time = rte_get_tsc_cycles();
+
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
@@ -510,6 +518,16 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_nflib_dequeue_messages(nf);
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)(nf->info) && keep_running;
+                }
+
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                                          TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
+                        printf("Time to live exceeded, shutting down\n");
+                        keep_running = 0;
+                }
+                if (info->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) info->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                        printf("Packet limit exceeded, shutting down\n");
+                        keep_running = 0;
                 }
         }
 
@@ -858,6 +876,9 @@ onvm_nflib_info_init(const char *tag) {
         info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
+        /* TTL and packet limit disabled by default */
+        info->time_to_live = 0;
+        info->pkt_limit = 0;
 
         return info;
 }
@@ -875,9 +896,11 @@ static void
 onvm_nflib_usage(const char *progname) {
         printf(
             "Usage: %s [EAL args] -- "
-            "[-n <instance_id>]"
-            "[-r <service_id>]"
-            "[-m (manual core assignment flag)]"
+            "[-n <instance_id>] "
+            "[-r <service_id>] "
+            "[-t <time_to_live>] "
+            "[-l <pkt_limit>] "
+            "[-m (manual core assignment flag)] "
             "[-s (share core flag)]\n\n",
             progname);
 }
@@ -889,7 +912,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         int service_id = -1;
 
         opterr = 0;
-        while ((c = getopt(argc, argv, "n:r:ms")) != -1)
+        while ((c = getopt (argc, argv, "n:r:t:l:ms")) != -1)
                 switch (c) {
                         case 'n':
                                 initial_instance_id = (uint16_t)strtoul(optarg, NULL, 10);
@@ -900,6 +923,20 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                                 // Service id 0 is reserved
                                 if (service_id == 0)
                                         service_id = -1;
+                                break;
+                        case 't':
+                                nf_info->time_to_live = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_info->time_to_live == 0) {
+                                        fprintf(stderr, "Time to live argument can't be 0\n");
+                                        return -1;
+                                }
+                                break;
+                        case 'l':
+                                nf_info->pkt_limit = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_info->pkt_limit == 0) {
+                                        fprintf(stderr, "Packet time to live argument can't be 0\n");
+                                        return -1;
+                                }
                                 break;
                         case 'm':
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
