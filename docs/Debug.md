@@ -18,6 +18,14 @@ For example, you may want to debug [speed tester][speed_tester] with gdb.
   + `sudo gdb --args ./build/speed_tester -l 5 -n 3 --proc-type=secondary -- -r 1  -- -d 1`
 - It is now possible to set breakpoints and perform other gdb operations!
 
+**Troubleshooting:**  
+If debugging symbols are not found verify that debugging flags are set with `echo $USER_FLAGS` and also try executing the following command in gdb:
+ - For onvm_mgr:
+    `file onvm_mgr/x86_64-native-linuxapp-gcc/app/onvm_mgr`
+    
+ - For NFs:
+    `file build/app/NF_NAME`
+
 If for some reason `USER_FLAGS` does not set correctly, it's possible to edit the `Makefile` of your debug target and set the flags manually.
 It can be done by adding a line similar to this:
 - `CFLAGS += -g`

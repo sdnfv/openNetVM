@@ -39,7 +39,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                                    main.c
 
@@ -48,19 +47,19 @@
 
 ******************************************************************************/
 
-
 #include <signal.h>
 
 #include "onvm_mgr.h"
-#include "onvm_stats.h"
-#include "onvm_pkt.h"
 #include "onvm_nf.h"
 
-struct wakeup_info *wakeup_infos;
+#include "onvm_pkt.h"
+#include "onvm_stats.h"
 
 /****************************Internal Declarations****************************/
 
 #define MAX_SHUTDOWN_ITERS 10
+
+struct wakeup_info *wakeup_infos;
 
 // True as long as the main thread loop should keep running
 static uint8_t main_keep_running = 1;
@@ -69,7 +68,8 @@ static uint8_t main_keep_running = 1;
 // race the stats display to be able to print, so keep this varable separate
 static uint8_t worker_keep_running = 1;
 
-static void handle_signal(int sig);
+static void
+handle_signal(int sig);
 
 /*******************************Worker threads********************************/
 
@@ -82,6 +82,10 @@ master_thread_main(void) {
         int shutdown_iter_count;
         const unsigned sleeptime = global_stats_sleep_time;
         const unsigned verbosity_level = global_verbosity_level;
+        const uint32_t time_to_live = global_time_to_live;
+        const uint32_t pkt_limit = global_pkt_limit;
+        const uint64_t start_time = rte_get_tsc_cycles();
+        uint64_t total_rx_pkts;
 
         RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
 
@@ -90,16 +94,35 @@ master_thread_main(void) {
         }
 
         RTE_LOG(INFO, APP, "Stats verbosity level = %d\n", verbosity_level);
+        if (time_to_live)
+                RTE_LOG(INFO, APP, "Manager time to live = %u\n", global_time_to_live);
+        if (pkt_limit)
+                RTE_LOG(INFO, APP, "Manager packet limit = %u\n", global_pkt_limit);
 
         /* Initial pause so above printf is seen */
         sleep(5);
 
         onvm_stats_init(verbosity_level);
         /* Loop forever: sleep always returns 0 or <= param */
-        while ( main_keep_running && sleep(sleeptime) <= sleeptime) {
+        while (main_keep_running && sleep(sleeptime) <= sleeptime) {
                 onvm_nf_check_status();
                 if (stats_destination != ONVM_STATS_NONE)
                         onvm_stats_display_all(sleeptime, verbosity_level);
+
+                if (time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= time_to_live)) {
+                        printf("Time to live exceeded, shutting down\n");
+                        main_keep_running = 0;
+                }
+
+                if (pkt_limit) {
+                        total_rx_pkts = 0;
+                        for (i = 0; i < ports->num_ports; i++)
+                                total_rx_pkts += ports->rx_stats.rx[ports->id[i]];
+                        if (unlikely(total_rx_pkts >= (uint64_t) pkt_limit * PKT_TTL_MULTIPLIER)) {
+                                printf("Packet limit exceeded, shutting down\n");
+                                main_keep_running = 0;
+                        }
+                }
         }
 
         /* Close out file references and things */
@@ -119,26 +142,24 @@ master_thread_main(void) {
                 if (nfs[i].info == NULL) {
                         continue;
                 }
-                RTE_LOG(INFO, APP, "Core %d: Notifying NF %"PRIu16" to shut down\n", rte_lcore_id(), i);
+                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
         }
 
         /* Wait to process all exits */
-        for (shutdown_iter_count = 0;
-             shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_nfs > 0;
-             shutdown_iter_count++) {
+        for (shutdown_iter_count = 0; shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_nfs > 0; shutdown_iter_count++) {
                 onvm_nf_check_status();
-                RTE_LOG(INFO, APP, "Core %d: Waiting for %"PRIu16" NFs to exit\n", rte_lcore_id(), num_nfs);
+                RTE_LOG(INFO, APP, "Core %d: Waiting for %" PRIu16 " NFs to exit\n", rte_lcore_id(), num_nfs);
                 sleep(sleeptime);
         }
 
         if (num_nfs > 0) {
-                RTE_LOG(INFO, APP, "Core %d: Up to %"PRIu16" NFs may still be running and must be killed manually\n", rte_lcore_id(), num_nfs);
+                RTE_LOG(INFO, APP, "Core %d: Up to %" PRIu16 " NFs may still be running and must be killed manually\n",
+                        rte_lcore_id(), num_nfs);
         }
 
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
-
 
 /*
  * Function to receive packets from the NIC
@@ -148,19 +169,14 @@ static int
 rx_thread_main(void *arg) {
         uint16_t i, rx_count;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
-        struct queue_mgr *rx_mgr = (struct queue_mgr*)arg;
+        struct queue_mgr *rx_mgr = (struct queue_mgr *)arg;
 
-        RTE_LOG(INFO,
-                APP,
-                "Core %d: Running RX thread for RX queue %d\n",
-                rte_lcore_id(),
-                rx_mgr->id);
+        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", rte_lcore_id(), rx_mgr->id);
 
         for (; worker_keep_running;) {
                 /* Read ports */
                 for (i = 0; i < ports->num_ports; i++) {
-                        rx_count = rte_eth_rx_burst(ports->id[i], rx_mgr->id, \
-                                        pkts, PACKET_READ_SIZE);
+                        rx_count = rte_eth_rx_burst(ports->id[i], rx_mgr->id, pkts, PACKET_READ_SIZE);
                         ports->rx_stats.rx[ports->id[i]] += rx_count;
 
                         /* Now process the NIC packets read */
@@ -180,7 +196,6 @@ rx_thread_main(void *arg) {
         return 0;
 }
 
-
 static int
 tx_thread_main(void *arg) {
         struct onvm_nf *nf;
@@ -189,18 +204,11 @@ tx_thread_main(void *arg) {
         struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
 
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
-                RTE_LOG(INFO,
-                        APP,
-                        "Core %d: Running TX thread for NF %d\n",
-                        rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", rte_lcore_id(),
                         tx_mgr->tx_thread_info->first_nf);
         } else if (tx_mgr->tx_thread_info->first_nf < tx_mgr->tx_thread_info->last_nf) {
-                RTE_LOG(INFO,
-                        APP,
-                        "Core %d: Running TX thread for NFs %d to %d\n",
-                        rte_lcore_id(),
-                        tx_mgr->tx_thread_info->first_nf,
-                        tx_mgr->tx_thread_info->last_nf-1);
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", rte_lcore_id(),
+                        tx_mgr->tx_thread_info->first_nf, tx_mgr->tx_thread_info->last_nf - 1);
         }
 
         for (; worker_keep_running;) {
@@ -210,8 +218,8 @@ tx_thread_main(void *arg) {
                         if (!onvm_nf_is_valid(nf))
                                 continue;
 
-			/* Dequeue all packets in ring up to max possible. */
-			tx_count = rte_ring_dequeue_burst(nf->tx_q, (void **) pkts, PACKET_READ_SIZE, NULL);
+                        /* Dequeue all packets in ring up to max possible. */
+                        tx_count = rte_ring_dequeue_burst(nf->tx_q, (void **)pkts, PACKET_READ_SIZE, NULL);
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
@@ -245,24 +253,25 @@ handle_signal(int sig) {
 unsigned int nfs_wakethr[MAX_NFS] = {[0 ... MAX_NFS-1] = MAX_THRESHOLD};
 
 static inline int
-whether_wakeup_client(int instance_id)
-{
+whether_wakeup_client(int instance_id) {
         uint16_t cur_entries;
-        if (nfs[instance_id].rx_q == NULL || nfs[instance_id].sem_name == NULL) {
+        if (!onvm_nf_is_valid(&nfs[instance_id]))
                 return 0;
-        }
+
+        if (nfs[instance_id].rx_q == NULL || nfs[instance_id].sem_name == NULL)
+                return 0;
+
         cur_entries = rte_ring_count(nfs[instance_id].rx_q);
-        if (cur_entries >= nfs_wakethr[instance_id]){
+        if (cur_entries >= nfs_wakethr[instance_id]) {
                 return 1;
         }
         return 0;
 }
 
 static inline void
-wakeup_client(int instance_id, struct wakeup_info *wakeup_info)
-{
+wakeup_client(int instance_id, struct wakeup_info *wakeup_info) {
         if (whether_wakeup_client(instance_id) == 1) {
-                if (rte_atomic16_read(nfs[instance_id].shm_server) ==1) {
+                if (rte_atomic16_read(nfs[instance_id].shm_server) == 1) {
                         wakeup_info->num_wakeups += 1;
                         rte_atomic16_set(nfs[instance_id].shm_server, 0);
                         sem_post(nfs[instance_id].mutex);
@@ -271,8 +280,7 @@ wakeup_client(int instance_id, struct wakeup_info *wakeup_info)
 }
 
 static int
-wakeup_nfs(void *arg)
-{
+wakeup_nfs(void *arg) {
         struct wakeup_info *wakeup_info = (struct wakeup_info *)arg;
         unsigned i;
 
@@ -301,6 +309,7 @@ static void signal_handler(int sig, siginfo_t *info, void *secret) {
 
         exit(1);
 }
+
 static void
 register_signal_handler(void) {
         unsigned i;
@@ -314,6 +323,7 @@ register_signal_handler(void) {
                 sigaction(i, &act, 0);
         }
 }
+
 /*******************************Main function*********************************/
 
 int
@@ -327,21 +337,22 @@ main(int argc, char *argv[]) {
 
         /* Reserve ID 0 for internal manager things */
         next_instance_id = 1;
-        if (init(argc, argv) < 0 )
+        if (init(argc, argv) < 0)
                 return -1;
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         /* clear statistics */
         onvm_stats_clear_all_nfs();
 
-         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all remaining for Tx */
+        /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all
+         * remaining for Tx */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
         if (ONVM_INTERRUPT_SEM) tx_lcores -= ONVM_NUM_WAKEUP_THREADS;
 
         /* Offset cur_lcore to start assigning TX cores */
-        cur_lcore += (rx_lcores-1);
+        cur_lcore += (rx_lcores - 1);
 
         RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
@@ -359,7 +370,7 @@ main(int argc, char *argv[]) {
          * We want to distribute the number of running NFs across available
          * TX threads
          */
-        nfs_per_tx = ceil((float)MAX_NFS/tx_lcores);
+        nfs_per_tx = ceil((float)MAX_NFS / tx_lcores);
 
         // We start the system with 0 NFs active
         num_nfs = 0;
@@ -376,13 +387,10 @@ main(int argc, char *argv[]) {
                 tx_mgr->tx_thread_info->port_tx_bufs = calloc(RTE_MAX_ETHPORTS, sizeof(struct packet_buf));
                 tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
                 tx_mgr->tx_thread_info->first_nf = RTE_MIN(i * nfs_per_tx + 1, (unsigned)MAX_NFS);
-                tx_mgr->tx_thread_info->last_nf = RTE_MIN((i+1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
+                tx_mgr->tx_thread_info->last_nf = RTE_MIN((i + 1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-                if (rte_eal_remote_launch(tx_thread_main, (void*)tx_mgr,  cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR,
-                                APP,
-                                "Core %d is already busy, can't use for nf %d TX\n",
-                                cur_lcore,
+                if (rte_eal_remote_launch(tx_thread_main, (void *)tx_mgr, cur_lcore) == -EBUSY) {
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d TX\n", cur_lcore,
                                 tx_mgr->tx_thread_info->first_nf);
                         return -1;
                 }
@@ -397,10 +405,7 @@ main(int argc, char *argv[]) {
                 rx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(rx_thread_main, (void *)rx_mgr, cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR,
-                                APP,
-                                "Core %d is already busy, can't use for RX queue id %d\n",
-                                cur_lcore,
+                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for RX queue id %d\n", cur_lcore,
                                 rx_mgr->id);
                         return -1;
                 }

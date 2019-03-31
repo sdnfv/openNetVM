@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                                  onvm_stats.h
 
@@ -47,13 +46,12 @@
 
 ******************************************************************************/
 
-
 #ifndef _ONVM_STATS_H_
 #define _ONVM_STATS_H_
 
-#include "cJSON.h"
-#include <time.h>
 #include <locale.h>
+#include <time.h>
+#include "cJSON.h"
 
 #define ONVM_STR_STATS_STDOUT "stdout"
 #define ONVM_STR_STATS_STDERR "stderr"
@@ -69,23 +67,17 @@
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
 #define ONVM_JSON_TIMESTAMP_KEY "last_updated"
 
-#define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                     \
-        do {                                                                    \
-                (str_) = (char *)malloc(sizeof(char) * (sz_));                  \
-                if (!(str_))                                                    \
-                        rte_exit(-1, "ERROR! [%s,%d]: unable to malloc str.\n", \
-                                 __FUNCTION__, __LINE__);                       \
-                snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                   \
+#define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                                              \
+        do {                                                                                             \
+                (str_) = (char*)malloc(sizeof(char) * (sz_));                                            \
+                if (!(str_))                                                                             \
+                        rte_exit(-1, "ERROR! [%s,%d]: unable to malloc str.\n", __FUNCTION__, __LINE__); \
+                snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                                            \
         } while (0)
 
 #define ONVM_RAW_STATS_DUMP 3
 
-typedef enum {
-        ONVM_STATS_NONE = 0,
-        ONVM_STATS_STDOUT,
-        ONVM_STATS_STDERR,
-        ONVM_STATS_WEB
-} ONVM_STATS_OUTPUT;
+typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
 
 cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_obj;
@@ -96,7 +88,6 @@ cJSON* onvm_json_events_arr;
 
 /*********************************Interfaces**********************************/
 
-
 /*
  * Function for initializing stats
  *
@@ -105,7 +96,6 @@ cJSON* onvm_json_events_arr;
  */
 void
 onvm_stats_init(uint8_t verbosity_level);
-
 
 /*
  * Interface called by the manager to tell the stats module where to print
@@ -116,13 +106,15 @@ onvm_stats_init(uint8_t verbosity_level);
  * browser.  If STATS_STDOUT or STATS_STDOUT is specified, then stats will be
  * output the respective stream.
  */
-void onvm_stats_set_output(ONVM_STATS_OUTPUT output);
+void
+onvm_stats_set_output(ONVM_STATS_OUTPUT output);
 
 /*
  * Interface to close out file descriptions and clean up memory
  * To be called when the stats loop is done
  */
-void onvm_stats_cleanup(void);
+void
+onvm_stats_cleanup(void);
 
 /*
  * Interface called by the ONVM Manager to display all statistics
@@ -131,8 +123,8 @@ void onvm_stats_cleanup(void);
  * Input : time passed since last display (to compute packet rate)
  *
  */
-void onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
-
+void
+onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
 
 /*
  * Interface called by the ONVM Manager to clear all NFs statistics
@@ -143,8 +135,8 @@ void onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
  * incur a visible slowdown.
  *
  */
-void onvm_stats_clear_all_nfs(void);
-
+void
+onvm_stats_clear_all_nfs(void);
 
 /*
  * Interface called by the ONVM Manager to clear one NF's statistics.
@@ -152,12 +144,13 @@ void onvm_stats_clear_all_nfs(void);
  * Input : the NF id
  *
  */
-void onvm_stats_clear_nf(uint16_t id);
+void
+onvm_stats_clear_nf(uint16_t id);
 
 /*
  * Interface called by manager when a new event should be created.
  */
- void onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf);
-
+void
+onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf);
 
 #endif  // _ONVM_STATS_H_

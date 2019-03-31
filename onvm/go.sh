@@ -12,9 +12,13 @@ function usage {
         echo -e "\tRuns OVNM the same as above, but runs the web stats on port 9000 instead of defaulting to 8080"
         echo -e "$0 0,1,2,3 3 0xF0 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout"
-        echo -e "$0 0,1,2,3 3 0xF0 -s -v stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout -t 42"
+        echo -e "\tRuns ONVM the same way as above, but shuts down after 42 seconds"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout -l 64"
+        echo -e "\tRuns ONVM the same way as above, but shuts down after receiving 64 million packets"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout -v"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in extra verbose mode"
-        echo -e "$0 0,1,2,3 3 0xF0 -s stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout -vv"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in raw data dump mode"
         echo -e "$0 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but adds a --base-virtaddr dpdk parameter"
@@ -38,12 +42,14 @@ then
     usage
 fi
 
-while getopts "a:r:d:s:p:z:v" opt; do
+while getopts "a:r:d:s:t:l:p:z:v" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
         d) def_srvc="-d $optarg";;
         s) stats="-s $OPTARG";;
+        t) ttl="-t $OPTARG";;
+        l) packet_limit="-l $OPTARG";;
         p) web_port="$OPTARG";;
         z) stats_sleep_time="-z $OPTARG";;
         v) verbosity=$(($verbosity+1));;
@@ -68,7 +74,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level}
+sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} 
 
 if [ "${stats}" = "-s web" ]
 then

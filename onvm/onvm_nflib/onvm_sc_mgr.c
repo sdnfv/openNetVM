@@ -35,31 +35,29 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_sc_mgr.c - service chain functions for manager 
+ * onvm_sc_mgr.c - service chain functions for manager
  ********************************************************************/
 
+#include "onvm_sc_mgr.h"
 #include <rte_common.h>
-#include <rte_memory.h>
 #include <rte_debug.h>
 #include <rte_malloc.h>
-#include "onvm_sc_mgr.h"
+#include <rte_memory.h>
 #include "onvm_sc_common.h"
 
 struct onvm_service_chain*
 onvm_sc_get(void) {
-	return NULL;
+        return NULL;
 }
 
 struct onvm_service_chain*
-onvm_sc_create(void)
-{
-        struct onvm_service_chain *chain;
+onvm_sc_create(void) {
+        struct onvm_service_chain* chain;
 
-        chain = rte_calloc("ONVM_sercice_chain",
-                        1, sizeof(struct onvm_service_chain), 0);
+        chain = rte_calloc("ONVM_sercice_chain", 1, sizeof(struct onvm_service_chain), 0);
         if (chain == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service chain\n");
         }
 
-	return chain;
+        return chain;
 }

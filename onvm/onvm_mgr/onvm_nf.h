@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                  onvm_nf.h
@@ -47,7 +46,6 @@
      processing.
 
 ******************************************************************************/
-
 
 #ifndef _ONVM_NF_H_
 #define _ONVM_NF_H_
@@ -59,16 +57,14 @@ extern struct wakeup_info *wakeup_infos;
 
 /********************************Interfaces***********************************/
 
-
 /*
  * Interface giving the smallest unsigned integer unused for a NF instance.
  *
- * Output : the unsigned integer 
+ * Output : the unsigned integer
  *
  */
 uint16_t
 onvm_nf_next_instance_id(void);
-
 
 /*
  * Interface looking through all registered NFs if one needs to start or stop.
@@ -76,7 +72,6 @@ onvm_nf_next_instance_id(void);
  */
 void
 onvm_nf_check_status(void);
-
 
 /*
  * Interface to send a message to a certain NF.
@@ -89,6 +84,5 @@ onvm_nf_check_status(void);
  */
 int
 onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data);
-
 
 #endif  // _ONVM_NF_H_
