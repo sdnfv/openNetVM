@@ -73,20 +73,15 @@ if [ -z "$ONVM_HOME" ]; then
     exit 1
 fi
 
+# Source DPDK helper functions
+. $ONVM_HOME/scripts/dpdk_helper_scripts.sh
+
 # Disable ASLR
 sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 
 # Setup/Check for free HugePages if the user wants to
 if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
-	hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
-	hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
-
-	sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
-	hp_free=$(cat /proc/meminfo | grep HugePages_Free | awk '{print $2}')
-	if [ $hp_free == "0" ]; then
-    	echo "No free huge pages. Did you try turning it off and on again?"
-    	exit 1
-	fi
+    set_numa_pages $hp_count
 fi
 
 # Verify sudo access

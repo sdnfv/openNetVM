@@ -13,8 +13,9 @@ NFs are run with different arguments in three different tiers--DPDK configuratio
     + Flags to configure how DPDK is initialized and run.  NFs typically use these arguments:
       - `-l CPU_CORE_LIST -n 3 --proc-type=secondary`
   - openNetVM configuration flags:
-    + Flags to configure how the NF is managed by openNetVM.  NFs can configure their service ID and, for debugging, their instance ID (the manager automatically assigns instance IDs, but sometimes it is useful to manually assign them). NFs can also select to share cores with other NFs and enable manual core selection that overrides the onvm_mgr core selection (if core is available):
-      - `-r SERVICE_ID [-n INSTANCE_ID] [-s SHARE_CORE] [-m MANUAL_CORE_SELECTION]`
+    + Flags to configure how the NF is managed by openNetVM.  NFs can configure their service ID and, for debugging, their instance ID (the manager automatically assigns instance IDs, but sometimes it is useful to manually assign them). NFs can also select to share cores with other NFs and enable manual core selection that overrides the onvm_mgr core selection (if core is available), their time to live and their packet limit (which is a packet based ttl):
+
+      - `-r SERVICE_ID [-n INSTANCE_ID] [-s SHARE_CORE] [-m MANUAL_CORE_SELECTION] [-t TIME_TO_LIVE] [-l PACKET_LIMIT]`
   - NF configuration flags:
     + User defined flags to configure NF parameters.  Some of our example NFs use a flag to throttle how often packet info is printed, or to specify a destination NF to send packets to.  See the [simple_forward][forward] NF for an example of them both.
 

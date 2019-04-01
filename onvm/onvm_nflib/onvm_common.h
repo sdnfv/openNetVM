@@ -50,6 +50,9 @@
 #include "onvm_config_common.h"
 #include "onvm_msg_common.h"
 
+#define ONVM_NF_HANDLE_TX 1                   // should be true if NFs primarily pass packets to each other
+#define ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT 1  // should be true if on NF shutdown onvm_mgr tries to reallocate cores
+
 #define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
 #define MAX_NFS 128              // total number of NFs allowed
 #define MAX_SERVICES 32          // total number of unique services allowed
@@ -75,6 +78,11 @@
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
 #define ONVM_SET_BIT(flags, n) ((flags) | (1 << (n)))
 #define ONVM_CLEAR_BIT(flags, n) ((flags) & (0 << (n)))
+
+/* Measured in millions of packets */
+#define PKT_TTL_MULTIPLIER 1000000
+/* Measured in seconds */
+#define TIME_TTL_MULTIPLIER 1
 
 struct onvm_pkt_meta {
         uint8_t action;       /* Action to be performed */
@@ -175,6 +183,8 @@ typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info
 typedef void (*advanced_rings_func)(struct onvm_nf_info *nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_info *nf_info);
+/* Function prototype for NFs to handle custom messages */
+typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
@@ -189,6 +199,7 @@ struct onvm_nf_scale_info {
         pkt_handler_func pkt_func;
         callback_handler_func callback_func;
         advanced_rings_func adv_rings_func;
+        handle_msg_func handle_msg_function;
 };
 
 /*
@@ -208,11 +219,12 @@ struct onvm_nf {
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
 
-        /* NF specifc functions */
+        /* NF specific functions */
         pkt_handler_func nf_pkt_function;
         callback_handler_func nf_callback_function;
         advanced_rings_func nf_advanced_rings_function;
         setup_func nf_setup_function;
+        handle_msg_func nf_handle_msg_function;
 
         /*
          * Define a structure with stats from the NFs.
@@ -248,6 +260,11 @@ struct onvm_nf_info {
         uint8_t flags;
         uint8_t status;
         const char *tag;
+        /* If set NF will stop after time reaches time_to_live */
+        uint16_t time_to_live;
+        /* If set NF will stop after pkts TX reach pkt_limit */
+        uint16_t pkt_limit;
+        /* Pointer to NF defined state data */
         void *data;
 };
 
@@ -298,7 +315,6 @@ struct onvm_service_chain {
 #define NF_CORE_BUSY 12           // The manually selected core is busy
 
 #define NF_NO_ID -1
-#define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
 
 /*
  * Given the rx queue name template above, get the queue name

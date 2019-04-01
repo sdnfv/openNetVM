@@ -146,7 +146,6 @@ onvm_nf_check_status(void) {
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_stop(nf) == 0) {
                                         onvm_stats_add_event("NF Stopping", nf);
-                                        num_nfs--;
                                 }
                                 break;
                 }
@@ -169,7 +168,7 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
         msg->msg_type = msg_type;
         msg->msg_data = msg_data;
 
-        return rte_ring_sp_enqueue(nfs[dest].msg_q, (void *)msg);
+        return rte_ring_enqueue(nfs[dest].msg_q, (void *)msg);
 }
 
 /******************************Internal functions*****************************/
@@ -248,17 +247,24 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info) {
         uint16_t nf_id;
         uint16_t service_id;
+        uint16_t nf_status;
         uint16_t candidate_nf_id, candidate_core;
-        int mapIndex;
         struct rte_mempool *nf_info_mp;
+        int mapIndex;
 
-        if (nf_info == NULL || nf_info->status != NF_RUNNING)
+        if (nf_info == NULL)
                 return 1;
 
-        nf_info->status = NF_STOPPED;
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
         candidate_core = nf_info->core;
+        nf_status = nf_info->status;
+
+        /* Cleanup should only happen if NF was starting or running */
+        if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)
+                return 1;
+
+        nf_info->status = NF_STOPPED;
 
         /* Indicate that the core is no longer used */
         cores[nf_info->core].nf_count--;
@@ -266,6 +272,21 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
+
+        /* Free info struct */
+        /* Lookup mempool for nf_info struct */
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
+                return 1;
+
+        rte_mempool_put(nf_info_mp, (void*)nf_info);
+
+        /* Further cleanup is only required if NF was succesfully started */
+        if (nf_status != NF_RUNNING && nf_status != NF_PAUSED)
+                return 0;
+
+        /* Decrease the total number of RUNNING NFs */
+        num_nfs--;
 
         /* Reset stats */
         onvm_stats_clear_nf(nf_id);
@@ -292,18 +313,12 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
                 }
         }
 
-        /* Free info struct */
-        /* Lookup mempool for nf_info struct */
-        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
-        if (nf_info_mp == NULL)
-                return 1;
-
-        rte_mempool_put(nf_info_mp, (void *)nf_info);
-
-        /* As this NF stopped we can reevaluate core mappings */
-        candidate_nf_id = onvm_threading_find_nf_to_reassign_core(candidate_core, cores);
-        if (candidate_nf_id > 0) {
-                onvm_nf_relocate_nf(candidate_nf_id, candidate_core);
+        if (ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT) {
+                /* As this NF stopped we can reevaluate core mappings */
+                candidate_nf_id = onvm_threading_find_nf_to_reassign_core(candidate_core, cores);
+                if (candidate_nf_id > 0) {
+                        onvm_nf_relocate_nf(candidate_nf_id, candidate_core);
+                }
         }
 
         return 0;
