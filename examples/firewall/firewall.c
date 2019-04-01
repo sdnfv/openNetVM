@@ -199,6 +199,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         int ret;
         uint32_t rule = 0;
         uint32_t track_ip = 0;
+        uint32_t ip;
 
         if (++counter == print_delay) {
                 do_stats_display();
@@ -215,7 +216,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-        ret = rte_lpm_lookup(lpm_tbl, ipv4_hdr->src_addr, &rule);
+        ip = rte_cpu_to_be_32(ipv4_hdr->src_addr);
+        ret = rte_lpm_lookup(lpm_tbl, ip, &rule);
 
         if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
@@ -243,6 +245,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         int i, status, ret;
+        uint32_t ip;
         char name[64];
 
         firewall_req = (struct lpm_request *) rte_malloc(NULL, sizeof(struct lpm_request), 0);
@@ -268,8 +271,10 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         }
 
         for (i = 0; i < num_rules; ++i) {
-                printf("RULE %d: { ip: %u.%u.%u.%u, depth: %d, action: %d }\n", i, (rules[i]->src_ip) & 0xFF, (rules[i]->src_ip >> 8) & 0xFF, (rules[i]->src_ip >> 16) & 0xFF,(rules[i]->src_ip >> 24) & 0xFF, rules[i]->depth,
+                ip = rules[i]->src_ip;
+                printf("RULE %d: { ip: %u.%u.%u.%u, depth: %d, action: %d }\n", i, (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, rules[i]->depth,
                        rules[i]->action);
+                printf("In other words %u\n", rules[i]->src_ip);
                 ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if (ret < 0) {
                         printf("ERROR ADDING RULE %d\n", ret);
@@ -298,7 +303,8 @@ static void lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
 }
 
 struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
-        int ip, num_rules;
+        int ip[4];
+        int num_rules;
         int i = 0;
         struct onvm_fw_rule **rules;
 
@@ -327,7 +333,9 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
                 rules[i] = (struct onvm_fw_rule *) malloc(sizeof(struct onvm_fw_rule));
-                onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
+                //onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
+                sscanf(rules_ip->valuestring, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+                rules[i]->src_ip = IPv4(ip[3], ip[2], ip[1], ip[0]);
                 rules[i]->depth = depth->valueint;
                 rules[i]->action = action->valueint;
                 rules_json = rules_json->next;
