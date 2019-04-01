@@ -222,7 +222,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
                 stats.pkt_drop++;
-                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
+                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
                 return 0;
         }
 
@@ -231,12 +231,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         meta->action = ONVM_NF_ACTION_TONF;
                         meta->destination = destination;
                         stats.pkt_accept++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been accepted\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been accepted\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
                         break;
                 default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         stats.pkt_drop++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 24) & 0xFF);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
                         break;
         }
 
@@ -304,7 +304,7 @@ static void lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
 
 struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
         int ip[4];
-        int num_rules;
+        int num_rules, ret;
         int i = 0;
         struct onvm_fw_rule **rules;
 
@@ -333,8 +333,10 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
                 rules[i] = (struct onvm_fw_rule *) malloc(sizeof(struct onvm_fw_rule));
-                //onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
-                sscanf(rules_ip->valuestring, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+                ret = sscanf(rules_ip->valuestring, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+                if (ret != 4) {
+                        rte_exit(EXIT_FAILURE, "Invalid IP address in rules file\n");
+                }
                 rules[i]->src_ip = IPv4(ip[3], ip[2], ip[1], ip[0]);
                 rules[i]->depth = depth->valueint;
                 rules[i]->action = action->valueint;
