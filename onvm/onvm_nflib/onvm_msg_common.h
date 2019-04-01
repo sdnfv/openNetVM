@@ -51,7 +51,9 @@
 #define MSG_NF_STOPPING 3
 #define MSG_NF_READY 4
 #define MSG_SCALE 5
-#define MSG_REQUEST_LPM_REGION 6
+#define MSG_FROM_NF 6
+#define MSG_REQUEST_LPM_REGION 7
+
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */
