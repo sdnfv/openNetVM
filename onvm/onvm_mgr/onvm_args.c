@@ -67,6 +67,12 @@ ONVM_STATS_OUTPUT stats_destination = ONVM_STATS_NONE;
 /* global var for how long stats should wait before updating - extern in init.h */
 uint16_t global_stats_sleep_time = 1;
 
+/* global var for time_to_live, how long to wait until shutdown */
+uint32_t global_time_to_live = 0;
+
+/* global var for time_to_live, how long to wait until shutdown */
+uint32_t global_pkt_limit = 0;
+
 /* global var for how verbose the stats output to console is - extern in init.h */
 uint8_t global_verbosity_level = 1;
 
@@ -94,6 +100,12 @@ static int
 parse_stats_output(const char *stats_output);
 
 static int
+parse_time_to_live(const char *time_to_live);
+
+static int
+parse_packet_limit(const char *pkt_limit);
+
+static int
 parse_stats_sleep_time(const char *sleeptime);
 
 static int
@@ -110,11 +122,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
             {"port-mask", required_argument, NULL, 'p'}, {"num-services", required_argument, NULL, 'r'},
             {"nf-cores", required_argument, NULL, 'n'},  {"default-service", required_argument, NULL, 'd'},
             {"stats-out", no_argument, NULL, 's'},       {"stats-sleep-time", no_argument, NULL, 'z'},
+            {"time_to_live", no_argument, NULL, 't'},    {"packet_limit", no_argument, NULL, 'l'},
             {"verbocity-level", no_argument, NULL, 'v'}};
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:z:v:", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:t:l:z:v:", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -147,6 +160,18 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 }
 
                                 onvm_stats_set_output(stats_destination);
+                                break;
+                        case 't':
+                                if (parse_time_to_live(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
+                                break;
+                        case 'l':
+                                if (parse_packet_limit(optarg) != 0) {
+                                        usage();
+                                        return -1;
+                                }
                                 break;
                         case 'z':
                                 if (parse_stats_sleep_time(optarg) != 0) {
@@ -181,7 +206,9 @@ usage(void) {
             "\t-d DEFAULT_SERVICE: the service to initially receive packets. defaults to 1 (optional)\n"
             "\t-s STATS_OUTPUT: where to output manager stats (stdout/stderr/web). defaults to NONE (optional)\n"
             "\t-z STATS_SLEEP_TIME: how long the stats thread should wait before updating the stats (in seconds)\n"
-            "\t-v VERBOCITY_LEVEL: verbocity level of the stats output(optional)\n",
+            "\t-t TTL: time to live, how many seconds to wait until exiting (optional)\n"
+            "\t-l PACKET_LIMIT: how many millions of packets to recieve before exiting (optional)\n"
+            "\t-v VERBOCITY_LEVEL: verbocity level of the stats output (optional)\n",
             progname);
 }
 
@@ -331,6 +358,32 @@ parse_stats_output(const char *stats_output) {
         } else {
                 return -1;
         }
+}
+
+static int
+parse_time_to_live(const char *time_to_live) {
+        char* end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(time_to_live, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        global_time_to_live = (uint32_t)temp;
+        return 0;
+}
+
+static int
+parse_packet_limit(const char *pkt_limit) {
+        char* end = NULL;
+        unsigned long temp;
+
+        temp = strtoul(pkt_limit, &end, 10);
+        if (end == NULL || *end != '\0' || temp == 0)
+                return -1;
+
+        global_pkt_limit = (uint32_t)temp;
+        return 0;
 }
 
 static int

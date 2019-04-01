@@ -165,6 +165,9 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
 int
 onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info);
 
+int
+onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
+
 /**
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
@@ -226,6 +229,9 @@ onvm_nflib_get_nf(uint16_t id);
  */
 void
 onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup);
+
+void
+onvm_nflib_set_msg_handling_function(struct onvm_nf_info *info, handle_msg_func nf_handle_msg);
 
 /**
  * Allocates an empty scaling config to be filled in by the NF.
