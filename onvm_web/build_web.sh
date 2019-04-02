@@ -47,3 +47,13 @@ yarn build
 cd ../
 rm -rf ./web-build
 cp -r react-app/build ./web-build
+
+# NOTE: minification assumes uglifycss and uglify-js are installed
+
+for css in ./web-build/static/css/*.css; do
+    uglifycss --output $css $css
+done
+
+for js in ./web-build/static/js/*.js; do
+    uglifyjs --output "${js}_test" $js
+done

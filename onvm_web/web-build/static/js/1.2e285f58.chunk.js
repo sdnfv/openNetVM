@@ -37943,154 +37943,6 @@
     ,
     function(e, t, n) {
       "use strict";
-      var r = n(0),
-        i = n.n(r),
-        a = n(1),
-        o = n.n(a),
-        s = n(10),
-        l = n.n(s),
-        u = n(4),
-        c = n.n(u),
-        d = n(12),
-        f = n(15),
-        h = n.n(f),
-        p = {},
-        g = 0,
-        m = function() {
-          var e =
-              arguments.length > 0 && void 0 !== arguments[0]
-                ? arguments[0]
-                : "/",
-            t =
-              arguments.length > 1 && void 0 !== arguments[1]
-                ? arguments[1]
-                : {};
-          return "/" === e
-            ? e
-            : (function(e) {
-                var t = e,
-                  n = p[t] || (p[t] = {});
-                if (n[e]) return n[e];
-                var r = h.a.compile(e);
-                return g < 1e4 && ((n[e] = r), g++), r;
-              })(e)(t, { pretty: !0 });
-        },
-        v =
-          Object.assign ||
-          function(e) {
-            for (var t = 1; t < arguments.length; t++) {
-              var n = arguments[t];
-              for (var r in n)
-                Object.prototype.hasOwnProperty.call(n, r) && (e[r] = n[r]);
-            }
-            return e;
-          };
-      var y = (function(e) {
-        function t() {
-          return (
-            (function(e, t) {
-              if (!(e instanceof t))
-                throw new TypeError("Cannot call a class as a function");
-            })(this, t),
-            (function(e, t) {
-              if (!e)
-                throw new ReferenceError(
-                  "this hasn't been initialised - super() hasn't been called"
-                );
-              return !t || ("object" !== typeof t && "function" !== typeof t)
-                ? e
-                : t;
-            })(this, e.apply(this, arguments))
-          );
-        }
-        return (
-          (function(e, t) {
-            if ("function" !== typeof t && null !== t)
-              throw new TypeError(
-                "Super expression must either be null or a function, not " +
-                  typeof t
-              );
-            (e.prototype = Object.create(t && t.prototype, {
-              constructor: {
-                value: e,
-                enumerable: !1,
-                writable: !0,
-                configurable: !0
-              }
-            })),
-              t &&
-                (Object.setPrototypeOf
-                  ? Object.setPrototypeOf(e, t)
-                  : (e.__proto__ = t));
-          })(t, e),
-          (t.prototype.isStatic = function() {
-            return this.context.router && this.context.router.staticContext;
-          }),
-          (t.prototype.componentWillMount = function() {
-            c()(
-              this.context.router,
-              "You should not use <Redirect> outside a <Router>"
-            ),
-              this.isStatic() && this.perform();
-          }),
-          (t.prototype.componentDidMount = function() {
-            this.isStatic() || this.perform();
-          }),
-          (t.prototype.componentDidUpdate = function(e) {
-            var t = Object(d.b)(e.to),
-              n = Object(d.b)(this.props.to);
-            Object(d.c)(t, n)
-              ? l()(
-                  !1,
-                  "You tried to redirect to the same route you're currently on: \"" +
-                    n.pathname +
-                    n.search +
-                    '"'
-                )
-              : this.perform();
-          }),
-          (t.prototype.computeTo = function(e) {
-            var t = e.computedMatch,
-              n = e.to;
-            return t
-              ? "string" === typeof n
-                ? m(n, t.params)
-                : v({}, n, { pathname: m(n.pathname, t.params) })
-              : n;
-          }),
-          (t.prototype.perform = function() {
-            var e = this.context.router.history,
-              t = this.props.push,
-              n = this.computeTo(this.props);
-            t ? e.push(n) : e.replace(n);
-          }),
-          (t.prototype.render = function() {
-            return null;
-          }),
-          t
-        );
-      })(i.a.Component);
-      (y.propTypes = {
-        computedMatch: o.a.object,
-        push: o.a.bool,
-        from: o.a.string,
-        to: o.a.oneOfType([o.a.string, o.a.object]).isRequired
-      }),
-        (y.defaultProps = { push: !1 }),
-        (y.contextTypes = {
-          router: o.a.shape({
-            history: o.a.shape({
-              push: o.a.func.isRequired,
-              replace: o.a.func.isRequired
-            }).isRequired,
-            staticContext: o.a.object
-          }).isRequired
-        });
-      var b = y;
-      t.a = b;
-    },
-    function(e, t, n) {
-      "use strict";
       var r = n(21),
         i = n.n(r),
         a = n(0),
@@ -38274,10 +38126,35 @@
         i = n.n(r),
         a = n(1),
         o = n.n(a),
-        s = n(19),
+        s = n(10),
         l = n.n(s),
-        u = n(13),
-        c =
+        u = n(4),
+        c = n.n(u),
+        d = n(12),
+        f = n(15),
+        h = n.n(f),
+        p = {},
+        g = 0,
+        m = function() {
+          var e =
+              arguments.length > 0 && void 0 !== arguments[0]
+                ? arguments[0]
+                : "/",
+            t =
+              arguments.length > 1 && void 0 !== arguments[1]
+                ? arguments[1]
+                : {};
+          return "/" === e
+            ? e
+            : (function(e) {
+                var t = e,
+                  n = p[t] || (p[t] = {});
+                if (n[e]) return n[e];
+                var r = h.a.compile(e);
+                return g < 1e4 && ((n[e] = r), g++), r;
+              })(e)(t, { pretty: !0 });
+        },
+        v =
           Object.assign ||
           function(e) {
             for (var t = 1; t < arguments.length; t++) {
@@ -38287,43 +38164,7 @@
             }
             return e;
           };
-      var d = function(e) {
-        var t = function(t) {
-          var n = t.wrappedComponentRef,
-            r = (function(e, t) {
-              var n = {};
-              for (var r in e)
-                t.indexOf(r) >= 0 ||
-                  (Object.prototype.hasOwnProperty.call(e, r) && (n[r] = e[r]));
-              return n;
-            })(t, ["wrappedComponentRef"]);
-          return i.a.createElement(u.a, {
-            children: function(t) {
-              return i.a.createElement(e, c({}, r, t, { ref: n }));
-            }
-          });
-        };
-        return (
-          (t.displayName = "withRouter(" + (e.displayName || e.name) + ")"),
-          (t.WrappedComponent = e),
-          (t.propTypes = { wrappedComponentRef: o.a.func }),
-          l()(t, e)
-        );
-      };
-      t.a = d;
-    },
-    function(e, t, n) {
-      "use strict";
-      var r = n(0),
-        i = n.n(r),
-        a = n(1),
-        o = n.n(a),
-        s = n(10),
-        l = n.n(s),
-        u = n(4),
-        c = n.n(u),
-        d = n(14);
-      var f = (function(e) {
+      var y = (function(e) {
         function t() {
           return (
             (function(e, t) {
@@ -38361,58 +38202,115 @@
                   ? Object.setPrototypeOf(e, t)
                   : (e.__proto__ = t));
           })(t, e),
+          (t.prototype.isStatic = function() {
+            return this.context.router && this.context.router.staticContext;
+          }),
           (t.prototype.componentWillMount = function() {
             c()(
               this.context.router,
-              "You should not use <Switch> outside a <Router>"
-            );
-          }),
-          (t.prototype.componentWillReceiveProps = function(e) {
-            l()(
-              !(e.location && !this.props.location),
-              '<Switch> elements should not change from uncontrolled to controlled (or vice versa). You initially used no "location" prop and then provided one on a subsequent render.'
+              "You should not use <Redirect> outside a <Router>"
             ),
-              l()(
-                !(!e.location && this.props.location),
-                '<Switch> elements should not change from controlled to uncontrolled (or vice versa). You provided a "location" prop initially but omitted it on a subsequent render.'
-              );
+              this.isStatic() && this.perform();
+          }),
+          (t.prototype.componentDidMount = function() {
+            this.isStatic() || this.perform();
+          }),
+          (t.prototype.componentDidUpdate = function(e) {
+            var t = Object(d.b)(e.to),
+              n = Object(d.b)(this.props.to);
+            Object(d.c)(t, n)
+              ? l()(
+                  !1,
+                  "You tried to redirect to the same route you're currently on: \"" +
+                    n.pathname +
+                    n.search +
+                    '"'
+                )
+              : this.perform();
+          }),
+          (t.prototype.computeTo = function(e) {
+            var t = e.computedMatch,
+              n = e.to;
+            return t
+              ? "string" === typeof n
+                ? m(n, t.params)
+                : v({}, n, { pathname: m(n.pathname, t.params) })
+              : n;
+          }),
+          (t.prototype.perform = function() {
+            var e = this.context.router.history,
+              t = this.props.push,
+              n = this.computeTo(this.props);
+            t ? e.push(n) : e.replace(n);
           }),
           (t.prototype.render = function() {
-            var e = this.context.router.route,
-              t = this.props.children,
-              n = this.props.location || e.location,
-              r = void 0,
-              a = void 0;
-            return (
-              i.a.Children.forEach(t, function(t) {
-                if (null == r && i.a.isValidElement(t)) {
-                  var o = t.props,
-                    s = o.path,
-                    l = o.exact,
-                    u = o.strict,
-                    c = o.sensitive,
-                    f = o.from,
-                    h = s || f;
-                  (a = t),
-                    (r = Object(d.a)(
-                      n.pathname,
-                      { path: h, exact: l, strict: u, sensitive: c },
-                      e.match
-                    ));
-                }
-              }),
-              r ? i.a.cloneElement(a, { location: n, computedMatch: r }) : null
-            );
+            return null;
           }),
           t
         );
       })(i.a.Component);
-      (f.contextTypes = {
-        router: o.a.shape({ route: o.a.object.isRequired }).isRequired
+      (y.propTypes = {
+        computedMatch: o.a.object,
+        push: o.a.bool,
+        from: o.a.string,
+        to: o.a.oneOfType([o.a.string, o.a.object]).isRequired
       }),
-        (f.propTypes = { children: o.a.node, location: o.a.object });
-      var h = f;
-      t.a = h;
+        (y.defaultProps = { push: !1 }),
+        (y.contextTypes = {
+          router: o.a.shape({
+            history: o.a.shape({
+              push: o.a.func.isRequired,
+              replace: o.a.func.isRequired
+            }).isRequired,
+            staticContext: o.a.object
+          }).isRequired
+        });
+      var b = y;
+      t.a = b;
+    },
+    function(e, t, n) {
+      "use strict";
+      var r = n(0),
+        i = n.n(r),
+        a = n(1),
+        o = n.n(a),
+        s = n(19),
+        l = n.n(s),
+        u = n(13),
+        c =
+          Object.assign ||
+          function(e) {
+            for (var t = 1; t < arguments.length; t++) {
+              var n = arguments[t];
+              for (var r in n)
+                Object.prototype.hasOwnProperty.call(n, r) && (e[r] = n[r]);
+            }
+            return e;
+          };
+      var d = function(e) {
+        var t = function(t) {
+          var n = t.wrappedComponentRef,
+            r = (function(e, t) {
+              var n = {};
+              for (var r in e)
+                t.indexOf(r) >= 0 ||
+                  (Object.prototype.hasOwnProperty.call(e, r) && (n[r] = e[r]));
+              return n;
+            })(t, ["wrappedComponentRef"]);
+          return i.a.createElement(u.a, {
+            children: function(t) {
+              return i.a.createElement(e, c({}, r, t, { ref: n }));
+            }
+          });
+        };
+        return (
+          (t.displayName = "withRouter(" + (e.displayName || e.name) + ")"),
+          (t.WrappedComponent = e),
+          (t.propTypes = { wrappedComponentRef: o.a.func }),
+          l()(t, e)
+        );
+      };
+      t.a = d;
     },
     function(e, t, n) {
       "use strict";
@@ -38654,7 +38552,109 @@
           "aria-current": "page"
         });
       t.a = y;
+    },
+    function(e, t, n) {
+      "use strict";
+      var r = n(0),
+        i = n.n(r),
+        a = n(1),
+        o = n.n(a),
+        s = n(10),
+        l = n.n(s),
+        u = n(4),
+        c = n.n(u),
+        d = n(14);
+      var f = (function(e) {
+        function t() {
+          return (
+            (function(e, t) {
+              if (!(e instanceof t))
+                throw new TypeError("Cannot call a class as a function");
+            })(this, t),
+            (function(e, t) {
+              if (!e)
+                throw new ReferenceError(
+                  "this hasn't been initialised - super() hasn't been called"
+                );
+              return !t || ("object" !== typeof t && "function" !== typeof t)
+                ? e
+                : t;
+            })(this, e.apply(this, arguments))
+          );
+        }
+        return (
+          (function(e, t) {
+            if ("function" !== typeof t && null !== t)
+              throw new TypeError(
+                "Super expression must either be null or a function, not " +
+                  typeof t
+              );
+            (e.prototype = Object.create(t && t.prototype, {
+              constructor: {
+                value: e,
+                enumerable: !1,
+                writable: !0,
+                configurable: !0
+              }
+            })),
+              t &&
+                (Object.setPrototypeOf
+                  ? Object.setPrototypeOf(e, t)
+                  : (e.__proto__ = t));
+          })(t, e),
+          (t.prototype.componentWillMount = function() {
+            c()(
+              this.context.router,
+              "You should not use <Switch> outside a <Router>"
+            );
+          }),
+          (t.prototype.componentWillReceiveProps = function(e) {
+            l()(
+              !(e.location && !this.props.location),
+              '<Switch> elements should not change from uncontrolled to controlled (or vice versa). You initially used no "location" prop and then provided one on a subsequent render.'
+            ),
+              l()(
+                !(!e.location && this.props.location),
+                '<Switch> elements should not change from controlled to uncontrolled (or vice versa). You provided a "location" prop initially but omitted it on a subsequent render.'
+              );
+          }),
+          (t.prototype.render = function() {
+            var e = this.context.router.route,
+              t = this.props.children,
+              n = this.props.location || e.location,
+              r = void 0,
+              a = void 0;
+            return (
+              i.a.Children.forEach(t, function(t) {
+                if (null == r && i.a.isValidElement(t)) {
+                  var o = t.props,
+                    s = o.path,
+                    l = o.exact,
+                    u = o.strict,
+                    c = o.sensitive,
+                    f = o.from,
+                    h = s || f;
+                  (a = t),
+                    (r = Object(d.a)(
+                      n.pathname,
+                      { path: h, exact: l, strict: u, sensitive: c },
+                      e.match
+                    ));
+                }
+              }),
+              r ? i.a.cloneElement(a, { location: n, computedMatch: r }) : null
+            );
+          }),
+          t
+        );
+      })(i.a.Component);
+      (f.contextTypes = {
+        router: o.a.shape({ route: o.a.object.isRequired }).isRequired
+      }),
+        (f.propTypes = { children: o.a.node, location: o.a.object });
+      var h = f;
+      t.a = h;
     }
   ]
 ]);
-//# sourceMappingURL=1.4e71a29a.chunk.js.map
+//# sourceMappingURL=1.2e285f58.chunk.js.map

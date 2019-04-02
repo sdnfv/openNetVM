@@ -8298,7 +8298,7 @@ body {
 }
 @media print {
   body {
-    background: none;
+    background: 0;
   }
 }
 body ::-webkit-scrollbar {
@@ -8368,8 +8368,8 @@ code {
 pre code {
   padding: 0;
   border-radius: 0;
-  border: none;
-  background: none;
+  border: 0;
+  background: 0;
 }
 hr {
   margin-top: 2rem;
@@ -9859,7 +9859,7 @@ a.icon:hover {
   position: absolute;
   background: #fff;
   border: 1px solid rgba(0, 40, 100, 0.12);
-  border-top: none;
+  border-top: 0;
   z-index: 10;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   min-width: 10rem;
@@ -11041,7 +11041,7 @@ a.icon:hover {
   content: "\F0DD";
 }
 .page-breadcrumb {
-  background: none;
+  background: 0;
   padding: 0;
   margin: 1rem 0 0;
   font-size: 0.875rem;
@@ -11058,8 +11058,8 @@ a.icon:hover {
   color: #6e7687;
 }
 .pagination-simple .page-item .page-link {
-  background: none;
-  border: none;
+  background: 0;
+  border: 0;
 }
 .pagination-simple .page-item.active .page-link {
   color: #495057;
@@ -11088,7 +11088,7 @@ a.icon:hover {
 @media print {
   .card {
     box-shadow: none;
-    border: none;
+    border: 0;
   }
 }
 .card-body {
@@ -11114,14 +11114,14 @@ a.icon:hover {
 .card-bottom,
 .card-footer {
   padding: 1rem 1.5rem;
-  background: none;
+  background: 0;
 }
 .card-footer {
   border-top: 1px solid rgba(0, 40, 100, 0.12);
   color: #6e7687;
 }
 .card-header {
-  background: none;
+  background: 0;
   padding: 0.5rem 1.5rem;
   display: flex;
   min-height: 3.5rem;
@@ -11463,7 +11463,7 @@ a.card-tabs-item.active {
   color: inherit !important;
 }
 .list-group-transparent .list-group-item {
-  background: none;
+  background: 0;
   border: 0;
   padding: 0.5rem 1rem;
   border-radius: 3px;
@@ -11700,8 +11700,8 @@ a.card-tabs-item.active {
 }
 @-webkit-keyframes loader {
   0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
+    -webkit-transform: rotate(0);
+    transform: rotate(0);
   }
   to {
     -webkit-transform: rotate(1turn);
@@ -11710,8 +11710,8 @@ a.card-tabs-item.active {
 }
 @keyframes loader {
   0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
+    -webkit-transform: rotate(0);
+    transform: rotate(0);
   }
   to {
     -webkit-transform: rotate(1turn);
@@ -12251,7 +12251,7 @@ a.chip:hover {
   background: #f5f7fb;
 }
 .example + .highlight {
-  border-top: none;
+  border-top: 0;
   margin-top: 0;
   border-radius: 0 0 3px 3px;
 }
@@ -12624,7 +12624,7 @@ a.tag-addon:hover {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background: none;
+  background: 0;
   cursor: pointer;
   display: flex;
   height: 100%;
@@ -12635,7 +12635,7 @@ a.tag-addon:hover {
 }
 .custom-range:focus {
   box-shadow: none;
-  outline: none;
+  outline: 0;
 }
 .custom-range:focus::-webkit-slider-thumb {
   border-color: #467fcf;
@@ -14522,7 +14522,7 @@ svg {
   border-left-color: #cacaca;
 }
 .selectize-control.plugin-remove_button .disabled [data-value] .remove:hover {
-  background: none;
+  background: 0;
 }
 .selectize-control.plugin-remove_button .disabled [data-value] .remove {
   border-left-color: #fff;
@@ -15560,4 +15560,3 @@ svg {
 .fe-zoom-out:before {
   content: "\EA06";
 }
-/*# sourceMappingURL=1.fe79427a.chunk.css.map */
