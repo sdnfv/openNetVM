@@ -52,8 +52,6 @@
 
 #include "onvm_threading.h"
 
-extern uint16_t next_instance_id;
-
 /********************************Interfaces***********************************/
 
 /*
