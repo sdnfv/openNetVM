@@ -93,11 +93,10 @@ onvm_nf_next_instance_id(void) {
         struct onvm_nf *nf;
         uint16_t instance_id;
 
-        //printf("instanct = %d, next_inst = %d\n", instance_id, next_instance_id);
         if (num_nfs >= MAX_NFS)
                 return MAX_NFS;
 
-        /* Do a first pass for nf_ids bigger than current next_instance_id */
+        /* Do a first pass for NF IDs bigger than current next_instance_id */
         while (next_instance_id < MAX_NFS) {
                 instance_id = next_instance_id++;
                 /* Check if this id is occupied by another NF */
@@ -198,7 +197,7 @@ onvm_nf_start(struct onvm_nf_info *nf_info) {
         // assume user is smart enough to avoid duplicates
         uint16_t nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID ? onvm_nf_next_instance_id() : nf_info->instance_id;
 
-        if (nf_id == 0 || nf_id >= MAX_NFS) {
+        if (nf_id >= MAX_NFS) {
                 // There are no more available IDs for this NF
                 nf_info->status = NF_NO_IDS;
                 return 1;
