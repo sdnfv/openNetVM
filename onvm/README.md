@@ -7,44 +7,49 @@ Manager
 The openNetVM manager is responsible for orchestrating traffic between NFs.  It handles all Rx/Tx traffic in and out of the system, dynamically manages NFs starting and stopping, and it displays statistics regarding all traffic.
 
 ```
-$sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l CORELIST -n MEMORY_CHANNELS --proc-type=primary -- -p PORTMASK -n NF_COREMASK [-r NUM_SERVICES] [-d DEFAULT_SERVICE] [-s STATS_OUTPUT]
+$sudo ./onvm_mgr/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l CORELIST -n MEMORY_CHANNELS --proc-type=primary -- -p PORTMASK -n NF_COREMASK [-r NUM_SERVICES] [-d DEFAULT_SERVICE] [-s STATS_OUTPUT] [-t TIME_TO_LIVE] [-l PACKET_LIMIT] 
 
 Options:
 
-	-c	an hexadecimal bit mask of the cores to run on.
+        -c      an hexadecimal bit mask of the cores to run on.
 
-	-n	number of memory channels per processor socket.
+        -n      number of memory channels per processor socket.
 
-	-l	comma deliniated list of cores to run on.
+        -l      comma deliniated list of cores to run on.
 
-	–lcores	map lcore set to physical cpu set.
+        –lcores map lcore set to physical cpu set.
 
-	-m	memory to allocate.
+        -m      memory to allocate.
 
-	-r	set the number of memory ranks (auto-detected by default).
+        -r      set the number of memory ranks (auto-detected by default).
 
-	-v	display the version information on startup.
+        -v      display the version information on startup.
 
-	-syslog	set the syslog facility.
+        -syslog set the syslog facility.
 
-	--socket_mem	set the memory to allocate on specific sockets.
+        --socket_mem    set the memory to allocate on specific sockets.
 
-	--huge-dir	directory where the hugetlbfs is mounted.
+        --huge-dir      directory where the hugetlbfs is mounted.
 
-	-–proc-type	set the type of the current process.
+        -–proc-type     set the type of the current process.
 
-	--	secondary commands
+        --      secondary commands
 
-		-p	a hexadecimal bit mask of the ports to use.
+                -p      a hexadecimal bit mask of the ports to use.
 
-		-n	a hexadecimal bit mask of cores for NFs to run on.
+                -n      a hexadecimal bit mask of cores for NFs to run on.
 
-		-r	an integer specifying the number of services.
+                -r      an integer specifying the number of services.
 
-		-d	an integer specifying the default service id.
+                -d      an integer specifying the default service id.
 
-		-s	a string (stdout/stderr/web) specifying where to
-output statistics.
+                -s      a string (stdout/stderr/web) specifying where to
+                        output statistics.
+
+                -t      an integer specifying the time to live in seconds
+
+                -l      an integer specifying the RX packet limit in 
+                        Millions of pkts 
 ```
 
 NF Library

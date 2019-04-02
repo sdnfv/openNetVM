@@ -144,11 +144,11 @@ static int
 onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info);
 
 /*
-* Signal handler to catch SIGINT.
-*
-* Input : int corresponding to the signal catched
-*
-*/
+ * Signal handler to catch SIGINT.
+ *
+ * Input : int corresponding to the signal catched
+ *
+ */
 static void
 onvm_nflib_handle_signal(int sig);
 
@@ -363,6 +363,11 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
         RTE_LOG(INFO, APP, "Running on core %d\n", nf_info->core);
 
+        if (nf_info->time_to_live)
+                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf_info->time_to_live);
+        if (nf_info->pkt_limit)
+                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf_info->pkt_limit);
+
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         return 0;
@@ -477,6 +482,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf_info *info;
         pkt_handler_func handler;
         callback_handler_func callback;
+        uint64_t start_time;
         int ret;
 
         nf = (struct onvm_nf *)arg;
@@ -495,6 +501,8 @@ onvm_nflib_thread_main_loop(void *arg) {
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
+        start_time = rte_get_tsc_cycles();
+
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
@@ -510,6 +518,16 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_nflib_dequeue_messages(nf);
                 if (callback != ONVM_NO_CALLBACK) {
                         keep_running = !(*callback)(nf->info) && keep_running;
+                }
+
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                                          TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
+                        printf("Time to live exceeded, shutting down\n");
+                        keep_running = 0;
+                }
+                if (info->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) info->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                        printf("Packet limit exceeded, shutting down\n");
+                        keep_running = 0;
                 }
         }
 
@@ -583,7 +601,13 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
                         break;
                 case MSG_SCALE:
                         RTE_LOG(INFO, APP, "Received scale message...\n");
-                        onvm_nflib_scale((struct onvm_nf_scale_info *)msg->msg_data);
+                        onvm_nflib_scale((struct onvm_nf_scale_info*)msg->msg_data);
+                        break;
+                case MSG_FROM_NF:
+                        RTE_LOG(INFO, APP, "Recieved MSG from other NF");
+                        if (nfs[info->instance_id].nf_handle_msg_function != NULL) {
+                                nfs[info->instance_id].nf_handle_msg_function(msg->msg_data, info);
+                        }
                         break;
                 case MSG_NOOP:
                 default:
@@ -591,6 +615,23 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
         }
 
         return 0;
+}
+
+int
+onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
+        int ret;
+        struct onvm_nf_msg *msg;
+
+        ret = rte_mempool_get(nf_msg_pool, (void**)(&msg));
+        if (ret != 0) {
+                RTE_LOG(INFO, APP, "Oh the huge manatee! Unable to allocate msg from pool :(\n");
+                return ret;
+        }
+
+        msg->msg_type = MSG_FROM_NF;
+        msg->msg_data = msg_data;
+
+        return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
 }
 
 void
@@ -647,6 +688,11 @@ onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup) {
         nfs[info->instance_id].nf_setup_function = setup;
 }
 
+void
+onvm_nflib_set_msg_handling_function(struct onvm_nf_info *info, handle_msg_func nf_handle_msg) {
+        nfs[info->instance_id].nf_handle_msg_function = nf_handle_msg;
+}
+
 int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         int ret;
@@ -698,12 +744,12 @@ onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data) {
         scale_info->core = parent_info->core;
         scale_info->flags = parent_info->flags;
         scale_info->data = data;
+        scale_info->setup_func = parent_nf->nf_setup_function;
+        scale_info->handle_msg_function = parent_nf->nf_handle_msg_function;
         if (parent_nf->nf_mode == NF_MODE_SINGLE) {
                 scale_info->pkt_func = parent_nf->nf_pkt_function;
-                scale_info->setup_func = parent_nf->nf_setup_function;
                 scale_info->callback_func = parent_nf->nf_callback_function;
         } else if (parent_nf->nf_mode == NF_MODE_RING) {
-                scale_info->setup_func = parent_nf->nf_setup_function;
                 scale_info->adv_rings_func = parent_nf->nf_advanced_rings_function;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
@@ -807,6 +853,7 @@ onvm_nflib_start_child(void *arg) {
         child->nf_pkt_function = scale_info->pkt_func;
         child->nf_callback_function = scale_info->callback_func;
         child->nf_advanced_rings_function = scale_info->adv_rings_func;
+        child->nf_handle_msg_function = scale_info->handle_msg_function;
         /* Set nf state data */
         child_info->data = scale_info->data;
 
@@ -858,6 +905,9 @@ onvm_nflib_info_init(const char *tag) {
         info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
         info->tag = tag;
+        /* TTL and packet limit disabled by default */
+        info->time_to_live = 0;
+        info->pkt_limit = 0;
 
         return info;
 }
@@ -875,9 +925,11 @@ static void
 onvm_nflib_usage(const char *progname) {
         printf(
             "Usage: %s [EAL args] -- "
-            "[-n <instance_id>]"
-            "[-r <service_id>]"
-            "[-m (manual core assignment flag)]"
+            "[-n <instance_id>] "
+            "[-r <service_id>] "
+            "[-t <time_to_live>] "
+            "[-l <pkt_limit>] "
+            "[-m (manual core assignment flag)] "
             "[-s (share core flag)]\n\n",
             progname);
 }
@@ -889,7 +941,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         int service_id = -1;
 
         opterr = 0;
-        while ((c = getopt(argc, argv, "n:r:ms")) != -1)
+        while ((c = getopt (argc, argv, "n:r:t:l:ms")) != -1)
                 switch (c) {
                         case 'n':
                                 initial_instance_id = (uint16_t)strtoul(optarg, NULL, 10);
@@ -900,6 +952,20 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                                 // Service id 0 is reserved
                                 if (service_id == 0)
                                         service_id = -1;
+                                break;
+                        case 't':
+                                nf_info->time_to_live = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_info->time_to_live == 0) {
+                                        fprintf(stderr, "Time to live argument can't be 0\n");
+                                        return -1;
+                                }
+                                break;
+                        case 'l':
+                                nf_info->pkt_limit = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_info->pkt_limit == 0) {
+                                        fprintf(stderr, "Packet time to live argument can't be 0\n");
+                                        return -1;
+                                }
                                 break;
                         case 'm':
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
