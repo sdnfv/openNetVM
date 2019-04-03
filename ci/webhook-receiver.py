@@ -44,7 +44,6 @@ def log_access_denied(request_ctx, custom_msg):
 def decrypt_secret():
     global secret_file_name
     global private_key_file_name
-    global secret
 
     secret_file = open(secret_file_name, "rb")
     private_key = RSA.import_key(open(private_key_file_name).read())
