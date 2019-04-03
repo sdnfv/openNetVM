@@ -202,7 +202,7 @@ Troubleshooting
 
     You can check the current status of NIC port bindings with
 
-    `sudo ./tools/dpdk_nic_bind.py  --status`
+    `sudo ./usertools/dpdk-devbind.py  --status`
 
     Output similar to below will show what driver each NIC port is bound to.
 
@@ -227,9 +227,9 @@ Troubleshooting
 
     Rerun the status command, `./tools/dpdk_nic_bind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
 
-    `sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+    `sudo ./usertools/dpdk-devbind.py -b igb_uio 07:00.0`
 
-    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below:
+    Check the status again, `./usertools/dpdk-devbind.py --status`, and assure the output is similar to our example below:
 
     ```
     Network devices using DPDK-compatible driver
