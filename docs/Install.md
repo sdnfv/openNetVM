@@ -222,7 +222,7 @@ Troubleshooting
 
     You can check the current status of NIC port bindings with
 
-    `sudo ./tools/dpdk_nic_bind.py  --status`
+    `sudo ./usertools/dpdk-devbind.py  --status`
 
     Output similar to below will show what driver each NIC port is bound to.
 
@@ -245,11 +245,11 @@ Troubleshooting
 
     `sudo ifconfig eth2 down`
 
-    Rerun the status command, `./tools/dpdk_nic_bind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
+    Rerun the status command, `./usertools/dpdk-devbind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
 
-    `sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+    `sudo ./usertools/dpdk-devbind.py -b igb_uio 07:00.0`
 
-    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below:
+    Check the status again, `./usertools/dpdk-devbind.py --status`, and assure the output is similar to our example below:
 
     ```
     Network devices using DPDK-compatible driver
@@ -268,7 +268,7 @@ Troubleshooting
 
 5. **Poor Performance**
 
-If you are not getting the expected level of performance, try these:
+    If you are not getting the expected level of performance, try these:
 
- - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
- - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.
+	 - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
+	 - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.
