@@ -184,7 +184,7 @@ Troubleshooting
 
     - Press [18] to install igb_uio driver for Intel NICs
 
-    - Press [22] to setup 2048 2MB hugepages
+    - Press [22] to setup 1024 2MB hugepages
 
     - Press [24] to register the Ethernet ports
 
