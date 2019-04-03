@@ -1,7 +1,15 @@
 Firewall
 ==
 The Firewall NF drops/forwards packets based on LPM rules specified in the  rules.json file.
+A user would enter a rule in the following format:
 
+````
+"ruleName": {
+		"ip": "127.1.1.0",
+		"depth": 32,
+		"action": 0
+	}
+````
 Compilation and Execution
 --
 ```
