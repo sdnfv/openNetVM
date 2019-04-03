@@ -229,7 +229,6 @@ onvm_nf_ready(struct onvm_nf_info *info) {
         if (info->status != NF_STARTING)
                 return -1;
 
-        printf("Recieved NF_READY from %d\n", info->instance_id);
         // Register this NF running within its service
         info->status = NF_RUNNING;
         uint16_t service_count = nf_per_service_count[info->service_id]++;
