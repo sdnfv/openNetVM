@@ -14,8 +14,15 @@ import os
 import subprocess
 import logging
 
+# Global vars
 EVENT_URL = "/github-webhook"
-CI_NAME="onvm"
+CI_NAME = "onvm"
+KEYWORD = None
+access_log_enabled = None
+authorized_users = None
+secret_file_name = None
+private_key_file = None
+secret = None
 
 app = Flask(__name__)
 
@@ -28,14 +35,19 @@ def get_request_info(request_ctx):
     return "Request details: IP: {}, User: {}, Repo: {}, ID: {}, Body: {}.".format(request_ctx['src_ip'], request_ctx['user'], request_ctx['repo'], request_ctx['id'], request_ctx['body'])
 
 def log_access_granted(request_ctx, custom_msg):
-    logging.info("Access GRANTED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
+    if (access_log_enabled):
+        logging.info("Access GRANTED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
 
 def log_access_denied(request_ctx, custom_msg):
-    logging.info("Access DENIED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
+    logging.warning("Access DENIED: {}. {}".format(custom_msg, get_request_info(request_ctx)))
 
 def decrypt_secret():
-    secret_file = open(webhook_config['secret-file'], "rb")
-    private_key = RSA.import_key(open(webhook_config['private-key-file']).read())
+    global secret_file_name
+    global private_key_file_name
+    global secret
+
+    secret_file = open(secret_file_name, "rb")
+    private_key = RSA.import_key(open(private_key_file_name).read())
 
     enc_session_key, nonce, tag, ciphertext = \
        [ secret_file.read(x) for x in (private_key.size_in_bytes(), 16, 16, -1) ]
@@ -49,7 +61,11 @@ def decrypt_secret():
     data = cipher_aes.decrypt_and_verify(ciphertext, tag)
 
     # Clear memory
-    secret_file = private_key = enc_session_key = nonce = tag = ciphertext = None
+    secret_file = private_key = None
+    private_key_file_name = secret_file_name = None
+    enc_session_key = nonce = tag = ciphertext = None
+    del private_key_file_name
+    del secret_file_name
     del secret_file
     del private_key
     del enc_session_key
@@ -61,7 +77,6 @@ def decrypt_secret():
 
 def verify_request_ip(request_ctx):
     src_ip = request_ctx['src_ip']
-    print (src_ip)
     valid_ips = requests.get('https://api.github.com/meta').json()['hooks']
 
     for ip in valid_ips:
@@ -71,20 +86,19 @@ def verify_request_ip(request_ctx):
     return False
 
 def verify_request_secret(request_ctx):
+    global secret
     header_signature = request_ctx['X-Hub-Signature']
     if header_signature is None:
         return False
 
     signature = header_signature.split('=')[1]
-    secret = decrypt_secret()
 
     mac = hmac.new(secret, msg=request_ctx['data'], digestmod='sha1')
     secret_comparison = hmac.compare_digest(mac.hexdigest(), signature)
 
     # Memory cleanup
-    header_signature = secret = signature = None
+    header_signature = signature = None
     del header_signature
-    del secret
     del signature
 
     return secret_comparison
@@ -95,6 +109,9 @@ def verify_request_secret(request_ctx):
 def filter_to_prs_and_pr_comments(json):
     # null check
     if json is None:
+        return None
+
+    if 'action' not in json:
         return None
 
     if json['action'] == 'opened' and 'pull_request' in json and 'base' in json['pull_request']:
@@ -165,7 +182,7 @@ def init_ci_pipeline():
 
     if (request_ctx['repo'] == 'openNetVM' and request_ctx['user'] not in authorized_users):
         print("Incoming request is from an unathorized user")
-        log_access_denied("Incoming request is from an unathorized user")
+        log_access_denied(request_ctx, "Incoming request is from an unathorized user")
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
         return jsonify({"success": True})
@@ -194,9 +211,37 @@ def init_ci_pipeline():
 def status():
     return jsonify({"status": "ONLINE"})
 
-if __name__ == "__main__":
-    global KEYWORD
+def parse_config(cfg_name):
+    global access_log_enabled
+    global secret_file_name
+    global private_key_file_name
+    global authorized_users
 
+    with open (cfg_name, 'r') as cfg:
+        webhook_config = json.load(cfg)
+
+    access_log_enabled = webhook_config['log-successful-attempts']
+    if access_log_enabled is None:
+        print("Access log switch not specified in the webhook server config")
+        sys.exit(1)
+
+    secret_file_name = webhook_config['secret-file']
+    if secret_file_name is None:
+        print("No secret file found in the webhook server config")
+        sys.exit(1)
+
+    private_key_file_name = webhook_config['private-key-file']
+    if private_key_file_name is None:
+        print("No private key file found in the webhook server config")
+        sys.exit(1)
+
+    authorized_users = webhook_config['authorized-users']
+    if authorized_users is None:
+        print("No authroized users found in webhook server config")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
     if(len(sys.argv) != 5):
         print("Invalid arguments!")
         sys.exit(1)
@@ -204,14 +249,11 @@ if __name__ == "__main__":
     host = sys.argv[1]
     port = sys.argv[2]
     KEYWORD = sys.argv[3]
-
-    with open (sys.argv[4], 'r') as cfg:
-        webhook_config = json.load(cfg)
-
-    authorized_users = webhook_config['authorized-users']
-    if authorized_users is None:
-        print("No authroized users found in webhook config")
-        sys.exit(1)
+    cfg_name = sys.argv[4]
+    
+    parse_config(cfg_name)
+    
+    secret = decrypt_secret()
 
     logging.info("Starting the CI service")
     app.run(host=host, port=port)

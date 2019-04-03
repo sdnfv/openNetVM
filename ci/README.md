@@ -46,7 +46,10 @@ The CI process can be broken into multiple steps:
     Webhook json config example
     ```
     {
-        "secret": "look_at_me_i'm_a_secret_key"
+        "secret-file": "very_special_encrypted_secret_file.bin",
+        "private-key-file": "private_key.pem", 
+        "log-successful-attempts": true,
+        "authorized-users": ["puffin", "penguin", "pcoach"]
     }
     ```
 
