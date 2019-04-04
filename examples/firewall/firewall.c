@@ -81,6 +81,7 @@ struct onvm_nf_info *nf_info;
 struct lpm_request *firewall_req;
 static struct firewall_pkt_stats stats;
 struct rte_lpm *lpm_tbl;
+struct onvm_fw_rule **rules;
 
 /* Number of packets between each print */
 static uint32_t print_delay = 10000000;
@@ -200,6 +201,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         uint32_t rule = 0;
         uint32_t track_ip = 0;
         uint32_t ip;
+        char ip_disp[16];
 
         if (++counter == print_delay) {
                 do_stats_display();
@@ -216,13 +218,14 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-        ip = rte_cpu_to_be_32(ipv4_hdr->src_addr);
+        ip = rte_be_to_cpu_32(ipv4_hdr->src_addr);
         ret = rte_lpm_lookup(lpm_tbl, ip, &rule);
+        sprintf(ip_disp, "%u.%u.%u.%u", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
 
         if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
                 stats.pkt_drop++;
-                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
+                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_disp);
                 return 0;
         }
 
@@ -231,12 +234,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         meta->action = ONVM_NF_ACTION_TONF;
                         meta->destination = destination;
                         stats.pkt_accept++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been accepted\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been accepted\n", ip_disp);
                         break;
                 default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         stats.pkt_drop++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %u.%u.%u.%u has been dropped\n", (ipv4_hdr->src_addr >> 24) & 0xFF, (ipv4_hdr->src_addr >> 16) & 0xFF, (ipv4_hdr->src_addr >> 8) & 0xFF, (ipv4_hdr->src_addr) & 0xFF);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_disp);
                         break;
         }
 
@@ -274,7 +277,6 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
                 ip = rules[i]->src_ip;
                 printf("RULE %d: { ip: %u.%u.%u.%u, depth: %d, action: %d }\n", i, (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, rules[i]->depth,
                        rules[i]->action);
-                printf("In other words %u\n", rules[i]->src_ip);
                 ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if (ret < 0) {
                         printf("ERROR ADDING RULE %d\n", ret);
@@ -306,7 +308,6 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
         int ip[4];
         int num_rules, ret;
         int i = 0;
-        struct onvm_fw_rule **rules;
 
         cJSON *rules_json = onvm_config_parse_file(rules_file);
         cJSON *rules_ip = NULL;
@@ -333,11 +334,8 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
                 if (action == NULL) rte_exit(EXIT_FAILURE, "Action not found/invalid\n");
 
                 rules[i] = (struct onvm_fw_rule *) malloc(sizeof(struct onvm_fw_rule));
-                ret = sscanf(rules_ip->valuestring, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
-                if (ret != 4) {
-                        rte_exit(EXIT_FAILURE, "Invalid IP address in rules file\n");
-                }
-                rules[i]->src_ip = IPv4(ip[3], ip[2], ip[1], ip[0]);
+                onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
+                rules[i]->src_ip = rte_be_to_cpu_32(rules[i]->src_ip);
                 rules[i]->depth = depth->valueint;
                 rules[i]->action = action->valueint;
                 rules_json = rules_json->next;
