@@ -463,9 +463,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 act_returned);
                 } else {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
+                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " msg_flag=%d\n",
                                 nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
-                                act_out, act_tonf, act_drop);
+                                act_out, act_tonf, act_drop, rte_atomic16_read(nfs[i].shm_server));
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {

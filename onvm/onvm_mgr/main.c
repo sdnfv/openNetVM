@@ -142,8 +142,13 @@ master_thread_main(void) {
                 if (nfs[i].info == NULL) {
                         continue;
                 }
-                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
+                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nfs[i].shm_server));
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
+                if (rte_atomic16_read(nfs[i].shm_server) == 1) {
+                        //wakeup_info->num_wakeups += 1;
+                        rte_atomic16_set(nfs[i].shm_server, 0);
+                        sem_post(nfs[i].mutex);
+                }
         }
 
         /* Wait to process all exits */
@@ -158,6 +163,12 @@ master_thread_main(void) {
                         rte_lcore_id(), num_nfs);
         }
 
+        /* Clean up the shared memory */
+        for (i = 0; i < MAX_NFS; i++) {
+                sem_close(nfs[i].mutex);
+                sem_unlink(nfs[i].sem_name);
+        }
+                        
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
 
@@ -293,37 +304,6 @@ wakeup_nfs(void *arg) {
         return 0;
 }
 
-static void signal_handler(int sig, siginfo_t *info, void *secret) {
-        int i;
-        (void)info;
-        (void)secret;
-
-        //2 means terminal interrupt, 3 means terminal quit, 9 means kill and 15 means termination
-        if (sig <= 15) {
-                // handle for all clients or check for onvm_nf_is_valid(). Not needed!
-                for (i = 1; i < MAX_NFS; i++) {
-                        sem_close(nfs[i].mutex);
-                        sem_unlink(nfs[i].sem_name);
-                }
-        }
-
-        exit(1);
-}
-
-static void
-register_signal_handler(void) {
-        unsigned i;
-        struct sigaction act;
-        memset(&act, 0, sizeof(act));
-        sigemptyset(&act.sa_mask);
-        act.sa_flags = SA_SIGINFO;
-        act.sa_handler = (void *)signal_handler;
-
-        for (i = 1; i < 31; i++) {
-                sigaction(i, &act, 0);
-        }
-}
-
 /*******************************Main function*********************************/
 
 int
@@ -331,9 +311,6 @@ main(int argc, char *argv[]) {
         unsigned cur_lcore, rx_lcores, tx_lcores;
         unsigned nfs_per_tx;
         unsigned i;
-
-        /* initialise the system */
-        if (ONVM_INTERRUPT_SEM) register_signal_handler();
 
         /* Reserve ID 0 for internal manager things */
         next_instance_id = 1;

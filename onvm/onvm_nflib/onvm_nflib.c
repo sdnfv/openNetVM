@@ -97,6 +97,7 @@ static struct rte_mempool *nf_msg_pool;
 
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
+static uint8_t recieved_stop_msg = 1;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
@@ -539,10 +540,18 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
                 return -1;
         }
 
-        if (nf->parent == 0)
-                pthread_join(sig_loop_thread, NULL);
-
         pthread_join(main_loop_thread, NULL);
+
+        if (nf->parent == 0) {
+                if (recieved_stop_msg) {
+                        ret = pthread_kill(sig_loop_thread, SIGINT);
+                        if (ret < 0) {
+                                printf("Can't stop signal handling thread\n");
+                                return -1;
+                        }
+                }
+                pthread_join(sig_loop_thread, NULL);
+        }
 
         return 0;
 }
@@ -674,6 +683,7 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
         switch (msg->msg_type) {
                 case MSG_STOP:
                         RTE_LOG(INFO, APP, "Shutting down...\n");
+                        recieved_stop_msg = 1;
                         keep_running = 0;
                         break;
                 case MSG_SCALE:
@@ -831,7 +841,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Probably want to comment this out */
-        if (unlikely(nb_pkts == 0)) {
+        if (unlikely(nb_pkts == 0) && keep_running) {
                 if (ONVM_INTERRUPT_SEM) {
                         rte_atomic16_set(nf->flag_p, 1);
                         sem_wait(nf->nf_mutex);
