@@ -137,13 +137,3 @@ onvm_threading_core_affinitize(int cpu) {
 
         return rte_thread_set_affinity(&cpus);
 }
-
-int
-thread_block_signals(void) {
-        sigset_t mask;
-        sigemptyset(&mask); 
-        sigaddset(&mask, SIGINT); 
-        sigaddset(&mask, SIGTERM); 
-
-        return pthread_sigmask(SIG_BLOCK, &mask, NULL);
-}

@@ -84,7 +84,4 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
 int
 onvm_threading_core_affinitize(int core);
 
-int
-thread_block_signals(void);
-
 #endif  // _ONVM_THREADING_H_
