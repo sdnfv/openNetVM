@@ -375,6 +375,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 void
 nf_setup(struct onvm_nf_info *nf_info) {
         uint32_t i;
+        uint32_t pkts_generated = 0;
         struct rte_mempool *pktmbuf_pool;
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
@@ -400,6 +401,8 @@ nf_setup(struct onvm_nf_info *nf_info) {
                 }
 
                 packet_number = (packet_number ? packet_number : MAX_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
+
                 i = 0;
 
                 while (((packet = pcap_next(pcap, &header)) != NULL) && (i++ < packet_number)) {
@@ -409,6 +412,9 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         pkt = rte_pktmbuf_alloc(pktmbuf_pool);
                         if (pkt == NULL)
                                 break;
+
+                        /* New packet generated successfully */
+                        pkts_generated++;
 
                         pkt->pkt_len = header.caplen;
                         pkt->data_len = header.caplen;
@@ -424,16 +430,18 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        onvm_nflib_return_pkt(nf_info, pkt);
+                        /* Add packet to batch */
+                        pkts[i - 1] = pkt;
                 }
+                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
                 packet_number = (use_custom_pkt_count ? packet_number : DEFAULT_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
-                struct rte_mbuf *pkts[packet_number];
                 for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta *pmeta;
                         struct ether_hdr *ehdr;
@@ -444,6 +452,9 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 printf("Failed to allocate packets\n");
                                 break;
                         }
+
+                        /*new packet generated successfully*/
+                        pkts_generated++;
 
                         /*set up ether header and set new packet size*/
                         ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
@@ -472,10 +483,11 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         }
                         pkts[i] = pkt;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, packet_number);
+                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
+        packet_number = pkts_generated;
 }
 
 int
