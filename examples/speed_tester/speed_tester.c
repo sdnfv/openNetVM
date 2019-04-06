@@ -452,9 +452,6 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 break;
                         }
 
-                        /*new packet generated successfully*/
-                        pkts_generated++;
-
                         /*set up ether header and set new packet size*/
                         ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
@@ -480,7 +477,10 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 uint64_t *ts = (uint64_t *)rte_pktmbuf_append(pkt, sizeof(uint64_t));
                                 *ts = 0;
                         }
+
+                        /* New packet generated successfully */
                         pkts[i] = pkt;
+                        pkts_generated++;
                 }
                 onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
 #ifdef LIBPCAP
