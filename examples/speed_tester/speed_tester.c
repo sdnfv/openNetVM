@@ -400,21 +400,18 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
 
-                packet_number = (packet_number ? packet_number : MAX_PKT_NUM);
+                packet_number = (use_custom_pkt_count ? packet_number : MAX_PKT_NUM);
                 struct rte_mbuf *pkts[packet_number];
 
                 i = 0;
 
-                while (((packet = pcap_next(pcap, &header)) != NULL) && (i++ < packet_number)) {
+                while (((packet = pcap_next(pcap, &header)) != NULL) && (i < packet_number)) {
                         struct onvm_pkt_meta *pmeta;
                         struct onvm_ft_ipv4_5tuple key;
 
                         pkt = rte_pktmbuf_alloc(pktmbuf_pool);
                         if (pkt == NULL)
                                 break;
-
-                        /* New packet generated successfully */
-                        pkts_generated++;
 
                         pkt->pkt_len = header.caplen;
                         pkt->data_len = header.caplen;
@@ -430,8 +427,10 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        /* Add packet to batch */
-                        pkts[i - 1] = pkt;
+                        /* Add packet to batch, and update counter */
+                        pkts[i] = pkt;
+                        pkts_generated++;
+                        i++;
                 }
                 onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
         } else {
