@@ -428,7 +428,7 @@ init_shared_sem(int i) {
         nfs[i].sem_name = sem_name;
 
         mutex = sem_open(sem_name, O_CREAT, 06666, 0);
-        if(mutex == SEM_FAILED) {
+        if (mutex == SEM_FAILED) {
                 fprintf(stderr, "can not create semaphore for NF %d\n", i);
                 sem_unlink(sem_name);
                 exit(1);

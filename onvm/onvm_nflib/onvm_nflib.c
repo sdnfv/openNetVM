@@ -432,7 +432,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         /* Set the parent id to none */
         nfs[nf_info->instance_id].parent = 0;
 
-        if (ONVM_ENABLE_SHARED_CPU){
+        if (ONVM_ENABLE_SHARED_CPU) {
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
                 init_shared_cpu_info(nf_info->instance_id);
         }
@@ -593,7 +593,7 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
 }
 
 void *
-onvm_nflib_thread_main_loop(void *arg){
+onvm_nflib_thread_main_loop(void *arg) {
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct onvm_nf *nf;
         uint16_t nb_pkts_added, i;
