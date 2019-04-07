@@ -341,6 +341,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static uint64_t nf_tx_drop_last[MAX_NFS];
         static uint64_t nf_rx_drop_last[MAX_NFS];
         static const char *NF_MSG[3];
+        uint8_t active;
 
         NF_MSG[0] =
             "\nNF IID / SID     rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   "
@@ -392,7 +393,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         uint64_t tx_qlen;
         uint64_t comp_cost;
 
-        if (ONVM_INTERRUPT_SEM) onvm_stats_display_client_wakeup_info(difftime);
+        if (ONVM_ENABLE_SHARED_CPU) onvm_stats_display_client_wakeup_info(difftime);
 
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
@@ -430,10 +431,14 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         act_returned_for_service[nfs[i].info->service_id] += act_returned;
                 }
 
-                if (ONVM_INTERRUPT_SEM) {
+                if (ONVM_ENABLE_SHARED_CPU) {
                         rx_qlen = rte_ring_count(nfs[i].rx_q);
                         tx_qlen = rte_ring_count(nfs[i].tx_q);
                         comp_cost = nfs[i].stats.comp_cost;
+                        active = rte_atomic16_read(nfs[i].shm_server);
+                } else {
+                        comp_cost = 0;
+                        active = 0;
                 }
                 /*
                 fprintf(stats_out, "NF %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
@@ -465,7 +470,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " msg_flag=%d\n",
                                 nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
-                                act_out, act_tonf, act_drop, rte_atomic16_read(nfs[i].shm_server));
+                                act_out, act_tonf, act_drop, active);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {

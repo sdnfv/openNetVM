@@ -102,6 +102,12 @@ static uint8_t recieved_stop_msg = 1;
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
+/* Shared data from manager, has onvm custom flags */
+uint16_t *onvm_custom_flags;
+
+/* Flag to check if shared cpu mutex sleep/wakeup is enabled */
+uint8_t ONVM_ENABLE_SHARED_CPU;
+
 /***********************Internal Functions Prototypes*************************/
 
 /*
@@ -192,6 +198,13 @@ static int
 onvm_nflib_lookup_shared_structs(void);
 
 /*
+ * Parse the custom flags shared with manager
+ *
+ */
+static void
+onvm_nflib_parse_custom_flags(uint16_t flags);
+
+/*
  * Start the NF by signaling manager that its ready to recieve packets
  *
  * Input: Info struct corresponding to this NF
@@ -245,20 +258,20 @@ thread_signal_handler(void *arg)
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_INTERRUPT_SEM && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
                         rte_atomic16_set(nf->flag_p, 0);
                         sem_post(nf->nf_mutex);
                 }
 
                 /* Also signal spawned children */
-		for (i = 0; i < MAX_NFS; i++) {
-			if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-				if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
-					rte_atomic16_set(nfs[i].flag_p, 0);
-					sem_post(nfs[i].nf_mutex);
-				}
-			}
-		}
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
         }
         printf("Signal handling thread finished, exiting\n");
 
@@ -281,6 +294,7 @@ onvm_nflib_lookup_shared_structs(void) {
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
+        const struct rte_memzone *mz_custom_flags;
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
 
@@ -326,6 +340,12 @@ onvm_nflib_lookup_shared_structs(void) {
                 rte_exit(EXIT_FAILURE, "Cannot get core status structure\n");
         cores = mz_cores->addr;
 
+        mz_custom_flags = rte_memzone_lookup(MZ_CUSTOM_FLAGS);
+        if (mz_custom_flags == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get onvm custom flags\n");
+        onvm_custom_flags = mz_custom_flags->addr;
+        onvm_nflib_parse_custom_flags(*onvm_custom_flags);
+
         mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
         if (mz_scp == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get service chain info structre\n");
@@ -338,6 +358,12 @@ onvm_nflib_lookup_shared_structs(void) {
                 rte_exit(EXIT_FAILURE, "Cannot get nf_info ring");
 
         return 0;
+}
+
+static void
+onvm_nflib_parse_custom_flags(uint16_t flags) {
+        printf("Recieved flags %d\n", flags);
+        ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
 }
 
 static int
@@ -406,9 +432,12 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
 
         /* Set the parent id to none */
         nfs[nf_info->instance_id].parent = 0;
-        
-        if (ONVM_INTERRUPT_SEM) init_shared_cpu_info(nf_info->instance_id);
-      
+
+        if (ONVM_ENABLE_SHARED_CPU){
+                RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
+                init_shared_cpu_info(nf_info->instance_id);
+        }
+
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
         RTE_LOG(INFO, APP, "Running on core %d\n", nf_info->core);
@@ -589,7 +618,7 @@ onvm_nflib_thread_main_loop(void *arg){
                 sleep(1);
         }
 
-        printf("[Press Ctrl-C to quit ...]... NF %d\n", info->instance_id);
+        printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
 
@@ -747,6 +776,11 @@ onvm_nflib_get_nf(uint16_t id) {
         return &nfs[id];
 }
 
+uint16_t
+onvm_nflib_get_flags(void) {
+        return *onvm_custom_flags;
+}
+
 void
 onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup) {
         nfs[info->instance_id].nf_setup_function = setup;
@@ -763,7 +797,8 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         }
 
         /* Careful, this is required for shared cpu scaling */
-        sleep(1);
+        if (ONVM_ENABLE_SHARED_CPU)
+                sleep(1);
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
@@ -842,7 +877,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
 
         /* Probably want to comment this out */
         if (unlikely(nb_pkts == 0) && keep_running) {
-                if (ONVM_INTERRUPT_SEM) {
+                if (ONVM_ENABLE_SHARED_CPU) {
                         rte_atomic16_set(nf->flag_p, 1);
                         sem_wait(nf->nf_mutex);
                 }
@@ -854,12 +889,12 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                if (ONVM_INTERRUPT_SEM && nf->counter % SAMPLING_RATE == 0) {
+                if (ONVM_ENABLE_SHARED_CPU && nf->counter % SAMPLING_RATE == 0) {
                         nf->counter++;
                         start_tsc = rte_rdtsc();
                 }
                 ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->info);
-                if (ONVM_INTERRUPT_SEM && nf->counter % SAMPLING_RATE == 0) {
+                if (ONVM_ENABLE_SHARED_CPU && nf->counter % SAMPLING_RATE == 0) {
                         end_tsc = rte_rdtsc();
                         nf->stats.comp_cost = end_tsc - start_tsc;
                 }
@@ -1047,6 +1082,14 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
                                 break;
                         case 's':
+                                /*
+                                 * Allow this for cases when there is not enough cores and using 
+                                 * the shared cpu mode is not an option
+                                 */
+                                if (ONVM_ENABLE_SHARED_CPU == 0)
+                                        RTE_LOG(INFO, APP, 
+                                                "Requested shared cpu core allocation but shared cpu mode is NOT "
+                                                "enabled, this will hurt performance, proceed with caution\n");
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, SHARE_CORE_BIT);
                                 break;
                         case '?':
@@ -1113,7 +1156,6 @@ init_shared_cpu_info(uint16_t instance_id) {
         char *shm;
         struct onvm_nf *nf = &nfs[instance_id];
 
-        printf("Initialize shared cpu info\n");
         sem_name = get_sem_name(instance_id);
         fprintf(stderr, "sem_name=%s for client %d\n", sem_name, instance_id);
         nf->nf_mutex = sem_open(sem_name, 0, 0666, 0);

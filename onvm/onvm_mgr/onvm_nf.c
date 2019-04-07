@@ -107,7 +107,6 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
-        struct onvm_nf_scale_info *scale_info;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
         if (num_msgs == 0)
@@ -137,10 +136,6 @@ onvm_nf_check_status(void) {
                                 if (onvm_nf_stop(nf) == 0) {
                                         onvm_stats_add_event("NF Stopping", nf);
                                 }
-                                break;
-                        case MSG_NF_REQUEST_CPU:
-                                scale_info = (struct onvm_nf_scale_info*)msg->msg_data;
-                                scale_info->core = 1;//TODO rm
                                 break;
                 }
 

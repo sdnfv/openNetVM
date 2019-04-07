@@ -111,6 +111,8 @@ static uint8_t measure_latency = 0;
 static uint32_t latency_packets = 0;
 static uint64_t total_latency = 0;
 
+static uint8_t ONVM_ENABLE_SHARED_CPU = 0;
+
 /*
  * Variables needed to replay a pcap file
  */
@@ -327,7 +329,7 @@ signal_handler(void *arg)
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_INTERRUPT_SEM && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
                         rte_atomic16_set(nf->flag_p, 0);
                         sem_post(nf->nf_mutex);
                 }
@@ -335,7 +337,7 @@ signal_handler(void *arg)
                 /* Also signal spawned children */
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_INTERRUPT_SEM && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
                                         rte_atomic16_set(nfs[i].flag_p, 0);
                                         sem_post(nfs[i].nf_mutex);
                                 }
@@ -533,6 +535,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
 int
 main(int argc, char *argv[]) {
         int arg_offset;
+        uint16_t flags;
         const char *progname = argv[0];
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
@@ -551,6 +554,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
         if (use_direct_rings) {
+                flags = onvm_nflib_get_flags();
+                ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
                 nf_setup(nf_info);
                 onvm_nflib_nf_ready(nf_info);
                 run_advanced_rings(nf_info);

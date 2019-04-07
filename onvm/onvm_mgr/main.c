@@ -326,15 +326,20 @@ main(int argc, char *argv[]) {
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
-        if (ONVM_INTERRUPT_SEM) tx_lcores -= ONVM_NUM_WAKEUP_THREADS;
-
+        if (ONVM_ENABLE_SHARED_CPU) {
+                tx_lcores -= ONVM_NUM_WAKEUP_THREADS;
+                if (tx_lcores < 1) {
+                        RTE_LOG(INFO, APP, "Not enough cores to enabled shared cpu support\n");
+                        return -1;
+                }
+        }
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores - 1);
 
         RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
-        if (ONVM_INTERRUPT_SEM)
+        if (ONVM_ENABLE_SHARED_CPU)
                 RTE_LOG(INFO, APP, "%d cores available for handling wakeup\n", ONVM_NUM_WAKEUP_THREADS);
         RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
 
@@ -388,7 +393,7 @@ main(int argc, char *argv[]) {
                 }
         }
 
-        if (ONVM_INTERRUPT_SEM) {
+        if (ONVM_ENABLE_SHARED_CPU) {
                 int clients_per_wakethread = ceil((unsigned)MAX_NFS / ONVM_NUM_WAKEUP_THREADS);
                 wakeup_infos = (struct wakeup_info *)calloc(ONVM_NUM_WAKEUP_THREADS, sizeof(struct wakeup_info));
                 if (wakeup_infos == NULL) {

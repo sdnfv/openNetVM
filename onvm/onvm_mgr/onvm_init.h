@@ -122,6 +122,10 @@ extern uint32_t global_time_to_live;
 extern uint32_t global_pkt_limit;
 extern uint8_t global_verbosity_level;
 
+/* Custom flags for onvm */
+extern uint16_t *onvm_custom_flags;
+extern uint8_t ONVM_ENABLE_SHARED_CPU;
+
 /**********************************Functions**********************************/
 
 /*

@@ -315,6 +315,7 @@ struct onvm_service_chain {
 #define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
+#define MZ_CUSTOM_FLAGS "MProc_custom_flags"
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
@@ -350,7 +351,9 @@ struct onvm_service_chain {
 #define NF_NO_ID -1
 
 #define ONVM_NF_HANDLE_TX 1   // should be true if NFs primarily pass packets to each other
-#define ONVM_INTERRUPT_SEM 1  // should be true if NFs sleep while waiting for packets
+
+#define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
+#define ONVM_ENABLE_SHARED_CPU_BIT 0      // used for setting onvm_mgr flags that is passed to nflib
 
 /*
  * Given the rx queue name template above, get the queue name

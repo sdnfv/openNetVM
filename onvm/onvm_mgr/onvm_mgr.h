@@ -84,6 +84,9 @@
 /* ID to be assigned to the next NF that starts */
 extern uint16_t next_instance_id;
 
+/* Set to true if shared CPU logic is enabled */
+extern uint8_t ONVM_ENABLE_SHARED_CPU;
+
 /** NFs wakeup Info: used by manager to update NFs pool and wakeup stats
  */
 struct wakeup_info {

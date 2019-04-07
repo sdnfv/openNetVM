@@ -54,6 +54,7 @@
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
 struct core_status *cores = NULL;
+uint16_t *onvm_custom_flags = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -66,18 +67,27 @@ struct onvm_service_chain **default_sc_p;
 
 /*************************Internal Functions Prototypes***********************/
 
+static void
+set_default_custom_flags(uint16_t *flags);
+
 static int
 init_mbuf_pools(void);
+
 static int
 init_nf_info_pool(void);
+
 static int
 init_nf_msg_pool(void);
+
 static int
 init_port(uint8_t port_num);
+
 static int
 init_shm_rings(void);
+
 static int
 init_info_queue(void);
+
 static void
 check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 
@@ -132,6 +142,7 @@ init(int argc, char *argv[]) {
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
+        const struct rte_memzone *mz_custom_flags;
         uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
@@ -178,12 +189,21 @@ init(int argc, char *argv[]) {
         for (i = 0; i < num_services; i++) {
                 services[i] = rte_calloc("one service NFs", MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
         }
+
         mz_nf_per_service =
             rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_nf_per_service == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for NF per service information.\n");
         }
         nf_per_service_count = mz_nf_per_service->addr;
+
+        /* set up custom flags */
+        mz_custom_flags = rte_memzone_reserve(MZ_CUSTOM_FLAGS, sizeof(uint16_t), rte_socket_id(), NO_FLAGS);
+        if (mz_custom_flags == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for ONVM custom flags.\n");
+        }
+        onvm_custom_flags = mz_custom_flags->addr;
+        set_default_custom_flags(onvm_custom_flags);
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -251,6 +271,16 @@ init(int argc, char *argv[]) {
 }
 
 /*****************************Internal functions******************************/
+
+/**
+ * Initialise the default custom flags structure
+ */
+static void
+set_default_custom_flags(uint16_t *flags) {
+        *flags = 0;
+        if (ONVM_ENABLE_SHARED_CPU_DEFAULT)
+                *flags |= ONVM_SET_BIT(0, ONVM_ENABLE_SHARED_CPU_BIT);
+}
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
@@ -376,16 +406,18 @@ init_port(uint8_t port_num) {
         return 0;
 }
 
+/**
+ * Initialize shared cpu structs (mutex/semaphore)
+ */
 static void
 init_shared_sem(int i) {
-        // mutex and semaphores for N
         const char * sem_name;
         sem_t *mutex;
         key_t key;
         int shmid;
         char *shm;
 
-        if (!ONVM_INTERRUPT_SEM) {
+        if (!ONVM_ENABLE_SHARED_CPU) {
                 nfs[i].sem_name = NULL;
                 nfs[i].mutex = NULL;
                 nfs[i].shm_server = NULL;
@@ -395,7 +427,6 @@ init_shared_sem(int i) {
         sem_name = get_sem_name(i);
         nfs[i].sem_name = sem_name;
 
-        fprintf(stderr, "sem_name=%s for NF %d\n", sem_name, i);
         mutex = sem_open(sem_name, O_CREAT, 06666, 0);
         if(mutex == SEM_FAILED) {
                 fprintf(stderr, "can not create semaphore for NF %d\n", i);
