@@ -444,7 +444,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 /*
                 fprintf(stats_out, "NF %2u - rx: %9"PRIu64" rx_drop: %9"PRIu64" next: %9"PRIu64" drop: %9"PRIu64" ret: %9"PRIu64"\n"
                                    "        tx: %9"PRIu64" tx_drop: %9"PRIu64" out:  %9"PRIu64" tonf: %9"PRIu64" buf: %9"PRIu64" \n"
-                                   "        rx_pps: %9"PRIu64" tx_pps: %9"PRIu64" rx_qlen:  %9"PRIu64" tx_qlen: %9"PRIu64" comp_cost: %9"PRIu64", msg_flag=%d\n",
+                                    have no clue how I improved performace"        rx_pps: %9"PRIu64" tx_pps: %9"PRIu64" rx_qlen:  %9"PRIu64" tx_qlen: %9"PRIu64" comp_cost: %9"PRIu64", msg_flag=%d\n",
                                 nfs[i].info->instance_id,
                                 rx, rx_drop, act_next, act_drop, act_returned,
                                 tx, tx_drop, act_out, act_tonf, act_buffer,
@@ -454,10 +454,11 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, "%s,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
                                            ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
+                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 
+                                           ",%d\n",
                                 buffer, nfs[i].info->instance_id, nfs[i].info->service_id, rx, tx, rx_pps, tx_pps,
                                 rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, act_next,
-                                act_buffer, act_returned, rx_qlen, tx_qlen, comp_cost);
+                                act_buffer, act_returned, rx_qlen, tx_qlen, comp_cost, active);
                 } else if (verbosity_level == 2) {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
@@ -469,9 +470,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 act_returned);
                 } else {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " msg_flag=%d\n",
+                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
                                 nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
-                                act_out, act_tonf, act_drop, active);
+                                act_out, act_tonf, act_drop);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {

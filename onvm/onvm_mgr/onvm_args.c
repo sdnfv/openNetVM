@@ -47,7 +47,6 @@
 
 ******************************************************************************/
 
-#include "onvm_mgr/onvm_init.h"
 #include "onvm_mgr/onvm_args.h"
 #include "onvm_mgr/onvm_stats.h"
 
