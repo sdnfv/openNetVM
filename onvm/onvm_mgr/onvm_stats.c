@@ -244,6 +244,7 @@ onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
                 cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
                 cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
         }
         cJSON_AddItemToObject(new_event, "source", source);
 
@@ -487,6 +488,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].info->service_id);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "instance_id",
                                                 (int16_t)nfs[i].info->instance_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].info->core);
 
                         free(nf_label);
                         nf_label = NULL;

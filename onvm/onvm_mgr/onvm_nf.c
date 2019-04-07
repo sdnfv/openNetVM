@@ -157,7 +157,7 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
         msg->msg_type = msg_type;
         msg->msg_data = msg_data;
 
-        return rte_ring_sp_enqueue(nfs[dest].msg_q, (void *)msg);
+        return rte_ring_enqueue(nfs[dest].msg_q, (void *)msg);
 }
 
 /******************************Internal functions*****************************/

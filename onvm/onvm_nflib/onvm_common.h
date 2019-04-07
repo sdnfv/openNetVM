@@ -187,6 +187,8 @@ typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info
 typedef void (*advanced_rings_func)(struct onvm_nf_info *nf_info);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_info *nf_info);
+/* Function prototype for NFs to handle custom messages */
+typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
@@ -201,6 +203,7 @@ struct onvm_nf_scale_info {
         pkt_handler_func pkt_func;
         callback_handler_func callback_func;
         advanced_rings_func adv_rings_func;
+        handle_msg_func handle_msg_function;
 };
 
 /*
@@ -225,6 +228,7 @@ struct onvm_nf {
         callback_handler_func nf_callback_function;
         advanced_rings_func nf_advanced_rings_function;
         setup_func nf_setup_function;
+        handle_msg_func nf_handle_msg_function;
 
         /*
          * Define a structure with stats from the NFs.

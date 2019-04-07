@@ -724,7 +724,13 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
                         break;
                 case MSG_SCALE:
                         RTE_LOG(INFO, APP, "Received scale message...\n");
-                        onvm_nflib_scale((struct onvm_nf_scale_info *)msg->msg_data);
+                        onvm_nflib_scale((struct onvm_nf_scale_info*)msg->msg_data);
+                        break;
+                case MSG_FROM_NF:
+                        RTE_LOG(INFO, APP, "Recieved MSG from other NF");
+                        if (nfs[info->instance_id].nf_handle_msg_function != NULL) {
+                                nfs[info->instance_id].nf_handle_msg_function(msg->msg_data, info);
+                        }
                         break;
                 case MSG_NOOP:
                 default:
@@ -732,6 +738,23 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct on
         }
 
         return 0;
+}
+
+int
+onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
+        int ret;
+        struct onvm_nf_msg *msg;
+
+        ret = rte_mempool_get(nf_msg_pool, (void**)(&msg));
+        if (ret != 0) {
+                RTE_LOG(INFO, APP, "Oh the huge manatee! Unable to allocate msg from pool :(\n");
+                return ret;
+        }
+
+        msg->msg_type = MSG_FROM_NF;
+        msg->msg_data = msg_data;
+
+        return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
 }
 
 void
@@ -793,6 +816,11 @@ onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup) {
         nfs[info->instance_id].nf_setup_function = setup;
 }
 
+void
+onvm_nflib_set_msg_handling_function(struct onvm_nf_info *info, handle_msg_func nf_handle_msg) {
+        nfs[info->instance_id].nf_handle_msg_function = nf_handle_msg;
+}
+
 int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         int ret;
@@ -848,12 +876,12 @@ onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data) {
         scale_info->core = parent_info->core;
         scale_info->flags = parent_info->flags;
         scale_info->data = data;
+        scale_info->setup_func = parent_nf->nf_setup_function;
+        scale_info->handle_msg_function = parent_nf->nf_handle_msg_function;
         if (parent_nf->nf_mode == NF_MODE_SINGLE) {
                 scale_info->pkt_func = parent_nf->nf_pkt_function;
-                scale_info->setup_func = parent_nf->nf_setup_function;
                 scale_info->callback_func = parent_nf->nf_callback_function;
         } else if (parent_nf->nf_mode == NF_MODE_RING) {
-                scale_info->setup_func = parent_nf->nf_setup_function;
                 scale_info->adv_rings_func = parent_nf->nf_advanced_rings_function;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
@@ -972,6 +1000,7 @@ onvm_nflib_start_child(void *arg) {
         child->nf_pkt_function = scale_info->pkt_func;
         child->nf_callback_function = scale_info->callback_func;
         child->nf_advanced_rings_function = scale_info->adv_rings_func;
+        child->nf_handle_msg_function = scale_info->handle_msg_function;
         /* Set nf state data */
         child_info->data = scale_info->data;
 
