@@ -362,7 +362,6 @@ onvm_nflib_lookup_shared_structs(void) {
 
 static void
 onvm_nflib_parse_custom_flags(uint16_t flags) {
-        printf("Recieved flags %d\n", flags);
         ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
 }
 
@@ -446,6 +445,14 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
                 RTE_LOG(INFO, APP, "Time to live set to %u\n", nf_info->time_to_live);
         if (nf_info->pkt_limit)
                 RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf_info->pkt_limit);
+
+        /*
+         * Allow this for cases when there is not enough cores and using 
+         * the shared cpu mode is not an option
+         */
+        if (ONVM_CHECK_BIT(nf_info->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU) 
+                RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
+                                      "enabled, this will hurt performance, proceed with caution\n");
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
@@ -1082,14 +1089,6 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, MANUAL_CORE_ASSIGNMENT_BIT);
                                 break;
                         case 's':
-                                /*
-                                 * Allow this for cases when there is not enough cores and using 
-                                 * the shared cpu mode is not an option
-                                 */
-                                if (ONVM_ENABLE_SHARED_CPU == 0)
-                                        RTE_LOG(INFO, APP, 
-                                                "Requested shared cpu core allocation but shared cpu mode is NOT "
-                                                "enabled, this will hurt performance, proceed with caution\n");
                                 nf_info->flags = ONVM_SET_BIT(nf_info->flags, SHARE_CORE_BIT);
                                 break;
                         case '?':

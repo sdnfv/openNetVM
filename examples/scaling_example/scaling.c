@@ -76,6 +76,7 @@
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
+static uint8_t use_shared_cpu_core_allocation = 0;
 static uint8_t keep_running = 1;
 
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
@@ -96,6 +97,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID, functionality depends on mode\n");
         printf(" - `-n NUM_CHILDREN`: Sets the number of children for the NF to spawn\n");
+        printf(" - `-c`: Set NF core allocation to shared cpu\n");
         printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
 }
 
@@ -106,8 +108,11 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:n:p:a")) != -1) {
+        while ((c = getopt(argc, argv, "d:n:p:ac")) != -1) {
                 switch (c) {
+                        case 'c':
+                                use_shared_cpu_core_allocation = 1;
+                                break;
                         case 'a':
                                 use_direct_rings = 1;
                                 break;
@@ -178,8 +183,8 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 scale_info->service_id = destination;
                 /* Run the setup function to generate packets */
                 scale_info->setup_func = &nf_setup;
-                /* Make NF share cores */
-                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                if (use_shared_cpu_core_allocation)
+                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Custom packet handler */
                 scale_info->pkt_func = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
@@ -218,10 +223,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
-
-                /* Make NF share cores */
-                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
-
+                if (use_shared_cpu_core_allocation)
+                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n",
