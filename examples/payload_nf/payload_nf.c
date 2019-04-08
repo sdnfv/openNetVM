@@ -35,7 +35,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * monitor.c - an example using onvm. Print a message each p package received
+ * payload_scan.c - an example using onvm. Scan a packet payload for a string
  ********************************************************************/
 
 #include <unistd.h>
@@ -52,7 +52,6 @@
 #include <rte_common.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
-#include <rte_cycles.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -64,11 +63,10 @@ struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
 
-static uint32_t print_delay = 100000;
-const char *search = "Hello";
+static uint32_t print_delay = 10000000;
 static struct onvm_pkt_stats stats;
 static uint16_t destination;
-
+static char *search_term = NULL;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -77,6 +75,8 @@ struct onvm_pkt_stats {
     uint64_t pkt_drop;
     uint64_t pkt_accept;
     uint64_t pkt_total;
+    uint64_t pkt_not_ipv4;
+    uint64_t pkt_not_tcp_udp;
 };
 
 /*
@@ -96,15 +96,20 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0;
+        int c, dst_flag = 0, input_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:")) != -1) {
+        while ((c = getopt (argc, argv, "d:s:p")) != -1) {
                 switch (c) {
                 case 'd':
                         destination = strtoul(optarg, NULL, 10);
                         dst_flag = 1;
                         break;
-
+                case 's':
+                        search_term = malloc(sizeof(char) * (strlen(optarg)));
+                        strcpy(search_term, optarg);
+                        RTE_LOG(INFO, APP, "Search term = %s\n", search_term);
+                        input_flag = 1;
+                        break;
                 case 'p':
                         print_delay = strtoul(optarg, NULL, 10);
                         RTE_LOG(INFO, APP, "Print delay = %d\n", print_delay);
@@ -128,6 +133,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 RTE_LOG(INFO, APP, "Payload NF requires a destination NF with the -d flag.\n");
                 return -1;
         }
+        if (!input_flag) {
+                RTE_LOG(INFO, APP, "Payload NF requires a search term string with the -s flag.\n");
+                return -1;
+        }
         return optind;
 }
 
@@ -144,9 +153,11 @@ do_stats_display(void) {
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
-        printf("Search term: %s\n", search);
+        printf("Search term: %s\n", search_term);
         printf("Packets accepted: %lu\n", stats.pkt_accept);
         printf("Packets dropped: %lu\n", stats.pkt_drop);
+        printf("Packets not IPv4: %lu\n", stats.pkt_not_ipv4);
+        printf("Packets not UDP/TCP: %lu\n", stats.pkt_not_tcp_udp);
         printf("Packets total: %lu", stats.pkt_total);
 
         printf("\n\n");
@@ -154,24 +165,51 @@ do_stats_display(void) {
 
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) { // assuming UDP packets
+        int udp_pkt, tcp_pkt;
         static uint32_t counter = 0;
-        uint8_t *pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
-                sizeof(struct udp_hdr));
-
-        if (strstr((const char *)pkt_data, search) != NULL) {
-            meta->action = ONVM_NF_ACTION_TONF;
-            meta->destination = destination;
-            stats.pkt_accept++;
-        }
-        else {
-            meta->action = ONVM_NF_ACTION_DROP;
-            stats.pkt_drop++;
-        }
-        stats.pkt_total++;
+        uint8_t *pkt_data = NULL;
 
         if (++counter == print_delay) {
                 do_stats_display();
                 counter = 0;
+        }
+
+        stats.pkt_total++;
+
+        if (!onvm_pkt_is_ipv4(pkt)) {
+                meta->action = ONVM_NF_ACTION_DROP;
+                stats.pkt_not_ipv4++;
+                return 0;
+        }
+
+        udp_pkt = onvm_pkt_is_udp(pkt);
+        tcp_pkt = onvm_pkt_is_tcp(pkt);
+
+        if (!udp_pkt && !tcp_pkt) {
+                meta->action = ONVM_NF_ACTION_DROP;
+                stats.pkt_not_tcp_udp++;
+                return 0;
+        }
+
+        if (udp_pkt) {
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
+                                                                            sizeof(struct udp_hdr));
+        }
+
+        else {
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
+                                                                   sizeof(struct tcp_hdr));
+        }
+
+        if (strstr((const char *) pkt_data, search_term) != NULL) {
+            meta->action = ONVM_NF_ACTION_TONF;
+            meta->destination = destination;
+            stats.pkt_accept++;
+        }
+
+        else {
+            meta->action = ONVM_NF_ACTION_DROP;
+            stats.pkt_drop++;
         }
 
         return 0;
