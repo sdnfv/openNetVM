@@ -378,6 +378,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
         uint32_t pkts_generated;
         struct rte_mempool *pktmbuf_pool;
 
+        pkts_generated = 0;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
                 onvm_nflib_stop(nf_info);
@@ -404,7 +405,6 @@ nf_setup(struct onvm_nf_info *nf_info) {
                 struct rte_mbuf *pkts[packet_number];
 
                 i = 0;
-                pkts_generated = 0;
 
                 while (((packet = pcap_next(pcap, &header)) != NULL) && (i < packet_number)) {
                         struct onvm_pkt_meta *pmeta;
@@ -437,7 +437,6 @@ nf_setup(struct onvm_nf_info *nf_info) {
 #endif
                 /*  use default number of initial packets if -c has not been used */
                 packet_number = (use_custom_pkt_count ? packet_number : DEFAULT_PKT_NUM);
-                pkts_generated = 0;
                 struct rte_mbuf *pkts[packet_number];
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
