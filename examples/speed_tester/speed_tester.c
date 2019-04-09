@@ -310,22 +310,23 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 }
 
 void *
-signal_handler(void *arg)
-{
-        int signal, s, i;
-        struct onvm_nf *nf = (struct onvm_nf *)arg;
-
-        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+signal_handler(void *arg) {
+        int signal, ret;
+        struct onvm_nf *nf;
         sigset_t mask;
+
+        nf = (struct onvm_nf *)arg;
         sigemptyset(&mask);
         sigaddset(&mask, SIGINT);
         sigaddset(&mask, SIGTERM);
-        s = sigwait(&mask, &signal);
-        if (s == 0) {
-                printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-        } else {
+
+        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        ret = sigwait(&mask, &signal);
+        if (ret < 0) {
                 rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
         }
+
+        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
@@ -333,27 +334,18 @@ signal_handler(void *arg)
                         rte_atomic16_set(nf->flag_p, 0);
                         sem_post(nf->nf_mutex);
                 }
-
-                /* Also signal spawned children */
-                for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
-                                        rte_atomic16_set(nfs[i].flag_p, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
-                        }
-                }
         }
         printf("Signal handling thread finished, exiting\n");
 
         return NULL;
+
 }
 
 static void
 run_advanced_rings(struct onvm_nf_info *nf_info) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
-        uint16_t i, j, nb_pkts;
+        uint16_t i, j, ret, nb_pkts;
         void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         uint64_t start_time;
@@ -375,7 +367,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         tx_ring = nf->tx_q;        
 
         /* Listen for ^C and docker stop so we can exit gracefully */
-        int ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
+        ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
         if (ret != 0) {
                 printf("Can't start this\n");
                 return;

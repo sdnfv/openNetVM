@@ -229,32 +229,35 @@ static void
 init_shared_cpu_info(uint16_t instance_id);
 
 /*
-* Signal handler thread entry point
-* The thread is only spawned from the main thread
-*
-* Input : pointer to onvm_nf info struct
-*
-*/
-void *thread_signal_handler(void *arg);
+ * Signal handler thread entry point
+ * The thread is only spawned from the main thread
+ *
+ * Input : void pointer to onvm_nf struct
+ *
+ */
+void *
+onvm_nflib_signal_handler_thread(void *arg);
 
 /************************************API**************************************/
 
-/* TODO: Resolve globals */
-sigset_t mask;
-
 void *
-thread_signal_handler(void *arg)
-{
-        int signal, s, i;
-        struct onvm_nf *nf = (struct onvm_nf *)arg;
+onvm_nflib_signal_handler_thread(void *arg) {
+        int signal, ret, i;
+        struct onvm_nf *nf;
+        sigset_t mask;
+
+        nf = (struct onvm_nf *)arg;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
 
         printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
-        s = sigwait(&mask, &signal);
-        if (s == 0) {
-                printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-        } else {
+        ret = sigwait(&mask, &signal);
+        if (ret < 0) {
                 rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
         }
+
+        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
@@ -465,6 +468,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         struct onvm_nf_info *nf_info;
         int retval_eal = 0;
         int use_config = 0;
+        sigset_t mask;
 
         /* It would make sense to put this when the app starts running, but this seems to not function if not placed here */
         sigemptyset(&mask);
@@ -562,7 +566,7 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
 
         if (nf->parent == 0) {
                 /* Listen for ^C and docker stop so we can exit gracefully */
-                int ret = pthread_create(&sig_loop_thread, NULL, thread_signal_handler, (void *)nf);
+                int ret = pthread_create(&sig_loop_thread, NULL, onvm_nflib_signal_handler_thread, (void *)nf);
                 if (ret != 0) {
                         printf("Can't start this\n");
                         return -1;
