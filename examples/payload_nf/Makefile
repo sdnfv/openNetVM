@@ -44,10 +44,10 @@ RTE_TARGET ?= $(RTE_TARGET)
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = payload_nf
+APP = payload_scan
 
 # all source are stored in SRCS-y
-SRCS-y := payload_nf.c
+SRCS-y := payload_scan.c
 
 # OpenNetVM path
 ONVM= $(SRCDIR)/../../onvm
