@@ -175,6 +175,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         stats.pkt_total++;
+	// Packet total increase
 
         if (!onvm_pkt_is_ipv4(pkt)) {
                 meta->action = ONVM_NF_ACTION_DROP;
