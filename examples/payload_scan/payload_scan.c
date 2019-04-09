@@ -231,6 +231,8 @@ int main(int argc, char *argv[]) {
         stats.pkt_drop = 0;
         stats.pkt_accept = 0;
         stats.pkt_total = 0;
+	stats.pkt_not_ipv4 = 0;
+	stats.pkt_not_tcp_udp = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_info);
