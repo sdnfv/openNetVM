@@ -369,7 +369,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         /* Listen for ^C and docker stop so we can exit gracefully */
         ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
         if (ret != 0) {
-                printf("Can't start this\n");
+                printf("Can't start the advanced rings NF signal hadling thread\n");
                 return;
         }
 
@@ -381,8 +381,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
-                        rte_atomic16_set(nf->flag_p, 1);
-                        sem_wait(nf->nf_mutex);
+                        if (ONVM_ENABLE_SHARED_CPU) {
+                                rte_atomic16_set(nf->flag_p, 1);
+                                sem_wait(nf->nf_mutex);
+                        }
                         continue;
                 }
                 /* Process all the packets */

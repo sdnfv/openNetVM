@@ -83,6 +83,11 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
+uint8_t ONVM_ENABLE_SHARED_CPU;
+
+void *
+signal_handler(void *arg);
+
 void
 nf_setup(struct onvm_nf_info *nf_info);
 
@@ -239,27 +244,59 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-static void
-handle_signal(int sig) {
-        if (sig == SIGINT || sig == SIGTERM)
+void *
+signal_handler(void *arg) {
+        int signal, ret, i;
+        struct onvm_nf *nf;
+        sigset_t mask;
+
+        nf = (struct onvm_nf *)arg;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+
+        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        ret = sigwait(&mask, &signal);
+        if (ret < 0) {
+                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        }
+
+        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
+
+        if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
+                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                        rte_atomic16_set(nf->flag_p, 0);
+                        sem_post(nf->nf_mutex);
+                }
+
+                /* Also signal spawned children */
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
+        }
+        printf("Signal handling thread finished, exiting\n");
+
+        return NULL;
 }
 
 static void
 run_advanced_rings(struct onvm_nf_info *nf_info) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
-        uint16_t i, j, nb_pkts;
+        uint16_t i, j, nb_pkts, ret;
         void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
-        volatile struct onvm_nf *nf;
+        struct onvm_nf *nf;
         static uint8_t spawned_nfs = 0;
-
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, handle_signal);
-        signal(SIGTERM, handle_signal);
+        pthread_t sig_loop_thread;
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
@@ -271,6 +308,15 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+
+        /* Listen for ^C and docker stop so we can exit gracefully */
+        if (nf->parent == 0) {
+                ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
+                if (ret != 0) {
+                        printf("Can't start the advanced rings NF signal hadling thread\n");
+                        return;
+                }
+        }
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -305,6 +351,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
+                        if (ONVM_ENABLE_SHARED_CPU) {
+                                rte_atomic16_set(nf->flag_p, 1);
+                                sem_wait(nf->nf_mutex);
+                        }
                         continue;
                 }
                 /* Process all the packets */
@@ -379,6 +429,7 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
         struct onvm_nf_info *nf_info;
+        uint16_t flags;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
@@ -400,6 +451,8 @@ main(int argc, char *argv[]) {
 
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
+                flags = onvm_nflib_get_flags();
+                ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
                 onvm_nflib_nf_ready(nf_info);
                 nf_setup(nf_info);
                 run_advanced_rings(nf_info);

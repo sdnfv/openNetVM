@@ -236,50 +236,9 @@ init_shared_cpu_info(uint16_t instance_id);
  *
  */
 void *
-onvm_nflib_signal_handler_thread(void *arg);
+nf_signal_handler(void *arg);
 
 /************************************API**************************************/
-
-void *
-onvm_nflib_signal_handler_thread(void *arg) {
-        int signal, ret, i;
-        struct onvm_nf *nf;
-        sigset_t mask;
-
-        nf = (struct onvm_nf *)arg;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-
-        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
-        ret = sigwait(&mask, &signal);
-        if (ret < 0) {
-                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
-        }
-
-        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-
-        if (signal == SIGINT || signal == SIGTERM) {
-                keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
-                        rte_atomic16_set(nf->flag_p, 0);
-                        sem_post(nf->nf_mutex);
-                }
-
-                /* Also signal spawned children */
-                for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
-                                        rte_atomic16_set(nfs[i].flag_p, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
-                        }
-                }
-        }
-        printf("Signal handling thread finished, exiting\n");
-
-        return NULL;
-}
 
 static int
 onvm_nflib_dpdk_init(int argc, char *argv[]) {
@@ -566,7 +525,7 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
 
         if (nf->parent == 0) {
                 /* Listen for ^C and docker stop so we can exit gracefully */
-                int ret = pthread_create(&sig_loop_thread, NULL, onvm_nflib_signal_handler_thread, (void *)nf);
+                int ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)nf);
                 if (ret != 0) {
                         printf("Can't start this\n");
                         return -1;
@@ -1024,6 +983,47 @@ onvm_nflib_start_child(void *arg) {
                 rte_free(scale_info);
                 scale_info = NULL;
         }
+
+        return NULL;
+}
+
+void *
+nf_signal_handler(void *arg) {
+        int signal, ret, i;
+        struct onvm_nf *nf;
+        sigset_t mask;
+
+        nf = (struct onvm_nf *)arg;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+
+        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        ret = sigwait(&mask, &signal);
+        if (ret < 0) {
+                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        }
+
+        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
+
+        if (signal == SIGINT || signal == SIGTERM) {
+                keep_running = 0;
+                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                        rte_atomic16_set(nf->flag_p, 0);
+                        sem_post(nf->nf_mutex);
+                }
+
+                /* Also signal spawned children */
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
+        }
+        printf("Signal handling thread finished, exiting\n");
 
         return NULL;
 }
