@@ -200,9 +200,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         if (udp_pkt) {
                 pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
                                                                             sizeof(struct udp_hdr));
-        }
-
-        else {
+	} else {
                 pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
                                                                    sizeof(struct tcp_hdr));
         }
@@ -211,9 +209,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
             meta->action = ONVM_NF_ACTION_TONF;
             meta->destination = destination;
             stats.pkt_accept++;
-        }
-
-        else {
+	} else {
             meta->action = ONVM_NF_ACTION_DROP;
             stats.pkt_drop++;
         }
