@@ -487,7 +487,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
         }
 #endif
         /* Exit if packets were unexpectedly not created */
-        if(pkts_generated == 0 && packet_number > 0)
+        if (pkts_generated == 0 && packet_number > 0)
                 rte_exit(EXIT_FAILURE, "Failed to create packets\n");
 
         packet_number = pkts_generated;
