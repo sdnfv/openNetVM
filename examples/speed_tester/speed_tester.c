@@ -375,8 +375,10 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 void
 nf_setup(struct onvm_nf_info *nf_info) {
         uint32_t i;
+        uint32_t pkts_generated;
         struct rte_mempool *pktmbuf_pool;
 
+        pkts_generated = 0;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
                 onvm_nflib_stop(nf_info);
@@ -399,10 +401,12 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
 
-                packet_number = (packet_number ? packet_number : MAX_PKT_NUM);
+                packet_number = (use_custom_pkt_count ? packet_number : MAX_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
+
                 i = 0;
 
-                while (((packet = pcap_next(pcap, &header)) != NULL) && (i++ < packet_number)) {
+                while (((packet = pcap_next(pcap, &header)) != NULL) && (i < packet_number)) {
                         struct onvm_pkt_meta *pmeta;
                         struct onvm_ft_ipv4_5tuple key;
 
@@ -424,16 +428,19 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        onvm_nflib_return_pkt(nf_info, pkt);
+                        /* Add packet to batch, and update counter */
+                        pkts[i++] = pkt;
+                        pkts_generated++;
                 }
+                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
                 packet_number = (use_custom_pkt_count ? packet_number : DEFAULT_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
-                struct rte_mbuf *pkts[packet_number];
                 for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta *pmeta;
                         struct ether_hdr *ehdr;
@@ -470,12 +477,20 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 uint64_t *ts = (uint64_t *)rte_pktmbuf_append(pkt, sizeof(uint64_t));
                                 *ts = 0;
                         }
+
+                        /* New packet generated successfully */
                         pkts[i] = pkt;
+                        pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, packet_number);
+                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
+        /* Exit if packets were unexpectedly not created */
+        if (pkts_generated == 0 && packet_number > 0)
+                rte_exit(EXIT_FAILURE, "Failed to create packets\n");
+
+        packet_number = pkts_generated;
 }
 
 int
