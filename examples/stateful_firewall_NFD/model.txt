@@ -1,0 +1,17 @@
+program IDS{
+  rule ALLOW = sip:192.168.22.0/24;
+  set<IP> seen;
+  entry {
+   match_flow { f matches ALLOW }
+   action_state { seen= seen | {f[dip]} ; }
+  }
+  entry {
+   match_flow { f mismatches ALLOW }
+   match_state { f[sip] in seen }
+  }
+  entry {
+   match_flow { f mismatches ALLOW }
+   match_state { ~ (f[sip] in seen) }
+   action_flow { f[dip]= DROP; }
+  }
+}

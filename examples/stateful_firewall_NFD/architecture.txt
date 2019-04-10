@@ -1,0 +1,9 @@
+This file describes relative files of NFD.
+
+basic_classes.h && basic_classes.cpp: declare and define the fundamental classes used in NFD framework.
+
+basic_methods.cpp: defines some methods could be used.
+
+decode.h: define some basic network data stuctures.
+
+Above files may be included or combined into onvm, but I am afraid that the C++-features would make this process troublesome. 
