@@ -70,6 +70,9 @@ static struct onvm_pkt_stats stats;
 /* Destination NF ID */
 static uint16_t destination;
 
+/* Inverse argument, set to 1 when packets are forwarded on a packet mismatch. */
+static uint8_t inverse = 0;
+
 /* String to search within packet payload*/
 static char *search_term = NULL;
 
@@ -77,11 +80,11 @@ static char *search_term = NULL;
 extern struct port_info *ports;
 
 struct onvm_pkt_stats {
-    uint64_t pkt_drop;
-    uint64_t pkt_accept;
-    uint64_t pkt_total;
-    uint64_t pkt_not_ipv4;
-    uint64_t pkt_not_tcp_udp;
+        uint64_t pkt_drop;
+        uint64_t pkt_accept;
+        uint64_t pkt_total;
+        uint64_t pkt_not_ipv4;
+        uint64_t pkt_not_tcp_udp;
 };
 
 /*
@@ -91,7 +94,7 @@ static void
 usage(const char *progname) {
         printf("Usage:\n");
         printf("%s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n", progname);
-        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);        
+        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
@@ -103,34 +106,39 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, input_flag = 0;
 
-        while ((c = getopt (argc, argv, "d:s:p")) != -1) {
+        while ((c = getopt(argc, argv, "d:s:p")) != -1) {
                 switch (c) {
-                case 'd':
-                        destination = strtoul(optarg, NULL, 10);
-                        dst_flag = 1;
-                        break;
-                case 's':
-                        search_term = malloc(sizeof(char) * (strlen(optarg)));
-                        strcpy(search_term, optarg);
-                        RTE_LOG(INFO, APP, "Search term = %s\n", search_term);
-                        input_flag = 1;
-                        break;
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        RTE_LOG(INFO, APP, "Print delay = %d\n", print_delay);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                        case 'd':
+                                destination = strtoul(optarg, NULL, 10);
+                                dst_flag = 1;
+                                break;
+                        case 's':
+                                search_term = malloc(sizeof(char) * (strlen(optarg)));
+                                strcpy(search_term, optarg);
+                                RTE_LOG(INFO, APP, "Search term = %s\n", search_term);
+                                input_flag = 1;
+                                break;
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                RTE_LOG(INFO, APP, "Print delay = %d\n", print_delay);
+                                break;
+
+                        case 'i':
+                                inverse = 1;
+                                RTE_LOG(INFO, APP, "Inverse mode enabled: packets dropped on string hit and forwarded on mismatch\n");
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
 
@@ -153,8 +161,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static void
 do_stats_display(void) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
@@ -169,7 +177,8 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) { // assuming UDP packets
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_info *nf_info) {
         int udp_pkt, tcp_pkt;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
@@ -189,7 +198,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
         udp_pkt = onvm_pkt_is_udp(pkt);
         tcp_pkt = onvm_pkt_is_tcp(pkt);
-	pkt_data = NULL;
+        pkt_data = NULL;
 
         if (!udp_pkt && !tcp_pkt) {
                 meta->action = ONVM_NF_ACTION_DROP;
@@ -198,20 +207,32 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         if (udp_pkt) {
-                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
-                                                                            sizeof(struct udp_hdr));
-	} else {
-                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t *, sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
-                                                                   sizeof(struct tcp_hdr));
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
+                                                                    sizeof(struct udp_hdr));
+        } else {
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
+                                                                    sizeof(struct tcp_hdr));
         }
 
         if (strstr((const char *) pkt_data, search_term) != NULL) {
-            meta->action = ONVM_NF_ACTION_TONF;
-            meta->destination = destination;
-            stats.pkt_accept++;
-	} else {
-            meta->action = ONVM_NF_ACTION_DROP;
-            stats.pkt_drop++;
+                if (!inverse) {
+                        meta->action = ONVM_NF_ACTION_TONF;
+                        meta->destination = destination;
+                        stats.pkt_accept++;
+
+                } else {
+                        meta->action = ONVM_NF_ACTION_DROP;
+                        stats.pkt_drop++;
+                }
+        } else {
+                if (!inverse) {
+                        meta->action = ONVM_NF_ACTION_DROP;
+                        stats.pkt_drop++;
+                } else {
+                        meta->action = ONVM_NF_ACTION_TONF;
+                        meta->destination = destination;
+                        stats.pkt_accept++;
+                }
         }
 
         return 0;
