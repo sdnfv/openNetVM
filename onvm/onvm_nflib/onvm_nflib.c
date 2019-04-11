@@ -887,12 +887,12 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                if (ONVM_ENABLE_SHARED_CPU && nf->counter % SAMPLING_RATE == 0) {
-                        nf->counter++;
+                if (ONVM_ENABLE_SHARED_CPU && nf->sampling_counter % SAMPLING_RATE == 0) {
+                        nf->sampling_counter++;
                         start_tsc = rte_rdtsc();
                 }
                 ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->info);
-                if (ONVM_ENABLE_SHARED_CPU && nf->counter % SAMPLING_RATE == 0) {
+                if (ONVM_ENABLE_SHARED_CPU && nf->sampling_counter % SAMPLING_RATE == 0) {
                         end_tsc = rte_rdtsc();
                         nf->stats.comp_cost = end_tsc - start_tsc;
                 }
@@ -1212,5 +1212,4 @@ init_shared_cpu_info(uint16_t instance_id) {
         }
 
         nf->flag_p = (rte_atomic16_t *)shm;
-        nf->counter = 0;
 }

@@ -268,11 +268,6 @@ struct onvm_nf {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
-
-                volatile uint64_t prev_rx;
-                volatile uint64_t prev_rx_drop;
-                volatile uint64_t prev_tx;
-                volatile uint64_t prev_tx_drop;
                 volatile uint64_t comp_cost;
         } stats;
 
@@ -284,7 +279,7 @@ struct onvm_nf {
 
         /* NF accessible shared mem */
         /* To track packets per NF <used for sampling computation cost> */
-        uint64_t counter;
+        uint64_t sampling_counter;
         /*
          * flag (shared mem variable) to track state of NF and trigger wakeups 
          * flag_p=1 => NF sleeping (waiting on semaphore)
