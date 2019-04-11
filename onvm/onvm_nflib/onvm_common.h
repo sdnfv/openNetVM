@@ -156,6 +156,16 @@ struct queue_mgr {
         struct packet_buf *nf_rx_bufs;
 };
 
+/*
+ * NFs wakeup Info: used by manager to update NFs pool and wakeup stats
+ */
+struct wakeup_info {
+	unsigned first_nf;
+	unsigned last_nf;
+	uint64_t num_wakeups;
+	uint64_t prev_num_wakeups;
+};
+
 struct rx_stats {
         uint64_t rx[RTE_MAX_ETHPORTS];
 };

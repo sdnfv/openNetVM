@@ -316,6 +316,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 static void
 onvm_stats_display_client_wakeup_info(int difftime)
 {
+        /*
         uint64_t num_wakeups = 0;
         uint64_t prev_num_wakeups = 0;
         uint64_t wakeup_rate;
@@ -329,6 +330,9 @@ onvm_stats_display_client_wakeup_info(int difftime)
 
         wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
         fprintf(stats_out, "num_wakeups=%"PRIu64", wakeup_rate=%"PRIu64"\n", num_wakeups, wakeup_rate);
+        */
+        difftime = 1;
+        difftime = difftime +22;
 }
 
 static void

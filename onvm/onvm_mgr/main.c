@@ -59,8 +59,6 @@
 
 #define MAX_SHUTDOWN_ITERS 10
 
-struct wakeup_info *wakeup_infos;
-
 // True as long as the main thread loop should keep running
 static uint8_t main_keep_running = 1;
 
@@ -261,43 +259,60 @@ handle_signal(int sig) {
 //TODO: Move to apporpriate header or a different file for onvm_nf_wakeup_mgr/hdlr.c
 
 #define MAX_THRESHOLD 1
-unsigned int nfs_wakethr[MAX_NFS] = {[0 ... MAX_NFS-1] = MAX_THRESHOLD};
+//unsigned int nfs_wakethr[MAX_NFS] = {[0 ... MAX_NFS-1] = MAX_THRESHOLD};
 
 static inline int
-whether_wakeup_client(int instance_id) {
+whether_wakeup_client(struct onvm_nf *nf) {
         uint16_t cur_entries;
-        if (!onvm_nf_is_valid(&nfs[instance_id]))
+
+        if (nf->rx_q == NULL || nf->sem_name == NULL)
                 return 0;
 
-        if (nfs[instance_id].rx_q == NULL || nfs[instance_id].sem_name == NULL)
+        /* Check if NF has packets on the rx ring */
+        cur_entries = rte_ring_count(nf->rx_q);
+        if (cur_entries < MAX_THRESHOLD)
+        //if (cur_entries < nfs_wakethr[nf->instance_id])
                 return 0;
 
-        cur_entries = rte_ring_count(nfs[instance_id].rx_q);
-        if (cur_entries >= nfs_wakethr[instance_id]) {
-                return 1;
-        }
-        return 0;
+        /* Check if its already active */
+        if (rte_atomic16_read(nf->shm_server) == 0)
+                return 0;
+
+        return 1;
 }
 
 static inline void
-wakeup_client(int instance_id, struct wakeup_info *wakeup_info) {
-        if (whether_wakeup_client(instance_id) == 1) {
-                if (rte_atomic16_read(nfs[instance_id].shm_server) == 1) {
-                        wakeup_info->num_wakeups += 1;
-                        rte_atomic16_set(nfs[instance_id].shm_server, 0);
-                        sem_post(nfs[instance_id].mutex);
-                }
-        }
+wakeup_client(struct onvm_nf *nf, struct wakeup_info *wakeup_info) {
+        wakeup_info->num_wakeups += 1;
+        rte_atomic16_set(nf->shm_server, 0);
+        sem_post(nf->mutex);
 }
 
 static int
-wakeup_nfs(void *arg) {
-        struct wakeup_info *wakeup_info = (struct wakeup_info *)arg;
+wakeaup_thread_main(void *arg) {
         unsigned i;
+        struct onvm_nf *nf;
+        struct wakeup_info *wakeup_info = (struct wakeup_info *)arg;
 
-        while (true) {
-                for (i = wakeup_info->first_client; i < wakeup_info->last_client; i++) {
-                        wakeup_client(i, wakeup_info);
+        if (wakeup_info->first_nf == wakeup_info->last_nf - 1) {
+                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NF %d\n", rte_lcore_id(),
+                        wakeup_info->first_nf);
+        } else if (wakeup_info->first_nf < wakeup_info->last_nf) {
+                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NFs %d to %d\n", rte_lcore_id(),
+                        wakeup_info->first_nf, wakeup_info->last_nf - 1);
+        }
+        
+        //while (true) {
+        for (; worker_keep_running;) {
+                for (i = wakeup_info->first_nf; i < wakeup_info->last_nf; i++) {
+                        nf = &nfs[i];
+                        if (!onvm_nf_is_valid(nf))
+                                continue;
+
+                        if (!whether_wakeup_client(nf))
+                                continue;
+
+                        wakeup_client(nf, wakeup_info);
                 }
         }
 
@@ -308,8 +323,8 @@ wakeup_nfs(void *arg) {
 
 int
 main(int argc, char *argv[]) {
-        unsigned cur_lcore, rx_lcores, tx_lcores;
-        unsigned nfs_per_tx;
+        unsigned cur_lcore, rx_lcores, tx_lcores, wakeup_lcores;
+        unsigned nfs_per_tx, nfs_per_wakeup_thread;
         unsigned i;
 
         /* Reserve ID 0 for internal manager things */
@@ -320,14 +335,17 @@ main(int argc, char *argv[]) {
 
         /* clear statistics */
         onvm_stats_clear_all_nfs();
-
+        
         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all
-         * remaining for Tx */
+         * remaining for Tx (subtract wakeup cores if shared cpu mode is enabled */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
+
+        /* If shared CPU enabled adjust core numbers */
         if (ONVM_ENABLE_SHARED_CPU) {
-                tx_lcores -= ONVM_NUM_WAKEUP_THREADS;
+                wakeup_lcores = ONVM_NUM_WAKEUP_THREADS;
+                tx_lcores -= wakeup_lcores;
                 if (tx_lcores < 1) {
                         RTE_LOG(INFO, APP, "Not enough cores to enabled shared cpu support\n");
                         return -1;
@@ -340,7 +358,7 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
         if (ONVM_ENABLE_SHARED_CPU)
-                RTE_LOG(INFO, APP, "%d cores available for handling wakeup\n", ONVM_NUM_WAKEUP_THREADS);
+                RTE_LOG(INFO, APP, "%d cores available for handling wakeup\n", wakeup_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
 
         /* Evenly assign NFs to TX threads */
@@ -394,21 +412,21 @@ main(int argc, char *argv[]) {
         }
 
         if (ONVM_ENABLE_SHARED_CPU) {
-                int clients_per_wakethread = ceil((unsigned)MAX_NFS / ONVM_NUM_WAKEUP_THREADS);
-                wakeup_infos = (struct wakeup_info *)calloc(ONVM_NUM_WAKEUP_THREADS, sizeof(struct wakeup_info));
-                if (wakeup_infos == NULL) {
-                        printf("can not alloc space for wakeup_info\n");
-                        exit(1);
-                }
+                nfs_per_wakeup_thread = ceil((unsigned)MAX_NFS / wakeup_lcores);
                 for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
-                        wakeup_infos[i].first_client = RTE_MIN(i * clients_per_wakethread + 1, (unsigned)MAX_NFS);
-                        wakeup_infos[i].last_client = RTE_MIN((i+1) * clients_per_wakethread + 1, (unsigned)MAX_NFS);
-                        cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-                        if (rte_eal_remote_launch(wakeup_nfs, (void*)&wakeup_infos[i], cur_lcore) == -EBUSY) {
-                                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for wakeup thread\n", cur_lcore);
+                        struct wakeup_info *wakeup_info = calloc(1, sizeof(struct wakeup_info));
+                        if (wakeup_info == NULL) {
+                                RTE_LOG(ERR, APP, "Can't allocate wakeup info struct\n");
                                 return -1;
                         }
-                        printf("Wakeup lcore_id=%d, first_client=%d, last_client=%d\n", cur_lcore, wakeup_infos[i].first_client, wakeup_infos[i].last_client);
+                        wakeup_info->first_nf = RTE_MIN(i * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
+                        wakeup_info->last_nf = RTE_MIN((i + 1) * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
+                        cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+                        if (rte_eal_remote_launch(wakeaup_thread_main, (void*)wakeup_info, cur_lcore) == -EBUSY) {
+                                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d wakeup thread\n",
+                                        cur_lcore, wakeup_info->first_nf);
+                                return -1;
+                        }
                 }
         }
 

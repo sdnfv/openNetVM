@@ -364,7 +364,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;        
+        tx_ring = nf->tx_q;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
