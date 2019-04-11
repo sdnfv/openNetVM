@@ -4455,7 +4455,7 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, nesting_state,
             'Lines should very rarely be longer than %i characters' %
             extended_length)
     elif line_width > _line_length:
-      error(filename, linenum, 'whitespace/line_length', 2,
+      error(filename, linenum, 'whitespace/line_length', 5,
             'Lines should be <= %i characters long' % _line_length)
 
   if (cleansed_line.count(';') > 1 and
