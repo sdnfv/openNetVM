@@ -55,7 +55,6 @@
 
 /*****************************API************************************/
 
-
 /**
  * Parses a config file into a cJSON struct.
  * This struct contains all information stored within the config file

@@ -96,9 +96,9 @@ Script files are located in openNetVM-Scripts
 2.4 Run pktgen
 ------------- 
 
-`$cd openNetVM-Scripts`
-
-`$sudo bash run-pktgen.sh 1` or `$sudo bash run-pktgen.sh 2` 
+```sh
+./openNetVM-Scripts/run-pktgen.sh 1
+```   
 
 If you got your result as below, then you are all set
 ```

@@ -51,10 +51,11 @@
 #define MSG_NF_STOPPING 3
 #define MSG_NF_READY 4
 #define MSG_SCALE 5
+#define MSG_FROM_NF 6
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */
-        void *msg_data; /* These should be rte_malloc'd so they're stored in hugepages */
+        void *msg_data;   /* These should be rte_malloc'd so they're stored in hugepages */
 };
 
 #endif
