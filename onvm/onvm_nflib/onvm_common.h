@@ -67,6 +67,8 @@
 
 #define PACKET_READ_SIZE ((uint16_t)32)
 
+#define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
+
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
@@ -169,6 +171,12 @@ struct port_info {
         struct ether_addr mac[RTE_MAX_ETHPORTS];
         volatile struct rx_stats rx_stats;
         volatile struct tx_stats tx_stats;
+};
+
+struct onvm_configuration {
+        struct {
+                uint8_t ONVM_ENABLE_SHARED_CPU;
+        } flags;
 };
 
 struct core_status {
@@ -319,7 +327,7 @@ struct onvm_service_chain {
 #define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
-#define MZ_CUSTOM_FLAGS "MProc_custom_flags"
+#define MZ_ONVM_CONFIG "MProc_onvm_config"
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
@@ -355,9 +363,6 @@ struct onvm_service_chain {
 #define NF_NO_ID -1
 
 #define ONVM_NF_HANDLE_TX 1   // should be true if NFs primarily pass packets to each other
-
-#define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
-#define ONVM_ENABLE_SHARED_CPU_BIT 0      // used for setting onvm_mgr flags that is passed to nflib
 
 /*
  * Given the rx queue name template above, get the queue name

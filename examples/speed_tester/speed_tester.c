@@ -529,8 +529,8 @@ nf_setup(struct onvm_nf_info *nf_info) {
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        uint16_t flags;
         const char *progname = argv[0];
+        struct onvm_configuration *onvm_config;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
@@ -548,8 +548,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
         if (use_direct_rings) {
-                flags = onvm_nflib_get_flags();
-                ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
+                onvm_config = onvm_nflib_get_onvm_config();
+                ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 nf_setup(nf_info);
                 onvm_nflib_nf_ready(nf_info);
                 run_advanced_rings(nf_info);

@@ -123,7 +123,7 @@ extern uint32_t global_pkt_limit;
 extern uint8_t global_verbosity_level;
 
 /* Custom flags for onvm */
-extern uint16_t *onvm_custom_flags;
+extern struct onvm_configuration *onvm_config;
 extern uint8_t ONVM_ENABLE_SHARED_CPU;
 
 /**********************************Functions**********************************/

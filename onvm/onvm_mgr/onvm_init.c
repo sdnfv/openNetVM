@@ -54,7 +54,7 @@
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
 struct core_status *cores = NULL;
-uint16_t *onvm_custom_flags = NULL;
+struct onvm_configuration *onvm_config = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -68,7 +68,7 @@ struct onvm_service_chain **default_sc_p;
 /*************************Internal Functions Prototypes***********************/
 
 static void
-set_default_custom_flags(uint16_t *flags);
+set_default_config(struct onvm_configuration *config);
 
 static int
 init_mbuf_pools(void);
@@ -142,7 +142,7 @@ init(int argc, char *argv[]) {
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
-        const struct rte_memzone *mz_custom_flags;
+        const struct rte_memzone *mz_onvm_config;
         uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
@@ -198,12 +198,12 @@ init(int argc, char *argv[]) {
         nf_per_service_count = mz_nf_per_service->addr;
 
         /* set up custom flags */
-        mz_custom_flags = rte_memzone_reserve(MZ_CUSTOM_FLAGS, sizeof(uint16_t), rte_socket_id(), NO_FLAGS);
-        if (mz_custom_flags == NULL) {
+        mz_onvm_config = rte_memzone_reserve(MZ_ONVM_CONFIG, sizeof(uint16_t), rte_socket_id(), NO_FLAGS);
+        if (mz_onvm_config == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for ONVM custom flags.\n");
         }
-        onvm_custom_flags = mz_custom_flags->addr;
-        set_default_custom_flags(onvm_custom_flags);
+        onvm_config = mz_onvm_config->addr;
+        set_default_config(onvm_config);
 
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
@@ -273,13 +273,11 @@ init(int argc, char *argv[]) {
 /*****************************Internal functions******************************/
 
 /**
- * Initialise the default custom flags structure
+ * Initialise the default onvm config structure
  */
 static void
-set_default_custom_flags(uint16_t *flags) {
-        *flags = 0;
-        if (ONVM_ENABLE_SHARED_CPU_DEFAULT)
-                *flags |= ONVM_SET_BIT(0, ONVM_ENABLE_SHARED_CPU_BIT);
+set_default_config(struct onvm_configuration *config) {
+        config->flags.ONVM_ENABLE_SHARED_CPU = ONVM_ENABLE_SHARED_CPU_DEFAULT;
 }
 
 /**

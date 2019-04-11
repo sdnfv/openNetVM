@@ -404,8 +404,11 @@ main(int argc, char *argv[]) {
                         wakeup_infos[i].first_client = RTE_MIN(i * clients_per_wakethread + 1, (unsigned)MAX_NFS);
                         wakeup_infos[i].last_client = RTE_MIN((i+1) * clients_per_wakethread + 1, (unsigned)MAX_NFS);
                         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
-                        rte_eal_remote_launch(wakeup_nfs, (void*)&wakeup_infos[i], cur_lcore);
-                        printf("wakeup lcore_id=%d, first_client=%d, last_client=%d\n", cur_lcore, wakeup_infos[i].first_client, wakeup_infos[i].last_client);
+                        if (rte_eal_remote_launch(wakeup_nfs, (void*)&wakeup_infos[i], cur_lcore) == -EBUSY) {
+                                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for wakeup thread\n", cur_lcore);
+                                return -1;
+                        }
+                        printf("Wakeup lcore_id=%d, first_client=%d, last_client=%d\n", cur_lcore, wakeup_infos[i].first_client, wakeup_infos[i].last_client);
                 }
         }
 

@@ -276,7 +276,7 @@ onvm_nflib_get_default_chain(void);
 /**
  * Retrieves custom onvm flags
  */
-uint16_t
-onvm_nflib_get_flags(void);
+struct onvm_configuration *
+onvm_nflib_get_onvm_config(void);
 
 #endif  // _ONVM_NFLIB_H_

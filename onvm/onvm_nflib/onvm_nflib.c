@@ -102,8 +102,8 @@ static uint8_t recieved_stop_msg = 1;
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
-/* Shared data from manager, has onvm custom flags */
-uint16_t *onvm_custom_flags;
+/* Shared data for onvm config */
+struct onvm_configuration *onvm_config;
 
 /* Flag to check if shared cpu mutex sleep/wakeup is enabled */
 uint8_t ONVM_ENABLE_SHARED_CPU;
@@ -198,11 +198,11 @@ static int
 onvm_nflib_lookup_shared_structs(void);
 
 /*
- * Parse the custom flags shared with manager
+ * Parse the custom onvm config shared with manager
  *
  */
 static void
-onvm_nflib_parse_custom_flags(uint16_t flags);
+onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
 
 /*
  * Start the NF by signaling manager that its ready to recieve packets
@@ -256,7 +256,7 @@ onvm_nflib_lookup_shared_structs(void) {
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
-        const struct rte_memzone *mz_custom_flags;
+        const struct rte_memzone *mz_onvm_config;
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
 
@@ -302,11 +302,11 @@ onvm_nflib_lookup_shared_structs(void) {
                 rte_exit(EXIT_FAILURE, "Cannot get core status structure\n");
         cores = mz_cores->addr;
 
-        mz_custom_flags = rte_memzone_lookup(MZ_CUSTOM_FLAGS);
-        if (mz_custom_flags == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get onvm custom flags\n");
-        onvm_custom_flags = mz_custom_flags->addr;
-        onvm_nflib_parse_custom_flags(*onvm_custom_flags);
+        mz_onvm_config = rte_memzone_lookup(MZ_ONVM_CONFIG);
+        if (mz_onvm_config == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get onvm config\n");
+        onvm_config = mz_onvm_config->addr;
+        onvm_nflib_parse_config(onvm_config);
 
         mz_scp = rte_memzone_lookup(MZ_SCP_INFO);
         if (mz_scp == NULL)
@@ -323,8 +323,8 @@ onvm_nflib_lookup_shared_structs(void) {
 }
 
 static void
-onvm_nflib_parse_custom_flags(uint16_t flags) {
-        ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
+onvm_nflib_parse_config(struct onvm_configuration *config) {
+        ONVM_ENABLE_SHARED_CPU = config->flags.ONVM_ENABLE_SHARED_CPU;
 }
 
 static int
@@ -769,9 +769,9 @@ onvm_nflib_get_nf(uint16_t id) {
         return &nfs[id];
 }
 
-uint16_t
-onvm_nflib_get_flags(void) {
-        return *onvm_custom_flags;
+struct onvm_configuration *
+onvm_nflib_get_onvm_config(void) {
+        return onvm_config;
 }
 
 void

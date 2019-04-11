@@ -189,7 +189,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 }
                                 break;
                         case 'c':
-                                *onvm_custom_flags |= ONVM_SET_BIT(0, ONVM_ENABLE_SHARED_CPU_BIT);
+                                onvm_config->flags.ONVM_ENABLE_SHARED_CPU = 1;
                                 ONVM_ENABLE_SHARED_CPU = 1; 
                                 break;
                         default:

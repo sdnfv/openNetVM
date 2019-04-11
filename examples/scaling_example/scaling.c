@@ -429,7 +429,7 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
         struct onvm_nf_info *nf_info;
-        uint16_t flags;
+        struct onvm_configuration *onvm_config;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
@@ -451,8 +451,8 @@ main(int argc, char *argv[]) {
 
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
-                flags = onvm_nflib_get_flags();
-                ONVM_ENABLE_SHARED_CPU = ONVM_CHECK_BIT(flags, ONVM_ENABLE_SHARED_CPU_BIT);
+                onvm_config = onvm_nflib_get_onvm_config();
+                ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 onvm_nflib_nf_ready(nf_info);
                 nf_setup(nf_info);
                 run_advanced_rings(nf_info);
