@@ -59,14 +59,6 @@
 #include <rte_mempool.h>
 #include <rte_ring.h>
 
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <semaphore.h>
-#include <fcntl.h>
-
-#include <rte_atomic.h>
-
 #ifdef LIBPCAP
 #include <pcap.h>
 #endif
