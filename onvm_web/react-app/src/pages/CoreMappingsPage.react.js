@@ -15,16 +15,12 @@ type Props = {|
 |};
 
 type State = {|
-  coreList: Array<Array<Object>>,
+  coreList: Object
 |};
 
 class CoreMappingsPage extends React.PureComponent<Props, State> {
   state = {
-    coreList: []
-  };
-
-  coreMap = {
-
+    coreList: {}
   };
 
   eventHandler = (event: OnvmEvent): void => {
@@ -32,46 +28,37 @@ class CoreMappingsPage extends React.PureComponent<Props, State> {
 
     if (event.message === "NF Ready") {
       this.setState(prevState => {
-        var arr = [ ...prevState.coreList ];
-        var mapNum = this.coreMap[source.core];
+        var cores = { ...prevState.coreList };
+        var core = source.core;
 
-        if(source.core in this.coreMap && arr.length > 0){
-          // we already have the core in the list
-          arr[mapNum].push(source);
-        } else{
-          // put our core at end of coreList
-          this.coreMap[source.core] = arr.length;
-          arr.push([source]);
-        }
+        if (core in cores && cores[core].length)
+          /* we already have the core */
+          cores[core].push(source);
+        /* create new map entry for core */ else cores[core] = [source];
 
-        return { coreList: arr };
+        return { coreList: cores };
       });
     }
-    
+
     if (event.message === "NF Stopping") {
       this.setState(prevState => {
-        var arr = [ ...prevState.coreList ];
-        var mapNum = this.coreMap[source.core];
+        var cores = { ...prevState.coreList };
+        var core = source.core;
 
-        if(!(source.core in this.coreMap)){
+        if (!(core in cores)) {
           console.error("Error with coreMap");
-          return { coreList: arr };
+          return { coreList: cores };
         }
 
-        console.log("\n-----------------\n");
-        console.log("MapNum: ");
-        console.log(mapNum);
-        console.log("Source: ");
-        console.log(source);
-        console.log("Array before: ");
-        console.log(arr);
+        cores[core] = cores[core].filter(
+          i => i.instance_id !== source.instance_id
+        );
 
-        arr[mapNum] = arr[mapNum].filter(elem => elem.instance_id !== source.instance_id);
+        if (cores[core].length == 0)
+          /* nothing running on core */
+          delete cores[core];
 
-        console.log("Arr now: ");
-        console.log(arr);
-
-        return { coreList: arr };
+        return { coreList: cores };
       });
     }
   };
@@ -88,20 +75,32 @@ class CoreMappingsPage extends React.PureComponent<Props, State> {
     const { history } = this.props;
     const { coreList } = this.state;
 
+    function isEmpty(obj) {
+      for (var key in obj) {
+        if (obj.hasOwnProperty(key)) return false;
+      }
+      return true;
+    }
+
     return (
       <Page.Content>
         <Grid.Row>
-          {coreList.map((core, i) => {
-            if(core.length > 0)
-              return <Grid.Col md={6} xl={4} key={core[0].core}>
-                <CoreCard
+          {Object.keys(coreList).map(key => {
+            var core = coreList[key];
+            if (core && core.length > 0)
+              return (
+                <Grid.Col md={6} xl={4} key={core[0].core}>
+                  <CoreCard
                     coreLabel={core[0].core}
-                    extraContent={ <NFCoreList history={history} sources={core}/> }
-                />
-              </Grid.Col>
-            else return '';
+                    extraContent={
+                      <NFCoreList history={history} sources={core} />
+                    }
+                  />
+                </Grid.Col>
+              );
+            else return "";
           })}
-          {coreList.length === 0 && "No Cores have Running NFs!"}
+          {isEmpty(coreList) && "No Cores have Running NFs!"}
         </Grid.Row>
       </Page.Content>
     );
