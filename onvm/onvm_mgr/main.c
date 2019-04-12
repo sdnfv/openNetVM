@@ -140,12 +140,13 @@ master_thread_main(void) {
                 if (nfs[i].info == NULL) {
                         continue;
                 }
-                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nfs[i].shm_server));
+                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nf_shm_infos[i].shm_server));
+                //RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nfs[i].shm_server));
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
-                if (rte_atomic16_read(nfs[i].shm_server) == 1) {
-                        //wakeup_info->num_wakeups += 1;
-                        rte_atomic16_set(nfs[i].shm_server, 0);
-                        sem_post(nfs[i].mutex);
+                if (rte_atomic16_read(nf_shm_infos[i].shm_server) == 1) {
+                        nf_shm_infos[i].num_wakeups++;
+                        rte_atomic16_set(nf_shm_infos[i].shm_server, 0);
+                        sem_post(nf_shm_infos[i].mutex);
                 }
         }
 
@@ -163,8 +164,8 @@ master_thread_main(void) {
 
         /* Clean up the shared memory */
         for (i = 0; i < MAX_NFS; i++) {
-                sem_close(nfs[i].mutex);
-                sem_unlink(nfs[i].sem_name);
+                sem_close(nf_shm_infos[i].mutex);
+                sem_unlink(nf_shm_infos[i].sem_name);
         }
                         
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
@@ -255,43 +256,18 @@ handle_signal(int sig) {
         }
 }
 
-/*******************************Wake/sleep helpers****************************/
-//TODO: Move to apporpriate header or a different file for onvm_nf_wakeup_mgr/hdlr.c
-
-#define MAX_THRESHOLD 1
-//unsigned int nfs_wakethr[MAX_NFS] = {[0 ... MAX_NFS-1] = MAX_THRESHOLD};
-
-static inline int
-whether_wakeup_client(struct onvm_nf *nf) {
-        uint16_t cur_entries;
-
-        if (nf->rx_q == NULL || nf->sem_name == NULL)
-                return 0;
-
-        /* Check if NF has packets on the rx ring */
-        cur_entries = rte_ring_count(nf->rx_q);
-        if (cur_entries < MAX_THRESHOLD)
-        //if (cur_entries < nfs_wakethr[nf->instance_id])
-                return 0;
-
-        /* Check if its already active */
-        if (rte_atomic16_read(nf->shm_server) == 0)
-                return 0;
-
-        return 1;
-}
-
 static inline void
-wakeup_client(struct onvm_nf *nf, struct wakeup_info *wakeup_info) {
-        wakeup_info->num_wakeups += 1;
-        rte_atomic16_set(nf->shm_server, 0);
-        sem_post(nf->mutex);
+wakeup_client(struct nf_shm_info *nf_shm_info) {
+        nf_shm_info->num_wakeups++;
+        rte_atomic16_set(nf_shm_info->shm_server, 0);
+        sem_post(nf_shm_info->mutex);
 }
 
 static int
 wakeaup_thread_main(void *arg) {
         unsigned i;
         struct onvm_nf *nf;
+        struct nf_shm_info *nf_shm_info;
         struct wakeup_info *wakeup_info = (struct wakeup_info *)arg;
 
         if (wakeup_info->first_nf == wakeup_info->last_nf - 1) {
@@ -306,13 +282,14 @@ wakeaup_thread_main(void *arg) {
         for (; worker_keep_running;) {
                 for (i = wakeup_info->first_nf; i < wakeup_info->last_nf; i++) {
                         nf = &nfs[i];
+                        nf_shm_info = &nf_shm_infos[i];
                         if (!onvm_nf_is_valid(nf))
                                 continue;
 
-                        if (!whether_wakeup_client(nf))
+                        if (!whether_wakeup_client(nf, nf_shm_info))
                                 continue;
 
-                        wakeup_client(nf, wakeup_info);
+                        wakeup_client(nf_shm_info);
                 }
         }
 

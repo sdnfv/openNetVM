@@ -867,8 +867,6 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
         int ret_act;
-        // To account NFs computation cost (sampled over SAMPLING_RATE packets)
-        uint64_t start_tsc = 0, end_tsc = 0;
 
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
@@ -887,15 +885,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                if (ONVM_ENABLE_SHARED_CPU && nf->sampling_counter % SAMPLING_RATE == 0) {
-                        nf->sampling_counter++;
-                        start_tsc = rte_rdtsc();
-                }
                 ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->info);
-                if (ONVM_ENABLE_SHARED_CPU && nf->sampling_counter % SAMPLING_RATE == 0) {
-                        end_tsc = rte_rdtsc();
-                        nf->stats.comp_cost = end_tsc - start_tsc;
-                }
 
                 /* NF returns 0 to return packets or 1 to buffer */
                 if (likely(ret_act == 0)) {

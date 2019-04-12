@@ -69,6 +69,8 @@
 
 #define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
 
+#define PKT_WAKEUP_THRESHOLD 1 // how many cpu how many packets are required to wake up the NF
+
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
@@ -160,10 +162,17 @@ struct queue_mgr {
  * NFs wakeup Info: used by manager to update NFs pool and wakeup stats
  */
 struct wakeup_info {
-	unsigned first_nf;
-	unsigned last_nf;
-	uint64_t num_wakeups;
-	uint64_t prev_num_wakeups;
+        unsigned first_nf;
+        unsigned last_nf;
+};
+
+struct nf_shm_info {
+        const char *sem_name;
+        sem_t *mutex;
+        key_t shm_key;
+        rte_atomic16_t *shm_server;
+        uint64_t num_wakeups;
+        uint64_t prev_num_wakeups;
 };
 
 struct rx_stats {
@@ -268,22 +277,13 @@ struct onvm_nf {
                 volatile uint64_t act_drop;
                 volatile uint64_t act_next;
                 volatile uint64_t act_buffer;
-                volatile uint64_t comp_cost;
         } stats;
 
-        /* only accessed by mgr should be moved? */
-        const char *sem_name;
-        sem_t *mutex;
-        key_t shm_key;
-        rte_atomic16_t *shm_server;
-
-        /* NF accessible shared mem */
-        /* To track packets per NF <used for sampling computation cost> */
-        uint64_t sampling_counter;
-        /*
+        /* NF accessible shared mem (shared cpu vars)
+         * 
          * flag (shared mem variable) to track state of NF and trigger wakeups 
-         * flag_p=1 => NF sleeping (waiting on semaphore)
-         * flag_p=0 => NF is running and processing (not waiting on semaphore)
+         *     flag = 1 => NF sleeping (waiting on semaphore)
+         *     flag = 0 => NF is running and processing (not waiting on semaphore)
          */
         rte_atomic16_t *flag_p;
         /* Mutex for NF sem_wait */
@@ -347,7 +347,7 @@ struct onvm_service_chain {
 #define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
 #define ONVM_NUM_WAKEUP_THREADS 1
 #define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
-#define SAMPLING_RATE 1000000           // sampling rate to estimate NFs computation cost
+#define SAMPLING_RATE 10           // sampling rate to estimate NFs computation cost
 
 
 /* common names for NF states */
@@ -435,6 +435,18 @@ get_sem_name(unsigned id) {
 
         snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_SEM_NAME, id);
         return buffer;
+}
+
+static inline int
+whether_wakeup_client(struct onvm_nf *nf, struct nf_shm_info *nf_shm_info) {
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
+                return 0;
+
+        /* Check if its already woken up */
+        if (rte_atomic16_read(nf_shm_info->shm_server) == 0)
+                return 0;
+
+        return 1;
 }
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
