@@ -54,7 +54,7 @@ class CoreMappingsPage extends React.PureComponent<Props, State> {
           i => i.instance_id !== source.instance_id
         );
 
-        if (cores[core].length == 0)
+        if (cores[core].length === 0)
           /* nothing running on core */
           delete cores[core];
 
