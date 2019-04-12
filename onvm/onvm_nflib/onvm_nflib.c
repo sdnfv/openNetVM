@@ -886,7 +886,6 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
                 ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->info);
-
                 /* NF returns 0 to return packets or 1 to buffer */
                 if (likely(ret_act == 0)) {
                         tx_buf.buffer[tx_buf.count++] = pkts[i];

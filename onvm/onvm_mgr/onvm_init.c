@@ -193,7 +193,6 @@ init(int argc, char *argv[]) {
         for (i = 0; i < num_services; i++) {
                 services[i] = rte_calloc("one service NFs", MAX_NFS_PER_SERVICE, sizeof(uint16_t), 0);
         }
-
         mz_nf_per_service =
             rte_memzone_reserve(MZ_NF_PER_SERVICE_INFO, sizeof(uint16_t) * num_services, rte_socket_id(), NO_FLAGS);
         if (mz_nf_per_service == NULL) {

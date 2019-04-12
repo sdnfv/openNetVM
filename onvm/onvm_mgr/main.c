@@ -140,8 +140,7 @@ master_thread_main(void) {
                 if (nfs[i].info == NULL) {
                         continue;
                 }
-                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nf_shm_infos[i].shm_server));
-                //RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down, shm=%d\n", rte_lcore_id(), i, rte_atomic16_read(nfs[i].shm_server));
+                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
                 if (rte_atomic16_read(nf_shm_infos[i].shm_server) == 1) {
                         nf_shm_infos[i].num_wakeups++;
@@ -277,7 +276,7 @@ wakeaup_thread_main(void *arg) {
                 RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NFs %d to %d\n", rte_lcore_id(),
                         wakeup_info->first_nf, wakeup_info->last_nf - 1);
         }
-        
+
         //while (true) {
         for (; worker_keep_running;) {
                 for (i = wakeup_info->first_nf; i < wakeup_info->last_nf; i++) {
@@ -406,9 +405,7 @@ main(int argc, char *argv[]) {
                         }
                 }
         }
-
         /* Master thread handles statistics and NF management */
         master_thread_main();
-
         return 0;
 }

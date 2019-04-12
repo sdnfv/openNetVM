@@ -400,7 +400,6 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         }
 
         fprintf(stats_out, "%s", NF_MSG[verbosity_level - 1]);
-
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
