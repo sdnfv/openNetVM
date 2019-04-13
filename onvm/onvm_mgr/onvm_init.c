@@ -55,7 +55,7 @@ struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
 struct core_status *cores = NULL;
 struct onvm_configuration *onvm_config = NULL;
-struct nf_shm_info *nf_shm_infos = NULL;
+struct nf_wakeup_info *nf_wakeup_infos = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -421,14 +421,14 @@ init_shared_sem(void) {
         sem_t *mutex;
         const char * sem_name;
 
-        nf_shm_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_shm_info), MAX_NFS, 0);
+        nf_wakeup_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
 
         if (!ONVM_ENABLE_SHARED_CPU)
                 return;
 
         for (i = 0; i < MAX_NFS; i++) {
                 sem_name = get_sem_name(i);
-                nf_shm_infos[i].sem_name = sem_name;
+                nf_wakeup_infos[i].sem_name = sem_name;
 
                 mutex = sem_open(sem_name, O_CREAT, 06666, 0);
                 if (mutex == SEM_FAILED) {
@@ -436,7 +436,7 @@ init_shared_sem(void) {
                         sem_unlink(sem_name);
                         exit(1);
                 }
-                nf_shm_infos[i].mutex = mutex;
+                nf_wakeup_infos[i].mutex = mutex;
 
                 key = get_rx_shmkey(i);
                 if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
@@ -449,7 +449,7 @@ init_shared_sem(void) {
                         exit(1);
                 }
 
-                nf_shm_infos[i].shm_server = (rte_atomic16_t *)shm;
+                nf_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
         }
 }
 

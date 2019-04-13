@@ -583,11 +583,6 @@ onvm_nflib_thread_main_loop(void *arg) {
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
         start_time = rte_get_tsc_cycles();
-
-        for (; info->status == (uint16_t)NF_RUNNING;) {
-                sleep(1);
-        }
-
         printf("[Press Ctrl-C to quit ...]\n");
         for (; keep_running;) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
@@ -874,7 +869,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
-        /* Probably want to comment this out */
+        /* Possibly sleep if in shared cpu mode, otherwise return */
         if (unlikely(nb_pkts == 0) && keep_running) {
                 if (ONVM_ENABLE_SHARED_CPU) {
                         rte_atomic16_set(nf->flag_p, 1);

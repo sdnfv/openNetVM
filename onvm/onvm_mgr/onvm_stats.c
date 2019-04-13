@@ -314,7 +314,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 }
 
 static void
-onvm_stats_display_client_wakeup_info(int difftime)
+onvm_stats_display_client_wakeup_thread_context(int difftime)
 {
         uint64_t num_wakeups = 0;
         uint64_t prev_num_wakeups = 0;
@@ -324,9 +324,9 @@ onvm_stats_display_client_wakeup_info(int difftime)
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
-                num_wakeups += nf_shm_infos[i].num_wakeups;
-                prev_num_wakeups += nf_shm_infos[i].prev_num_wakeups;
-                nf_shm_infos[i].prev_num_wakeups = nf_shm_infos[i].num_wakeups;
+                num_wakeups += nf_wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += nf_wakeup_infos[i].prev_num_wakeups;
+                nf_wakeup_infos[i].prev_num_wakeups = nf_wakeup_infos[i].num_wakeups;
         }
 
         wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
@@ -417,14 +417,14 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const uint64_t tx_pps = (tx - nf_tx_last[i]) / difftime;
                 const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i]) / difftime;
                 const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i]) / difftime;
-                const uint64_t num_wakeups = nf_shm_infos[i].num_wakeups;
-                const uint64_t prev_num_wakeups = nf_shm_infos[i].prev_num_wakeups;
+                const uint64_t num_wakeups = nf_wakeup_infos[i].num_wakeups;
+                const uint64_t prev_num_wakeups = nf_wakeup_infos[i].prev_num_wakeups;
                 const uint64_t wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
                 const char *state;
 
                 uint8_t active = 0;
                 if (ONVM_ENABLE_SHARED_CPU)
-                        active = rte_atomic16_read(nf_shm_infos[i].shm_server);
+                        active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
                 if (!active) {
                         state = "working ";
                 } else {
@@ -539,7 +539,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         if (ONVM_ENABLE_SHARED_CPU) {
                 fprintf(stats_out, "\n\nShared CPU stats\n");
                 fprintf(stats_out, "----------------\n");
-                onvm_stats_display_client_wakeup_info(difftime);
+                onvm_stats_display_client_wakeup_thread_context(difftime);
         } 
 
 }

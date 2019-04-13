@@ -127,7 +127,7 @@ extern struct onvm_configuration *onvm_config;
 extern uint8_t ONVM_ENABLE_SHARED_CPU;
 
 /* For handling shared cpu logic */
-extern struct nf_shm_info *nf_shm_infos;
+extern struct nf_wakeup_info *nf_wakeup_infos;
 
 /**********************************Functions**********************************/
 

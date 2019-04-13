@@ -161,12 +161,12 @@ struct queue_mgr {
 /*
  * NFs wakeup Info: used by manager to update NFs pool and wakeup stats
  */
-struct wakeup_info {
+struct wakeup_thread_context {
         unsigned first_nf;
         unsigned last_nf;
 };
 
-struct nf_shm_info {
+struct nf_wakeup_info {
         const char *sem_name;
         sem_t *mutex;
         key_t shm_key;
@@ -438,12 +438,12 @@ get_sem_name(unsigned id) {
 }
 
 static inline int
-whether_wakeup_client(struct onvm_nf *nf, struct nf_shm_info *nf_shm_info) {
+whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
         if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
                 return 0;
 
         /* Check if its already woken up */
-        if (rte_atomic16_read(nf_shm_info->shm_server) == 0)
+        if (rte_atomic16_read(nf_wakeup_info->shm_server) == 0)
                 return 0;
 
         return 1;
