@@ -276,7 +276,6 @@ wakeup_thread_main(void *arg) {
                         wakeup_ctx->first_nf, wakeup_ctx->last_nf - 1);
         }
 
-        //while (true) {
         for (; worker_keep_running;) {
                 for (i = wakeup_ctx->first_nf; i < wakeup_ctx->last_nf; i++) {
                         nf = &nfs[i];
@@ -284,7 +283,7 @@ wakeup_thread_main(void *arg) {
                         if (!onvm_nf_is_valid(nf))
                                 continue;
 
-                        /* Wakeup only if NF is sleeping and has pkts on the rx queue  */
+                        /* Check if NF is sleeping and has pkts on the rx queue  */
                         if (!whether_wakeup_client(nf, nf_wakeup_info))
                                 continue;
 

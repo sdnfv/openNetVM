@@ -97,6 +97,7 @@ static struct rte_mempool *nf_msg_pool;
 
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
+// If recieved stop msg we need to take care of the signal thread
 static uint8_t recieved_stop_msg = 0;
 
 // Shared data for default service chain
