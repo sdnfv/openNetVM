@@ -222,7 +222,7 @@ onvm_stats_clear_nf(uint16_t id) {
 }
 
 void
-onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
+onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info, unsigned core) {
         if (msg == NULL || stats_destination != ONVM_STATS_WEB) {
                 return;
         }
@@ -240,6 +240,7 @@ onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
         cJSON_AddStringToObject(new_event, "message", msg);
         if (nf_info == NULL) {
                 cJSON_AddStringToObject(source, "type", "MGR");
+                cJSON_AddNumberToObject(source, "core", core);
         } else {
                 cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);

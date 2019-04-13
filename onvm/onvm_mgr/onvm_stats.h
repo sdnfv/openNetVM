@@ -151,6 +151,6 @@ onvm_stats_clear_nf(uint16_t id);
  * Interface called by manager when a new event should be created.
  */
 void
-onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf);
+onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf, unsigned core);
 
 #endif  // _ONVM_STATS_H_

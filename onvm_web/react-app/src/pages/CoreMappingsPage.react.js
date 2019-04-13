@@ -26,24 +26,31 @@ class CoreMappingsPage extends React.PureComponent<Props, State> {
   eventHandler = (event: OnvmEvent): void => {
     const source = event.source;
 
-    if (event.message === "NF Ready") {
+    if (event.message === "NF Ready" || event.message.includes("Start")) {
       this.setState(prevState => {
         var cores = { ...prevState.coreList };
         var core = source.core;
+        source.msg = event.message;
 
-        if (core in cores && cores[core].length)
+        if (core in cores && cores[core].length){
           /* we already have the core */
-          cores[core].push(source);
-        /* create new map entry for core */ else cores[core] = [source];
+          var id = source.instance_id;
+          if(id && id !== cores[core][0].instance_id)
+            /* make sure we don't have nf in list */
+            cores[core].unshift(source);
+        } else
+          /* create new map entry for core */ 
+          cores[core] = [source];
 
         return { coreList: cores };
       });
     }
 
-    if (event.message === "NF Stopping") {
+    if (event.message === "NF Stopping" || event.message.includes("End")) {
       this.setState(prevState => {
         var cores = { ...prevState.coreList };
         var core = source.core;
+        source.msg = event.message;
 
         if (!(core in cores)) {
           console.error("Error with coreMap");
