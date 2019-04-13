@@ -69,12 +69,12 @@
 
 #define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
 
-#define PKT_WAKEUP_THRESHOLD 1 // how many cpu how many packets are required to wake up the NF
-
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+
+#define PKT_WAKEUP_THRESHOLD 1 // for shared cpu mode, how many packets are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
@@ -326,6 +326,7 @@ struct onvm_service_chain {
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
+#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CORES_STATUS "MProc_cores_info"
@@ -344,11 +345,7 @@ struct onvm_service_chain {
 /* interrupt semaphore specific updates */
 #define SHMSZ 4                         // size of shared memory segement (page_size)
 #define KEY_PREFIX 123                  // prefix len for key
-#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
-#define ONVM_NUM_WAKEUP_THREADS 1
 #define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
-#define SAMPLING_RATE 10           // sampling rate to estimate NFs computation cost
-
 
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
@@ -366,8 +363,7 @@ struct onvm_service_chain {
 #define NF_CORE_BUSY 12           // The manually selected core is busy
 
 #define NF_NO_ID -1
-
-#define ONVM_NF_HANDLE_TX 1   // should be true if NFs primarily pass packets to each other
+#define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
 
 /*
  * Given the rx queue name template above, get the queue name

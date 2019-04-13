@@ -96,6 +96,7 @@
 #define ONVM_NUM_RX_THREADS 1
 /* Number of auxiliary threads in manager, 1 reserved for stats */
 #define ONVM_NUM_MGR_AUX_THREADS 1
+#define ONVM_NUM_WAKEUP_THREADS 1  // Enabled when using shared cpu mode
 
 /*************************External global variables***************************/
 
