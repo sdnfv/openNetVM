@@ -97,7 +97,7 @@ static struct rte_mempool *nf_msg_pool;
 
 // True as long as the NF should keep processing packets
 static uint8_t keep_running = 1;
-static uint8_t recieved_stop_msg = 1;
+static uint8_t recieved_stop_msg = 0;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
@@ -618,10 +618,13 @@ onvm_nflib_thread_main_loop(void *arg) {
 
         /* Wait for children to quit */
         for (i = 0; i < MAX_NFS; i++)
-                while (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
+                while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
+                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].flag_p) == 1) {
+                                rte_atomic16_set(nfs[i].flag_p, 0);
+                                sem_post(nfs[i].nf_mutex);
+                        }
                         sleep(1);
                 }
-
         /* Stop and free */
         onvm_nflib_cleanup(info);
 
@@ -997,15 +1000,15 @@ nf_signal_handler(void *arg) {
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
+                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->flag_p) == 1) {
                         rte_atomic16_set(nf->flag_p, 0);
                         sem_post(nf->nf_mutex);
                 }
 
                 /* Also signal spawned children */
                 for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].flag_p) == 1)) {
+                        if (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
+                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].flag_p) == 1) {
                                         rte_atomic16_set(nfs[i].flag_p, 0);
                                         sem_post(nfs[i].nf_mutex);
                                 }
