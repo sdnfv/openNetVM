@@ -51,7 +51,6 @@
 
 #include "onvm_mgr.h"
 #include "onvm_nf.h"
-
 #include "onvm_pkt.h"
 #include "onvm_stats.h"
 
@@ -312,7 +311,7 @@ main(int argc, char *argv[]) {
 
         /* clear statistics */
         onvm_stats_clear_all_nfs();
-        
+
         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all
          * remaining for Tx (subtract wakeup cores if shared cpu mode is enabled */
         cur_lcore = rte_lcore_id();

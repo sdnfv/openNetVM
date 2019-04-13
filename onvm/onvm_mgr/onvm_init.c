@@ -250,6 +250,7 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
+        /* initialise the shared memory for shared cpu mode */
         init_shared_sem();
 
         /*initialize a default service chain*/
