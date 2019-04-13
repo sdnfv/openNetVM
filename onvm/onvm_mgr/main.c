@@ -141,10 +141,14 @@ master_thread_main(void) {
                 }
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
-                if (rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
-                        nf_wakeup_infos[i].num_wakeups++;
-                        rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
-                        sem_post(nf_wakeup_infos[i].mutex);
+
+                /* If in shared cpu mode NFs might be sleeping */
+                if (ONVM_ENABLE_SHARED_CPU) {
+                        if (rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
+                                nf_wakeup_infos[i].num_wakeups++;
+                                rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
+                                sem_post(nf_wakeup_infos[i].mutex);
+                        }
                 }
         }
 
@@ -161,9 +165,11 @@ master_thread_main(void) {
         }
 
         /* Clean up the shared memory */
-        for (i = 0; i < MAX_NFS; i++) {
-                sem_close(nf_wakeup_infos[i].mutex);
-                sem_unlink(nf_wakeup_infos[i].sem_name);
+        if (ONVM_ENABLE_SHARED_CPU) {
+                for (i = 0; i < MAX_NFS; i++) {
+                        sem_close(nf_wakeup_infos[i].mutex);
+                        sem_unlink(nf_wakeup_infos[i].sem_name);
+                }
         }
                         
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
