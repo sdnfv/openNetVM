@@ -150,7 +150,7 @@ void stop()
     double total = end_time.tv_sec-begin_time.tv_sec + (end_time.tv_usec-begin_time.tv_usec)/1000000.0;
 
     printf("\n\n**************************************************\n");
-    printf("%ld packets are processed, %ld packets are dropped\n",_counter);
+    printf("%ld packets are processed, %ld packets are dropped\n",_counter,_drop);
     printf("NF runs for %f seconds\n", total);
     printf("**************************************************\n\n");
 }
