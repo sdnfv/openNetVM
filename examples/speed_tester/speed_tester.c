@@ -400,7 +400,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         printf("Time to live exceeded, shutting down\n");
                         keep_running = 0;
                 }
-                if (nf_info->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                if (nf_info->pkt_limit && unlikely(nf->stats.rx >=
+                                          (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
                         keep_running = 0;
                 }
