@@ -29,8 +29,8 @@ Compilation and Execution
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd examples/firewall_NFD
-make CC=g++
+cd stateful_firewall_NFD
+make
 
 ```
 
