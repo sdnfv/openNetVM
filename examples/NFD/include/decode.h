@@ -1,4 +1,17 @@
+/**********************************************************************************
+                       NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
 
+/************************************************************************************
+* Filename:   decode.h
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a supprot file for NFD project, containing the methods maybe 
+              used in NFD NF. 
+*************************************************************************************/
 
 #define TH_FIN  0x01
 #define TH_SYN  0x02
