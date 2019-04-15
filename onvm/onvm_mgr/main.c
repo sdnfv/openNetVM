@@ -254,7 +254,7 @@ main(int argc, char *argv[]) {
         unsigned cur_lcore, rx_lcores, tx_lcores;
         unsigned nfs_per_tx;
         unsigned i;
-        
+
         /* initialise the system */
 
         /* Reserve ID 0 for internal manager things */
