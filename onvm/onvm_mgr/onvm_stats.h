@@ -63,6 +63,12 @@
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
+#define ONVM_EVENT_MGR_INFO "Manager"
+#define ONVM_EVENT_PORT_INFO "Port"
+#define ONVM_EVENT_RX_INFO "Rx"
+#define ONVM_EVENT_TX_INFO "Tx"
+#define ONVM_EVENT_NF_INFO "NF"
+
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
 #define ONVM_JSON_TIMESTAMP_KEY "last_updated"
@@ -80,7 +86,7 @@
 typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
 
 struct onvm_event {
-        const char *type;
+        uint8_t type;
         const char *msg;
         void *data;
 };
@@ -158,7 +164,7 @@ onvm_stats_clear_nf(uint16_t id);
  * 
  */
 void
-gen_event_info(const char *msg, const char *type, void *data);
+gen_event_info(const char *msg, uint8_t type, void *data);
 
 void
 gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info);

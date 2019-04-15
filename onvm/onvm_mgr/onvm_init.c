@@ -217,7 +217,7 @@ init(int argc, char *argv[]) {
                 char event_msg_buf[22];
                 snprintf(event_msg_buf, sizeof(event_msg_buf), "Port %d initialized", port_id);
                 // onvm_stats_add_event(event_msg_buf, NULL, 0);
-                gen_event_info(event_msg_buf, "Port", NULL);
+                gen_event_info(event_msg_buf, 1, NULL);
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));
