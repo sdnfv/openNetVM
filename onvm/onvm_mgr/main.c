@@ -169,7 +169,6 @@ rx_thread_main(void *arg) {
         struct queue_mgr *rx_mgr = (struct queue_mgr *)arg;
         cur_lcore = rte_lcore_id();
 
-        // onvm_stats_add_event("Rx Start", NULL, cur_lcore);
         gen_event_info("Rx Start", "Rx", &cur_lcore);
         RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", cur_lcore, rx_mgr->id);
 
@@ -204,7 +203,6 @@ tx_thread_main(void *arg) {
         struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
         cur_lcore = rte_lcore_id();
 
-        // onvm_stats_add_event("Tx Start", NULL, cur_lcore);
         gen_event_info("Tx Start", "Tx", &cur_lcore);
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
                 RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", cur_lcore,
@@ -256,6 +254,7 @@ main(int argc, char *argv[]) {
         unsigned cur_lcore, rx_lcores, tx_lcores;
         unsigned nfs_per_tx;
         unsigned i;
+        
         /* initialise the system */
 
         /* Reserve ID 0 for internal manager things */
@@ -273,7 +272,6 @@ main(int argc, char *argv[]) {
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
 
-        // onvm_stats_add_event("MGR Start", NULL, cur_lcore);
         gen_event_info("MGR Start", "MGR", &cur_lcore);
 
         /* Offset cur_lcore to start assigning TX cores */
