@@ -79,6 +79,12 @@
 
 typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
 
+struct onvm_event {
+        const char *type;
+        const char *msg;
+        void *data;
+};
+
 cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_obj;
 cJSON* onvm_json_nf_stats_obj;
@@ -148,9 +154,13 @@ void
 onvm_stats_clear_nf(uint16_t id);
 
 /*
- * Interface called by manager when a new event should be created.
+ * Interfaces called by manager when a new event should be created.
+ * 
  */
 void
-onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf, unsigned core);
+gen_event_info(const char *msg, const char *type, void *data);
+
+void
+gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info);
 
 #endif  // _ONVM_STATS_H_

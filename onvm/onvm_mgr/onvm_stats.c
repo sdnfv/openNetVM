@@ -57,6 +57,13 @@
 /************************Internal Functions Prototypes************************/
 
 /*
+ * Function to send json events to web view
+ * 
+ */
+static void
+onvm_stats_add_event(struct onvm_event *event_info);
+
+/*
  * Function displaying statistics for all ports
  *
  * Input : time passed since last display (to compute packet rate)
@@ -222,37 +229,79 @@ onvm_stats_clear_nf(uint16_t id) {
 }
 
 void
-onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info, unsigned core) {
-        if (msg == NULL || stats_destination != ONVM_STATS_WEB) {
+gen_event_info(const char *msg, const char *type, void *data) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
+                return;
+        }
+        
+        event->type = type;
+        event->msg = msg;
+        event->data = data;
+
+        onvm_stats_add_event(event);
+}
+
+void
+gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
+                return;
+        }
+
+        event->type = "NF";
+        event->msg = msg;
+        event->data = nf_info;
+
+        onvm_stats_add_event(event);
+}
+
+/****************************Internal functions*******************************/
+
+static void
+onvm_stats_add_event(struct onvm_event *event_info) {
+        if (event_info == NULL || stats_destination != ONVM_STATS_WEB) {
                 return;
         }
         char event_time_buf[20];
-        time_t time_raw_format;
         struct tm *ptr_time;
+        struct onvm_nf_info *nf_info;
+
+        time_t time_raw_format;
         time(&time_raw_format);
+        
         ptr_time = localtime(&time_raw_format);
         if (strftime(event_time_buf, 20, "%F %T", ptr_time) == 0) {
                 perror("Couldn't prepare formatted string");
         }
-        cJSON *new_event = cJSON_CreateObject();
-        cJSON *source = cJSON_CreateObject();
-        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
-        cJSON_AddStringToObject(new_event, "message", msg);
-        if (nf_info == NULL) {
-                cJSON_AddStringToObject(source, "type", "MGR");
-                cJSON_AddNumberToObject(source, "core", core);
-        } else {
-                cJSON_AddStringToObject(source, "type", "NF");
-                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
-                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
-                cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
-        }
-        cJSON_AddItemToObject(new_event, "source", source);
 
+        cJSON *new_event = cJSON_CreateObject();
+        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
+        cJSON_AddStringToObject(new_event, "message", event_info->msg);
+
+        cJSON *source = cJSON_CreateObject();
+        cJSON_AddStringToObject(source, "type", (const char *)event_info->type);
+
+        if (event_info->data != NULL) {
+                if (strcmp(event_info->type, "NF") == 0) {
+                        nf_info = (struct onvm_nf_info *)event_info->data;
+                        cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
+                        cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
+                        cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
+                } else {
+                        cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
+                }
+        }
+
+        cJSON_AddItemToObject(new_event, "source", source);
         cJSON_AddItemToArray(onvm_json_events_arr, new_event);
 }
-
-/****************************Internal functions*******************************/
 
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
