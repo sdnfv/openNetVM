@@ -71,13 +71,10 @@ static struct onvm_pkt_stats stats;
 static uint16_t destination;
 
 /* Inverse argument, set to 1 when packets are forwarded on a packet mismatch. */
-static uint8_t inverse = 0;
+static uint8_t forward_on_mismatch = 0;
 
 /* String to search within packet payload*/
 static char *search_term = NULL;
-
-/* Shared data structure containing host port info */
-extern struct port_info *ports;
 
 struct onvm_pkt_stats {
         uint64_t pkt_drop;
@@ -97,6 +94,7 @@ usage(const char *progname) {
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-i <inverse mode>`: payload match to search term results in a packet drop, mismatch results in a forward\n");
 }
 
 /*
@@ -106,7 +104,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, input_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:s:p")) != -1) {
+        while ((c = getopt(argc, argv, "d:s:pi")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
@@ -124,8 +122,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 break;
 
                         case 'i':
-                                inverse = 1;
-                                RTE_LOG(INFO, APP, "Inverse mode enabled: packets dropped on string hit and forwarded on mismatch\n");
+                                forward_on_mismatch = 1;
+                                RTE_LOG(INFO, APP,
+                                        "Inverse mode enabled: packets dropped on string hit and forwarded on mismatch\n");
                                 break;
                         case '?':
                                 usage(progname);
@@ -180,6 +179,7 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_info *nf_info) {
         int udp_pkt, tcp_pkt;
+        char search_match;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
 
@@ -214,25 +214,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                                                                     sizeof(struct tcp_hdr));
         }
 
-        if (strstr((const char *) pkt_data, search_term) != NULL) {
-                if (!inverse) {
-                        meta->action = ONVM_NF_ACTION_TONF;
-                        meta->destination = destination;
-                        stats.pkt_accept++;
+        search_match = strstr((const char *) pkt_data, search_term) != NULL;
 
-                } else {
-                        meta->action = ONVM_NF_ACTION_DROP;
-                        stats.pkt_drop++;
-                }
+        if ((search_match && !forward_on_mismatch) || (!search_match && forward_on_mismatch)) {
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
+                stats.pkt_accept++;
         } else {
-                if (!inverse) {
-                        meta->action = ONVM_NF_ACTION_DROP;
-                        stats.pkt_drop++;
-                } else {
-                        meta->action = ONVM_NF_ACTION_TONF;
-                        meta->destination = destination;
-                        stats.pkt_accept++;
-                }
+                meta->action = ONVM_NF_ACTION_DROP;
+                stats.pkt_drop++;
         }
 
         return 0;
