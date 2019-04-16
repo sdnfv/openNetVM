@@ -67,4 +67,4 @@ onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, u
 void
 onvm_sc_print(struct onvm_service_chain *chain);
 
-#endif  //_SC_COMMON_H_
+#endif // _SC_COMMON_H_

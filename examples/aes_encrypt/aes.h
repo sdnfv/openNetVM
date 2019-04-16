@@ -46,8 +46,8 @@
 * Source:     https://github.com/B-Con/crypto-algorithms
 *********************************************************************/
 
-#ifndef AES_H
-#define AES_H
+#ifndef _AES_H_
+#define _AES_H_
 
 /*************************** HEADER FILES ***************************/
 #include <stddef.h>
@@ -182,4 +182,4 @@ aes_decrypt_ccm(
 // int aes_ctr_test();
 // int aes_ccm_test();
 
-#endif  // AES_H
+#endif // _AES_H_
