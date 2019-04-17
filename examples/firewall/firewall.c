@@ -218,8 +218,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-        ip = rte_be_to_cpu_32(ipv4_hdr->src_addr);
-        ret = rte_lpm_lookup(lpm_tbl, ip, &rule);
+        ret = rte_lpm_lookup(lpm_tbl, rte_be_to_cpu_32(ipv4_hdr->src_addr), &rule);
         sprintf(ip_disp, "%u.%u.%u.%u", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
 
         if (ret < 0) {
@@ -335,7 +334,6 @@ struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
 
                 rules[i] = (struct onvm_fw_rule *) malloc(sizeof(struct onvm_fw_rule));
                 onvm_pkt_parse_ip(rules_ip->valuestring, &rules[i]->src_ip);
-                rules[i]->src_ip = rte_be_to_cpu_32(rules[i]->src_ip);
                 rules[i]->depth = depth->valueint;
                 rules[i]->action = action->valueint;
                 rules_json = rules_json->next;
