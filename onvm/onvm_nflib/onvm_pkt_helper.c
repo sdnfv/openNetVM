@@ -369,7 +369,7 @@ onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
         if (ret != 4) {
                 return -1;
         }
-        *dest = IPv4(ip[0], ip[1], ip[2], ip[3]);
+        *dest = IPv4(ip[3], ip[2], ip[1], ip[0]);
         return 0;
 }
 
