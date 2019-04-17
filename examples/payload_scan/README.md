@@ -19,4 +19,5 @@ App Specific Arguments
 --
   - `-i`: If the user-input string appears in the packets payload, drop the packet instead of forwarding it.
   - `-s <input_string>`: String used to search within a packets payload.
+  - `-p <print_delay`: number of packets between each print, e.g. -p 1 prints every packets.
 
