@@ -251,7 +251,7 @@ parse_backend_config(void) {
         for (i = 0; i < lb->server_count; i++) {
                 printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
                        (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF,
-                       lb->server[i].d_ip & 0xFF;
+                       lb->server[i].d_ip & 0xFF);
                 printf("%02x:%02x:%02x:%02x:%02x:%02x\n", lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
                        lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3], lb->server[i].d_addr_bytes[4],
                        lb->server[i].d_addr_bytes[5]);
