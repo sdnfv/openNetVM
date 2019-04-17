@@ -890,7 +890,6 @@ static struct onvm_nf_info *
 onvm_nflib_info_init(const char *tag) {
         void *mempool_data;
         struct onvm_nf_info *info;
-        char *allocated_tag;
 
         if (rte_mempool_get(nf_info_mp, &mempool_data) < 0) {
                 rte_exit(EXIT_FAILURE, "Failed to get nf info memory\n");
@@ -907,9 +906,8 @@ onvm_nflib_info_init(const char *tag) {
         info->status = NF_WAITING_FOR_ID;
 
         /* Allocate memory for the tag so that onvm_mgr can access it */
-        allocated_tag = rte_malloc("nf_tag", TAG_SIZE, 0);
-        strncpy(allocated_tag, tag, TAG_SIZE);
-        info->tag = allocated_tag;
+        info->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(info->tag, tag, TAG_SIZE);
 
         /* TTL and packet limit disabled by default */
         info->time_to_live = 0;

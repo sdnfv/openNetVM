@@ -191,7 +191,7 @@ struct onvm_nf_scale_info {
         uint16_t service_id;
         uint16_t core;
         uint8_t flags;
-        const char *tag;
+        char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
@@ -257,7 +257,7 @@ struct onvm_nf_info {
         uint16_t core;
         uint8_t flags;
         uint8_t status;
-        const char *tag;
+        char *tag;
         /* If set NF will stop after time reaches time_to_live */
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
