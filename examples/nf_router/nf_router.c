@@ -220,17 +220,14 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         int i;
 
         ip = onvm_pkt_ipv4_hdr(pkt);
-        ip->dst_addr = rte_be_to_cpu_32(ip->dst_addr);
-        ip->src_addr = rte_be_to_cpu_32(ip->src_addr);
 
         /* If the packet doesn't have an IP header check if its an ARP, if so fwd it to the matched NF */
         if (ip == NULL) {
                 eth_hdr = onvm_pkt_ether_hdr(pkt);
                 if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
                         in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
-                        in_arp_hdr->arp_data.arp_tip = rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip);
                         for (i = 0; i < nf_count; i++) {
-                                if (in_arp_hdr->arp_data.arp_tip == fwd_nf[i].ip) {
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == fwd_nf[i].ip) {
                                         meta->destination = fwd_nf[i].dest;
                                         meta->action = ONVM_NF_ACTION_TONF;
                                         return 0;
@@ -248,7 +245,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         for (i = 0; i < nf_count; i++) {
-                if (fwd_nf[i].ip == ip->dst_addr) {
+                if (fwd_nf[i].ip == rte_be_to_cpu_32(ip->dst_addr)) {
                         meta->destination = fwd_nf[i].dest;
                         meta->action = ONVM_NF_ACTION_TONF;
                         return 0;
