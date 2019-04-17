@@ -71,7 +71,7 @@ static struct onvm_pkt_stats stats;
 static uint16_t destination;
 
 /* Inverse argument, set to 1 when packets are forwarded on a packet mismatch. */
-static uint8_t forward_on_mismatch = 0;
+static uint8_t forward_on_match = 0;
 
 /* String to search within packet payload*/
 static char *search_term = NULL;
@@ -122,7 +122,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 break;
 
                         case 'i':
-                                forward_on_mismatch = 1;
+                                forward_on_match = 1;
                                 RTE_LOG(INFO, APP,
                                         "Inverse mode enabled: packets dropped on string hit and forwarded on mismatch\n");
                                 break;
@@ -216,7 +216,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
 
         search_match = strstr((const char *) pkt_data, search_term) != NULL;
 
-        if ((search_match && !forward_on_mismatch) || (!search_match && forward_on_mismatch)) {
+        if ((search_match && !forward_on_match) || (!search_match && forward_on_match)) {
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
                 stats.pkt_accept++;
