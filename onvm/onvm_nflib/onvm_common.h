@@ -69,7 +69,8 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-// extern uint8_t rss_symmetric_key[40];
+/* Maximum length of NF_TAG including the \0 */
+#define TAG_SIZE 15
 
 // flag operations that should be used on onvm_pkt_meta
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
