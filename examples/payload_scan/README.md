@@ -1,4 +1,4 @@
-Firewall
+Payload scan
 ==
 The payload scan NF drops/forwards packets based on whether or not a user-input string appears in the packets payload. 
 
