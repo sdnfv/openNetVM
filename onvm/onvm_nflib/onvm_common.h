@@ -39,8 +39,8 @@
  * onvm_common.h - shared data between host and NFs
  ********************************************************************/
 
-#ifndef _COMMON_H_
-#define _COMMON_H_
+#ifndef _ONVM_COMMON_H_
+#define _ONVM_COMMON_H_
 
 #include <stdint.h>
 
@@ -363,4 +363,4 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
-#endif  // _COMMON_H_
+#endif  // _ONVM_COMMON_H_
