@@ -65,9 +65,6 @@ struct onvm_nf_info *nf_info;
 /* Number of packets between prints */
 static uint32_t print_delay = 10000000;
 
-/* Struct holding information about packet stats, pointing to nf_info->data */
-static struct onvm_pkt_stats *stats;
-
 /* Destination NF ID */
 static uint16_t destination;
 
@@ -160,9 +157,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(void) {
+do_stats_display(struct onvm_nf_info *nf_info) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_info->data;
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
@@ -183,12 +181,13 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         char search_match;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
+        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_info->data;
 
         if (++counter == print_delay) {
-                do_stats_display();
+                do_stats_display(nf_info);
                 counter = 0;
         }
-        
+
         stats->pkt_total++;
 
         if (!onvm_pkt_is_ipv4(pkt)) {
@@ -234,6 +233,7 @@ int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
         struct onvm_nf_info *nf_info;
+        struct onvm_pkt_stats *stats;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
