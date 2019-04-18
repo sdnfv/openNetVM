@@ -345,7 +345,6 @@ struct onvm_service_chain {
 /* interrupt semaphore specific updates */
 #define SHMSZ 4                         // size of shared memory segement (page_size)
 #define KEY_PREFIX 123                  // prefix len for key
-#define CHAIN_LEN 4                     // Duplicate, remove and instead use ONVM_MAX_CHAIN_LENGTH
 
 /* common names for NF states */
 #define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
