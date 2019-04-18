@@ -220,7 +220,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info);
  */
 void *
 onvm_nflib_thread_main_loop(void *arg);
- 
+
 /*
  * Function to initalize the shared cpu support
  *
@@ -413,7 +413,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
          * Allow this for cases when there is not enough cores and using 
          * the shared cpu mode is not an option
          */
-        if (ONVM_CHECK_BIT(nf_info->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU) 
+        if (ONVM_CHECK_BIT(nf_info->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
                 RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
                                       "enabled, this will hurt performance, proceed with caution\n");
 
@@ -601,7 +601,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                         keep_running = !(*callback)(nf->info) && keep_running;
                 }
 
-                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                           TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         keep_running = 0;

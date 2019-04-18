@@ -344,7 +344,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         struct onvm_nf *nf;
-        pthread_t sig_loop_thread; 
+        pthread_t sig_loop_thread;
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");

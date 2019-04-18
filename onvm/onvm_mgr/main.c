@@ -172,7 +172,7 @@ master_thread_main(void) {
                         sem_unlink(nf_wakeup_infos[i].sem_name);
                 }
         }
-                        
+
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
 

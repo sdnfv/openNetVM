@@ -467,7 +467,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 act_returned);
                         if (ONVM_ENABLE_SHARED_CPU)
                                 fprintf(stats_out, "                      %s        %11" PRIu64 " / %-11" PRIu64"\n",
-                                        state, num_wakeups, wakeup_rate); 
+                                        state, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
                 } else {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
@@ -540,7 +540,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 fprintf(stats_out, "\n\nShared CPU stats\n");
                 fprintf(stats_out, "----------------\n");
                 onvm_stats_display_client_wakeup_thread_context(difftime);
-        } 
+        }
 
 }
 
