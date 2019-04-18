@@ -298,16 +298,21 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         static uint8_t spawned_nfs = 0;
         pthread_t sig_loop_thread;
 
+        /* Get rings from nflib */
+        nf = onvm_nflib_get_nf(nf_info->instance_id);
+        rx_ring = nf->rx_q;
+        tx_ring = nf->tx_q;
+
+        /* Don't start running before the state changes */
+        while (nf->info->status != NF_RUNNING){
+                sleep(1);
+        }
+
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
 
         /* Set core affinity, as this is adv rings we do it on our own */
         onvm_threading_core_affinitize(nf_info->core);
-
-        /* Get rings from nflib */
-        nf = onvm_nflib_get_nf(nf_info->instance_id);
-        rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
 
         /* Initialize signal handling thread to listen to, and process shutdown signals */
         if (nf->parent == 0) {

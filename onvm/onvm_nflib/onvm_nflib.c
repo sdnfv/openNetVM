@@ -574,14 +574,19 @@ onvm_nflib_thread_main_loop(void *arg) {
         handler = nf->nf_pkt_function;
         callback = nf->nf_callback_function;
 
-        /* Runs the NF setup function */
-        if (nf->nf_setup_function != NULL)
-                nf->nf_setup_function(info);
-
         printf("Sending NF_READY message to manager...\n");
         ret = onvm_nflib_nf_ready(info);
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
+
+        /* Don't start running before the state changes */
+        while (nf->info->status != NF_RUNNING) {
+                sleep(1);
+        }
+
+        /* Run the setup function (this might send pkts so done after the state change) */
+        if (nf->nf_setup_function != NULL)
+                nf->nf_setup_function(info);
 
         start_time = rte_get_tsc_cycles();
         printf("[Press Ctrl-C to quit ...]\n");
@@ -613,7 +618,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         }
 
         /* Wait for children to quit */
-        for (i = 0; i < MAX_NFS; i++)
+        for (i = 0; i < MAX_NFS; i++) {
                 while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
                         if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
@@ -621,6 +626,8 @@ onvm_nflib_thread_main_loop(void *arg) {
                         }
                         sleep(1);
                 }
+        }
+
         /* Stop and free */
         onvm_nflib_cleanup(info);
 
@@ -792,10 +799,6 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 RTE_LOG(INFO, APP, "Scale info invalid\n");
                 return -1;
         }
-
-        /* Careful, this is required for shared cpu scaling */
-        if (ONVM_ENABLE_SHARED_CPU)
-                sleep(1);
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
