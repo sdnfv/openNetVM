@@ -50,6 +50,7 @@
 #include <string.h>
 
 #include <rte_common.h>
+#include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_ip.h>
 
@@ -64,8 +65,8 @@ struct onvm_nf_info *nf_info;
 /* Number of packets between prints */
 static uint32_t print_delay = 10000000;
 
-/* Struct holding information about packet stats*/
-static struct onvm_pkt_stats stats;
+/* Struct holding information about packet stats, pointing to nf_info->data */
+static struct onvm_pkt_stats *stats;
 
 /* Destination NF ID */
 static uint16_t destination;
@@ -104,7 +105,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, input_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:s:pi")) != -1) {
+        while ((c = getopt(argc, argv, "d:s:p:i")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
@@ -166,11 +167,11 @@ do_stats_display(void) {
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
         printf("Search term: %s\n", search_term);
-        printf("Packets accepted: %lu\n", stats.pkt_accept);
-        printf("Packets dropped: %lu\n", stats.pkt_drop);
-        printf("Packets not IPv4: %lu\n", stats.pkt_not_ipv4);
-        printf("Packets not UDP/TCP: %lu\n", stats.pkt_not_tcp_udp);
-        printf("Packets total: %lu", stats.pkt_total);
+        printf("Packets accepted: %lu\n", stats->pkt_accept);
+        printf("Packets dropped: %lu\n", stats->pkt_drop);
+        printf("Packets not IPv4: %lu\n", stats->pkt_not_ipv4);
+        printf("Packets not UDP/TCP: %lu\n", stats->pkt_not_tcp_udp);
+        printf("Packets total: %lu", stats->pkt_total);
 
         printf("\n\n");
 }
@@ -187,12 +188,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 do_stats_display();
                 counter = 0;
         }
-
-        stats.pkt_total++;
+        
+        stats->pkt_total++;
 
         if (!onvm_pkt_is_ipv4(pkt)) {
                 meta->action = ONVM_NF_ACTION_DROP;
-                stats.pkt_not_ipv4++;
+                stats->pkt_drop++;
                 return 0;
         }
 
@@ -202,7 +203,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
 
         if (!udp_pkt && !tcp_pkt) {
                 meta->action = ONVM_NF_ACTION_DROP;
-                stats.pkt_not_tcp_udp++;
+                stats->pkt_not_tcp_udp++;
                 return 0;
         }
 
@@ -219,10 +220,10 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         if ((search_match && !forward_on_match) || (!search_match && forward_on_match)) {
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
-                stats.pkt_accept++;
+                stats->pkt_accept++;
         } else {
                 meta->action = ONVM_NF_ACTION_DROP;
-                stats.pkt_drop++;
+                stats->pkt_drop++;
         }
 
         return 0;
@@ -232,6 +233,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
 int main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
+        struct onvm_nf_info *nf_info;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
@@ -239,11 +241,9 @@ int main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        stats.pkt_drop = 0;
-        stats.pkt_accept = 0;
-        stats.pkt_total = 0;
-        stats.pkt_not_ipv4 = 0;
-        stats.pkt_not_tcp_udp = 0;
+        nf_info->data = (void *) rte_malloc("stats", sizeof(struct onvm_pkt_stats), 0);
+        stats = (struct onvm_pkt_stats *) nf_info->data;
+        stats->pkt_accept = stats->pkt_not_tcp_udp = stats->pkt_not_ipv4 = stats->pkt_total = stats->pkt_drop = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_info);
