@@ -615,8 +615,8 @@ onvm_nflib_thread_main_loop(void *arg) {
         /* Wait for children to quit */
         for (i = 0; i < MAX_NFS; i++)
                 while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].flag_p) == 1) {
-                                rte_atomic16_set(nfs[i].flag_p, 0);
+                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
+                                rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);
                         }
                         sleep(1);
@@ -873,7 +873,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Possibly sleep if in shared cpu mode, otherwise return */
         if (unlikely(nb_pkts == 0) && keep_running) {
                 if (ONVM_ENABLE_SHARED_CPU) {
-                        rte_atomic16_set(nf->flag_p, 1);
+                        rte_atomic16_set(nf->sleep_state, 1);
                         sem_wait(nf->nf_mutex);
                 }
                 return 0;
@@ -996,16 +996,16 @@ nf_signal_handler(void *arg) {
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->flag_p) == 1) {
-                        rte_atomic16_set(nf->flag_p, 0);
+                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
+                        rte_atomic16_set(nf->sleep_state, 0);
                         sem_post(nf->nf_mutex);
                 }
 
                 /* Also signal spawned children */
                 for (i = 0; i < MAX_NFS; i++) {
                         if (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].flag_p) == 1) {
-                                        rte_atomic16_set(nfs[i].flag_p, 0);
+                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
+                                        rte_atomic16_set(nfs[i].sleep_state, 0);
                                         sem_post(nfs[i].nf_mutex);
                                 }
                         }
@@ -1199,5 +1199,5 @@ init_shared_cpu_info(uint16_t instance_id) {
                 exit(1);
         }
 
-        nf->flag_p = (rte_atomic16_t *)shm;
+        nf->sleep_state = (rte_atomic16_t *)shm;
 }

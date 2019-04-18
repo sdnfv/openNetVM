@@ -322,8 +322,8 @@ signal_handler(void *arg) {
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->flag_p) == 1)) {
-                        rte_atomic16_set(nf->flag_p, 0);
+                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
+                        rte_atomic16_set(nf->sleep_state, 0);
                         sem_post(nf->nf_mutex);
                 }
         }
@@ -374,7 +374,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
 
                 if (unlikely(nb_pkts == 0)) {
                         if (ONVM_ENABLE_SHARED_CPU) {
-                                rte_atomic16_set(nf->flag_p, 1);
+                                rte_atomic16_set(nf->sleep_state, 1);
                                 sem_wait(nf->nf_mutex);
                         }
                         continue;

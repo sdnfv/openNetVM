@@ -285,7 +285,7 @@ struct onvm_nf {
          *     flag = 1 => NF sleeping (waiting on semaphore)
          *     flag = 0 => NF is running and processing (not waiting on semaphore)
          */
-        rte_atomic16_t *flag_p;
+        rte_atomic16_t *sleep_state;
         /* Mutex for NF sem_wait */
         sem_t *nf_mutex;
 };
