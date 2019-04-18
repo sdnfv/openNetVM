@@ -265,15 +265,15 @@ signal_handler(void *arg) {
 
         if (signal == SIGINT || signal == SIGTERM) {
                 keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
+                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
                         rte_atomic16_set(nf->sleep_state, 0);
                         sem_post(nf->nf_mutex);
                 }
 
                 /* Also signal spawned children */
                 for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].parent == nf->instance_id && nfs[i].info != NULL) {
-                                if (ONVM_ENABLE_SHARED_CPU && (nfs[i].nf_mutex) && (rte_atomic16_read(nfs[i].sleep_state) == 1)) {
+                        if (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
+                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
                                         rte_atomic16_set(nfs[i].sleep_state, 0);
                                         sem_post(nfs[i].nf_mutex);
                                 }
@@ -373,10 +373,13 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-        /* Waiting for spawned NFs to exit */
+        /* Wait for children to quit */
         for (i = 0; i < MAX_NFS; i++) {
-                struct onvm_nf *nf_cur = onvm_nflib_get_nf(i);
-                while (nf_cur && nf_cur->parent == nf->instance_id && nf_cur->info != NULL) {
+                while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
+                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
+                                rte_atomic16_set(nfs[i].sleep_state, 0);
+                                sem_post(nfs[i].nf_mutex);
+                        }
                         sleep(1);
                 }
         }
