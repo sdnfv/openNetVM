@@ -525,7 +525,7 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
         nf->nf_callback_function = callback;
 
         if (nf->parent == 0) {
-                /* Listen for ^C and docker stop so we can exit gracefully */
+                /* Initialize signal handling thread to listen to, and process shutdown signals */
                 int ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)nf);
                 if (ret != 0) {
                         printf("Can't start this\n");

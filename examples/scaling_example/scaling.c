@@ -309,7 +309,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
-        /* Listen for ^C and docker stop so we can exit gracefully */
+        /* Initialize signal handling thread to listen to, and process shutdown signals */
         if (nf->parent == 0) {
                 ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
                 if (ret != 0) {
