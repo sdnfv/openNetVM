@@ -67,6 +67,7 @@ Global state is managed via a small publisher/subscriber library located in [pub
 
 The ReactJS app is ready for execution, but follow this process if you need to edit `onvm_web/react-app`
 Assuming you're using an ubuntu system
+Remember to run commands in sudo for nodejs and npm
 
 Install latest stable Node.js version
 ```sh
@@ -81,17 +82,13 @@ sudo n stable
 
 Install yarn with npm
 ```sh
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-# Now install with apt-get
-sudo apt-get update && sudo apt-get install yarn
+sudo npm install -g yarn
 ```
 
 Install programs to minify web files
 ```sh
-npm install uglify-js -g
-npm install uglifycss -g
+sudo npm install uglify-js -g
+sudo npm install uglifycss -g
 ```
 
 [install]: ../docs/Install.md

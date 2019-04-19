@@ -19,13 +19,13 @@ function NFCoreList(props: Props): React.Node {
     >
       <Table.Body>
         {props.sources.map(source => {
-          if(source.type !== "NF")
+          if(!source.type)
             return ( <Table.Row>
               <Table.Col>{`${source.msg.split(" ")[0]} Thread`}</Table.Col>
             </Table.Row> );
 
           return <Table.Row>
-              <Table.Col>{`NF ${source.instance_id}`}</Table.Col>
+              <Table.Col>{`${source.type} - ${source.instance_id}`}</Table.Col>
               <Button
                   RootComponent="a"
                   color="secondary"
@@ -34,14 +34,14 @@ function NFCoreList(props: Props): React.Node {
                   onClick={() => {
                     const history = props.history;
                     if (history)
-                      history.push(`/nfs/NF ${source.instance_id}`);
+                      history.push(`/nfs/${source.type} - ${source.instance_id}`);
                     else
                       console.error("Failed to go to single NF page");
                   }}
                 >
                   View More Info
               </Button>
-            </Table.Row>
+            </Table.Row>;
         })}
       </Table.Body>
     </Table>
