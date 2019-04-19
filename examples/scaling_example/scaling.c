@@ -246,7 +246,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 void *
 signal_handler(void *arg) {
-        int signal, ret, i;
+        int signal, ret;
         struct onvm_nf *nf;
         sigset_t mask;
 
@@ -269,16 +269,6 @@ signal_handler(void *arg) {
                         rte_atomic16_set(nf->sleep_state, 0);
                         sem_post(nf->nf_mutex);
                 }
-
-                /* Also signal spawned children */
-                for (i = 0; i < MAX_NFS; i++) {
-                        if (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
-                                        rte_atomic16_set(nfs[i].sleep_state, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
-                        }
-                }
         }
         printf("Signal handling thread finished, exiting\n");
 
@@ -298,18 +288,13 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         static uint8_t spawned_nfs = 0;
         pthread_t sig_loop_thread;
 
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("[Press Ctrl-C to quit ...]\n");
+
         /* Get rings from nflib */
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
-
-        /* Don't start running before the state changes */
-        while (nf->info->status != NF_RUNNING){
-                sleep(1);
-        }
-
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
 
         /* Set core affinity, as this is adv rings we do it on our own */
         onvm_threading_core_affinitize(nf_info->core);
@@ -337,8 +322,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         *(uint16_t *)data = destination;
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
-                        /* Make NF share cores */
-                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                        if (use_shared_cpu_core_allocation)
+                                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                         RTE_LOG(INFO, APP, "Tring to spawn child SID %u; running advanced_rings\n",
                                 scale_info->service_id);
@@ -378,16 +363,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-        /* Wait for children to quit */
-        for (i = 0; i < MAX_NFS; i++) {
-                while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
-                                rte_atomic16_set(nfs[i].sleep_state, 0);
-                                sem_post(nfs[i].nf_mutex);
-                        }
-                        sleep(1);
-                }
-        }
         onvm_nflib_stop(nf_info);
 }
 
@@ -411,6 +386,8 @@ nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
                 int j;
 
                 struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
+                if (pkt == NULL)
+                        break;
 
                 /* set up ether header and set new packet size */
                 ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);

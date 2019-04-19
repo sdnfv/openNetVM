@@ -164,6 +164,14 @@ static inline void
 onvm_nflib_dequeue_messages(struct onvm_nf *nf) __attribute__((always_inline));
 
 /*
+ * Terminate the children spawned by the NF
+ *
+ * Input: Info struct corresponding to this NF
+ */
+static void
+onvm_nflib_terminate_children(struct onvm_nf_info *nf_info);
+
+/*
  * Set this NF's status to not running and release memory
  *
  * Input: Info struct corresponding to this NF
@@ -560,7 +568,7 @@ void *
 onvm_nflib_thread_main_loop(void *arg) {
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct onvm_nf *nf;
-        uint16_t nb_pkts_added, i;
+        uint16_t nb_pkts_added;
         struct onvm_nf_info *info;
         pkt_handler_func handler;
         callback_handler_func callback;
@@ -578,11 +586,6 @@ onvm_nflib_thread_main_loop(void *arg) {
         ret = onvm_nflib_nf_ready(info);
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
-
-        /* Don't start running before the state changes */
-        while (nf->info->status != NF_RUNNING) {
-                sleep(1);
-        }
 
         /* Run the setup function (this might send pkts so done after the state change) */
         if (nf->nf_setup_function != NULL)
@@ -617,19 +620,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                 }
         }
 
-        /* Wait for children to quit */
-        for (i = 0; i < MAX_NFS; i++) {
-                while (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
-                                rte_atomic16_set(nfs[i].sleep_state, 0);
-                                sem_post(nfs[i].nf_mutex);
-                        }
-                        sleep(1);
-                }
-        }
-
-        /* Stop and free */
-        onvm_nflib_cleanup(info);
+        onvm_nflib_stop(info);
 
         return NULL;
 }
@@ -680,6 +671,11 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info) {
                 return ret;
         }
 
+        /* Don't start running before the state changes */
+        while (info->status != NF_RUNNING) {
+                sleep(1);
+        }
+
         return 0;
 }
 
@@ -728,6 +724,9 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
 
 void
 onvm_nflib_stop(struct onvm_nf_info *nf_info) {
+        /* Terminate children */
+        onvm_nflib_terminate_children(nf_info);
+        /* Stop and free */
         onvm_nflib_cleanup(nf_info);
 }
 
@@ -961,9 +960,9 @@ onvm_nflib_start_child(void *arg) {
         if (child->nf_pkt_function) {
                 onvm_nflib_run_callback(child_info, child->nf_pkt_function, child->nf_callback_function);
         } else if (child->nf_advanced_rings_function) {
+                onvm_nflib_nf_ready(child_info);
                 if (scale_info->setup_func != NULL)
                         scale_info->setup_func(child_info);
-                onvm_nflib_nf_ready(child_info);
                 scale_info->adv_rings_func(child_info);
         } else {
                 /* Sanity check */
@@ -980,7 +979,7 @@ onvm_nflib_start_child(void *arg) {
 
 void *
 nf_signal_handler(void *arg) {
-        int signal, ret, i;
+        int signal, ret;
         struct onvm_nf *nf;
         sigset_t mask;
 
@@ -1002,16 +1001,6 @@ nf_signal_handler(void *arg) {
                 if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
                         rte_atomic16_set(nf->sleep_state, 0);
                         sem_post(nf->nf_mutex);
-                }
-
-                /* Also signal spawned children */
-                for (i = 0; i < MAX_NFS; i++) {
-                        if (onvm_nf_is_valid(&nfs[i]) && nfs[i].parent == nf->instance_id) {
-                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
-                                        rte_atomic16_set(nfs[i].sleep_state, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
-                        }
                 }
         }
         printf("Signal handling thread finished, exiting\n");
@@ -1136,6 +1125,30 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
         nf_info->service_id = service_id;
 
         return optind;
+}
+
+static void
+onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
+        uint8_t all_children_terminated;
+        uint16_t i;
+
+        /* Wait for children to quit */
+        do {
+                all_children_terminated = 1;
+                for (i = 0; i < MAX_NFS; i++) {
+                        if (!onvm_nf_is_valid(&nfs[i]))
+                               continue;
+
+                        if (nfs[i].parent == nf_info->instance_id) {
+                                all_children_terminated = 0;
+                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
+                                        rte_atomic16_set(nfs[i].sleep_state, 0);
+                                        sem_post(nfs[i].nf_mutex);
+                                }
+                        }
+                }
+                sleep(1);
+        } while (!all_children_terminated);
 }
 
 static void

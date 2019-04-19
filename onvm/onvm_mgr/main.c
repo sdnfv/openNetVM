@@ -145,11 +145,9 @@ master_thread_main(void) {
 
                 /* If in shared cpu mode NFs might be sleeping */
                 if (ONVM_ENABLE_SHARED_CPU) {
-                        if (rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
                                 nf_wakeup_infos[i].num_wakeups++;
                                 rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
                                 sem_post(nf_wakeup_infos[i].mutex);
-                        }
                 }
         }
 

@@ -45,7 +45,7 @@ Example use of Multithreading NF scaling functionality can be seen in the scalin
 ### Shared CPU mode
 This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on a shared core.  In "normal" OpenNetVM, each NF will poll its RX queue for packets, monopolizing the CPU even if it has a low load.  This branch adds a semaphore-based communication system so that NFs will block when there are no packets available.  The NF Manger will then signal the semaphore once one or more packets arrive.
 
-This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, if you encounter any bugs please create an issue so we can fix them.
+This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, if you encounter any bugs please create an issue.
 
 For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.
 
