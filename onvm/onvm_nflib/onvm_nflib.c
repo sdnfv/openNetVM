@@ -799,6 +799,10 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
+        /* Careful, this is required for shared cpu scaling TODO: resolve */
+        if (ONVM_ENABLE_SHARED_CPU)
+                sleep(1);
+
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
                 RTE_LOG(INFO, APP, "Failed to create thread\n");
@@ -873,7 +877,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
         /* Possibly sleep if in shared cpu mode, otherwise return */
-        if (unlikely(nb_pkts == 0) && keep_running) {
+        if (unlikely(nb_pkts == 0)) {
                 if (ONVM_ENABLE_SHARED_CPU) {
                         rte_atomic16_set(nf->sleep_state, 1);
                         sem_wait(nf->nf_mutex);
