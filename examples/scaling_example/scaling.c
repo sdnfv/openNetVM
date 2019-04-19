@@ -325,7 +325,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         if (use_shared_cpu_core_allocation)
                                 scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
-                        RTE_LOG(INFO, APP, "Tring to spawn child SID %u; running advanced_rings\n",
+                        RTE_LOG(INFO, APP, "Trying to spawn child SID %u; running advanced_rings\n",
                                 scale_info->service_id);
                         if (onvm_nflib_scale(scale_info) == 0)
                                 RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->service_id);
