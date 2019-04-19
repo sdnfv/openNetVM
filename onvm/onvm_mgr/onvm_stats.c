@@ -255,7 +255,7 @@ gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
                 return;
         }
 
-        event->type = 4;
+        event->type = 2;
         event->msg = msg;
         event->data = nf_info;
 
@@ -287,20 +287,16 @@ onvm_stats_add_event(struct onvm_event *event_info) {
         cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
         cJSON_AddStringToObject(new_event, "message", event_info->msg);
 
-        if (type == 0) {
-                cJSON_AddStringToObject(source, "type", ONVM_EVENT_MGR_INFO);
+        if (type == ONVM_EVENT_WITH_CORE) {
                 cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
-        } else if (type == 1) {
-                cJSON_AddStringToObject(source, "type", ONVM_EVENT_PORT_INFO);
-        } else if (type == 2) {
-                cJSON_AddStringToObject(source, "type", ONVM_EVENT_RX_INFO);
-                cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
-        } else if (type == 3) {
-                cJSON_AddStringToObject(source, "type", ONVM_EVENT_TX_INFO);
-                cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
-        } else if (type == 4) {
+        } else if (type == ONVM_EVENT_PORT_INFO) {
+                cJSON_AddStringToObject(source, "type", "MGR");
+        } else if (type == ONVM_EVENT_NF_INFO) {
                 nf_info = (struct onvm_nf_info *)event_info->data;
-                cJSON_AddStringToObject(source, "type", ONVM_EVENT_NF_INFO);
+                if (nf_info->tag)
+                        cJSON_AddStringToObject(source, "type", (char *)nf_info->tag);
+                else
+                        cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
                 cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
                 cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);

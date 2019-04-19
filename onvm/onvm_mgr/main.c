@@ -170,7 +170,7 @@ rx_thread_main(void *arg) {
         struct queue_mgr *rx_mgr = (struct queue_mgr *)arg;
         cur_lcore = rte_lcore_id();
 
-        gen_event_info("Rx Start", 2, &cur_lcore);
+        gen_event_info("Rx Start", 0, &cur_lcore);
         RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", cur_lcore, rx_mgr->id);
 
         for (; worker_keep_running;) {
@@ -204,7 +204,7 @@ tx_thread_main(void *arg) {
         struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
         cur_lcore = rte_lcore_id();
 
-        gen_event_info("Tx Start", 3, &cur_lcore);
+        gen_event_info("Tx Start", 0, &cur_lcore);
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
                 RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", cur_lcore,
                         tx_mgr->tx_thread_info->first_nf);

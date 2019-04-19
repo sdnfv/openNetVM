@@ -216,7 +216,6 @@ init(int argc, char *argv[]) {
                         rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
                 char event_msg_buf[22];
                 snprintf(event_msg_buf, sizeof(event_msg_buf), "Port %d initialized", port_id);
-                // onvm_stats_add_event(event_msg_buf, NULL, 0);
                 gen_event_info(event_msg_buf, 1, NULL);
         }
 

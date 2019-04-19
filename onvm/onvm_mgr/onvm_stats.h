@@ -63,11 +63,10 @@
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
-#define ONVM_EVENT_MGR_INFO "Manager"
-#define ONVM_EVENT_PORT_INFO "Port"
-#define ONVM_EVENT_RX_INFO "Rx"
-#define ONVM_EVENT_TX_INFO "Tx"
-#define ONVM_EVENT_NF_INFO "NF"
+#define ONVM_EVENT_WITH_CORE 0
+#define ONVM_EVENT_PORT_INFO 1
+#define ONVM_EVENT_NF_INFO 2
+#define ONVM_EVENT_NF_STOPPING 3
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"

@@ -135,6 +135,12 @@ onvm_nf_check_status(void) {
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_stop(nf) == 0) {
                                         gen_event_nf_info("NF Stopping", nf);
+
+                                        /* Cleanup the allocated tag */
+                                        if (nf->tag) {
+                                                rte_free(nf->tag);
+                                                nf->tag = NULL;
+                                        }
                                 }
                                 break;
                 }
@@ -246,12 +252,6 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
         nf_status = nf_info->status;
-
-        /* Cleanup the allocated tag */
-        if (nf_info->tag) {
-                rte_free(nf_info->tag);
-                nf_info->tag = NULL;
-        }
 
         /* Cleanup should only happen if NF was starting or running */
         if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)
