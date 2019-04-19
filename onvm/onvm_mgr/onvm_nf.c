@@ -247,6 +247,12 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         service_id = nf_info->service_id;
         nf_status = nf_info->status;
 
+        /* Cleanup the allocated tag */
+        if (nf_info->tag) {
+                rte_free(nf_info->tag);
+                nf_info->tag = NULL;
+        }
+
         /* Cleanup should only happen if NF was starting or running */
         if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)
                 return 1;
