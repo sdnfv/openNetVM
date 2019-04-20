@@ -545,7 +545,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         ehdr->d_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
                 }
 
-                ip->dst_addr = rte_cpu_to_be_32(lb->server[flow_info->dest].d_ip);
+                ip->dst_addr = lb->server[flow_info->dest].d_ip;
                 meta->destination = lb->server_port;
         }
 
