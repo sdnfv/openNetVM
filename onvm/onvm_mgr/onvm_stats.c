@@ -229,7 +229,7 @@ onvm_stats_clear_nf(uint16_t id) {
 }
 
 void
-gen_event_info(const char *msg, uint8_t type, void *data) {
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
         struct onvm_event *event;
 
         event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
@@ -246,7 +246,7 @@ gen_event_info(const char *msg, uint8_t type, void *data) {
 }
 
 void
-gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
         struct onvm_event *event;
 
         event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
@@ -255,7 +255,7 @@ gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
                 return;
         }
 
-        event->type = 2;
+        event->type = ONVM_EVENT_NF_INFO;
         event->msg = msg;
         event->data = nf_info;
 
@@ -300,9 +300,8 @@ onvm_stats_add_event(struct onvm_event *event_info) {
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
                 cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
                 cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
-        } else {
-                perror("Invalid stats event type");
-        }
+        } else
+                rte_exit(-1, "Invalid stats event type\n");
 
         cJSON_AddItemToObject(new_event, "source", source);
         cJSON_AddItemToArray(onvm_json_events_arr, new_event);

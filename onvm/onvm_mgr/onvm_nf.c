@@ -122,25 +122,19 @@ onvm_nf_check_status(void) {
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_start(nf) == 0) {
-                                        gen_event_nf_info("NF Starting", nf);
+                                        onvm_stats_gen_event_nf_info("NF Starting", nf);
                                 }
                                 break;
                         case MSG_NF_READY:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
-                                        gen_event_nf_info("NF Ready", nf);
+                                        onvm_stats_gen_event_nf_info("NF Ready", nf);
                                 }
                                 break;
                         case MSG_NF_STOPPING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_stop(nf) == 0) {
-                                        gen_event_nf_info("NF Stopping", nf);
-
-                                        /* Cleanup the allocated tag */
-                                        if (nf->tag) {
-                                                rte_free(nf->tag);
-                                                nf->tag = NULL;
-                                        }
+                                        onvm_stats_gen_event_nf_info("NF Stopping", nf);
                                 }
                                 break;
                 }
@@ -252,6 +246,12 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         nf_id = nf_info->instance_id;
         service_id = nf_info->service_id;
         nf_status = nf_info->status;
+
+        /* Clean up the allocated tag */
+        if (nf_info->tag) {
+                rte_free(nf_info->tag);
+                nf_info->tag = NULL;
+        }
 
         /* Cleanup should only happen if NF was starting or running */
         if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)

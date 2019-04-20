@@ -48,7 +48,7 @@ class NFDashboardPage extends React.PureComponent<Props, State> {
       this.setState(prevState => {
         console.log(prevState.nfLabelList);
         const arr = [
-          ...prevState.nfLabelList.filter(label => label !== nfLabel)
+          ...prevState.nfLabelList.filter(label => label.split(" - ")[1] !== nfLabel.split(" - ")[1])
         ];
         console.log("end: " + prevState.nfLabelList);
         return { nfLabelList: arr };
