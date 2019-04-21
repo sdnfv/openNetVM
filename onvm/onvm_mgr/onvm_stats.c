@@ -300,6 +300,9 @@ onvm_stats_add_event(struct onvm_event *event_info) {
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
                 cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
                 cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
+        } else if (type == ONVM_EVENT_NF_STOP) {
+                cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));
         } else
                 rte_exit(-1, "Invalid stats event type\n");
 

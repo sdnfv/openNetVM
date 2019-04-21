@@ -49,17 +49,25 @@ class CoreMappingsPage extends React.PureComponent<Props, State> {
     if (event.message === "NF Stopping" || event.message.includes("End")) {
       this.setState(prevState => {
         var cores = { ...prevState.coreList };
-        var core = source.core;
-        source.msg = event.message;
+        var core, instance_id = event.source.instance_id;
+        var done = false;
 
-        if (!(core in cores)) {
-          console.error("Error with coreMap");
-          return { coreList: cores };
+        function is_instance(item){
+          done = (item.instance_id === instance_id);
+          return !done;
         }
 
-        cores[core] = cores[core].filter(
-          i => i.instance_id !== source.instance_id
-        );
+        /* Bad performance O(cores*coreLength), but can be optimized with core_num later */
+        for (core in cores) {
+          if (cores.hasOwnProperty(core)) {
+            cores[core] = cores[core].filter(i => is_instance(i));
+            if (done)
+              break;
+          }
+        }
+
+        if (!done)
+          console.log("Nothing removed from list!");
 
         if (cores[core].length === 0)
           /* nothing running on core */

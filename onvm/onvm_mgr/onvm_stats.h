@@ -70,6 +70,7 @@
 #define ONVM_EVENT_WITH_CORE 0
 #define ONVM_EVENT_PORT_INFO 1
 #define ONVM_EVENT_NF_INFO 2
+#define ONVM_EVENT_NF_STOP 3
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
