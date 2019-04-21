@@ -174,8 +174,7 @@ do_stats_display(struct onvm_nf_info *nf_info) {
         printf("\n\n");
 }
 
-static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_info *nf_info) {
         int udp_pkt, tcp_pkt;
         char search_match;
@@ -183,7 +182,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         uint8_t *pkt_data;
         struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_info->data;
 
-        if (++counter == print_delay) {
+        if (++stats->pkt_total == print_delay) {
                 do_stats_display(nf_info);
                 counter = 0;
         }
