@@ -100,6 +100,10 @@ static uint8_t keep_running = 1;
 // If recieved stop msg we need to take care of the signal thread
 static uint8_t recieved_stop_msg = 0;
 
+// Used for pre init termination
+static uint8_t pre_init_termination = 0;
+pthread_t pre_init_termination_thread;
+
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
@@ -247,6 +251,17 @@ init_shared_cpu_info(uint16_t instance_id);
 void *
 nf_signal_handler(void *arg);
 
+/*
+ * Pre init signal handler thread entry point
+ * The thread is only spawned from the main thread
+ * and is killed when the actual signal handler starts
+ *
+ * Input : void pointer
+ *
+ */
+void *
+pre_init_nf_signal_handler(__attribute__((unused)) void *arg);
+
 /************************************API**************************************/
 
 static int
@@ -359,6 +374,9 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
         for (; nf_info->status == (uint16_t)NF_WAITING_FOR_ID;) {
                 sleep(1);
+                if (pre_init_termination) {
+                        rte_exit(EXIT_FAILURE, "Exiting before NF got the ID from manager\n");
+                }
         }
 
         /* This NF is trying to declare an ID already in use. */
@@ -438,15 +456,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         int use_config = 0;
         sigset_t mask;
 
-        /* It would make sense to put this when the app starts running, but this seems to not function if not placed here */
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-                printf("Could not set pthread sigmast\n");
-                return -1;
-        }
-
         /* Check to see if a config file should be used */
         if (strcmp(argv[1], "-F") == 0) {
                 use_config = 1;
@@ -464,6 +473,22 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 
                 cJSON_Delete(config);
                 printf("LOADED CONFIG SUCCESFULLY\n");
+        }
+
+        /* This need to be done before dpdk init to properly block signals */
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
+                printf("Could not set pthread sigmast\n");
+                return -1;
+        }
+
+        /* Initialize signal handling thread to listen to, and process shutdown signals */
+        int ret = pthread_create(&pre_init_termination_thread, NULL, pre_init_nf_signal_handler, NULL);
+        if (ret != 0) {
+                printf("Can't start pre-init termination thread\n");
+                return -1;
         }
 
         retval_eal = onvm_nflib_dpdk_init(argc, argv);
@@ -533,6 +558,12 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
         nf->nf_callback_function = callback;
 
         if (nf->parent == 0) {
+                ret = pthread_kill(pre_init_termination_thread, SIGINT);
+                if (ret < 0) {
+                        printf("Can't stop signal handling thread\n");
+                        return -1;
+                }
+                pthread_join(pre_init_termination_thread, NULL);
                 /* Initialize signal handling thread to listen to, and process shutdown signals */
                 int ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)nf);
                 if (ret != 0) {
@@ -977,6 +1008,25 @@ onvm_nflib_start_child(void *arg) {
                 rte_free(scale_info);
                 scale_info = NULL;
         }
+
+        return NULL;
+}
+
+void *
+pre_init_nf_signal_handler(__attribute__((unused)) void *arg) {
+        int signal, ret;
+        sigset_t mask;
+
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+
+        ret = sigwait(&mask, &signal);
+        if (ret < 0) {
+                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        }
+
+        pre_init_termination = 1;
 
         return NULL;
 }
