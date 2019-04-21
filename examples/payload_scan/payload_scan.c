@@ -182,7 +182,7 @@ static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         uint8_t *pkt_data;
         struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_info->data;
 
-        if (++stats->pkt_total == print_delay) {
+        if (stats->pkt_total == print_delay) {
                 do_stats_display(nf_info);
                 counter = 0;
         }
