@@ -253,7 +253,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         service_id = nf_info->service_id;
         nf_status = nf_info->status;
 
-        /* Clean up the allocated tag */
+        /* Cleanup the allocated tag */
         if (nf_info->tag) {
                 rte_free(nf_info->tag);
                 nf_info->tag = NULL;
