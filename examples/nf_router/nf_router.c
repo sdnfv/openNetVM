@@ -170,8 +170,8 @@ parse_router_config(void) {
         fclose(cfg);
         printf("\nDest config (%d):\n", nf_count);
         for (i = 0; i < nf_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", fwd_nf[i].ip & 0xFF, (fwd_nf[i].ip >> 8) & 0xFF,
-                       (fwd_nf[i].ip >> 16) & 0xFF, (fwd_nf[i].ip >> 24) & 0xFF);
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (fwd_nf[i].ip >> 24) & 0xFF, (fwd_nf[i].ip >> 16) & 0xFF,
+                       (fwd_nf[i].ip >> 8) & 0xFF, fwd_nf[i].ip & 0xFF);
                 printf(" %d\n", fwd_nf[i].dest);
         }
 
@@ -227,7 +227,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
                         in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                         for (i = 0; i < nf_count; i++) {
-                                if (in_arp_hdr->arp_data.arp_tip == fwd_nf[i].ip) {
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == fwd_nf[i].ip) {
                                         meta->destination = fwd_nf[i].dest;
                                         meta->action = ONVM_NF_ACTION_TONF;
                                         return 0;
@@ -245,7 +245,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         for (i = 0; i < nf_count; i++) {
-                if (fwd_nf[i].ip == ip->dst_addr) {
+                if (fwd_nf[i].ip == rte_be_to_cpu_32(ip->dst_addr)) {
                         meta->destination = fwd_nf[i].dest;
                         meta->action = ONVM_NF_ACTION_TONF;
                         return 0;
