@@ -119,4 +119,5 @@ sdn_pkt_list_flush(struct onvm_nf_info* nf_info, struct sdn_pkt_list* list) {
         list->tail = NULL;
         list->counter = 0;
 }
-#endif
+
+#endif // _SDN_PKT_LIST_H_

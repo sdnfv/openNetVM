@@ -60,4 +60,4 @@ struct flow_table_entry {
         uint16_t destination; /* where to go next */
 };
 
-#endif
+#endif // _FLOW_TABLE_H_

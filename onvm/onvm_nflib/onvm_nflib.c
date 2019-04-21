@@ -520,7 +520,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                         keep_running = !(*callback)(nf->info) && keep_running;
                 }
 
-                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                           TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         keep_running = 0;
