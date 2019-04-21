@@ -904,7 +904,11 @@ onvm_nflib_info_init(const char *tag) {
         info->core = rte_lcore_id();
         info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
-        info->tag = tag;
+
+        /* Allocate memory for the tag so that onvm_mgr can access it */
+        info->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(info->tag, tag, TAG_SIZE);
+
         /* TTL and packet limit disabled by default */
         info->time_to_live = 0;
         info->pkt_limit = 0;

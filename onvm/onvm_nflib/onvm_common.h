@@ -69,7 +69,8 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-// extern uint8_t rss_symmetric_key[40];
+/* Maximum length of NF_TAG including the \0 */
+#define TAG_SIZE 15
 
 // flag operations that should be used on onvm_pkt_meta
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
@@ -190,7 +191,7 @@ struct onvm_nf_scale_info {
         uint16_t service_id;
         uint16_t core;
         uint8_t flags;
-        const char *tag;
+        char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
@@ -256,7 +257,7 @@ struct onvm_nf_info {
         uint16_t core;
         uint8_t flags;
         uint8_t status;
-        const char *tag;
+        char *tag;
         /* If set NF will stop after time reaches time_to_live */
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
