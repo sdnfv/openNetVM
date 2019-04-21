@@ -67,8 +67,6 @@
 
 #define NF_TAG "firewall"
 
-#define FW_ACTION_ACCEPT 1
-
 #define MAX_RULES 256
 #define NUM_TBLS 8
 
