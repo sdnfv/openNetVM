@@ -365,12 +365,17 @@ onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
                 return -1;
         }
 
-        ret = sscanf(ip_str, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+        ret = sscanf(ip_str, "%u.%u.%u.%u", &ip[0], &ip[1], &ip[2], &ip[3]);
         if (ret != 4) {
                 return -1;
         }
         *dest = IPv4(ip[0], ip[1], ip[2], ip[3]);
         return 0;
+}
+
+void
+onvm_pkt_parse_char_ip(char* ip_dest, uint32_t ip_src) {
+        sprintf(ip_dest, "%u.%u.%u.%u", (ip_src >> 24) & 0xFF, (ip_src >> 16) & 0xFF, (ip_src >> 8) & 0xFF, ip_src & 0xFF);
 }
 
 int
