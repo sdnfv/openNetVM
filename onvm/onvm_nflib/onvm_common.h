@@ -63,7 +63,7 @@
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
@@ -273,14 +273,6 @@ struct onvm_service_chain_entry {
         uint8_t action;
 };
 
-struct lpm_request {
-        char name[64];
-        uint32_t max_num_rules;
-        uint32_t num_tbl8s;
-        int socket_id;
-        int status;
-};
-
 struct onvm_service_chain {
         struct onvm_service_chain_entry sc[ONVM_MAX_CHAIN_LENGTH];
         uint8_t chain_length;
@@ -308,7 +300,7 @@ struct onvm_service_chain {
 #define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
 #define NF_STARTING 1             // When a NF is in the startup process and already has an id
 #define NF_RUNNING 2              // Running normally
-#define NF_PAUSED  3              // NF is not receiving packets, but may in the future
+#define NF_PAUSED 3               // NF is not receiving packets, but may in the future
 #define NF_STOPPED 4              // NF has stopped and in the shutdown process
 #define NF_ID_CONFLICT 5          // NF is trying to declare an ID already in use
 #define NF_NO_IDS 6               // There are no available IDs for this NF
@@ -318,7 +310,6 @@ struct onvm_service_chain {
 #define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
 #define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
 #define NF_CORE_BUSY 12           // The manually selected core is busy
-#define NF_WAITING_FOR_MGR 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
