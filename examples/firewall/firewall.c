@@ -217,7 +217,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         ret = rte_lpm_lookup(lpm_tbl, rte_be_to_cpu_32(ipv4_hdr->src_addr), &rule);
-        sprintf(ip_disp, "%u.%u.%u.%u", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+
+        if (debug) onvm_pkt_parse_char_ip(ip_disp, rte_be_to_cpu_32(ipv4_hdr->src_addr));
 
         if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
@@ -247,6 +248,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         int i, status, ret;
         uint32_t ip;
         char name[64];
+        char ip_disp[16];
 
         firewall_req = (struct lpm_request *) rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -272,8 +274,8 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
 
         for (i = 0; i < num_rules; ++i) {
                 ip = rules[i]->src_ip;
-                printf("RULE %d: { ip: %u.%u.%u.%u, depth: %d, action: %d }\n", i, (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, rules[i]->depth,
-                       rules[i]->action);
+                onvm_pkt_parse_char_ip(ip_disp, ip);
+                printf("RULE %d: { ip: %s, depth: %d, action: %d }\n", i, ip_disp, rules[i]->depth, rules[i]->action);
                 ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if (ret < 0) {
                         printf("ERROR ADDING RULE %d\n", ret);
