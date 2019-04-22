@@ -126,6 +126,7 @@ onvm_nf_check_status(void) {
 
                 switch (msg->msg_type) {
                         case MSG_REQUEST_LPM_REGION:
+                                // TODO: Add stats event handler
                                 req_lpm = (struct lpm_request *)msg->msg_data;
                                 init_lpm_region(req_lpm);
                                 break;

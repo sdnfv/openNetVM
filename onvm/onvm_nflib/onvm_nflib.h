@@ -269,7 +269,7 @@ onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
 int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 
-/* Request LPM memory region. Returns the success or failure of this initialization.
+/** Request LPM memory region. Returns the success or failure of this initialization.
  * @param lpm_request
  *   An LPM struct containing information about the rules of the firewall.
  * @return
