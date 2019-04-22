@@ -1,0 +1,45 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   model.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+program NAT{
+    rule R=sip:192.168.0.0/16;
+    IP base=219.168.135.100/32;
+    int port=12000;
+    map<int,map<IP, int>> mapping;
+    map<int, IP> port_ip;
+    map<int, int> port_port;
+
+    entry{
+        match_flow{ f matches R }
+    match_state{ ~(f[sip] in mapping) && (f[sip] in mapping && ~(f[sport] in mapping[f[sip]])) }
+        action_state  { mapping[f[sip]][f[sport]] = port; port_ip[port]= f[sip]; port_port[port]=f[port]; }
+        action_flow{ f[sip]=base; f[sport]=port; port=port+1; }
+
+    }
+    entry{
+    match_flow{ f matches R }
+    match_state { f[sip] in mapping && ~(f[sport] in mapping[f[sip]]) }
+    action_flow { f[sip]=base; f[sport]=mapping[f[sip]][f[sport]]; }
+    }
+    entry{
+        match_flow{f mismatches R && f[dip] == base}
+        match_state{ f[dport] in port_port }
+        action_flow{ f[dip]= port_ip[f[dport]]; f[dport]=port_port[f[dport]];}
+    }
+    entry{
+        match_flow{f mismatches R && f[dip] != base}
+        action_flow{ f[dip]=DROP; }
+    }
+}
+

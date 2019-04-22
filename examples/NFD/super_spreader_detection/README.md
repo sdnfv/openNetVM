@@ -1,24 +1,17 @@
-Stateful firewall
+Super Spreader Detection
 ==
-Stateful firewall developed by the NFD framework
+Super Spreader Detection developed by the NFD framework
 
 
 NFD is a NF developing framework, consisting two parts, NFD language and NFD compiler. NFD compiler translate <br>
 the NF model file wiiten in NFD language, a table-form language, into standard runtime environment(such as C++).<br><br>
 
 
-Stateful firewall is translated from the `model.txt` to C++ environment and describes the following table-form logic. <br>
+Super Spreader Detection is translated from the `SSDmodel.txt` to C++ environment. <br>
   
-
-**Match flow**      |**Match state**     | **Action flow**     | **Action state**            
- --------- | -----------  | ----------- |----------
- outgoing | * | pass | record as seen
- incoming | seen | pass | -
- incoming | not seen | drop | -  
- 
  <br>
- 
-All outgoing flows are allowed and recorded, all incoming flows initiated by an outgoing flow are also allowed, all incoming flows without initiation are dropped. <br>
+ Super Spreader Detection detects and identifies super spreaders to preempt port scan attacks or DDoS attacks by increasing the counter on SYNs and decrease it on FINs.
+ <br>
  
 
 
@@ -29,8 +22,8 @@ Compilation and Execution
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd examples/firewall_NFD
-make CC=g++
+cd heavy_hitter_detection
+make
 
 ```
 

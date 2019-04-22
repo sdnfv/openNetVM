@@ -103,27 +103,27 @@ Flow::Flow(int* tag){
     this->headers[Iplen] = new int(0);
 }
 
-Flow::Flow(u_char * packet, int totallength)  {
-    /*Decoding*/    
-    this->pkt = packet;
-    int ethernet_header_length = 14;
-    /* Header lengths in bytes */
-    EtherHdr* e_hdr = (EtherHdr*) packet;
-    if ( ntohs(e_hdr->ether_type) == 0x8100)    
-        ethernet_header_length = 14+4; /* For 802.1Q Virtual LAN */
-    else
-        ethernet_header_length = 14; /* For general wired */
+// Flow::Flow(u_char * packet, int totallength)  {
+//     /*Decoding*/    
+//     this->pkt = packet;
+//     int ethernet_header_length = 14;
+//     /* Header lengths in bytes */
+//     EtherHdr* e_hdr = (EtherHdr*) packet;
+//     if ( ntohs(e_hdr->ether_type) == 0x8100)    
+//         ethernet_header_length = 14+4; /* For 802.1Q Virtual LAN */
+//     else
+//         ethernet_header_length = 14; /* For general wired */
     
-    IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
-    int src_addr = ntohl(ip_hdr->ip_src.s_addr);
-    this->headers[Sip] = new IP(src_addr, 32);
-    int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
-    this->headers[Dip] = new IP(dst_addr, 32);
+//     IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
+//     int src_addr = ntohl(ip_hdr->ip_src.s_addr);
+//     this->headers[Sip] = new IP(src_addr, 32);
+//     int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
+//     this->headers[Dip] = new IP(dst_addr, 32);
 
-}
-void Flow::clean() {
-    /*Encoding*/    
-}
+// }
+// void Flow::clean() {
+//     /*Encoding*/    
+// }
 //return IP/ int
 void* & Flow::operator[]  (const string &field) {
     unordered_map<string, void *>::iterator it = field_value.find(field);

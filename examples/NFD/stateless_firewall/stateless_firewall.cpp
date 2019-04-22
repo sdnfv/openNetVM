@@ -92,7 +92,7 @@ extern "C"{
 
 using namespace std;
 
-#define NF_TAG "stateful_firewall"
+#define NF_TAG "stateless_firewall"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -118,12 +118,11 @@ Flow::Flow(u_char * packet, int totallength)  {
     IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
     int src_addr = ntohl(ip_hdr->ip_src.s_addr);
     this->headers[Sip] = new IP(src_addr, 32);
-    int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
-    this->headers[Dip] = new IP(dst_addr, 32);
-
+    short protocol = (short)(ip_hdr->ip_proto);
+    this->headers[Tcp] = new int((protocol==IPPROTO_TCP)?1:0); 
+    
 }
 void Flow::clean() {
-    /*Encoding*/    
 }
 
 long int _counter=0;
@@ -137,30 +136,24 @@ Flow f_glb;
 struct timeval begin_time;
 struct timeval end_time;
 
-void _init_(){
+IP ip1("41.177.117.184/32");
+
+void _init_()
+{
     (new F_Type())->init();
 }
 
-// this setting was set by the model.txt
-IP _t1("192.168.22.0/24");
-
-State<unordered_set<IP>> seen(*(new unordered_set<IP>()));
-
 int process(Flow &f){
-
-    if (*((IP*) f.headers[Sip])<=_t1){
-        seen[f]=union_set<unordered_set<IP>>(seen[f],create_set<IP>(*(new unordered_set<IP>()),1,&((*(IP*) f.headers[Dip]))));
+    if (*((IP*) f.headers[Sip])!=ip1){
     }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end())){
-    }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(~(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end()))){
+    //to be fixed
+    else if (*((IP*) f.headers[Sip])<=ip1 && *((int *) f.headers[Tcp])){
         return -1;
     }
-
     f.clean();
     return 0;
 }
-int stateful_firewall(u_char * pkt,int totallength) {
+int stateless_firewall(u_char * pkt,int totallength) {
     f_glb= Flow(pkt,totallength);
     return process(f_glb);
 }
@@ -276,7 +269,7 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
         int length = (int)buf->pkt_len;
         int ok;
 
-        ok = stateful_firewall(pkt, length);
+        ok = stateless_firewall(pkt, length);
         if(ok == -1){
             _drop++;
             meta->action = ONVM_NF_ACTION_DROP;

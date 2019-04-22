@@ -1,24 +1,18 @@
-Stateful firewall
+NAPT
 ==
-Stateful firewall developed by the NFD framework
+NAPT developed by the NFD framework
 
 
 NFD is a NF developing framework, consisting two parts, NFD language and NFD compiler. NFD compiler translate <br>
 the NF model file wiiten in NFD language, a table-form language, into standard runtime environment(such as C++).<br><br>
 
 
-Stateful firewall is translated from the `model.txt` to C++ environment and describes the following table-form logic. <br>
+NAPT is translated from the `model.txt` to C++ environment. <br>
   
-
-**Match flow**      |**Match state**     | **Action flow**     | **Action state**            
- --------- | -----------  | ----------- |----------
- outgoing | * | pass | record as seen
- incoming | seen | pass | -
- incoming | not seen | drop | -  
- 
  <br>
  
-All outgoing flows are allowed and recorded, all incoming flows initiated by an outgoing flow are also allowed, all incoming flows without initiation are dropped. <br>
+NAPT is short for Network Address Port Translation. It enables mappings from tuples(address, L4 port number) to tuples(registered address and assigned port number) to complete address translation.
+<br>
  
 
 

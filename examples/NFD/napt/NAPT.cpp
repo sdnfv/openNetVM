@@ -37,7 +37,7 @@
  ********************************************************************/
 
 /************************************************************************************
-* Filename:   stateful_firewall.cpp
+* Filename:   NAPT.cpp
 * Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
@@ -92,7 +92,7 @@ extern "C"{
 
 using namespace std;
 
-#define NF_TAG "stateful_firewall"
+#define NF_TAG "NAPT"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -105,29 +105,49 @@ static uint32_t destination;
 
 /*******************************NFD features********************************/
 Flow::Flow(u_char * packet, int totallength)  {
-    /*Decoding*/    
-    this->pkt = packet;
+this->pkt = packet;
     int ethernet_header_length = 14;
-    /* Header lengths in bytes */
+
     EtherHdr* e_hdr = (EtherHdr*) packet;
     if ( ntohs(e_hdr->ether_type) == 0x8100)    
-        ethernet_header_length = 14+4; /* For 802.1Q Virtual LAN */
+        ethernet_header_length = 14+4; 
     else
-        ethernet_header_length = 14; /* For general wired */
-    
+        ethernet_header_length = 14; 
     IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
     int src_addr = ntohl(ip_hdr->ip_src.s_addr);
     this->headers[Sip] = new IP(src_addr, 32);
-    int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
-    this->headers[Dip] = new IP(dst_addr, 32);
+    int des_addr = ntohl(ip_hdr->ip_dst.s_addr);
+    this->headers[Dip] = new IP(des_addr, 32);
+    
+    int ip_header_length = ntohs(ip_hdr->ip_hlen);
+    TCPHdr *tcph =(TCPHdr *)(packet+ethernet_header_length+ip_header_length);
+    this->headers[Sport] = new int(ntohs(tcph->th_sport));
+    this->headers[Dport] = new int(ntohs(tcph->th_dport));
 
 }
-void Flow::clean() {
-    /*Encoding*/    
+void Flow::clean() {    
+    int ethernet_header_length = 14; 
+    u_char * packet = this->pkt;
+    EtherHdr* e_hdr = (EtherHdr*) this->pkt;
+    if ( ntohs(e_hdr->ether_type) == 0x8100)    
+        ethernet_header_length = 14+4; 
+    else
+        ethernet_header_length = 14; 
+
+    IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
+
+    ip_hdr->ip_src.s_addr = htonl( ((IP *)this->headers[Sip])->ip );
+    ip_hdr->ip_dst.s_addr = htonl( ((IP *)this->headers[Dip])->ip );
+    
+    int ip_header_length;
+    ip_header_length = int(ip_hdr->ip_hlen) * 4;
+    TCPHdr *tcph =(TCPHdr *)(packet+ethernet_header_length+ip_header_length);
+    tcph->th_sport =htons(u_short(*((int*)this->headers[Sport])));    
+    tcph->th_dport =htons(u_short(*((int*)this->headers[Dport])));
 }
+
 
 long int _counter=0;
-long int _drop=0;
 unordered_map<string,int> F_Type::MAP = unordered_map<string,int>();
 unordered_map<string,int> F_Type::MAP2 = unordered_map<string,int>();
 int process(Flow &f);
@@ -141,26 +161,36 @@ void _init_(){
     (new F_Type())->init();
 }
 
-// this setting was set by the model.txt
-IP _t1("192.168.22.0/24");
-
-State<unordered_set<IP>> seen(*(new unordered_set<IP>()));
+IP _t1("192.168.0.0/16");
+int _t2=219;
+int _t3=8;
+int _t4=1;
+State<IP> base(_t1);
+State<int> port(_t3);
+State<unordered_map<int,IP>> listIP(*(new unordered_map<int,IP>()));
+State<unordered_map<int,int>> listPORT(*(new unordered_map<int,int>()));
 
 int process(Flow &f){
-
     if (*((IP*) f.headers[Sip])<=_t1){
-        seen[f]=union_set<unordered_set<IP>>(seen[f],create_set<IP>(*(new unordered_set<IP>()),1,&((*(IP*) f.headers[Dip]))));
+        listIP[f][port[f]]=(*(IP*) f.headers[Sip]);
+        listPORT[f][port[f]]=(*(int*) f.headers[Sport]);
+        (*(IP*) f.headers[Sip])=base[f];
+        (*(int*) f.headers[Sport])=port[f];
+        port[f]=port[f] + _t4;
     }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end())){
+    else if ((*((IP*) f.headers[Sip])!=_t1 && (*(IP*) f.headers[Dip]) == base[f])&&(listIP[f].find((*(int*) f.headers[Dport]))!=listIP[f].end())){
+        (*(IP*) f.headers[Dip])=listIP[f][(*(int*) f.headers[Dport])];
+        (*(int*) f.headers[Dport])=listPORT[f][(*(int*) f.headers[Dport])];
     }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(~(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end()))){
-        return -1;
+    else if ((*((IP*) f.headers[Sip])!=_t1)&&(~(listIP[f].find((*(int*) f.headers[Dport]))!=listIP[f].end()))){
     }
-
+    else if (*((IP*) f.headers[Sip])!=_t1 && (*(IP*) f.headers[Dip]) != base[f]){
+    }
     f.clean();
     return 0;
 }
-int stateful_firewall(u_char * pkt,int totallength) {
+
+int NAPT(u_char * pkt,int totallength) {
     f_glb= Flow(pkt,totallength);
     return process(f_glb);
 }
@@ -172,7 +202,7 @@ void stop()
     double total = end_time.tv_sec-begin_time.tv_sec + (end_time.tv_usec-begin_time.tv_usec)/1000000.0;
 
     printf("\n\n**************************************************\n");
-    printf("%ld packets are processed, %ld packets are dropped\n",_counter,_drop);
+    printf("%ld packets are processed\n",_counter);
     printf("NF runs for %f seconds\n", total);
     printf("**************************************************\n\n");
 }
@@ -276,15 +306,10 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
         int length = (int)buf->pkt_len;
         int ok;
 
-        ok = stateful_firewall(pkt, length);
-        if(ok == -1){
-            _drop++;
-            meta->action = ONVM_NF_ACTION_DROP;
-        }
-        else{
-            meta->action = ONVM_NF_ACTION_TONF;
-            meta->destination = destination;
-        }
+        ok = NAPT(pkt, length);
+        
+        meta->action = ONVM_NF_ACTION_TONF;
+        meta->destination = destination;
 ////////////////////////////////////////////////
         return 0;
 }

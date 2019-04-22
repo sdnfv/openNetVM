@@ -37,7 +37,7 @@
  ********************************************************************/
 
 /************************************************************************************
-* Filename:   stateful_firewall.cpp
+* Filename:   NAT.cpp
 * Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
@@ -92,7 +92,7 @@ extern "C"{
 
 using namespace std;
 
-#define NF_TAG "stateful_firewall"
+#define NF_TAG "NAT"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -107,27 +107,61 @@ static uint32_t destination;
 Flow::Flow(u_char * packet, int totallength)  {
     /*Decoding*/    
     this->pkt = packet;
-    int ethernet_header_length = 14;
+    struct ether_header *eth_header;
+    eth_header = (struct ether_header *) packet;
+
+    /* Pointers to start point of various headers */
+    u_char *ip_header;
     /* Header lengths in bytes */
-    EtherHdr* e_hdr = (EtherHdr*) packet;
-    if ( ntohs(e_hdr->ether_type) == 0x8100)    
-        ethernet_header_length = 14+4; /* For 802.1Q Virtual LAN */
-    else
-        ethernet_header_length = 14; /* For general wired */
+    int ethernet_header_length = 14; /* Doesn't change */
+    int ip_header_length;
+    ip_header = packet + ethernet_header_length;
+    ip_header_length = ((*ip_header) & 0x0F);
+    ip_header_length = ip_header_length * 4;
+    int src_addr, des_addr;
+    src_addr = ntohl(*((int *)(ip_header + 12)));
+    des_addr = ntohl(*((int *)(ip_header + 16)));
+    this->field_value["sip"] = new IP(src_addr, 32);
+    this->field_value["dip"] = new IP(des_addr, 32);
+    this->field_value["tag"] = new int(0);
+    this->field_value["iplen"] = new int(totallength);
+    short protocol = ntohs(*(short *)(ip_header+9));
+    this->field_value["UDP"] = new int((protocol==IPPROTO_UDP)?1:0); 
+
+    /*TCP layer*/
+    TCPHdr *tcph =(TCPHdr *)(ip_header+ip_header_length);
+    this->field_value["sport"]=new int(ntohs(tcph->th_sport));
+    this->field_value["dport"] = new int(ntohs(tcph->th_dport));
+    /*URG ACK PSH RST SYN FIN*/
+    this->field_value["flag_fin"] = new int(ntohs(tcph->th_flags) & TH_FIN);
+    this->field_value["flag_syn"] = new int(ntohs(tcph->th_flags) & TH_SYN);
+    this->field_value["flag_ack"] = new int(ntohs(tcph->th_flags) & TH_ACK);
     
-    IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
-    int src_addr = ntohl(ip_hdr->ip_src.s_addr);
-    this->headers[Sip] = new IP(src_addr, 32);
-    int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
-    this->headers[Dip] = new IP(dst_addr, 32);
 
 }
 void Flow::clean() {
     /*Encoding*/    
+    struct ether_header *eth_header;
+    eth_header = (struct ether_header *) this->pkt;
+    int ethernet_header_length = 14; /* Doesn't change */
+    int ip_header_length;
+    u_char *ip_header;
+    ip_header = (u_char*)eth_header + ethernet_header_length;
+    ip_header_length = ((*ip_header) & 0x0F);
+    ip_header_length = ip_header_length * 4;
+
+    *((int *)(ip_header + 12)) = htonl(* ((int *)this->field_value["sip"]));
+    *((int *)(ip_header + 16)) = htonl(* ((int *)this->field_value["dip"]));
+    //this->field_value["iplen"] = new int(totallength);
+
+    /*TCP layer*/
+    TCPHdr *tcph =(TCPHdr *)(ip_header+ip_header_length);
+    tcph->th_sport =u_short(*((int*)this->field_value["sport"]));
+    tcph->th_dport =u_short(*((int*)this->field_value["dport"]));
 }
 
+
 long int _counter=0;
-long int _drop=0;
 unordered_map<string,int> F_Type::MAP = unordered_map<string,int>();
 unordered_map<string,int> F_Type::MAP2 = unordered_map<string,int>();
 int process(Flow &f);
@@ -141,29 +175,45 @@ void _init_(){
     (new F_Type())->init();
 }
 
-// this setting was set by the model.txt
-IP _t1("192.168.22.0/24");
-
-State<unordered_set<IP>> seen(*(new unordered_set<IP>()));
+IP _t1("192.168.0.0/16");
+IP _t2("219.168.135.100/32");
+int _t3=12000;
+int _t4=1;
+State<IP> base(_t2);
+State<int> port(_t3);
+State<unordered_map<IP,unordered_map<int,int>>> mapping(*(new unordered_map<IP,unordered_map<int,int>>()));
+State<unordered_map<int,IP>> port_ip(*(new unordered_map<int,IP>()));
+State<unordered_map<int,int>> port_port(*(new unordered_map<int,int>()));
 
 int process(Flow &f){
-
-    if (*((IP*) f.headers[Sip])<=_t1){
-        seen[f]=union_set<unordered_set<IP>>(seen[f],create_set<IP>(*(new unordered_set<IP>()),1,&((*(IP*) f.headers[Dip]))));
+    if ((*((IP*) f["sip"])<=_t1)&&(~(mapping[f].find((*(IP*) f["sip"]))!=mapping[f].end()) && (mapping[f].find((*(IP*) f["sip"]))!=mapping[f].end() && ~(mapping[f][(*(IP*) f["sip"])].find((*(int*) f["sport"]))!=mapping[f][(*(IP*) f["sip"])].end())))){
+        mapping[f][(*(IP*) f["sip"])][(*(int*) f["sport"])]=port[f];
+        port_ip[f][port[f]]=(*(IP*) f["sip"]);
+        port_port[f][port[f]]=(*(int*) f["sport"]);
+        (*(IP*) f["sip"])=base[f];
+        (*(int*) f["sport"])=port[f];
+        port[f]=port[f] + _t4;
     }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end())){
+    else if ((*((IP*) f["sip"])<=_t1)&&(mapping[f].find((*(IP*) f["sip"]))!=mapping[f].end() && ~(mapping[f][(*(IP*) f["sip"])].find((*(int*) f["sport"]))!=mapping[f][(*(IP*) f["sip"])].end()))){
+        (*(IP*) f["sip"])=base[f];
+        (*(int*) f["sport"])=mapping[f][(*(IP*) f["sip"])][(*(int*) f["sport"])];
     }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(~(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end()))){
+    else if ((*((IP*) f["sip"])!=_t1 && (*(IP*) f["dip"]) == base[f])&&(port_port[f].find((*(int*) f["dport"]))!=port_port[f].end())){
+        (*(IP*) f["dip"])=port_ip[f][(*(int*) f["dport"])];
+        (*(int*) f["dport"])=port_port[f][(*(int*) f["dport"])];
+    }
+    else if (*((IP*) f["sip"])!=_t1 && (*(IP*) f["dip"]) != base[f]){
         return -1;
     }
-
-    f.clean();
-    return 0;
+        f.clean();
+        return 0;
 }
-int stateful_firewall(u_char * pkt,int totallength) {
+
+int NAT(u_char * pkt,int totallength) {
     f_glb= Flow(pkt,totallength);
     return process(f_glb);
 }
+
 
 void stop()
 {
@@ -172,7 +222,7 @@ void stop()
     double total = end_time.tv_sec-begin_time.tv_sec + (end_time.tv_usec-begin_time.tv_usec)/1000000.0;
 
     printf("\n\n**************************************************\n");
-    printf("%ld packets are processed, %ld packets are dropped\n",_counter,_drop);
+    printf("%ld packets are processed\n",_counter);
     printf("NF runs for %f seconds\n", total);
     printf("**************************************************\n\n");
 }
@@ -276,15 +326,10 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
         int length = (int)buf->pkt_len;
         int ok;
 
-        ok = stateful_firewall(pkt, length);
-        if(ok == -1){
-            _drop++;
-            meta->action = ONVM_NF_ACTION_DROP;
-        }
-        else{
-            meta->action = ONVM_NF_ACTION_TONF;
-            meta->destination = destination;
-        }
+        ok = NAT(pkt, length);
+        
+        meta->action = ONVM_NF_ACTION_TONF;
+        meta->destination = destination;
 ////////////////////////////////////////////////
         return 0;
 }

@@ -1,0 +1,37 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   UDPFloodMitagation.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+
+program UDPFM{
+    map<IP,int> udpcounter;
+    map<IP,int> udpflood;
+    int threshold=100;
+
+    entry{
+        match_flow{f[UDP]==1}
+        match_state{udpflood[f[sip]]!=1 && udpcounter[f[sip]]!=threshold}
+        action_state{udpcounter[f[sip]]=udpcounter[f[sip]]+1;}
+    }
+    entry{
+        match_flow{f[UDP]==1}
+        match_state{udpflood[f[sip]]!=1 && udpcounter[f[sip]]==threshold}
+        action_flow{f[dip]=DROP;}
+        action_state{udpflood[f[sip]]=1;}
+    }
+    entry{
+        match_flow{f[UDP]!=1}
+        action_flow{pass;}
+        action_state{pass;}
+    }
+}

@@ -34,18 +34,9 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * forward.c - an example using onvm. Forwards packets to a DST NF.
  ********************************************************************/
-
-/************************************************************************************
-* Filename:   stateful_firewall.cpp
-* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
-* Copyright:
-* Disclaimer: This code is presented "as is" without any guarantees.
-* Details:    This code is the implementation of state_firewall from NFD project, 
-              a C++ based NF developing framework designed by Wenfei's group 
-              from IIIS, Tsinghua University, China.
-*************************************************************************************/
-
 
 #include <unistd.h>
 #include <stdint.h>
@@ -80,7 +71,6 @@ extern "C"{
 #include <iostream>
 #include <sys/time.h>
 #include "basic_classes.h"
-#include "decode.h"
 #include <iomanip>
 #include <vector>
 #include <unordered_map>
@@ -92,7 +82,7 @@ extern "C"{
 
 using namespace std;
 
-#define NF_TAG "stateful_firewall"
+#define NF_TAG "simple_c++"
 
 /* Struct that contains information about this NF */
 struct onvm_nf_info *nf_info;
@@ -103,33 +93,10 @@ static uint32_t print_delay = 1000000;
 
 static uint32_t destination;
 
-/*******************************NFD features********************************/
-Flow::Flow(u_char * packet, int totallength)  {
-    /*Decoding*/    
-    this->pkt = packet;
-    int ethernet_header_length = 14;
-    /* Header lengths in bytes */
-    EtherHdr* e_hdr = (EtherHdr*) packet;
-    if ( ntohs(e_hdr->ether_type) == 0x8100)    
-        ethernet_header_length = 14+4; /* For 802.1Q Virtual LAN */
-    else
-        ethernet_header_length = 14; /* For general wired */
-    
-    IPHdr * ip_hdr = (IPHdr*) (packet+ethernet_header_length);
-    int src_addr = ntohl(ip_hdr->ip_src.s_addr);
-    this->headers[Sip] = new IP(src_addr, 32);
-    int dst_addr = ntohl(ip_hdr->ip_dst.s_addr);
-    this->headers[Dip] = new IP(dst_addr, 32);
+/*******************************NFD add********************************/
 
-}
-void Flow::clean() {
-    /*Encoding*/    
-}
-
-long int _counter=0;
-long int _drop=0;
+int _allTput=0;
 unordered_map<string,int> F_Type::MAP = unordered_map<string,int>();
-unordered_map<string,int> F_Type::MAP2 = unordered_map<string,int>();
 int process(Flow &f);
 Flow f_glb;
 
@@ -137,45 +104,28 @@ Flow f_glb;
 struct timeval begin_time;
 struct timeval end_time;
 
+
+///NFD logic//////////////
 void _init_(){
     (new F_Type())->init();
 }
-
-// this setting was set by the model.txt
-IP _t1("192.168.22.0/24");
-
-State<unordered_set<IP>> seen(*(new unordered_set<IP>()));
+int _t1=0;
+State<int> counter(_t1,"sip&dip");
 
 int process(Flow &f){
-
-    if (*((IP*) f.headers[Sip])<=_t1){
-        seen[f]=union_set<unordered_set<IP>>(seen[f],create_set<IP>(*(new unordered_set<IP>()),1,&((*(IP*) f.headers[Dip]))));
-    }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end())){
-    }
-    else if ((*((IP*) f.headers[Sip])!=_t1)&&(~(seen[f].find((*(IP*) f.headers[Sip]))!=seen[f].end()))){
-        return -1;
-    }
-
-    f.clean();
-    return 0;
+        if (1){
+                counter[f]=counter[f] + (*(int*) f["iplen"]);
+        }
+        f.clean();
+        return 0;
 }
-int stateful_firewall(u_char * pkt,int totallength) {
+
+int Byte_Counter(u_char * pkt,int totallength) {
     f_glb= Flow(pkt,totallength);
     return process(f_glb);
 }
 
-void stop()
-{
-    gettimeofday(&end_time,NULL);
 
-    double total = end_time.tv_sec-begin_time.tv_sec + (end_time.tv_usec-begin_time.tv_usec)/1000000.0;
-
-    printf("\n\n**************************************************\n");
-    printf("%ld packets are processed, %ld packets are dropped\n",_counter,_drop);
-    printf("NF runs for %f seconds\n", total);
-    printf("**************************************************\n\n");
-}
 
 
 /**********************************************************************/
@@ -271,21 +221,14 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
                 counter = 0;
         }
 ////////add NFD NF process here!////////////////
-        _counter++;
         u_char * pkt = (u_char *)buf->buf_addr;
         int length = (int)buf->pkt_len;
-        int ok;
 
-        ok = stateful_firewall(pkt, length);
-        if(ok == -1){
-            _drop++;
-            meta->action = ONVM_NF_ACTION_DROP;
-        }
-        else{
-            meta->action = ONVM_NF_ACTION_TONF;
-            meta->destination = destination;
-        }
+        Byte_Counter(pkt, length);
 ////////////////////////////////////////////////
+
+        meta->action = ONVM_NF_ACTION_TONF;
+        meta->destination = destination;
         return 0;
 }
 
@@ -300,7 +243,7 @@ int main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        //NFD begin
+        //NFD add
         _init_();
         //NFD end
 
@@ -308,14 +251,7 @@ int main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-
-        //NFD begin
-        gettimeofday(&begin_time,NULL);
-        //NFD end
-
         onvm_nflib_run(nf_info, &packet_handler);
-
-        stop();
         printf("If we reach here, program is ending\n");
 
         return 0;

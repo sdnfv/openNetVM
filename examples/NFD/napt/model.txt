@@ -1,0 +1,47 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   model.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+program NAPT{
+    rule R=sip:192.168.0.0/16;
+    IP base=219.168.135.100;
+    int port=8;
+    map<int,IP> listIP;
+    map<int,int> listPORT;
+
+    entry{
+        match_flow{f matches R }
+        action_state  { listIP[port]=f[sip]; listPORT[port]=f[sport];}
+        action_flow{f[sip]=base; f[sport]=port; port=port+1;}
+
+    }
+
+    entry{
+        match_flow{f mismatches R && f[dip] == base}
+        match_state{ f[dport] in listIP }
+        action_flow{f[dip]=listIP[f[dport]]; f[dport]=listPORT[f[dport]];}
+
+    }
+    entry{
+        match_flow{f mismatches R }
+        match_state{ ~(f[dport] in listIP) }
+        action_flow{pass; }
+        action_state{pass; }
+    }
+
+    entry{
+        match_flow{f mismatches R && f[dip] != base}
+        action_flow{pass; }
+        action_state{pass; }
+    }
+}
