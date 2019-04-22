@@ -520,7 +520,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                         keep_running = !(*callback)(nf->info) && keep_running;
                 }
 
-                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                           TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         keep_running = 0;
@@ -904,7 +904,11 @@ onvm_nflib_info_init(const char *tag) {
         info->core = rte_lcore_id();
         info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
-        info->tag = tag;
+
+        /* Allocate memory for the tag so that onvm_mgr can access it */
+        info->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(info->tag, tag, TAG_SIZE);
+
         /* TTL and packet limit disabled by default */
         info->time_to_live = 0;
         info->pkt_limit = 0;
