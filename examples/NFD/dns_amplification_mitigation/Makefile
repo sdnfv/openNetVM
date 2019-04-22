@@ -44,7 +44,7 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = DNSAmplificationMitigation
+APP = dns_amplification_mitigation
 
 # all source are stored in SRCS-y
 SRCS-y := DNSAmplificationMitigation.c

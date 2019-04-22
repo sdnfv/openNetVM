@@ -1,51 +1,17 @@
 #!/bin/bash
 
-function usage {
-        echo "$0 CPU-LIST SERVICE-ID DST [-p PRINT] [-n NF-ID]"
-        echo "$0 -F CONFIG_FILE -- -- -d DST [-p PRINT]"
-        echo ""
-        echo "$0 3,7,9 1 2 --> cores 3,7, and 9, with Service ID 1, and forwards to service ID 2"
-        echo "$0 -F example_config.json -- -- -d 2 --> loads settings from example_config.json and forwards to service id 2"
-        echo "$0 3,7,9 1 2 1000 --> cores 3,7, and 9, with Service ID 1, forwards to service ID 2,  and Print Rate of 1000"
-        exit 1
-}
+#The go.sh script is a convinient way to run start_nf.sh without specifying NF_NAME
 
-SCRIPT=$(readlink -f "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
+NF_DIR=${PWD##*/}
 
-if [ -z $1 ]
-then
-  usage
+NF_DIR=NFD/${NF_DIR}
+
+# echo ${NF_DIR}
+
+if [ ! -f ../../start_nf.sh ]; then
+  echo "ERROR: The ./go.sh script can only be used from the NF folder"
+  echo "If running from other directory use examples/start_nf.sh"
+  exit 1
 fi
 
-if [ $1 = "-F" ]
-then
-  config=$2
-  shift 2
-  exec sudo $SCRIPTPATH/build/stateless_firewall -F $config "$@"
-elif [ $1 = "-F" ]
-then
-  usage
-fi
-
-cpu=$1
-service=$2
-dst=$3
-
-shift 3
-
-if [ -z $dst ]
-then
-    usage
-fi
-
-while getopts ":p:n:" opt; do
-  case $opt in
-    p) print="-p $OPTARG";;
-    n) instance="-n $OPTARG";;
-    \?) echo "Unknown option -$OPTARG" && usage
-    ;;
-  esac
-done
-
-exec sudo $SCRIPTPATH/build/app/stateless_firewall -l $cpu -n 3 --proc-type=secondary -- -r $service $instance -- -d $dst $print
+../../start_nf.sh $NF_DIR "$@"
