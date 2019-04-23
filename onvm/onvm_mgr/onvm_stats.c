@@ -325,14 +325,8 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static uint64_t nf_rx_drop_last[MAX_NFS];
         static const char *NF_MSG[3];
 
-        NF_MSG[0] =
-            "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   "
-            "drop\n------------------------------------------------------------------------------------------------------------------\n";
-        NF_MSG[1] =
-            "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   drop\n"
-            "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   "
-            "ret\n------------------------------------------------------------------------------------------------------------------"
-            "\n";
+        NF_MSG[0] = ONVM_STATS_MSG;
+        NF_MSG[1] = ONVM_STATS_ADV_MSG;
         NF_MSG[2] = "";
 
         /* For same service id TX/RX stats */
