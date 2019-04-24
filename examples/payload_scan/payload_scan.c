@@ -93,6 +93,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(" - `-i <inverse mode>`: payload match to search term results in a packet drop, mismatch results in a forward\n");
+        printf(" - `-s <input string>`: String to match against packet payload\n");
 }
 
 /*
@@ -174,15 +175,14 @@ do_stats_display(struct onvm_nf_info *nf_info) {
         printf("\n\n");
 }
 
-static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-               __attribute__((unused)) struct onvm_nf_info *nf_info) {
+static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf_info *nf_info) {
         int udp_pkt, tcp_pkt;
         char search_match;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
         struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_info->data;
 
-        if (stats->pkt_total == print_delay) {
+        if (++counter == print_delay) {
                 do_stats_display(nf_info);
                 counter = 0;
         }
@@ -240,9 +240,8 @@ int main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        nf_info->data = (void *) rte_malloc("stats", sizeof(struct onvm_pkt_stats), 0);
-        stats = (struct onvm_pkt_stats *) nf_info->data;
-        stats->pkt_accept = stats->pkt_not_tcp_udp = stats->pkt_not_ipv4 = stats->pkt_total = stats->pkt_drop = 0;
+        stats = (struct onvm_pkt_stats *) rte_zmalloc("stats", sizeof(struct onvm_pkt_stats), 0);
+        nf_info->data = (void *) stats;
 
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_info);
