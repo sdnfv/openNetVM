@@ -279,6 +279,14 @@ struct onvm_service_chain {
         int ref_cnt;
 };
 
+struct lpm_request {
+        char name[64];
+        uint32_t max_num_rules;
+        uint32_t num_tbl8s;
+        int socket_id;
+        int status;
+};
+
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
