@@ -198,8 +198,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         int ret;
         uint32_t rule = 0;
         uint32_t track_ip = 0;
-        uint32_t ip;
-        char ip_disp[16];
+        char ip_string[16];
 
         if (++counter == print_delay) {
                 do_stats_display();
@@ -218,12 +217,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         ret = rte_lpm_lookup(lpm_tbl, rte_be_to_cpu_32(ipv4_hdr->src_addr), &rule);
 
-        if (debug) onvm_pkt_parse_char_ip(ip_disp, rte_be_to_cpu_32(ipv4_hdr->src_addr));
+        if (debug) onvm_pkt_parse_char_ip(ip_string, rte_be_to_cpu_32(ipv4_hdr->src_addr));
 
         if (ret < 0) {
                 meta->action = ONVM_NF_ACTION_DROP;
                 stats.pkt_drop++;
-                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_disp);
+                if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_string);
                 return 0;
         }
 
@@ -232,12 +231,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         meta->action = ONVM_NF_ACTION_TONF;
                         meta->destination = destination;
                         stats.pkt_accept++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been accepted\n", ip_disp);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been accepted\n", ip_string);
                         break;
                 default:
                         meta->action = ONVM_NF_ACTION_DROP;
                         stats.pkt_drop++;
-                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_disp);
+                        if (debug) RTE_LOG(INFO, APP, "Packet from source IP %s has been dropped\n", ip_string);
                         break;
         }
 
@@ -248,7 +247,7 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         int i, status, ret;
         uint32_t ip;
         char name[64];
-        char ip_disp[16];
+        char ip_string[16];
 
         firewall_req = (struct lpm_request *) rte_malloc(NULL, sizeof(struct lpm_request), 0);
 
@@ -274,8 +273,8 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
 
         for (i = 0; i < num_rules; ++i) {
                 ip = rules[i]->src_ip;
-                onvm_pkt_parse_char_ip(ip_disp, ip);
-                printf("RULE %d: { ip: %s, depth: %d, action: %d }\n", i, ip_disp, rules[i]->depth, rules[i]->action);
+                onvm_pkt_parse_char_ip(ip_string, ip);
+                printf("RULE %d: { ip: %s, depth: %d, action: %d }\n", i, ip_string, rules[i]->depth, rules[i]->action);
                 ret = rte_lpm_add(lpm_tbl, rules[i]->src_ip, rules[i]->depth, rules[i]->action);
                 if (ret < 0) {
                         printf("ERROR ADDING RULE %d\n", ret);
