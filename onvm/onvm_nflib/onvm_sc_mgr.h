@@ -38,8 +38,8 @@
  * onvm_sc_mgr.h - service chain functions for manager
  ********************************************************************/
 
-#ifndef _SC_MGR_H_
-#define _SC_MGR_H_
+#ifndef _ONVM_SC_MGR_H_
+#define _ONVM_SC_MGR_H_
 
 #include <rte_mbuf.h>
 #include "onvm_common.h"
@@ -76,4 +76,4 @@ onvm_sc_get(void);
 /*create service chain*/
 struct onvm_service_chain*
 onvm_sc_create(void);
-#endif  // _SC_MGR_H_
+#endif  // _ONVM_SC_MGR_H_

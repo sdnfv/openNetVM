@@ -38,8 +38,8 @@
  * onvm_sc_common.h - service functions for manager and NFs
  ********************************************************************/
 
-#ifndef _SC_COMMON_H_
-#define _SC_COMMON_H_
+#ifndef _ONVM_SC_COMMON_H_
+#define _ONVM_SC_COMMON_H_
 
 #include <inttypes.h>
 #include "onvm_common.h"
@@ -67,4 +67,4 @@ onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, u
 void
 onvm_sc_print(struct onvm_service_chain *chain);
 
-#endif  //_SC_COMMON_H_
+#endif // _ONVM_SC_COMMON_H_
