@@ -105,10 +105,10 @@ void
 onvm_nf_check_status(void) {
         int i;
         void *msgs[MAX_NFS];
-        void *stop_nf_id;
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
         int num_msgs = rte_ring_count(incoming_msg_queue);
+        uint16_t stop_nf_id;
 
         if (num_msgs == 0)
                 return;
@@ -137,10 +137,10 @@ onvm_nf_check_status(void) {
                                 if (nf == NULL)
                                         break;
 
-                                /* Get instance_id before tearing down nf */
-                                stop_nf_id = (void *)&(nf->instance_id);
+                                /* Saved as onvm_nf_stop frees the memory */
+                                stop_nf_id = nf->instance_id;
                                 if (onvm_nf_stop(nf) == 0) {
-                                        onvm_stats_gen_event_info("NF Stopping", ONVM_EVENT_NF_STOP, stop_nf_id);
+                                        onvm_stats_gen_event_info("NF Stopping", ONVM_EVENT_NF_STOP, &stop_nf_id);
                                 }
                                 break;
                 }

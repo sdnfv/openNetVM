@@ -58,7 +58,7 @@
 
 /*
  * Function to send json events to web view
- * 
+ *
  */
 static void
 onvm_stats_add_event(struct onvm_event *event_info);
@@ -237,7 +237,7 @@ onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
                 perror("Couldn't allocate event");
                 return;
         }
-        
+
         event->type = type;
         event->msg = msg;
         event->data = data;

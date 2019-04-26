@@ -63,10 +63,7 @@
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
-/*
- * Handle types of web stats events
- * 
- */
+/* Handle types of web stats events */
 #define ONVM_EVENT_WITH_CORE 0
 #define ONVM_EVENT_PORT_INFO 1
 #define ONVM_EVENT_NF_INFO 2
@@ -163,8 +160,7 @@ void
 onvm_stats_clear_nf(uint16_t id);
 
 /*
- * Interfaces called by manager when a new event should be created.
- * 
+ * Interface called by manager when a new event should be created.
  */
 void
 onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data);
