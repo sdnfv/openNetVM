@@ -272,7 +272,6 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 
-<<<<<<< HEAD
 /**
  * Retrieves custom onvm flags
  */

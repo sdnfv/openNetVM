@@ -100,9 +100,11 @@ static uint8_t keep_running = 1;
 // If recieved stop msg we need to take care of the signal thread
 static uint8_t recieved_stop_msg = 0;
 
-// Used for pre init termination
+// Vars and structs to manage NF termination 
 static uint8_t pre_init_termination = 0;
-pthread_t pre_init_termination_thread;
+rte_atomic16_t nf_init_finished;
+struct onvm_nf *global_nf = NULL;
+pthread_t sig_loop_thread;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
@@ -245,22 +247,11 @@ init_shared_cpu_info(uint16_t instance_id);
  * Signal handler thread entry point
  * The thread is only spawned from the main thread
  *
- * Input : void pointer to onvm_nf struct
+ * Input : double void pointer to onvm_nf struct
  *
  */
 void *
 nf_signal_handler(void *arg);
-
-/*
- * Pre init signal handler thread entry point
- * The thread is only spawned from the main thread
- * and is killed when the actual signal handler starts
- *
- * Input : void pointer
- *
- */
-void *
-pre_init_nf_signal_handler(__attribute__((unused)) void *arg);
 
 /************************************API**************************************/
 
@@ -379,6 +370,10 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
                 }
         }
 
+        /* Signal handler will now do proper cleanup */
+        global_nf = &nfs[nf_info->instance_id];
+        rte_atomic16_set(&nf_init_finished, 1);
+
         /* This NF is trying to declare an ID already in use. */
         if (nf_info->status == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_info_mp, nf_info);
@@ -454,6 +449,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         struct onvm_nf_info *nf_info;
         int retval_eal = 0;
         int use_config = 0;
+        int ret;
         sigset_t mask;
 
         /* Check to see if a config file should be used */
@@ -484,10 +480,12 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 return -1;
         }
 
+        rte_atomic16_init(&nf_init_finished);
+        rte_atomic16_set(&nf_init_finished, 0);
         /* Initialize signal handling thread to listen to, and process shutdown signals */
-        int ret = pthread_create(&pre_init_termination_thread, NULL, pre_init_nf_signal_handler, NULL);
+        ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)&global_nf);
         if (ret != 0) {
-                printf("Can't start pre-init termination thread\n");
+                printf("Can't start signal handler\n");
                 return -1;
         }
 
@@ -541,7 +539,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 
 int
 onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, callback_handler_func callback) {
-        pthread_t sig_loop_thread;
         struct onvm_nf *nf;
         int ret;
 
@@ -556,21 +553,6 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
         nf->nf_pkt_function = handler;
         nf->nf_callback_function = callback;
-
-        if (nf->parent == 0) {
-                ret = pthread_kill(pre_init_termination_thread, SIGINT);
-                if (ret < 0) {
-                        printf("Can't stop signal handling thread\n");
-                        return -1;
-                }
-                pthread_join(pre_init_termination_thread, NULL);
-                /* Initialize signal handling thread to listen to, and process shutdown signals */
-                int ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)nf);
-                if (ret != 0) {
-                        printf("Can't start this\n");
-                        return -1;
-                }
-        }
 
         pthread_t main_loop_thread;
         ret = pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf);
@@ -1013,41 +995,28 @@ onvm_nflib_start_child(void *arg) {
 }
 
 void *
-pre_init_nf_signal_handler(__attribute__((unused)) void *arg) {
-        int signal, ret;
-        sigset_t mask;
-
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-
-        ret = sigwait(&mask, &signal);
-        if (ret < 0) {
-                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
-        }
-
-        pre_init_termination = 1;
-
-        return NULL;
-}
-
-void *
 nf_signal_handler(void *arg) {
         int signal, ret;
         struct onvm_nf *nf;
         sigset_t mask;
 
-        nf = (struct onvm_nf *)arg;
         sigemptyset(&mask);
         sigaddset(&mask, SIGINT);
         sigaddset(&mask, SIGTERM);
 
-        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
+        //printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
         ret = sigwait(&mask, &signal);
         if (ret < 0) {
                 rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
         }
 
+        if (rte_atomic16_read(&nf_init_finished) == 0) {
+                pre_init_termination = 1;
+                keep_running = 0;
+                return NULL;
+        }
+
+        nf = *(struct onvm_nf **)arg;
         printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
 
         if (signal == SIGINT || signal == SIGTERM) {
