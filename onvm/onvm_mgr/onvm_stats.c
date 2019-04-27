@@ -520,10 +520,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 continue;
                         if (verbosity_level == 2) {
                                 fprintf(
-                                    stats_out, "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
+                                    stats_out, "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64
                                                " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
                                                "\n"
-                                               "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
+                                               "                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64
                                                " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
                                     i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                     rx_for_service[i], tx_for_service[i], act_out_for_service[i],
@@ -532,7 +532,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                     act_next_for_service[i], act_buffer_for_service[i], act_returned_for_service[i]);
                         } else {
                                 fprintf(stats_out,
-                                        "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
+                                        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
                                         "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
                                         i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                         rx_drop_for_service[i], tx_drop_for_service[i], act_out_for_service[i],
