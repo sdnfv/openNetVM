@@ -466,16 +466,16 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, 
                                 act_next, act_buffer, act_returned);
                 } else if (verbosity_level == 2) {
-                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u   %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
+                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
                                            "\n"
-                                           "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
+                                           "                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
                                 nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps, 
                                 tx_pps, rx, tx, act_out, act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, 
                                 act_buffer, act_returned);
                 } else {
-                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
+                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
                                 nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps, tx_pps, 
                                 rx_drop, tx_drop, act_out, act_tonf, act_drop);
