@@ -51,7 +51,7 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
-#define MAX_NFS 128              // total number of NFs allowed
+#define MAX_NFS 128              // total number of concurrent NFs allowed (-1 because ID 0 is reserved)
 #define MAX_SERVICES 32          // total number of unique services allowed
 #define MAX_NFS_PER_SERVICE 32   // max number of NFs per service.
 

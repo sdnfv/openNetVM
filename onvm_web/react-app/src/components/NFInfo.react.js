@@ -35,12 +35,12 @@ class NFInfo extends React.PureComponent<Props, State> {
 
   componentDidMount(): void {
     console.log("NF Info Mount: " + this.props.nfLabel);
-    registerNFSubscriber(this.props.nfLabel, this.dataCallback);
+    registerNFSubscriber(`NF ${this.props.nfLabel.split(" - ")[1]}`, this.dataCallback);
   }
 
   componentWillUnmount(): void {
     console.log("NF Info Unmount: " + this.props.nfLabel);
-    unregisterNFSubscriber(this.props.nfLabel, this.dataCallback, null);
+    unregisterNFSubscriber(`NF ${this.props.nfLabel.split(" - ")[1]}`, this.dataCallback, null);
   }
 
   render(): React.Node {

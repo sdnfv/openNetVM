@@ -49,10 +49,11 @@
 #include "onvm_nf.h"
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
-
 #include <rte_lpm.h>
 
-uint16_t next_instance_id = 0;
+/* ID 0 is reserved */
+uint16_t next_instance_id = 1;
+uint16_t starting_instance_id = 1;
 
 /************************Internal functions prototypes************************/
 
@@ -94,16 +95,35 @@ init_lpm_region(struct lpm_request *req_lpm);
 uint16_t
 onvm_nf_next_instance_id(void) {
         struct onvm_nf *nf;
-        uint16_t instance_id = MAX_NFS;
+        uint16_t instance_id;
 
+        if (num_nfs >= MAX_NFS)
+                return MAX_NFS;
+
+        /* Do a first pass for NF IDs bigger than current next_instance_id */
         while (next_instance_id < MAX_NFS) {
                 instance_id = next_instance_id++;
+                /* Check if this id is occupied by another NF */
                 nf = &nfs[instance_id];
                 if (!onvm_nf_is_valid(nf))
-                        break;
+                        return instance_id;
         }
 
-        return instance_id;
+        /* Reset to starting position */
+        next_instance_id = starting_instance_id;
+
+        /* Do a second pass for other NF IDs */
+        while (next_instance_id < MAX_NFS) {
+                instance_id = next_instance_id++;
+                /* Check if this id is occupied by another NF */
+                nf = &nfs[instance_id];
+                if (!onvm_nf_is_valid(nf))
+                        return instance_id;
+        }
+
+        /* This should never happen, means our num_nfs counter is wrong */
+        RTE_LOG(ERR, APP, "Tried to allocated a next instance ID but num_nfs is corrupted\n");
+        return MAX_NFS;
 }
 
 void
@@ -114,6 +134,7 @@ onvm_nf_check_status(void) {
         struct onvm_nf_info *nf;
         struct lpm_request *req_lpm;
         int num_msgs = rte_ring_count(incoming_msg_queue);
+        uint16_t stop_nf_id;
 
         if (num_msgs == 0)
                 return;
@@ -133,19 +154,24 @@ onvm_nf_check_status(void) {
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_start(nf) == 0) {
-                                        onvm_stats_add_event("NF Starting", nf);
+                                        onvm_stats_gen_event_nf_info("NF Starting", nf);
                                 }
                                 break;
                         case MSG_NF_READY:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
-                                        onvm_stats_add_event("NF Ready", nf);
+                                        onvm_stats_gen_event_nf_info("NF Ready", nf);
                                 }
                                 break;
                         case MSG_NF_STOPPING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
+                                if (nf == NULL)
+                                        break;
+
+                                /* Saved as onvm_nf_stop frees the memory */
+                                stop_nf_id = nf->instance_id;
                                 if (onvm_nf_stop(nf) == 0) {
-                                        onvm_stats_add_event("NF Stopping", nf);
+                                        onvm_stats_gen_event_info("NF Stopping", ONVM_EVENT_NF_STOP, &stop_nf_id);
                                 }
                                 break;
                 }
