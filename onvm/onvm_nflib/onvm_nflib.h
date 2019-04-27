@@ -282,4 +282,4 @@ onvm_nflib_request_lpm(struct lpm_request *req);
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 
-#endif  // _ONVM_NFLIB_H_
+#endif // _ONVM_NFLIB_H_

@@ -321,6 +321,7 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 static int
 onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *startup_msg;
+        struct onvm_nf *nf;
 
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
@@ -376,14 +377,23 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
 
+        nf = &nfs[nf_info->instance_id];
+
         /* Set mode to UNKNOWN, to be determined later */
-        nfs[nf_info->instance_id].nf_mode = NF_MODE_UNKNOWN;
+        nf->nf_mode = NF_MODE_UNKNOWN;
 
         /* Initialize empty NF's tx manager */
-        onvm_nflib_nf_tx_mgr_init(&nfs[nf_info->instance_id]);
+        onvm_nflib_nf_tx_mgr_init(nf);
 
         /* Set the parent id to none */
-        nfs[nf_info->instance_id].parent = 0;
+        nf->parent = 0;
+
+        /* In case this instance_id is reused, clear all function pointers */
+        nf->nf_pkt_function = NULL;
+        nf->nf_callback_function = NULL;
+        nf->nf_advanced_rings_function = NULL;
+        nf->nf_setup_function = NULL;
+        nf->nf_handle_msg_function = NULL;
 
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_info->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_info->service_id);
@@ -476,6 +486,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
 int
 onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, callback_handler_func callback) {
         struct onvm_nf *nf;
+        int ret;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
         signal(SIGINT, onvm_nflib_handle_signal);
@@ -494,8 +505,12 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
         nf->nf_callback_function = callback;
 
         pthread_t main_loop_thread;
-        pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf);
-        pthread_join(main_loop_thread, NULL);
+        if ((ret = pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf)) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to spawn main loop thread, error %d", ret);
+        }
+        if ((ret = pthread_join(main_loop_thread, NULL)) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to join with main loop thread, error %d", ret);
+        }
 
         return 0;
 }
@@ -546,7 +561,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                         keep_running = !(*callback)(nf->info) && keep_running;
                 }
 
-                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * 
+                if (info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                           TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= info->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         keep_running = 0;
@@ -731,13 +746,13 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
-                RTE_LOG(INFO, APP, "Failed to create thread\n");
+                RTE_LOG(INFO, APP, "Failed to create child thread\n");
                 return -1;
         }
 
         ret = pthread_detach(app_thread);
         if (ret < 0) {
-                RTE_LOG(INFO, APP, "Failed to detach thread\n");
+                RTE_LOG(INFO, APP, "Failed to detach child thread\n");
                 return -1;
         }
 
@@ -930,7 +945,11 @@ onvm_nflib_info_init(const char *tag) {
         info->core = rte_lcore_id();
         info->flags = 0;
         info->status = NF_WAITING_FOR_ID;
-        info->tag = tag;
+
+        /* Allocate memory for the tag so that onvm_mgr can access it */
+        info->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(info->tag, tag, TAG_SIZE);
+
         /* TTL and packet limit disabled by default */
         info->time_to_live = 0;
         info->pkt_limit = 0;
@@ -1030,13 +1049,31 @@ onvm_nflib_handle_signal(int sig) {
 
 static void
 onvm_nflib_cleanup(struct onvm_nf_info *nf_info) {
+        struct onvm_nf *nf;
         if (nf_info == NULL) {
                 return;
         }
 
+        nf = &nfs[nf_info->instance_id];
+
+        /* Cleanup state data */
         if (nf_info->data != NULL) {
                 rte_free(nf_info->data);
                 nf_info->data = NULL;
+        }
+
+        /* Cleanup for the nf_tx_mgr pointers */
+        if (nf->nf_tx_mgr->to_tx_buf != NULL) {
+                free(nf->nf_tx_mgr->to_tx_buf);
+                nf->nf_tx_mgr->to_tx_buf = NULL;
+        }
+        if (nf->nf_tx_mgr->nf_rx_bufs != NULL) {
+                free(nf->nf_tx_mgr->nf_rx_bufs);
+                nf->nf_tx_mgr->nf_rx_bufs = NULL;
+        }
+        if (nf->nf_tx_mgr != NULL) {
+                free(nf->nf_tx_mgr);
+                nf->nf_tx_mgr = NULL;
         }
 
         struct onvm_nf_msg *shutdown_msg;

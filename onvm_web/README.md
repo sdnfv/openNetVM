@@ -63,6 +63,37 @@ Global state is managed via a small publisher/subscriber library located in [pub
 
 **Please note:** If you restart the manager then you will need to refresh the web page to reset the application state.
 
+## Build Installs
+
+The ReactJS app is ready for execution, but follow this process if you need to edit `onvm_web/react-app`
+Assuming you're using an ubuntu system
+
+Install latest stable Node.js version
+```sh
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+# Install Node.js from the Debian-based distributions repository
+sudo apt-get install -y nodejs
+# Use package manager
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n stable
+```
+
+Install yarn with npm
+```sh
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+# Now install with apt-get
+sudo apt-get update && sudo apt-get install yarn
+```
+
+Install programs to minify web files
+```sh
+npm install uglify-js -g
+npm install uglifycss -g
+```
+
 [install]: ../docs/Install.md
 [examples]: ../docs/Examples.md
 [start_web]: ./start_web_console.sh
