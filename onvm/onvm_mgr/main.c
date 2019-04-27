@@ -165,11 +165,13 @@ master_thread_main(void) {
  */
 static int
 rx_thread_main(void *arg) {
-        uint16_t i, rx_count;
+        uint16_t i, rx_count, cur_lcore;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct queue_mgr *rx_mgr = (struct queue_mgr *)arg;
+        cur_lcore = rte_lcore_id();
 
-        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", rte_lcore_id(), rx_mgr->id);
+        onvm_stats_gen_event_info("Rx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
+        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", cur_lcore, rx_mgr->id);
 
         for (; worker_keep_running;) {
                 /* Read ports */
@@ -197,15 +199,17 @@ rx_thread_main(void *arg) {
 static int
 tx_thread_main(void *arg) {
         struct onvm_nf *nf;
-        unsigned i, tx_count;
+        unsigned i, tx_count, cur_lcore;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
+        cur_lcore = rte_lcore_id();
 
+        onvm_stats_gen_event_info("Tx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", cur_lcore,
                         tx_mgr->tx_thread_info->first_nf);
         } else if (tx_mgr->tx_thread_info->first_nf < tx_mgr->tx_thread_info->last_nf) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", cur_lcore,
                         tx_mgr->tx_thread_info->first_nf, tx_mgr->tx_thread_info->last_nf - 1);
         }
 
@@ -268,6 +272,8 @@ main(int argc, char *argv[]) {
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
+
+        onvm_stats_gen_event_info("MGR Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
 
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores - 1);

@@ -108,6 +108,7 @@ onvm_nf_check_status(void) {
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
         int num_msgs = rte_ring_count(incoming_msg_queue);
+        uint16_t stop_nf_id;
 
         if (num_msgs == 0)
                 return;
@@ -122,19 +123,24 @@ onvm_nf_check_status(void) {
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_start(nf) == 0) {
-                                        onvm_stats_add_event("NF Starting", nf);
+                                        onvm_stats_gen_event_nf_info("NF Starting", nf);
                                 }
                                 break;
                         case MSG_NF_READY:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
-                                        onvm_stats_add_event("NF Ready", nf);
+                                        onvm_stats_gen_event_nf_info("NF Ready", nf);
                                 }
                                 break;
                         case MSG_NF_STOPPING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
+                                if (nf == NULL)
+                                        break;
+
+                                /* Saved as onvm_nf_stop frees the memory */
+                                stop_nf_id = nf->instance_id;
                                 if (onvm_nf_stop(nf) == 0) {
-                                        onvm_stats_add_event("NF Stopping", nf);
+                                        onvm_stats_gen_event_info("NF Stopping", ONVM_EVENT_NF_STOP, &stop_nf_id);
                                 }
                                 break;
                 }
