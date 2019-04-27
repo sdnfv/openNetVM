@@ -257,11 +257,9 @@ main(int argc, char *argv[]) {
         unsigned i;
 
         /* initialise the system */
-
-        /* Reserve ID 0 for internal manager things */
-        next_instance_id = 1;
         if (init(argc, argv) < 0)
                 return -1;
+
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         /* clear statistics */
