@@ -72,6 +72,12 @@ extern const char *NF_MSG[3];
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
+/* Handle types of web stats events */
+#define ONVM_EVENT_WITH_CORE 0
+#define ONVM_EVENT_PORT_INFO 1
+#define ONVM_EVENT_NF_INFO 2
+#define ONVM_EVENT_NF_STOP 3
+
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
 #define ONVM_JSON_TIMESTAMP_KEY "last_updated"
@@ -87,6 +93,12 @@ extern const char *NF_MSG[3];
 #define ONVM_RAW_STATS_DUMP 3
 
 typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
+
+struct onvm_event {
+        uint8_t type;
+        const char *msg;
+        void *data;
+};
 
 cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_obj;
@@ -160,6 +172,9 @@ onvm_stats_clear_nf(uint16_t id);
  * Interface called by manager when a new event should be created.
  */
 void
-onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf);
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data);
+
+void
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info);
 
 #endif  // _ONVM_STATS_H_
