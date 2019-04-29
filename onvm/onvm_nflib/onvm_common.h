@@ -319,6 +319,7 @@ struct lpm_request {
 #define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
 #define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
 #define NF_CORE_BUSY 12           // The manually selected core is busy
+#define NF_WAITING_FOR_MGR 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
