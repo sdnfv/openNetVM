@@ -312,6 +312,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         uint64_t start_time;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
+        struct onvm_nf_msg *msg;
+        struct rte_ring *msg_q;
         volatile struct onvm_nf *nf;
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
@@ -333,6 +335,16 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         start_time = rte_get_tsc_cycles();
 
         while (keep_running && rx_ring && tx_ring && nf) {
+                /* Check for a stop message from the manager. */
+                msg_q = nf->msg_q;
+                if (likely(rte_ring_count(msg_q) > 0)) {
+                        msg = NULL;
+                        rte_ring_dequeue(msg_q, (void **) (&msg));
+                        if (msg->msg_type == MSG_STOP) {
+                                keep_running = 0;
+                        }
+                }
+
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
@@ -367,6 +379,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         keep_running = 0;
                 }
         }
+
         onvm_nflib_stop(nf_info);
 }
 
