@@ -379,7 +379,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         keep_running = 0;
                 }
         }
-
         onvm_nflib_stop(nf_info);
 }
 
