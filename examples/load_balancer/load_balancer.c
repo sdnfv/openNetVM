@@ -186,15 +186,16 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         if (!lb->cfg_filename) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a backend server config file.\n");
                 return -1;
+        }
 
-                if (!lb->client_iface_name) {
-                        RTE_LOG(INFO, APP, "Load balancer NF requires a client interface name.\n");
-                        return -1;
-                }
-                if (!lb->server_iface_name) {
-                        RTE_LOG(INFO, APP, "Load balancer NF requires a backend server interface name.\n");
-                        return -1;
-                }
+        if (!lb->client_iface_name) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a client interface name.\n");
+                return -1;
+        }
+
+        if (!lb->server_iface_name) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a backend server interface name.\n");
+                return -1;
         }
 
         return optind;
@@ -248,9 +249,9 @@ parse_backend_config(void) {
         fclose(cfg);
         printf("\nARP config:\n");
         for (i = 0; i < lb->server_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", lb->server[i].d_ip & 0xFF,
-                       (lb->server[i].d_ip >> 8) & 0xFF, (lb->server[i].d_ip >> 16) & 0xFF,
-                       (lb->server[i].d_ip >> 24) & 0xFF);
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
+                       (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF,
+                       lb->server[i].d_ip & 0xFF);
                 printf("%02x:%02x:%02x:%02x:%02x:%02x\n", lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
                        lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3], lb->server[i].d_addr_bytes[4],
                        lb->server[i].d_addr_bytes[5]);

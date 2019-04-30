@@ -103,17 +103,14 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 #define TX_WTHRESH 0  /* Default values of TX write-back threshold reg. */
 
 static const struct rte_eth_conf port_conf = {
-    .rxmode =
-        {
+    .rxmode = {
             .mq_mode = ETH_MQ_RX_RSS,
             .max_rx_pkt_len = ETHER_MAX_LEN,
             .split_hdr_size = 0,
             .offloads = DEV_RX_OFFLOAD_CHECKSUM,
         },
-    .rx_adv_conf =
-        {
-            .rss_conf =
-                {
+    .rx_adv_conf = {
+            .rss_conf = {
                     .rss_key = rss_symmetric_key, .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP | ETH_RSS_L2_PAYLOAD,
                 },
         },
@@ -216,7 +213,7 @@ init(int argc, char *argv[]) {
                         rte_exit(EXIT_FAILURE, "Cannot initialise port %u\n", port_id);
                 char event_msg_buf[22];
                 snprintf(event_msg_buf, sizeof(event_msg_buf), "Port %d initialized", port_id);
-                onvm_stats_add_event(event_msg_buf, NULL);
+                onvm_stats_gen_event_info(event_msg_buf, ONVM_EVENT_PORT_INFO, NULL);
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));

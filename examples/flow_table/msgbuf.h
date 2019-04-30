@@ -38,8 +38,8 @@
  * msgbuf.h - buffer, send and receive the packets to/from controller
  ********************************************************************/
 
-#ifndef MSGBUF_H
-#define MSGBUF_H
+#ifndef _MSGBUF_H_
+#define _MSGBUF_H_
 
 struct msgbuf {
         char *buf;
@@ -68,4 +68,4 @@ void
 msgbuf_push(struct msgbuf *mbuf, char *buf, int count);
 #define msgbuf_count_buffered(mbuf) ((mbuf->end - mbuf->start))
 
-#endif
+#endif // _MSGBUF_H_

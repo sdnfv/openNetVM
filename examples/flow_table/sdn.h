@@ -38,8 +38,8 @@
  * sdn.h - contact the controller, send request and parse response
  ********************************************************************/
 
-#ifndef SDN_H
-#define SDN_H
+#ifndef _SDN_H_
+#define _SDN_H_
 
 #include <poll.h>
 #include <rte_mbuf.h>
@@ -101,4 +101,5 @@ int
 setup_securechannel(void *);
 void *
 run_securechannel(void *dp);
-#endif
+
+#endif // _SDN_H_
