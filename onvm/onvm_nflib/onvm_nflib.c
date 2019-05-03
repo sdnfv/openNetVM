@@ -101,9 +101,10 @@ static uint8_t keep_running = 1;
 static uint8_t recieved_stop_msg = 0;
 
 // Vars and structs to manage NF termination 
-static uint8_t pre_init_termination = 0;
 rte_atomic16_t nf_init_finished;
+rte_atomic16_t dpdk_init_finished;
 struct onvm_nf *global_nf = NULL;
+#define NF_INIT_TERM_WAIT_TIME 1
 pthread_t sig_loop_thread;
 
 // Shared data for default service chain
@@ -346,6 +347,15 @@ static int
 onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         struct onvm_nf_msg *startup_msg;
         struct onvm_nf *nf;
+        int ret, i;
+
+        if (!keep_running) {
+                /* move somewhere don't want children waiting on this */
+                if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
+                        rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
+                }
+                rte_exit(EXIT_FAILURE, "Exiting due to user termination before got an id\n");
+        }
 
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
@@ -366,14 +376,27 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
         for (; nf_info->status == (uint16_t)NF_WAITING_FOR_ID;) {
                 sleep(1);
-                if (pre_init_termination) {
-                        rte_exit(EXIT_FAILURE, "Exiting before NF got the ID from manager\n");
+                /* TODO rewrite in a clean way */
+                if (!keep_running) {
+                        for (i = 0; i < 3 && nf_info->status != NF_STARTING; i++) 
+                                sleep(NF_INIT_TERM_WAIT_TIME);
+                        if (nf_info->status == NF_STARTING) {
+                                nf = &nfs[nf_info->instance_id];
+                                /* Signal handler will now do proper cleanup, only called from main thread */
+                                if (rte_atomic16_read(&nf_init_finished) == 0) {
+                                        global_nf = nf;
+                                        rte_atomic16_set(&nf_init_finished, 1);
+                                }
+                        }
+                        /* move somewhere don't want children waiting on this */
+                        if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
+                                rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
+                        }
+                        if (nf_info->status == NF_STARTING)
+                                onvm_nflib_stop(nf_info);
+                        rte_exit(EXIT_FAILURE, "Exiting due to user termination\n");
                 }
         }
-
-        /* Signal handler will now do proper cleanup */
-        global_nf = &nfs[nf_info->instance_id];
-        rte_atomic16_set(&nf_init_finished, 1);
 
         /* This NF is trying to declare an ID already in use. */
         if (nf_info->status == NF_ID_CONFLICT) {
@@ -409,6 +432,12 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         }
 
         nf = &nfs[nf_info->instance_id];
+
+        /* Signal handler will now do proper cleanup, only called from main thread */
+        if (rte_atomic16_read(&nf_init_finished) == 0) {
+                global_nf = nf;
+                rte_atomic16_set(&nf_init_finished, 1);
+        }
 
         /* Set mode to UNKNOWN, to be determined later */
         nf->nf_mode = NF_MODE_UNKNOWN;
@@ -481,6 +510,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 printf("LOADED CONFIG SUCCESFULLY\n");
         }
 
+        rte_atomic16_init(&dpdk_init_finished);
+        rte_atomic16_set(&dpdk_init_finished, 0);
+        rte_atomic16_init(&nf_init_finished);
+        rte_atomic16_set(&nf_init_finished, 0);
+
         /* This need to be done before dpdk init to properly block signals */
         sigemptyset(&mask);
         sigaddset(&mask, SIGINT);
@@ -490,8 +524,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 return -1;
         }
 
-        rte_atomic16_init(&nf_init_finished);
-        rte_atomic16_set(&nf_init_finished, 0);
         /* Initialize signal handling thread to listen to, and process shutdown signals */
         ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)&global_nf);
         if (ret != 0) {
@@ -502,6 +534,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         retval_eal = onvm_nflib_dpdk_init(argc, argv);
         if (retval_eal < 0)
                 return retval_eal;
+        rte_atomic16_set(&dpdk_init_finished, 1);
 
         /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
         argc -= retval_eal;
@@ -536,8 +569,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         retval_final = (retval_eal + retval_parse) - 1;
 
         onvm_nflib_start_nf(nf_info);
-
-        keep_running = 1;
 
         // Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
         if (use_config) {
@@ -580,7 +611,9 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
                                 return -1;
                         }
                 }
-                pthread_join(sig_loop_thread, NULL);
+                if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
+                        rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
+                }
         }
 
         return 0;
@@ -1013,29 +1046,30 @@ nf_signal_handler(void *arg) {
         sigaddset(&mask, SIGINT);
         sigaddset(&mask, SIGTERM);
 
-        //printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
         ret = sigwait(&mask, &signal);
-        if (ret < 0) {
+        if (ret < 0)
                 rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
-        }
+
+        if (signal != SIGINT && signal != SIGTERM)
+                return NULL;
+
+        /* Stops both starting and running NFs */
+        keep_running = 0;
 
         if (rte_atomic16_read(&nf_init_finished) == 0) {
-                pre_init_termination = 1;
-                keep_running = 0;
-                return NULL;
+                sleep(NF_INIT_TERM_WAIT_TIME);
+                /* If still unitialized just exit */
+                if (rte_atomic16_read(&nf_init_finished) == 0)
+                        return NULL;
         }
 
         nf = *(struct onvm_nf **)arg;
         printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
 
-        if (signal == SIGINT || signal == SIGTERM) {
-                keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
-                        rte_atomic16_set(nf->sleep_state, 0);
-                        sem_post(nf->nf_mutex);
-                }
+        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
+                rte_atomic16_set(nf->sleep_state, 0);
+                sem_post(nf->nf_mutex);
         }
-        printf("Signal handling thread finished, exiting\n");
 
         return NULL;
 }
@@ -1203,13 +1237,15 @@ onvm_nflib_cleanup(struct onvm_nf_info *nf_info) {
         }
 
         /* Cleanup for the nf_tx_mgr pointers */
-        if (nf->nf_tx_mgr->to_tx_buf != NULL) {
-                free(nf->nf_tx_mgr->to_tx_buf);
-                nf->nf_tx_mgr->to_tx_buf = NULL;
-        }
-        if (nf->nf_tx_mgr->nf_rx_bufs != NULL) {
-                free(nf->nf_tx_mgr->nf_rx_bufs);
-                nf->nf_tx_mgr->nf_rx_bufs = NULL;
+        if (nf->nf_tx_mgr) {
+                if (nf->nf_tx_mgr->to_tx_buf != NULL) {
+                        free(nf->nf_tx_mgr->to_tx_buf);
+                        nf->nf_tx_mgr->to_tx_buf = NULL;
+                }
+                if (nf->nf_tx_mgr->nf_rx_bufs != NULL) {
+                        free(nf->nf_tx_mgr->nf_rx_bufs);
+                        nf->nf_tx_mgr->nf_rx_bufs = NULL;
+                }
         }
         if (nf->nf_tx_mgr != NULL) {
                 free(nf->nf_tx_mgr);
