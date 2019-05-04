@@ -103,8 +103,7 @@ static uint8_t recieved_stop_msg = 0;
 // Vars and structs to manage NF termination 
 rte_atomic16_t nf_init_finished;
 struct onvm_nf *global_nf = NULL;
-#define NF_INIT_TERM_WAIT_TIME 1
-pthread_t sig_loop_thread;
+pthread_t sig_handler_thread;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
@@ -350,7 +349,7 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
 
         if (!keep_running) {
                 /* move somewhere don't want children waiting on this */
-                if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
+                if ((ret = pthread_join(sig_handler_thread, NULL)) < 0) {
                         rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
                 }
                 rte_exit(EXIT_FAILURE, "Exiting due to user termination before got an id\n");
@@ -375,24 +374,16 @@ onvm_nflib_start_nf(struct onvm_nf_info *nf_info) {
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
         for (; nf_info->status == (uint16_t)NF_WAITING_FOR_ID;) {
                 sleep(1);
-                /* TODO rewrite in a clean way */
                 if (!keep_running) {
-                        for (i = 0; i < 3 && nf_info->status != NF_STARTING; i++) 
-                                sleep(NF_INIT_TERM_WAIT_TIME);
-                        if (nf_info->status == NF_STARTING) {
-                                nf = &nfs[nf_info->instance_id];
-                                /* Signal handler will now do proper cleanup, only called from main thread */
-                                if (rte_atomic16_read(&nf_init_finished) == 0) {
-                                        global_nf = nf;
-                                        rte_atomic16_set(&nf_init_finished, 1);
-                                }
-                        }
-                        /* move somewhere don't want children waiting on this */
-                        if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
-                                rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
-                        }
+                        /* Wait because we sent a message to the onvm_mgr */
+                        for (i = 0; i < INIT_TERM_ITER_TIMES && nf_info->status != NF_STARTING; i++)
+                                sleep(INIT_TERM_WAIT_TIME);
+                        /* If initialized gracefully cleanup */
                         if (nf_info->status == NF_STARTING)
                                 onvm_nflib_stop(nf_info);
+                        if ((ret = pthread_join(sig_handler_thread, NULL)) < 0) {
+                                rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
+                        }
                         rte_exit(EXIT_FAILURE, "Exiting due to user termination\n");
                 }
         }
@@ -522,7 +513,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         }
 
         /* Initialize signal handling thread to listen to, and process shutdown signals */
-        ret = pthread_create(&sig_loop_thread, NULL, nf_signal_handler, (void *)&global_nf);
+        ret = pthread_create(&sig_handler_thread, NULL, nf_signal_handler, (void *)&global_nf);
         if (ret != 0) {
                 printf("Can't start signal handler\n");
                 return -1;
@@ -601,13 +592,11 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func handler, cal
 
         if (nf->parent == 0) {
                 if (recieved_stop_msg) {
-                        ret = pthread_kill(sig_loop_thread, SIGINT);
-                        if (ret < 0) {
-                                printf("Can't stop signal handling thread\n");
-                                return -1;
+                        if ((ret = pthread_kill(sig_handler_thread, SIGINT)) < 0) {
+                                rte_exit(EXIT_FAILURE, "Failed to stop signal handler thread, error %d", ret);
                         }
                 }
-                if ((ret = pthread_join(sig_loop_thread, NULL)) < 0) {
+                if ((ret = pthread_join(sig_handler_thread, NULL)) < 0) {
                         rte_exit(EXIT_FAILURE, "Failed to join with signal handler thread, error %d", ret);
                 }
         }
@@ -1052,11 +1041,9 @@ nf_signal_handler(void *arg) {
         /* Stops both starting and running NFs */
         keep_running = 0;
 
+        /* If NF didn't start yet no cleanup is necessary */
         if (rte_atomic16_read(&nf_init_finished) == 0) {
-                sleep(NF_INIT_TERM_WAIT_TIME);
-                /* If still unitialized just exit */
-                if (rte_atomic16_read(&nf_init_finished) == 0)
-                        return NULL;
+                return NULL;
         }
 
         nf = *(struct onvm_nf **)arg;
