@@ -102,7 +102,6 @@ static uint8_t recieved_stop_msg = 0;
 
 // Vars and structs to manage NF termination 
 rte_atomic16_t nf_init_finished;
-rte_atomic16_t dpdk_init_finished;
 struct onvm_nf *global_nf = NULL;
 #define NF_INIT_TERM_WAIT_TIME 1
 pthread_t sig_loop_thread;
@@ -510,8 +509,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
                 printf("LOADED CONFIG SUCCESFULLY\n");
         }
 
-        rte_atomic16_init(&dpdk_init_finished);
-        rte_atomic16_set(&dpdk_init_finished, 0);
         rte_atomic16_init(&nf_init_finished);
         rte_atomic16_set(&nf_init_finished, 0);
 
@@ -534,7 +531,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
         retval_eal = onvm_nflib_dpdk_init(argc, argv);
         if (retval_eal < 0)
                 return retval_eal;
-        rte_atomic16_set(&dpdk_init_finished, 1);
 
         /* Modify argc and argv to conform to getopt rules for parse_nflib_args */
         argc -= retval_eal;
