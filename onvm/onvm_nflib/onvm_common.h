@@ -93,6 +93,10 @@
 /* Measured in seconds */
 #define TIME_TTL_MULTIPLIER 1
 
+/* For NF termination handling */
+#define INIT_TERM_WAIT_TIME 1
+#define INIT_TERM_ITER_TIMES 3
+
 struct onvm_pkt_meta {
         uint8_t action;       /* Action to be performed */
         uint16_t destination; /* where to go next */
