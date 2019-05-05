@@ -49,27 +49,22 @@ APP = stateful_firewall
 # all source are stored in SRCS-y
 SRCS-y := stateful_firewall.c
 
-# CPPFLAGS = -std=c++11 
-# OpenNetVM path
+# OpenNetVM, DPDK and NFD path
 ONVM= $(SRCDIR)/../../../onvm
 DPDK= $(SRCDIR)/../../../dpdk
 NFD= $(SRCDIR)/..
 
 CC=g++
 
-
-CPPFLAGS = -O3 $(USER_FLAGS) -lpcap -std=c++11
+CPPFLAGS = -O3 $(USER_FLAGS) -lpcap -std=c++11 -march=native
 CPPFLAGS += -I$(ONVM)/onvm_nflib
 CPPFLAGS += -I$(ONVM)/lib
 CPPFLAGS += -I$(DPDK)/build/include
 CPPFLAGS += -I$(NFD)/include/
 
 LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
-LDFLAGS += $(NFD)/lib/libNFD.a
-LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm -lstdc++ -lpcap
-
-# $(info $(RTE_TARGET))
-# $(info $(LDFLAGS))
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a 
+LDFLAGS += $(NFD)/lib/libNFD.a -lm -lstdc++ -lpcap
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
