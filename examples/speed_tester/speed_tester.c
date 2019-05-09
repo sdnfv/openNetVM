@@ -336,10 +336,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         start_time = rte_get_tsc_cycles();
 
         while (keep_running && rx_ring && tx_ring && nf) {
-                tx_batch_size = 0;
-                /* Dequeue all packets in ring up to max possible. */
-                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
-
                 /* Check for a stop message from the manager. */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
@@ -350,7 +346,12 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
+                        rte_mempool_put(rte_mempool_lookup(_NF_MSG_POOL_NAME), (void *)msg);
                 }
+
+                tx_batch_size = 0;
+                /* Dequeue all packets in ring up to max possible. */
+                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
                         continue;
