@@ -314,6 +314,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         struct rte_ring *tx_ring;
         struct onvm_nf_msg *msg;
         struct rte_ring *msg_q;
+        struct rte_mempool *nf_msg_pool;
         volatile struct onvm_nf *nf;
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
@@ -346,7 +347,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
-                        rte_mempool_put(rte_mempool_lookup(_NF_MSG_POOL_NAME), (void *)msg);
+                        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+                        rte_mempool_put(nf_msg_pool, (void *)msg);
                 }
 
                 tx_batch_size = 0;
