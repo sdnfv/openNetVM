@@ -73,6 +73,8 @@
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 #define DEFAULT_NUM_CHILDREN 1
 
+struct onvm_nf_context *global_termination_context;
+
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
@@ -87,30 +89,34 @@ uint8_t ONVM_ENABLE_SHARED_CPU;
 void
 nf_setup(struct onvm_nf_context *nf_context);
 
-struct onvm_nf_context *global_context;
-void sig_handler(int signo);
+void sig_handler(int sig);
 
-void sig_handler(int signo)
-{
-        if (signo != SIGINT && signo != SIGTERM)
-                return;
-        printf("Sig handler received SIGINT\n");
+void sig_handler(int sig) {
         struct onvm_nf *nf;
 
-        global_context->keep_running = 0;
+        if (sig != SIGINT && sig != SIGTERM)
+                return;
 
-        if (rte_atomic16_read(&global_context->nf_init_finished) == 0) {
+        /* Stops both starting and running NFs */
+        global_termination_context->keep_running = 0;
+
+        /* If NF didn't start yet no cleanup is necessary */
+        if (rte_atomic16_read(&global_termination_context->nf_init_finished) == 0) {
                 return;
         }
- 
-        nf = global_context->nf;
-        printf("Signal handling for NF %d, got signal %d\n", nf->instance_id, signo);
-        if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
+
+        /* If NF is asleep, wake it up */
+        nf = global_termination_context->nf;
+        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
                 rte_atomic16_set(nf->sleep_state, 0);
                 sem_post(nf->nf_mutex);
         }
-        printf("Signal handling thread finished, exiting\n");
+
+        /* All the child termination will be done later in onvm_nflib_stop */
+
+        return;
 }
+
 /*
  * Print a usage message
  */
@@ -418,7 +424,7 @@ main(int argc, char *argv[]) {
         *(uint16_t *)nf_info->data = nf_info->service_id;
 
         if (use_direct_rings) {
-                global_context = nf_context;
+                global_termination_context = nf_context;
                 signal(SIGINT, sig_handler);
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_config = onvm_nflib_get_onvm_config();

@@ -236,14 +236,13 @@ static void
 init_shared_cpu_info(uint16_t instance_id);
 
 /*
- * Signal handler thread entry point
- * The thread is only spawned from the main thread
+ * Signal handler to catch SIGINT/SIGTERM.
  *
- * Input : double void pointer to onvm_nf struct
+ * Input : int corresponding to the signal catched
  *
  */
 void
-nf_signal_handler(int signal);
+onvm_nflib_handle_signal(int signal);
 
 /************************************API**************************************/
 
@@ -265,12 +264,12 @@ onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context) {
         printf("[Press Ctrl-C to quit ...]\n");
         /* signal is the C standard */
         global_termination_context = nf_context;
-        signal(SIGINT, nf_signal_handler);
-        signal(SIGTERM, nf_signal_handler);
+        signal(SIGINT, onvm_nflib_handle_signal);
+        signal(SIGTERM, onvm_nflib_handle_signal);
         /*
          * sigaction is a bit more robust might use it instead
         struct sigaction psa;
-        psa.sa_handler = nf_signal_handler;
+        psa.sa_handler = onvm_nflib_handle_signal;
         sigaction(SIGINT, &psa, NULL);
         */
 
@@ -1036,10 +1035,10 @@ onvm_nflib_start_child(void *arg) {
 }
 
 void
-nf_signal_handler(int signal) {
+onvm_nflib_handle_signal(int sig) {
         struct onvm_nf *nf;
 
-        if (signal != SIGINT && signal != SIGTERM)
+        if (sig != SIGINT && sig != SIGTERM)
                 return;
 
         /* Stops both starting and running NFs */
