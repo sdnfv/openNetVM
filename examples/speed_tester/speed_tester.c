@@ -110,11 +110,6 @@ char *pcap_filename = NULL;
 void
 nf_setup(struct onvm_nf_context *nf_context);
 
-/*
-void *
-signal_handler(void *arg);
-*/
-
 void sig_handler(int signo);
 
 void sig_handler(int signo)
@@ -323,30 +318,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
         return 0;
 }
-
-/*
-static int
-start_advanced_rings_signal_handler(struct onvm_nf_context *nf_context) {
-        int ret;
-        sigset_t mask;
-
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-                printf("Could not set pthread sigmast\n");
-                return -1;
-        }
-
-        ret = pthread_create(&nf_context->sig_handler_thread, NULL, signal_handler, (void *)nf_context);
-        if (ret != 0) {
-                printf("Can't start the advanced rings NF signal hadling thread\n");
-                return -1;
-        }
-
-        return 0;
-}
-*/
 
 static void
 run_advanced_rings(struct onvm_nf_context *nf_context) {

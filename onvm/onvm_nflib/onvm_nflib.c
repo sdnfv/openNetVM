@@ -95,10 +95,6 @@ static struct rte_mempool *nf_info_mp;
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
-// True as long as the NF should keep processing packets
-// If recieved stop msg we need to take care of the signal thread
-static uint8_t recieved_stop_msg = 0;
-
 // Global Vars and structs to manage NF termination 
 static struct onvm_nf_context *global_termination_context;
 
@@ -266,9 +262,11 @@ onvm_nflib_init_nf_context(void) {
 
 int
 onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context) {
+        printf("[Press Ctrl-C to quit ...]\n");
         /* signal is the C standard */
         global_termination_context = nf_context;
         signal(SIGINT, nf_signal_handler);
+        signal(SIGTERM, nf_signal_handler);
         /*
          * sigaction is a bit more robust might use it instead
         struct sigaction psa;
@@ -411,7 +409,6 @@ onvm_nflib_thread_main_loop(void *arg) {
                 nf->nf_setup_function(nf_context);
 
         start_time = rte_get_tsc_cycles();
-        printf("[Press Ctrl-C to quit ...]\n");
         for (; nf_context->keep_running;) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
 
@@ -503,7 +500,6 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_contex
         switch (msg->msg_type) {
                 case MSG_STOP:
                         RTE_LOG(INFO, APP, "Shutting down...\n");
-                        recieved_stop_msg = 1;
                         nf_context->keep_running = 0;
                         break;
                 case MSG_SCALE:
@@ -1041,24 +1037,8 @@ onvm_nflib_start_child(void *arg) {
 
 void
 nf_signal_handler(int signal) {
-        //int signal, ret;
-        //struct onvm_nf_context *nf_context;
         struct onvm_nf *nf;
-        /*
-        sigset_t mask;
 
-        nf_context = (struct onvm_nf_context*)arg;
-
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-
-        ret = sigwait(&mask, &signal);
-        if (ret < 0)
-                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
-        */
-
-        printf("Signal handler recieved signal %d\n", signal);
         if (signal != SIGINT && signal != SIGTERM)
                 return;
 
@@ -1070,14 +1050,14 @@ nf_signal_handler(int signal) {
                 return;
         }
 
+        /* If NF is asleep, wake it up */
         nf = global_termination_context->nf;
-        //*(struct onvm_nf **)arg;
-        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-
         if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
                 rte_atomic16_set(nf->sleep_state, 0);
                 sem_post(nf->nf_mutex);
         }
+
+        /* All the child termination will be done later in onvm_nflib_stop */
 
         return;
 }

@@ -137,17 +137,17 @@ master_thread_main(void) {
 
         /* Tell all NFs to stop */
         for (i = 0; i < MAX_NFS; i++) {
-                if (nfs[i].info == NULL) {
+                if (nfs[i].info == NULL)
                         continue;
-                }
+
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
 
                 /* If in shared cpu mode NFs might be sleeping */
-                if (ONVM_ENABLE_SHARED_CPU) {
-                                nf_wakeup_infos[i].num_wakeups++;
-                                rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
-                                sem_post(nf_wakeup_infos[i].mutex);
+                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
+                        nf_wakeup_infos[i].num_wakeups++;
+                        rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
+                        sem_post(nf_wakeup_infos[i].mutex);
                 }
         }
 
