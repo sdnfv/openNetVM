@@ -210,15 +210,16 @@ struct core_status {
 };
 
 struct onvm_nf_info;
+struct onvm_nf_context;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                                __attribute__((unused)) struct onvm_nf_info *nf_info);
+                                __attribute__((unused)) struct onvm_nf_context *nf_context);
 /* Function prototype for NF callback handlers */
 typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NFs running advanced rings */
-typedef void (*advanced_rings_func)(struct onvm_nf_info *nf_info);
+typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void (*setup_func)(struct onvm_nf_info *nf_info);
+typedef void (*setup_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs to handle custom messages */
 typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
 
@@ -238,6 +239,14 @@ struct onvm_nf_scale_info {
         handle_msg_func handle_msg_function;
 };
 
+struct onvm_nf_context {
+        /* should be atomic as there might be race cond between threads */
+        uint8_t keep_running;
+        struct onvm_nf *nf;
+        struct onvm_nf_info *nf_info;
+        rte_atomic16_t nf_init_finished;
+};
+
 /*
  * Define a nf structure with all needed info, including
  * stats from the nfs.
@@ -254,6 +263,8 @@ struct onvm_nf {
         uint16_t parent;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
+        /* Pointer to NF context (used for signal handling/termination */
+        struct onvm_nf_context *context;
 
         /* NF specific functions */
         pkt_handler_func nf_pkt_function;

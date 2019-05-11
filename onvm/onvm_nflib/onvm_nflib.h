@@ -58,6 +58,24 @@
 /************************************API**************************************/
 
 /**
+ * Initialize the starting OpenNetVM NF context.
+ *
+ * @return
+ * Pointer to the created NF context
+ */
+struct onvm_nf_context *
+onvm_nflib_init_nf_context(void);
+
+/**
+ * Initialize the default OpenNetVM signal handling.
+ *
+ * @return
+ * Error code or 0 if succesfull 
+ */
+int
+onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context);
+
+/**
  * Initialize the OpenNetVM container Library.
  * This will setup the DPDK EAL as a secondary process, and notify the host
  * that there is a new NF.
@@ -79,7 +97,7 @@
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);//struct onvm_nf_info **nf_info_p);
 
 /**
  * Run the OpenNetVM container Library.
@@ -96,7 +114,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info 
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func pkt_handler,
+onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func pkt_handler,
                         callback_handler_func callback_handler);
 
 /**
@@ -111,7 +129,7 @@ onvm_nflib_run_callback(struct onvm_nf_info *info, pkt_handler_func pkt_handler,
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_info *info, pkt_handler_func pkt_handler);
+onvm_nflib_run(struct onvm_nf_context *nf_context, pkt_handler_func pkt_handler);
 
 /**
  * Return a packet that was created by the NF or has previously had the
@@ -163,7 +181,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info);
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info);
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_context);
 
 int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
@@ -173,10 +191,10 @@ onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
  * Sends shutdown message to manager.
  *
  * @param info
- *   Pointer to the info struct for this NF.
+ *   Pointer to the context struct for this NF.
  */
 void
-onvm_nflib_stop(struct onvm_nf_info *nf_info);
+onvm_nflib_stop(struct onvm_nf_context *nf_context);
 
 /**
  * Return the tx_ring associated with this NF.

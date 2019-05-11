@@ -78,14 +78,11 @@
 #define DEFAULT_LAT_PKT_NUM 16
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 /* number of package between each print */
 static uint32_t print_delay = 10000000;
 static uint16_t destination;
 static uint8_t use_direct_rings = 0;
-static uint8_t keep_running = 1;
+struct onvm_nf_context *global_context;
 
 /*user defined packet size and destination mac address
 *size defaults to ethernet header length
@@ -111,10 +108,36 @@ static uint8_t ONVM_ENABLE_SHARED_CPU = 0;
 char *pcap_filename = NULL;
 
 void
-nf_setup(struct onvm_nf_info *nf_info);
+nf_setup(struct onvm_nf_context *nf_context);
 
+/*
 void *
 signal_handler(void *arg);
+*/
+
+void sig_handler(int signo);
+
+void sig_handler(int signo)
+{
+        if (signo != SIGINT && signo != SIGTERM)
+                return;
+        printf("Sig handler received SIGINT\n");
+        struct onvm_nf *nf;
+
+        global_context->keep_running = 0;
+
+        if (rte_atomic16_read(&global_context->nf_init_finished) == 0) {
+                return;
+        }
+ 
+        nf = global_context->nf;
+        printf("Signal handling for NF %d, got signal %d\n", nf->instance_id, signo);
+        if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
+                rte_atomic16_set(nf->sleep_state, 0);
+                sem_post(nf->nf_mutex);
+        }
+        printf("Signal handling thread finished, exiting\n");
+}
 
 /*
  * Print a usage message
@@ -274,7 +297,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_context *nf_context) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -301,73 +324,57 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-void *
-signal_handler(void *arg) {
-        int signal, ret;
-        struct onvm_nf *nf;
+/*
+static int
+start_advanced_rings_signal_handler(struct onvm_nf_context *nf_context) {
+        int ret;
         sigset_t mask;
 
-        nf = (struct onvm_nf *)arg;
         sigemptyset(&mask);
         sigaddset(&mask, SIGINT);
         sigaddset(&mask, SIGTERM);
-
-        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
-        ret = sigwait(&mask, &signal);
-        if (ret < 0) {
-                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
+        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
+                printf("Could not set pthread sigmast\n");
+                return -1;
         }
 
-        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-
-        if (signal == SIGINT || signal == SIGTERM) {
-                keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
-                        rte_atomic16_set(nf->sleep_state, 0);
-                        sem_post(nf->nf_mutex);
-                }
+        ret = pthread_create(&nf_context->sig_handler_thread, NULL, signal_handler, (void *)nf_context);
+        if (ret != 0) {
+                printf("Can't start the advanced rings NF signal hadling thread\n");
+                return -1;
         }
-        printf("Signal handling thread finished, exiting\n");
 
-        return NULL;
-
+        return 0;
 }
+*/
 
 static void
-run_advanced_rings(struct onvm_nf_info *nf_info) {
+run_advanced_rings(struct onvm_nf_context *nf_context) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
-        uint16_t i, j, ret, nb_pkts;
+        uint16_t i, j, nb_pkts;
         void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         uint64_t start_time;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         struct onvm_nf *nf;
-        pthread_t sig_loop_thread;
+        struct onvm_nf_info *nf_info;
 
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
+        /* Get rings from nflib */
+        nf_info = nf_context->nf_info;
+        nf = onvm_nflib_get_nf(nf_info->instance_id);
+        rx_ring = nf->rx_q;
+        tx_ring = nf->tx_q;
 
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
         onvm_threading_core_affinitize(nf_info->core);
 
-        /* Get rings from nflib */
-        nf = onvm_nflib_get_nf(nf_info->instance_id);
-        rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
-
-        /* Initialize signal handling thread to listen to, and process shutdown signals */
-        ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
-        if (ret != 0) {
-                printf("Can't start the advanced rings NF signal hadling thread\n");
-                return;
-        }
-
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         start_time = rte_get_tsc_cycles();
 
-        while (keep_running && rx_ring && tx_ring && nf) {
+        while (nf_context->keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
@@ -382,7 +389,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_info);
+                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -398,23 +405,22 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 if (nf_info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                              TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf_info->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
-                        keep_running = 0;
+                        nf_context->keep_running = 0;
                 }
                 if (nf_info->pkt_limit && unlikely(nf->stats.rx >=
                                           (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
-                        keep_running = 0;
+                        nf_context->keep_running = 0;
                 }
         }
-        onvm_nflib_stop(nf_info);
-        pthread_join(sig_loop_thread, NULL);
+        onvm_nflib_stop(nf_context);
 }
 
 /*
  * Generates fake packets or loads them from a pcap file
  */
 void
-nf_setup(struct onvm_nf_info *nf_info) {
+nf_setup(struct onvm_nf_context *nf_context) {
         uint32_t i;
         uint32_t pkts_generated;
         struct rte_mempool *pktmbuf_pool;
@@ -422,7 +428,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
         pkts_generated = 0;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -523,7 +529,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         pkts[i] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_context->nf_info, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
@@ -539,30 +545,38 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
         struct onvm_configuration *onvm_config;
+        struct onvm_nf_context *nf_context;
+        struct onvm_nf_info *nf_info;
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+        nf_context = onvm_nflib_init_nf_context();
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
 
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
+
+        nf_info = nf_context->nf_info;
 
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
         if (use_direct_rings) {
+                global_context = nf_context;
+                signal(SIGINT, sig_handler);
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
-                nf_setup(nf_info);
+                nf_setup(nf_context);
                 onvm_nflib_nf_ready(nf_info);
-                run_advanced_rings(nf_info);
+                run_advanced_rings(nf_context);
         } else {
-                onvm_nflib_run(nf_info, &packet_handler);
+                onvm_nflib_run(nf_context, &packet_handler);
         }
         printf("If we reach here, program is ending\n");
         return 0;

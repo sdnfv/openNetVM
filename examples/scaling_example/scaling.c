@@ -77,7 +77,6 @@ static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
 static uint8_t use_shared_cpu_core_allocation = 0;
-static uint8_t keep_running = 1;
 
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
@@ -85,12 +84,33 @@ static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 uint8_t ONVM_ENABLE_SHARED_CPU;
 
-void *
-signal_handler(void *arg);
-
 void
-nf_setup(struct onvm_nf_info *nf_info);
+nf_setup(struct onvm_nf_context *nf_context);
 
+struct onvm_nf_context *global_context;
+void sig_handler(int signo);
+
+void sig_handler(int signo)
+{
+        if (signo != SIGINT && signo != SIGTERM)
+                return;
+        printf("Sig handler received SIGINT\n");
+        struct onvm_nf *nf;
+
+        global_context->keep_running = 0;
+
+        if (rte_atomic16_read(&global_context->nf_init_finished) == 0) {
+                return;
+        }
+ 
+        nf = global_context->nf;
+        printf("Signal handling for NF %d, got signal %d\n", nf->instance_id, signo);
+        if (ONVM_ENABLE_SHARED_CPU && (nf->nf_mutex) && (rte_atomic16_read(nf->sleep_state) == 1)) {
+                rte_atomic16_set(nf->sleep_state, 0);
+                sem_post(nf->nf_mutex);
+        }
+        printf("Signal handling thread finished, exiting\n");
+}
 /*
  * Print a usage message
  */
@@ -159,9 +179,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                   __attribute__((unused)) struct onvm_nf_info *nf_info) {
+                   __attribute__((unused)) struct onvm_nf_context *nf_context) {
         (void)pkt;
-        meta->destination = *(uint16_t *)nf_info->data;
+        meta->destination = *(uint16_t *)nf_context->nf_info->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
@@ -172,18 +192,18 @@ packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  */
 static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                     __attribute__((unused)) struct onvm_nf_info *nf_info) {
+                     __attribute__((unused)) struct onvm_nf_context *nf_context) {
         (void)pkt;
         /* As this is already a child, 1 NF has been spawned */
         static int spawned_nfs = 1;
-        meta->destination = *(uint16_t *)nf_info->data;
+        meta->destination = *(uint16_t *)nf_context->nf_info->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         /* Spawn children until we hit the set number */
         while (spawned_nfs < num_children) {
-                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_info);
+                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_context->nf_info);
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
-                *state_data = nf_info->service_id;
+                *state_data = nf_context->nf_info->service_id;
                 /* Sets service id of child */
                 scale_info->service_id = destination;
                 /* Run the setup function to generate packets */
@@ -211,7 +231,7 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  * Main packet handler
  */
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_context *nf_context) {
         (void)pkt;
         static uint32_t spawned_child = 0;
         struct onvm_nf_scale_info *scale_info;
@@ -225,7 +245,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 data = (void *)rte_malloc("nf_state_data", sizeof(uint16_t), 0);
                 *(uint16_t *)data = destination;
                 /* Get the filled in scale struct by inheriting parent properties */
-                scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                scale_info = onvm_nflib_inherit_parent_config(nf_context->nf_info, data);
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
@@ -238,75 +258,35 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         rte_exit(EXIT_FAILURE, "Can't initialize the first child!\n");
         }
 
-        meta->destination = nf_info->service_id;
+        meta->destination = nf_context->nf_info->service_id;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
 }
 
-void *
-signal_handler(void *arg) {
-        int signal, ret;
-        struct onvm_nf *nf;
-        sigset_t mask;
-
-        nf = (struct onvm_nf *)arg;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-
-        printf("Signal handling thread for NF %d, waiting for signals\n", nf->instance_id);
-        ret = sigwait(&mask, &signal);
-        if (ret < 0) {
-                rte_exit(EXIT_FAILURE, "Sigwait error, exiting\n");
-        }
-
-        printf("Signal handling thread for NF %d, got signal %d\n", nf->instance_id, signal);
-
-        if (signal == SIGINT || signal == SIGTERM) {
-                keep_running = 0;
-                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
-                        rte_atomic16_set(nf->sleep_state, 0);
-                        sem_post(nf->nf_mutex);
-                }
-        }
-        printf("Signal handling thread finished, exiting\n");
-
-        return NULL;
-}
-
 static void
-run_advanced_rings(struct onvm_nf_info *nf_info) {
+run_advanced_rings(struct onvm_nf_context *nf_context) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
-        uint16_t i, j, nb_pkts, ret;
+        uint16_t i, j, nb_pkts;
         void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         struct onvm_nf *nf;
         static uint8_t spawned_nfs = 0;
-        pthread_t sig_loop_thread;
-
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
+        struct onvm_nf_info *nf_info;
 
         /* Get rings from nflib */
+        nf_info = nf_context->nf_info;
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("[Press Ctrl-C to quit ...]\n");
         /* Set core affinity, as this is adv rings we do it on our own */
         onvm_threading_core_affinitize(nf_info->core);
-
-        /* Initialize signal handling thread to listen to, and process shutdown signals */
-        if (nf->parent == 0) {
-                ret = pthread_create(&sig_loop_thread, NULL, signal_handler, (void *)nf);
-                if (ret != 0) {
-                        printf("Can't start the advanced rings NF signal hadling thread\n");
-                        return;
-                }
-        }
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -335,7 +315,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 }
         }
 
-        while (keep_running && rx_ring && tx_ring && nf) {
+        while (nf_context->keep_running && rx_ring && tx_ring && nf) {
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
@@ -350,7 +330,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_info);
+                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_context);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -363,20 +343,20 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-        onvm_nflib_stop(nf_info);
+        onvm_nflib_stop(nf_context);
 }
 
 /*
  * Generates fake packets or loads them from a pcap file
  */
 void
-nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+nf_setup(__attribute__((unused)) struct onvm_nf_context *nf_context) {
         uint32_t i;
         struct rte_mempool *pktmbuf_pool;
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -400,12 +380,12 @@ nf_setup(__attribute__((unused)) struct onvm_nf_info *nf_info) {
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
                 pmeta = onvm_get_pkt_meta(pkt);
-                pmeta->destination = *(uint16_t *)nf_info->data;
+                pmeta->destination = *(uint16_t *)nf_context->nf_info->data;
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pkt->hash.rss = i;
                 pkt->port = 0;
 
-                onvm_nflib_return_pkt(nf_info, pkt);
+                onvm_nflib_return_pkt(nf_context->nf_info, pkt);
         }
 }
 
@@ -415,15 +395,18 @@ main(int argc, char *argv[]) {
         const char *progname = argv[0];
         struct onvm_nf_info *nf_info;
         struct onvm_configuration *onvm_config;
+        struct onvm_nf_context *nf_context;
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+        nf_context = onvm_nflib_init_nf_context();
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
 
         argc -= arg_offset;
         argv += arg_offset;
-
+        
+        nf_info = nf_context->nf_info;
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
@@ -435,15 +418,17 @@ main(int argc, char *argv[]) {
         *(uint16_t *)nf_info->data = nf_info->service_id;
 
         if (use_direct_rings) {
+                global_context = nf_context;
+                signal(SIGINT, sig_handler);
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 onvm_nflib_nf_ready(nf_info);
-                nf_setup(nf_info);
-                run_advanced_rings(nf_info);
+                nf_setup(nf_context);
+                run_advanced_rings(nf_context);
         } else {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
-                onvm_nflib_run(nf_info, &packet_handler);
+                onvm_nflib_run(nf_context, &packet_handler);
         }
         printf("If we reach here, program is ending\n");
         return 0;
