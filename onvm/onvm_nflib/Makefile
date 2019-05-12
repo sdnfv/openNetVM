@@ -40,6 +40,10 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
+ifeq ($(ONVM_HOME),)
+$(error "Please define the ONVM_HOME environment variable")
+endif
+
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
