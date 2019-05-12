@@ -16,6 +16,6 @@ To contribute to OpenNetVM, please follow these steps:
       - `git pull --rebase upstream develop`
   8. Please fill out the pull request template as best as possible and be very detailed/thorough.
 
-[style]: style/styleguide.md
+[style]: ../style/styleguide.md
 [gitflow]: https://guides.github.com/introduction/flow/
 [commitguide]: https://chris.beams.io/posts/git-commit/

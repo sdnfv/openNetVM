@@ -67,7 +67,7 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
-#define NF_TAG "speed"
+#define NF_TAG "speed_tester"
 
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE ((uint16_t)32)

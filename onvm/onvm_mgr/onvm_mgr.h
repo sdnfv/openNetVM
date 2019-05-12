@@ -79,9 +79,4 @@
 #define TO_PORT 0
 #define TO_NF 1
 
-/***************************Shared global variables***************************/
-
-/* ID to be assigned to the next NF that starts */
-extern uint16_t next_instance_id;
-
 #endif  // _ONVM_MGR_H_

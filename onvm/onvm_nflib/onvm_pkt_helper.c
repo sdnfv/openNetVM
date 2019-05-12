@@ -365,7 +365,7 @@ onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
                 return -1;
         }
 
-        ret = sscanf(ip_str, "%u.%u.%u.%u", &ip[3], &ip[2], &ip[1], &ip[0]);
+        ret = sscanf(ip_str, "%u.%u.%u.%u", &ip[0], &ip[1], &ip[2], &ip[3]);
         if (ret != 4) {
                 return -1;
         }

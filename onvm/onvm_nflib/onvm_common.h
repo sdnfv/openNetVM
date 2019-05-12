@@ -39,8 +39,8 @@
  * onvm_common.h - shared data between host and NFs
  ********************************************************************/
 
-#ifndef _COMMON_H_
-#define _COMMON_H_
+#ifndef _ONVM_COMMON_H_
+#define _ONVM_COMMON_H_
 
 #include <stdint.h>
 
@@ -51,7 +51,7 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
-#define MAX_NFS 128              // total number of NFs allowed
+#define MAX_NFS 128              // total number of concurrent NFs allowed (-1 because ID 0 is reserved)
 #define MAX_SERVICES 32          // total number of unique services allowed
 #define MAX_NFS_PER_SERVICE 32   // max number of NFs per service.
 
@@ -69,7 +69,8 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-// extern uint8_t rss_symmetric_key[40];
+/* Maximum length of NF_TAG including the \0 */
+#define TAG_SIZE 15
 
 // flag operations that should be used on onvm_pkt_meta
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
@@ -190,7 +191,7 @@ struct onvm_nf_scale_info {
         uint16_t service_id;
         uint16_t core;
         uint8_t flags;
-        const char *tag;
+        char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
@@ -256,7 +257,7 @@ struct onvm_nf_info {
         uint16_t core;
         uint8_t flags;
         uint8_t status;
-        const char *tag;
+        char *tag;
         /* If set NF will stop after time reaches time_to_live */
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
@@ -363,4 +364,4 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
-#endif  // _COMMON_H_
+#endif  // _ONVM_COMMON_H_

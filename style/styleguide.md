@@ -214,7 +214,7 @@ We use git to track code changes. Learn how to use it.
 # More Resources
 The contents of this guide are largely stolen from the [Composite Style Guide](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true). Where not discussed here, follow the Composite rules.
 
-[Google's C++ Style Guide](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Header_Files) also provides many reasonable style choices, and is used by many different companies. Where not discussed here or in the Composite guide, follow Google's.
+[Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html) also provides many reasonable style choices, and is used by many different companies. Where not discussed here or in the Composite guide, follow Google's.
 
 # History
 6/21/16:
