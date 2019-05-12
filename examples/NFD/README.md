@@ -21,7 +21,7 @@ make
 then you can compile the NF: 
 
 ```
-cd ../stateful_firewall
+cd ../
 make
 
 ```
