@@ -249,7 +249,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-                RTE_LOG(INFO, APP, "Simple Forward NF requires destination flag -d.\n");
+                RTE_LOG(INFO, APP, "NAPT NF requires destination flag -d.\n");
                 return -1;
         }
 

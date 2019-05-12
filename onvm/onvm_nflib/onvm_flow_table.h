@@ -191,12 +191,10 @@ onvm_ft_fill_key_symmetric(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt
 /* Hash a flow key to get an int. From L3 fwd example */
 static inline uint32_t
 onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len, uint32_t init_val) {
-      // const union ipv4_5tuple_host *k;
         union ipv4_5tuple_host *k;
         uint32_t t;
         const uint32_t *p;
 
-        // k = data;
         k = (union ipv4_5tuple_host*) malloc(sizeof(union ipv4_5tuple_host));
         memcpy(k, data, sizeof(union ipv4_5tuple_host));  
 
