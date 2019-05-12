@@ -371,8 +371,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 }
 
 static void
-onvm_stats_display_client_wakeup_thread_context(int difftime)
-{
+onvm_stats_display_client_wakeup_thread_context(int difftime) {
         uint64_t num_wakeups = 0;
         uint64_t prev_num_wakeups = 0;
         uint64_t wakeup_rate;

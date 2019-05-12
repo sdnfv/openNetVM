@@ -95,7 +95,7 @@ static struct rte_mempool *nf_info_mp;
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
-// Global Vars and structs to manage NF termination 
+// Global NF context to manage signal termination 
 static struct onvm_nf_context *global_termination_context;
 
 // Shared data for default service chain
@@ -969,17 +969,6 @@ onvm_nflib_start_child(void *arg) {
         struct onvm_nf_info *child_info;
         struct onvm_nf_scale_info *scale_info;
         struct onvm_nf_context *child_context;
-
-        /*
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-                printf("Could not set pthread sigmast\n");
-                return NULL;
-        }
-        */
 
         scale_info = (struct onvm_nf_scale_info *)arg;
 
