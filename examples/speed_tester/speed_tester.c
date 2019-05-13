@@ -334,6 +334,9 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
 
+        /* Access the nf msg memory pool */
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+
         start_time = rte_get_tsc_cycles();
 
         while (keep_running && rx_ring && tx_ring && nf) {
@@ -347,7 +350,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
-                        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
                         rte_mempool_put(nf_msg_pool, (void *)msg);
                 }
 

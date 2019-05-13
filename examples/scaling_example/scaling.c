@@ -248,8 +248,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         struct rte_ring *tx_ring;
         struct onvm_nf_msg *msg;
         struct rte_ring *msg_q;
-        volatile struct onvm_nf *nf;
         struct rte_mempool *nf_msg_pool;
+        volatile struct onvm_nf *nf;
         static uint8_t spawned_nfs = 0;
 
         /* Listen for ^C and docker stop so we can exit gracefully */
@@ -267,6 +267,9 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
+
+        /* Access the nf msg memory pool */
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -303,7 +306,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
-                        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
                         rte_mempool_put(nf_msg_pool, (void *)msg);
                 }
 
