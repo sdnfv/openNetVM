@@ -302,8 +302,7 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
                         rte_ring_dequeue(msg_q, (void **)(&msg));
                         if (msg->msg_type == MSG_STOP) {
                                 keep_running = 0;
-                        }
-                        else {
+                        } else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
                         rte_mempool_put(nf_msg_pool, (void *)msg);
