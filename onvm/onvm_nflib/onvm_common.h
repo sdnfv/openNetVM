@@ -222,6 +222,8 @@ typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
 typedef void (*setup_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs to handle custom messages */
 typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
+/* Function prototype for NFs to signal handling */
+typedef void (*handle_signal_func)(int);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
@@ -245,6 +247,7 @@ struct onvm_nf_context {
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
         rte_atomic16_t nf_init_finished;
+        handle_signal_func signal_handler;
 };
 
 /*

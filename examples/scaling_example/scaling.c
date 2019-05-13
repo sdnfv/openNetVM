@@ -424,9 +424,10 @@ main(int argc, char *argv[]) {
         *(uint16_t *)nf_info->data = nf_info->service_id;
 
         if (use_direct_rings) {
+                printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 global_termination_context = nf_context;
                 signal(SIGINT, sig_handler);
-                printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
+                nf_context->signal_handler = sig_handler;
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 onvm_nflib_nf_ready(nf_info);

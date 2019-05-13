@@ -262,10 +262,13 @@ onvm_nflib_init_nf_context(void) {
 int
 onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context) {
         printf("[Press Ctrl-C to quit ...]\n");
-        /* signal is the C standard */
         global_termination_context = nf_context;
-        signal(SIGINT, onvm_nflib_handle_signal);
-        signal(SIGTERM, onvm_nflib_handle_signal);
+        if (nf_context->signal_handler == NULL)
+                nf_context->signal_handler = onvm_nflib_handle_signal;
+        
+        /* signal is the C standard */
+        signal(SIGINT, nf_context->signal_handler);
+        signal(SIGTERM, nf_context->signal_handler);
         /*
          * sigaction is a bit more robust might use it instead
         struct sigaction psa;
@@ -1215,8 +1218,8 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
                 return;
         }
 
-        nf = nf_context->nf;
         nf_info = nf_context->nf_info;
+        nf = &nfs[nf_info->instance_id];
 
         /* Cleanup state data */
         if (nf_info->data != NULL) {
