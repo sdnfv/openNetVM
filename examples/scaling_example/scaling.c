@@ -267,8 +267,6 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
-
-        /* Access the nf msg memory pool */
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
         /* Testing NF scaling */
