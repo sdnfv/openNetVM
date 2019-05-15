@@ -213,7 +213,7 @@ struct onvm_nf_info;
 struct onvm_nf_context;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                                __attribute__((unused)) struct onvm_nf_context *nf_context);
+                                __attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NF callback handlers */
 typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NFs running advanced rings */
@@ -247,7 +247,6 @@ struct onvm_nf_context {
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
         rte_atomic16_t nf_init_finished;
-        handle_signal_func signal_handler;
 };
 
 /*
@@ -264,6 +263,7 @@ struct onvm_nf {
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
+        uint16_t children_cnt;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
         /* Pointer to NF context (used for signal handling/termination */

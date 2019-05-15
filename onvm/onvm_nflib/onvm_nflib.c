@@ -260,21 +260,15 @@ onvm_nflib_init_nf_context(void) {
 }
 
 int
-onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context) {
+onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func signal_handler) {
         printf("[Press Ctrl-C to quit ...]\n");
         global_termination_context = nf_context;
-        if (nf_context->signal_handler == NULL)
-                nf_context->signal_handler = onvm_nflib_handle_signal;
+        /* If passed signal handler is NULL, use the default alternative */
+        if (signal_handler == NULL)
+                signal_handler = onvm_nflib_handle_signal;
         
-        /* signal is the C standard */
-        signal(SIGINT, nf_context->signal_handler);
-        signal(SIGTERM, nf_context->signal_handler);
-        /*
-         * sigaction is a bit more robust might use it instead
-        struct sigaction psa;
-        psa.sa_handler = onvm_nflib_handle_signal;
-        sigaction(SIGINT, &psa, NULL);
-        */
+        signal(SIGINT, signal_handler);
+        signal(SIGTERM, signal_handler);
 
         return 0;
 }
@@ -316,7 +310,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
         opterr = 0;
         optind = 1;
 
-        onvm_nflib_start_default_signal_handling(nf_context);
         /* Lookup the info shared or created by the manager */
         onvm_nflib_lookup_shared_structs();
 
@@ -616,12 +609,16 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
+        nfs[scale_info->parent->instance_id].children_cnt++;
+        printf("Bumping up children count here %d\n", nfs[scale_info->parent->instance_id].children_cnt);
+
         /* Careful, this is required for shared cpu scaling TODO: resolve */
         if (ONVM_ENABLE_SHARED_CPU)
                 sleep(1);
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
+                nfs[scale_info->parent->instance_id].children_cnt--;
                 RTE_LOG(INFO, APP, "Failed to create child thread\n");
                 return -1;
         }
@@ -932,7 +929,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->context);
+                ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf->info);
                 /* NF returns 0 to return packets or 1 to buffer */
                 if (likely(ret_act == 0)) {
                         tx_buf.buffer[tx_buf.count++] = pkts[i];
@@ -995,6 +992,7 @@ onvm_nflib_start_child(void *arg) {
         onvm_nflib_start_nf(child_context);
 
         child = &nfs[child_info->instance_id];
+        child_context->nf = child;
         /* Save the parent id for future clean up */
         child->parent = parent->instance_id;
         /* Save nf specifc functions for possible future use */
@@ -1178,41 +1176,36 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
 
 static void
 onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
-        uint8_t all_children_terminated;
         uint16_t i;
 
-        for (i = 0; i < MAX_NFS; i++) {
-                //might be extra, the NFs might not be in running mode yet
-                if (!onvm_nf_is_valid(&nfs[i]))
-                       continue;
-                if (nfs[i].parent == nf_info->instance_id)
-                        nfs[i].context->keep_running = 0;
-        }
-
-        /* Wait for children to quit */
-        do {
-                all_children_terminated = 1;
+        while (nfs[nf_info->instance_id].children_cnt > 0) {
                 for (i = 0; i < MAX_NFS; i++) {
+                        if (nfs[i].context == NULL)
+                               continue;
+                        
+                        if (nfs[i].parent != nf_info->instance_id)
+                                continue;
+
+                        /* First set everything to not running */
+                        nfs[i].context->keep_running = 0;
+                        
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
 
-                        if (nfs[i].parent == nf_info->instance_id) {
-                                all_children_terminated = 0;
-                                if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
-                                        rte_atomic16_set(nfs[i].sleep_state, 0);
-                                        sem_post(nfs[i].nf_mutex);
-                                }
+                        /* Wake up the current NF if sleeping */ 
+                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
+                                rte_atomic16_set(nfs[i].sleep_state, 0);
+                                sem_post(nfs[i].nf_mutex);
                         }
                 }
                 sleep(1);
-        } while (!all_children_terminated);
+        }
 }
 
 static void
 onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
-
 
         if (nf_context == NULL || nf_context->nf_info == NULL) {
                 return;

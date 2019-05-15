@@ -286,6 +286,10 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         nf_info->status = NF_STOPPED;
 
+        /* Tell parent we stopped running */
+        if (nfs[nf_id].parent != 0)
+                nfs[nfs[nf_id].parent].children_cnt--;
+
         /* Remove the NF from the core it was running on */
         cores[nf_info->core].nf_count--;
         cores[nf_info->core].is_dedicated_core = 0;

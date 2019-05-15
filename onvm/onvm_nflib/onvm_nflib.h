@@ -73,7 +73,7 @@ onvm_nflib_init_nf_context(void);
  * Error code or 0 if succesfull 
  */
 int
-onvm_nflib_start_default_signal_handling(struct onvm_nf_context *nf_context);
+onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func signal_hanlder);
 
 /**
  * Initialize the OpenNetVM container Library.
