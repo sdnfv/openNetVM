@@ -249,8 +249,11 @@ inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info) {
         uint16_t nf_id;
         uint16_t service_id;
+        uint16_t nb_pkts, i;
         int mapIndex;
+        struct onvm_nf_msg *msg;
         struct rte_mempool *nf_info_mp;
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
         if(nf_info == NULL || nf_info->status != NF_RUNNING)
                 return 1;
@@ -260,6 +263,20 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         service_id = nf_info->service_id;
         cores[nf_info->core].nf_count--;
         cores[nf_info->core].is_dedicated_core = 0;
+
+        /* Clean up possible left over objects in rings */
+        while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].rx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {
+                for (i = 0; i < nb_pkts; i++)
+                        rte_pktmbuf_free(pkts[i]);
+        }
+        while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].tx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {
+                for (i = 0; i < nb_pkts; i++)
+                        rte_pktmbuf_free(pkts[i]);
+        }
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        while (rte_ring_dequeue(nfs[nf_id].msg_q, (void**)(&msg)) == 0) {
+                rte_mempool_put(nf_msg_pool, (void*)msg);
+        }
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
