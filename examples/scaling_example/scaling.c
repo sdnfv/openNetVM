@@ -414,12 +414,14 @@ main(int argc, char *argv[]) {
                         break;
         }
 
+        /* If we're using direct rings use custom signal handling */
         if (use_direct_rings) {
                 global_termination_context = nf_context;
                 onvm_nflib_start_signal_handler(nf_context, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_context, NULL);
         }
+
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
 

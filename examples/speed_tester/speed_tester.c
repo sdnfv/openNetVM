@@ -296,7 +296,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_context *nf_context) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -364,7 +364,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context);
+                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context->nf_info);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -517,13 +517,30 @@ nf_setup(struct onvm_nf_context *nf_context) {
 
 int
 main(int argc, char *argv[]) {
-        int arg_offset;
-        const char *progname = argv[0];
         struct onvm_configuration *onvm_config;
         struct onvm_nf_context *nf_context;
         struct onvm_nf_info *nf_info;
+        int arg_offset, i;
+
+        const char *progname = argv[0];
 
         nf_context = onvm_nflib_init_nf_context();
+
+        /* Hack to know if we're using advanced rings before running getopts */
+        for (i = argc - 1; i > 0; i--) {
+                if (strcmp(argv[i], "-a"))
+                        use_direct_rings = 1;
+                else if (strcmp(argv[i],"--"))
+                        break;
+        }
+
+        /* If we're using direct rings use custom signal handling */
+        if (use_direct_rings) {
+                global_termination_context = nf_context;
+                onvm_nflib_start_signal_handler(nf_context, sig_handler);
+        } else {
+                onvm_nflib_start_signal_handler(nf_context, NULL);
+        }
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
@@ -543,9 +560,6 @@ main(int argc, char *argv[]) {
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
         if (use_direct_rings) {
-                global_termination_context = nf_context;
-                signal(SIGINT, sig_handler);
-                signal(SIGTERM, sig_handler);
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 nf_setup(nf_context);

@@ -230,25 +230,28 @@ static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, stru
 
 int main(int argc, char *argv[]) {
         int arg_offset;
-        const char *progname = argv[0];
-        struct onvm_nf_info *nf_info;
         struct onvm_pkt_stats *stats;
+        struct onvm_nf_context *nf_context;
+        const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+        nf_context = onvm_nflib_init_nf_context();
+        onvm_nflib_start_signal_handler(nf_context, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
 
         argc -= arg_offset;
         argv += arg_offset;
 
         stats = (struct onvm_pkt_stats *) rte_zmalloc("stats", sizeof(struct onvm_pkt_stats), 0);
-        nf_info->data = (void *) stats;
+        nf_context->nf_info->data = (void *) stats;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_run(nf_info, &packet_handler);
+        onvm_nflib_run(nf_context, &packet_handler);
         printf("If we reach here, program is ending\n");
         return 0;
 }

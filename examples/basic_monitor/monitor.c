@@ -180,24 +180,28 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int
 main(int argc, char *argv[]) {
+        struct onvm_nf_context *nf_context;
         int arg_offset;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
+        nf_context = onvm_nflib_init_nf_context();
+        onvm_nflib_start_signal_handler(nf_context, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
                 return -1;
 
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         cur_cycles = rte_get_tsc_cycles();
         last_cycle = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
         printf("If we reach here, program is ending\n");
         return 0;
 }
