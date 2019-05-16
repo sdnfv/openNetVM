@@ -72,7 +72,7 @@ struct state_info {
 };
 
 /* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
+struct onvm_nf_init_data *nf_init_data;
 struct state_info *state_info;
 
 /* shared data structure containing host port info */
@@ -261,11 +261,11 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
-        return onvm_nflib_return_pkt(nf_info, out_pkt);
+        return onvm_nflib_return_pkt(nf_init_data, out_pkt);
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;

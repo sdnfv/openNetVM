@@ -296,7 +296,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -334,19 +334,19 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         struct onvm_nf *nf;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
 
         /* Get rings from nflib */
-        nf_info = nf_context->nf_info;
-        nf = onvm_nflib_get_nf(nf_info->instance_id);
+        nf_init_data = nf_context->nf_init_data;
+        nf = onvm_nflib_get_nf(nf_init_data->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
-        onvm_threading_core_affinitize(nf_info->core);
+        onvm_threading_core_affinitize(nf_init_data->core);
 
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("Process %d handling packets using advanced rings\n", nf_init_data->instance_id);
         start_time = rte_get_tsc_cycles();
 
         while (nf_context->keep_running && rx_ring && tx_ring && nf) {
@@ -364,7 +364,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context->nf_info);
+                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context->nf);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -377,13 +377,13 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf->stats.tx += tx_batch_size;
                 }
 
-                if (nf_info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
-                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf_info->time_to_live)) {
+                if (nf_init_data->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
+                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf_init_data->time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         nf_context->keep_running = 0;
                 }
-                if (nf_info->pkt_limit && unlikely(nf->stats.rx >=
-                                          (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                if (nf_init_data->pkt_limit && unlikely(nf->stats.rx >=
+                                          (uint64_t) nf_init_data->pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
                         nf_context->keep_running = 0;
                 }
@@ -454,7 +454,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_init_data, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
@@ -504,7 +504,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_context->nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_context->nf, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
@@ -519,7 +519,7 @@ int
 main(int argc, char *argv[]) {
         struct onvm_configuration *onvm_config;
         struct onvm_nf_context *nf_context;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
         int arg_offset, i;
 
         const char *progname = argv[0];
@@ -553,17 +553,17 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        nf_info = nf_context->nf_info;
+        nf_init_data = nf_context->nf_init_data;
 
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf_info, &nf_setup);
+        onvm_nflib_set_setup_function(nf_init_data, &nf_setup);
 
         if (use_direct_rings) {
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 nf_setup(nf_context);
-                onvm_nflib_nf_ready(nf_info);
+                onvm_nflib_nf_ready(nf_init_data);
                 run_advanced_rings(nf_context);
         } else {
                 onvm_nflib_run(nf_context, &packet_handler);

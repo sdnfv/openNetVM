@@ -59,7 +59,7 @@
 #define NF_TAG "simple_forward"
 
 /* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
+struct onvm_nf_init_data *nf_init_data;
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
@@ -154,7 +154,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         static uint32_t counter = 0;
         if (++counter == print_delay) {
                 do_stats_display(pkt);

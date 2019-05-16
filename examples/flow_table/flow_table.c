@@ -72,7 +72,7 @@
 
 /* Struct that contains information about this NF */
 struct onvm_nf_context *global_termination_context;
-struct onvm_nf_info *nf_info;
+struct onvm_nf_init_data *nf_init_data;
 
 struct rte_ring *ring_to_sdn;
 struct rte_ring *ring_from_sdn;
@@ -204,7 +204,7 @@ flow_table_miss(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         static uint32_t counter = 0;
 
         int32_t tbl_index;
@@ -270,8 +270,8 @@ main(int argc, char *argv[]) {
         }
         printf("Flow table running on %d\n", rte_lcore_id());
 
-        nf_info = nf_context->nf_info;
-        def_destination = nf_info->service_id + 1;
+        nf_init_data = nf_context->nf_init_data;
+        def_destination = nf_init_data->service_id + 1;
         printf("Setting up hash table with default destination: %d\n", def_destination);
         total_flows = 0;
 

@@ -209,25 +209,26 @@ struct core_status {
         uint16_t nf_count;
 };
 
-struct onvm_nf_info;
+struct onvm_nf_init_data;
 struct onvm_nf_context;
+struct onvm_nf;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                                __attribute__((unused)) struct onvm_nf_info *nf_info);
+                                __attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NF callback handlers */
-typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info *nf_info);
+typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NFs running advanced rings */
 typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs to handle custom messages */
-typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
+typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_init_data *nf);
 /* Function prototype for NFs to signal handling */
 typedef void (*handle_signal_func)(int);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
-        struct onvm_nf_info *parent;
+        struct onvm_nf_init_data *parent;
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
@@ -245,9 +246,9 @@ struct onvm_nf_context {
         /* should be atomic as there might be race cond between threads */
         uint8_t keep_running;
         struct onvm_nf *nf;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
         rte_atomic16_t nf_init_finished;
-};
+}__attribute__((__packed__));
 
 /*
  * Define a nf structure with all needed info, including
@@ -257,8 +258,19 @@ struct onvm_nf {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
         struct rte_ring *msg_q;
-        struct onvm_nf_info *info;
+        struct onvm_nf_init_data *info;
         uint16_t instance_id;
+        uint16_t service_id;
+        uint16_t core;
+        uint8_t flags;
+        uint8_t status;
+        char *tag;
+        /* If set NF will stop after time reaches time_to_live */
+        uint16_t time_to_live;
+        /* If set NF will stop after pkts TX reach pkt_limit */
+        uint16_t pkt_limit;
+        /* Pointer to NF defined state data */
+        void *data;
         /* Advanced ring mode or packet handler mode */
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
@@ -307,13 +319,13 @@ struct onvm_nf {
         rte_atomic16_t *sleep_state;
         /* Mutex for NF sem_wait */
         sem_t *nf_mutex;
-};
+}__attribute__((__packed__));
 
 /*
  * Define a structure to describe one NF
  * This structure is available in the NF when processing packets or executing the callback.
  */
-struct onvm_nf_info {
+struct onvm_nf_init_data {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
@@ -326,7 +338,7 @@ struct onvm_nf_info {
         uint16_t pkt_limit;
         /* Pointer to NF defined state data */
         void *data;
-};
+}__attribute__((__packed__));
 
 /*
  * Define a structure to describe a service chain entry
@@ -349,7 +361,7 @@ struct onvm_service_chain {
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CORES_STATUS "MProc_cores_info"
-#define MZ_NF_INFO "MProc_nf_info"
+#define MZ_NF_INFO "MProc_nf_init_data"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
 #define MZ_ONVM_CONFIG "MProc_onvm_config"

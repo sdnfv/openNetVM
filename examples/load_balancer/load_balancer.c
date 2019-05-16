@@ -114,7 +114,7 @@ struct flow_info {
 };
 
 /* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
+struct onvm_nf_init_data *nf_init_data;
 
 struct loadbalance *lb;
 /* number of package between each print */
@@ -477,7 +477,7 @@ table_lookup_entry(struct rte_mbuf *pkt, struct flow_info **flow) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((lb->elapsed_cycles - lb->last_cycles) / rte_get_timer_hz() > lb->expire_time) {
@@ -488,7 +488,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         static uint32_t counter = 0;
         struct ipv4_hdr *ip;
         struct ether_hdr *ehdr;

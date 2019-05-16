@@ -74,4 +74,5 @@ elif [[ $dash_dash_cnt -eq 1 ]]; then
   exit 1
 fi
 
+echo exec sudo $BINARY $DPDK_ARGS -- $ONVM_ARGS -- $NF_ARGS 
 exec sudo $BINARY $DPDK_ARGS -- $ONVM_ARGS -- $NF_ARGS 

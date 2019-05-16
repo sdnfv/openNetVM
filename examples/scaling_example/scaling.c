@@ -185,9 +185,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                   __attribute__((unused)) struct onvm_nf_info *nf_info) {
+                   __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         (void)pkt;
-        meta->destination = *(uint16_t *)nf_info->data;
+        meta->destination = *(uint16_t *)nf_init_data->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
@@ -198,18 +198,18 @@ packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  */
 static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                     __attribute__((unused)) struct onvm_nf_info *nf_info) {
+                     __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         (void)pkt;
         /* As this is already a child, 1 NF has been spawned */
         static int spawned_nfs = 1;
-        meta->destination = *(uint16_t *)nf_info->data;
+        meta->destination = *(uint16_t *)nf_init_data->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         /* Spawn children until we hit the set number */
         while (spawned_nfs < num_children) {
-                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_info);
+                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_init_data);
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
-                *state_data = nf_info->service_id;
+                *state_data = nf_init_data->service_id;
                 /* Sets service id of child */
                 scale_info->service_id = destination;
                 /* Run the setup function to generate packets */
@@ -237,7 +237,7 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  * Main packet handler
  */
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         (void)pkt;
         static uint32_t spawned_child = 0;
         struct onvm_nf_scale_info *scale_info;
@@ -251,7 +251,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 data = (void *)rte_malloc("nf_state_data", sizeof(uint16_t), 0);
                 *(uint16_t *)data = destination;
                 /* Get the filled in scale struct by inheriting parent properties */
-                scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                scale_info = onvm_nflib_inherit_parent_config(nf_init_data, data);
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
@@ -264,7 +264,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         rte_exit(EXIT_FAILURE, "Can't initialize the first child!\n");
         }
 
-        meta->destination = nf_info->service_id;
+        meta->destination = nf_init_data->service_id;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
@@ -281,18 +281,18 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         struct rte_ring *tx_ring;
         struct onvm_nf *nf;
         static uint8_t spawned_nfs = 0;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
 
         /* Get rings from nflib */
-        nf_info = nf_context->nf_info;
-        nf = onvm_nflib_get_nf(nf_info->instance_id);
+        nf_init_data = nf_context->nf_init_data;
+        nf = onvm_nflib_get_nf(nf_init_data->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
 
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
+        printf("Process %d handling packets using advanced rings\n", nf_init_data->instance_id);
         printf("[Press Ctrl-C to quit ...]\n");
         /* Set core affinity, as this is adv rings we do it on our own */
-        onvm_threading_core_affinitize(nf_info->core);
+        onvm_threading_core_affinitize(nf_init_data->core);
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -307,7 +307,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
                         *(uint16_t *)data = destination;
                         /* Get the filled in scale struct by inheriting parent properties */
-                        scale_info = onvm_nflib_inherit_parent_config(nf_info, data);
+                        scale_info = onvm_nflib_inherit_parent_config(nf_init_data, data);
                         if (use_shared_cpu_core_allocation)
                                 scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
@@ -336,7 +336,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_info);
+                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_init_data);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -386,12 +386,12 @@ nf_setup(__attribute__((unused)) struct onvm_nf_context *nf_context) {
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
                 pmeta = onvm_get_pkt_meta(pkt);
-                pmeta->destination = *(uint16_t *)nf_context->nf_info->data;
+                pmeta->destination = *(uint16_t *)nf_context->nf_init_data->data;
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pkt->hash.rss = i;
                 pkt->port = 0;
 
-                onvm_nflib_return_pkt(nf_context->nf_info, pkt);
+                onvm_nflib_return_pkt(nf_context->nf_init_data, pkt);
         }
 }
 
@@ -399,7 +399,7 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
         struct onvm_configuration *onvm_config;
         struct onvm_nf_context *nf_context;
         int i;
@@ -428,7 +428,7 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
         
-        nf_info = nf_context->nf_info;
+        nf_init_data = nf_context->nf_init_data;
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
@@ -436,16 +436,16 @@ main(int argc, char *argv[]) {
 
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf_info, &nf_setup);
+        onvm_nflib_set_setup_function(nf_init_data, &nf_setup);
 
-        nf_info->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
-        *(uint16_t *)nf_info->data = nf_info->service_id;
+        nf_init_data->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
+        *(uint16_t *)nf_init_data->data = nf_init_data->service_id;
 
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
-                onvm_nflib_nf_ready(nf_info);
+                onvm_nflib_nf_ready(nf_init_data);
                 nf_setup(nf_context);
                 run_advanced_rings(nf_context);
         } else {

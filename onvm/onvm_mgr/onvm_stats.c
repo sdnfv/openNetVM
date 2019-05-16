@@ -246,7 +246,7 @@ onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
 }
 
 void
-onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
+onvm_stats_gen_event_nf_init_data(const char *msg, struct onvm_nf_init_data *nf_init_data) {
         struct onvm_event *event;
 
         event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
@@ -257,7 +257,7 @@ onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
 
         event->type = ONVM_EVENT_NF_INFO;
         event->msg = msg;
-        event->data = nf_info;
+        event->data = nf_init_data;
 
         onvm_stats_add_event(event);
 }
@@ -272,7 +272,7 @@ onvm_stats_add_event(struct onvm_event *event_info) {
         char event_time_buf[20];
         uint8_t type;
         struct tm *ptr_time;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf_init_data *nf_init_data;
         time_t time_raw_format;
         time(&time_raw_format);
         type = event_info->type;
@@ -292,14 +292,14 @@ onvm_stats_add_event(struct onvm_event *event_info) {
         } else if (type == ONVM_EVENT_PORT_INFO) {
                 cJSON_AddStringToObject(source, "type", "MGR");
         } else if (type == ONVM_EVENT_NF_INFO) {
-                nf_info = (struct onvm_nf_info *)event_info->data;
-                if (nf_info->tag)
-                        cJSON_AddStringToObject(source, "type", (char *)nf_info->tag);
+                nf_init_data = (struct onvm_nf_init_data *)event_info->data;
+                if (nf_init_data->tag)
+                        cJSON_AddStringToObject(source, "type", (char *)nf_init_data->tag);
                 else
                         cJSON_AddStringToObject(source, "type", "NF");
-                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
-                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
-                cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
+                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_init_data->instance_id);
+                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_init_data->service_id);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf_init_data->core);
         } else if (type == ONVM_EVENT_NF_STOP) {
                 cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));

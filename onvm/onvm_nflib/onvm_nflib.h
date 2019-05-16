@@ -97,7 +97,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);//struct onvm_nf_info **nf_info_p);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);//struct onvm_nf_init_data **nf_init_data_p);
 
 /**
  * Run the OpenNetVM container Library.
@@ -143,7 +143,7 @@ onvm_nflib_run(struct onvm_nf_context *nf_context, pkt_handler_func pkt_handler)
  *    0 on success, or a negative value on error.
  */
 int
-onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf *pkt);
+onvm_nflib_return_pkt(struct onvm_nf *nf, struct rte_mbuf *pkt);
 
 /**
  * Return a group of packets that were created by the NF or have previously had the
@@ -157,7 +157,7 @@ onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf *pkt);
  *    0 on success, or a negative value on error (-1 if bad arguments, -ENOBUFS if enqueue fails).
  */
 int
-onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf **pkts, uint16_t count);
+onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t count);
 
 /**
  * Inform the manager that the NF is ready to receive packets.
@@ -170,7 +170,7 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf **pkts,
  *    0 on success, or a negative value on failure
  */
 int
-onvm_nflib_nf_ready(struct onvm_nf_info *info);
+onvm_nflib_nf_ready(struct onvm_nf_init_data *info);
 
 /**
  * Process an message. Does stuff.
@@ -205,7 +205,7 @@ onvm_nflib_stop(struct onvm_nf_context *nf_context);
  *   Pointer to tx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
-onvm_nflib_get_tx_ring(struct onvm_nf_info *info);
+onvm_nflib_get_tx_ring(struct onvm_nf_init_data *info);
 
 /**
  * Return the rx_ring associated with this NF.
@@ -216,7 +216,7 @@ onvm_nflib_get_tx_ring(struct onvm_nf_info *info);
  *   Pointer to rx_ring structure associated with info, NULL on error.
  */
 struct rte_ring *
-onvm_nflib_get_rx_ring(struct onvm_nf_info *info);
+onvm_nflib_get_rx_ring(struct onvm_nf_init_data *info);
 
 /**
  * Return the nf details associated with this NF.
@@ -246,10 +246,10 @@ onvm_nflib_get_nf(uint16_t id);
  *   A NF setup function that runs before running the NF.
  */
 void
-onvm_nflib_set_setup_function(struct onvm_nf_info *info, setup_func setup);
+onvm_nflib_set_setup_function(struct onvm_nf_init_data *info, setup_func setup);
 
 void
-onvm_nflib_set_msg_handling_function(struct onvm_nf_info *info, handle_msg_func nf_handle_msg);
+onvm_nflib_set_msg_handling_function(struct onvm_nf_init_data *info, handle_msg_func nf_handle_msg);
 
 /**
  * Allocates an empty scaling config to be filled in by the NF.
@@ -261,7 +261,7 @@ onvm_nflib_set_msg_handling_function(struct onvm_nf_info *info, handle_msg_func 
  *   Pointer to onvm_nf_scale_info structure for running onvm_nflib_scale
  */
 struct onvm_nf_scale_info *
-onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info);
+onvm_nflib_get_empty_scaling_config(struct onvm_nf_init_data *parent_info);
 
 /**
  * Fill the onvm_nflib_scale_info with the infromation of the parent, inherits
@@ -274,7 +274,7 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info);
  *   Pointer to onvm_nf_scale_info structure which can be used to run onvm_nflib_scale
  */
 struct onvm_nf_scale_info *
-onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
+onvm_nflib_inherit_parent_config(struct onvm_nf_init_data *parent_info, void *data);
 
 /*
  * Scales the NF. Determines the core to scale to, and starts a new thread for the NF.

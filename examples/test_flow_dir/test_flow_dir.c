@@ -67,7 +67,7 @@
 #define NF_TAG "test_flow_dir"
 
 /* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
+struct onvm_nf_init_data *nf_init_data;
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
@@ -155,7 +155,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
         static uint32_t counter = 0;
         struct onvm_flow_entry *flow_entry = NULL;
         int ret;
@@ -197,7 +197,7 @@ main(int argc, char *argv[]) {
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
-        destination = nf_info->service_id + 1;
+        destination = nf_init_data->service_id + 1;
 
         if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
