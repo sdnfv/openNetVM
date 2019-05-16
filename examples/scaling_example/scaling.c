@@ -73,8 +73,6 @@
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 #define DEFAULT_NUM_CHILDREN 1
 
-struct onvm_nf_context *global_termination_context;
-
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
@@ -92,29 +90,10 @@ nf_setup(struct onvm_nf_context *nf_context);
 void sig_handler(int sig);
 
 void sig_handler(int sig) {
-        struct onvm_nf *nf;
-
         if (sig != SIGINT && sig != SIGTERM)
                 return;
-
-        /* Stops both starting and running NFs */
-        global_termination_context->keep_running = 0;
-
-        /* If NF didn't start yet no cleanup is necessary */
-        if (rte_atomic16_read(&global_termination_context->nf_init_finished) == 0) {
-                return;
-        }
-
-        /* If NF is asleep, wake it up */
-        nf = global_termination_context->nf;
-        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
-                rte_atomic16_set(nf->sleep_state, 0);
-                sem_post(nf->nf_mutex);
-        }
-
-        /* All the child termination will be done later in onvm_nflib_stop */
-
-        return;
+        
+        /* Specific signal handling logic can be implemented here */
 }
 
 /*
@@ -414,9 +393,8 @@ main(int argc, char *argv[]) {
                         break;
         }
 
-        /* If we're using direct rings use custom signal handling */
+        /* If we're using direct rings also pass a custom cleanup function */
         if (use_direct_rings) {
-                global_termination_context = nf_context;
                 onvm_nflib_start_signal_handler(nf_context, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_context, NULL);

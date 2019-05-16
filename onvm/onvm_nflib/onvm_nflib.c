@@ -98,6 +98,9 @@ static struct rte_mempool *nf_msg_pool;
 // Global NF context to manage signal termination 
 static struct onvm_nf_context *global_termination_context;
 
+// Global NF specific signal handler
+static handle_signal_func global_nf_signal_handler = NULL;
+
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
 
@@ -260,15 +263,14 @@ onvm_nflib_init_nf_context(void) {
 }
 
 int
-onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func signal_handler) {
-        printf("[Press Ctrl-C to quit ...]\n");
+onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func nf_signal_handler) {
+        /* Signal handling is global thus save global context */
         global_termination_context = nf_context;
-        /* If passed signal handler is NULL, use the default alternative */
-        if (signal_handler == NULL)
-                signal_handler = onvm_nflib_handle_signal;
+        global_nf_signal_handler = nf_signal_handler;
         
-        signal(SIGINT, signal_handler);
-        signal(SIGTERM, signal_handler);
+        printf("[Press Ctrl-C to quit ...]\n");
+        signal(SIGINT, onvm_nflib_handle_signal);
+        signal(SIGTERM, onvm_nflib_handle_signal);
 
         return 0;
 }
@@ -1045,6 +1047,9 @@ onvm_nflib_handle_signal(int sig) {
                 rte_atomic16_set(nf->sleep_state, 0);
                 sem_post(nf->nf_mutex);
         }
+
+        if (global_nf_signal_handler != NULL)
+                global_nf_signal_handler(sig);
 
         /* All the child termination will be done later in onvm_nflib_stop */
 
