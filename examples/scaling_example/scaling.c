@@ -246,6 +246,9 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
+        struct onvm_nf_msg *msg;
+        struct rte_ring *msg_q;
+        struct rte_mempool *nf_msg_pool;
         volatile struct onvm_nf *nf;
         static uint8_t spawned_nfs = 0;
 
@@ -263,6 +266,8 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+        msg_q = nf->msg_q;
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -289,6 +294,18 @@ run_advanced_rings(struct onvm_nf_info *nf_info) {
         }
 
         while (keep_running && rx_ring && tx_ring && nf) {
+                /* Check for a stop message from the manager. */
+                if (unlikely(rte_ring_count(msg_q) > 0)) {
+                        msg = NULL;
+                        rte_ring_dequeue(msg_q, (void **)(&msg));
+                        if (msg->msg_type == MSG_STOP) {
+                                keep_running = 0;
+                        } else {
+                                printf("Received message %d, ignoring", msg->msg_type);
+                        }
+                        rte_mempool_put(nf_msg_pool, (void *)msg);
+                }
+
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
