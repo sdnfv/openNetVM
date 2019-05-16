@@ -1,4 +1,9 @@
+access_log
 config
+webhook-config.json
+encrypted_secret.bin
+private.pem
+public.pem
 githubcreds
 mykeyfile
 repository

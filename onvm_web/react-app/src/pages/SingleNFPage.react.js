@@ -27,9 +27,9 @@ class SingleNFPage extends React.PureComponent<Props, State> {
   };
 
   eventHandler = (event: OnvmEvent): void => {
-    const instanceID = parseInt(this.state.nfLabel.replace("NF ", ""));
-    console.log(event);
-    if (event.source.type === "NF" && event.source.instance_id === instanceID) {
+    const instanceID = parseInt(this.state.nfLabel.split(" - ")[1]);
+    const source = event.source;
+    if (source.type && source.type !== "MGR" && event.source.instance_id === instanceID) {
       this.setState(prevState => {
         return { eventList: [...prevState.eventList, event] };
       });

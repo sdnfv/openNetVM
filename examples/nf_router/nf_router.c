@@ -38,22 +38,22 @@
  * nf_router.c - route packets based on the provided config.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
+#include <sys/queue.h>
+#include <unistd.h>
 
-#include <rte_common.h>
-#include <rte_mbuf.h>
-#include <rte_ip.h>
 #include <rte_arp.h>
+#include <rte_common.h>
+#include <rte_ip.h>
 #include <rte_malloc.h>
+#include <rte_mbuf.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -62,7 +62,7 @@
 
 /* router information */
 uint8_t nf_count;
-char * cfg_filename;
+char *cfg_filename;
 struct forward_nf *fwd_nf;
 
 struct forward_nf {
@@ -75,7 +75,6 @@ struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
-
 
 /*
  * Print a usage message
@@ -99,26 +98,26 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
         while ((c = getopt(argc, argv, "f:p:")) != -1) {
                 switch (c) {
-                case 'f':
-                        cfg_filename = strdup(optarg);
-                        break;
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                        case 'f':
+                                cfg_filename = strdup(optarg);
+                                break;
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
 
@@ -126,17 +125,17 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 /*
- * This function parses the forward config. It takes the filename 
- * and fills up the forward nf array. This includes the ip and dest 
+ * This function parses the forward config. It takes the filename
+ * and fills up the forward nf array. This includes the ip and dest
  * address of the onvm_nf
  */
 static int
 parse_router_config(void) {
         int ret, temp, i;
         char ip[32];
-        FILE * cfg;
+        FILE *cfg;
 
-        cfg  = fopen(cfg_filename, "r");
+        cfg = fopen(cfg_filename, "r");
         if (cfg == NULL) {
                 rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", cfg_filename);
         }
@@ -169,16 +168,15 @@ parse_router_config(void) {
         }
 
         fclose(cfg);
-        printf("\nDest config (%d):\n",nf_count);
+        printf("\nDest config (%d):\n", nf_count);
         for (i = 0; i < nf_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ",
-                        fwd_nf[i].ip & 0xFF, (fwd_nf[i].ip >> 8) & 0xFF, (fwd_nf[i].ip >> 16) & 0xFF, (fwd_nf[i].ip >> 24) & 0xFF);
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (fwd_nf[i].ip >> 24) & 0xFF, (fwd_nf[i].ip >> 16) & 0xFF,
+                       (fwd_nf[i].ip >> 8) & 0xFF, fwd_nf[i].ip & 0xFF);
                 printf(" %d\n", fwd_nf[i].dest);
         }
 
         return ret;
 }
-
 
 /*
  * This function displays stats. It uses ANSI terminal codes to clear
@@ -187,11 +185,11 @@ parse_router_config(void) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct rte_mbuf* pkt) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+do_stats_display(struct rte_mbuf *pkt) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -202,7 +200,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("N°   : %"PRIu64"\n", pkt_process);
+        printf("N°   : %" PRIu64 "\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -218,7 +216,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         static uint32_t counter = 0;
         struct ether_hdr *eth_hdr;
         struct arp_hdr *in_arp_hdr;
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
         int i;
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -229,7 +227,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
                         in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                         for (i = 0; i < nf_count; i++) {
-                                if (in_arp_hdr->arp_data.arp_tip == fwd_nf[i].ip) {
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == fwd_nf[i].ip) {
                                         meta->destination = fwd_nf[i].dest;
                                         meta->action = ONVM_NF_ACTION_TONF;
                                         return 0;
@@ -247,7 +245,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         for (i = 0; i < nf_count; i++) {
-                if (fwd_nf[i].ip == ip->dst_addr) {
+                if (fwd_nf[i].ip == rte_be_to_cpu_32(ip->dst_addr)) {
                         meta->destination = fwd_nf[i].dest;
                         meta->action = ONVM_NF_ACTION_TONF;
                         return 0;
@@ -260,8 +258,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
         int arg_offset;
 
         const char *progname = argv[0];
