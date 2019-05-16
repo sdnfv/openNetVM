@@ -528,9 +528,9 @@ main(int argc, char *argv[]) {
 
         /* Hack to know if we're using advanced rings before running getopts */
         for (i = argc - 1; i > 0; i--) {
-                if (strcmp(argv[i], "-a"))
+                if (strcmp(argv[i], "-a") == 0)
                         use_direct_rings = 1;
-                else if (strcmp(argv[i],"--"))
+                else if (strcmp(argv[i],"--") == 0)
                         break;
         }
 
