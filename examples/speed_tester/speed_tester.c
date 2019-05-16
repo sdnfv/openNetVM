@@ -313,14 +313,19 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         uint64_t start_time;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
+        struct rte_ring *msg_q;
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
+        struct onvm_nf_msg *msg;
+        struct rte_mempool *nf_msg_pool;
 
         /* Get rings from nflib */
         nf_info = nf_context->nf_info;
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+        msg_q = nf->msg_q;
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
@@ -330,6 +335,18 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         start_time = rte_get_tsc_cycles();
 
         while (nf_context->keep_running && rx_ring && tx_ring && nf) {
+                /* Check for a stop message from the manager. */
+                if (unlikely(rte_ring_count(msg_q) > 0)) {
+                        msg = NULL;
+                        rte_ring_dequeue(msg_q, (void **)(&msg));
+                        if (msg->msg_type == MSG_STOP) {
+                                nf_context->keep_running = 0;
+                        } else {
+                                printf("Received message %d, ignoring", msg->msg_type);
+                        }
+                        rte_mempool_put(nf_msg_pool, (void *)msg);
+                }
+
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
@@ -516,7 +533,6 @@ main(int argc, char *argv[]) {
 
         /* If we're using direct rings use custom signal handling */
         if (use_direct_rings) {
-                global_termination_context = nf_context;
                 onvm_nflib_start_signal_handler(nf_context, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_context, NULL);

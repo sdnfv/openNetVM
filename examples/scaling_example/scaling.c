@@ -258,7 +258,10 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
+        struct rte_ring *msg_q;
         struct onvm_nf *nf;
+        struct onvm_nf_msg *msg;
+        struct rte_mempool *nf_msg_pool;
         static uint8_t spawned_nfs = 0;
         struct onvm_nf_info *nf_info;
 
@@ -267,9 +270,10 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         nf = onvm_nflib_get_nf(nf_info->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+        msg_q = nf->msg_q;
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
         /* Set core affinity, as this is adv rings we do it on our own */
         onvm_threading_core_affinitize(nf_info->core);
 
@@ -301,6 +305,18 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         }
 
         while (nf_context->keep_running && rx_ring && tx_ring && nf) {
+                /* Check for a stop message from the manager. */
+                if (unlikely(rte_ring_count(msg_q) > 0)) {
+                        msg = NULL;
+                        rte_ring_dequeue(msg_q, (void **)(&msg));
+                        if (msg->msg_type == MSG_STOP) {
+                                nf_context->keep_running = 0;
+                        } else {
+                                printf("Received message %d, ignoring", msg->msg_type);
+                        }
+                        rte_mempool_put(nf_msg_pool, (void *)msg);
+                }
+
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
