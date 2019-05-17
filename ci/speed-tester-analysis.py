@@ -41,7 +41,7 @@ if (performance_rating < 97):
 else:    
     results['pass_performance_check'] = True
 results['performance_rating'] = performance_rating
-results['summary'] = "[Results from %s]\n - Median TX pps for Speed Tester: %d\n - Performance rating - %.2f%% (compred to %d average)" % (STATS_NODE_NAME, median_speed, performance_rating, AVG_SPEED)
+results['summary'] = "[Results from %s]\n - Median TX pps for Speed Tester: %d\n - Performance rating - %.2f%% (compared to %d average)" % (STATS_NODE_NAME, median_speed, performance_rating, AVG_SPEED)
 
 with open(OUT_FILE, 'w') as outfile:
     json.dump(results, outfile)
