@@ -73,8 +73,6 @@
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 #define DEFAULT_NUM_CHILDREN 1
 
-struct onvm_nf_context *global_termination_context;
-
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
@@ -92,29 +90,10 @@ nf_setup(struct onvm_nf_context *nf_context);
 void sig_handler(int sig);
 
 void sig_handler(int sig) {
-        struct onvm_nf *nf;
-
         if (sig != SIGINT && sig != SIGTERM)
                 return;
-
-        /* Stops both starting and running NFs */
-        global_termination_context->keep_running = 0;
-
-        /* If NF didn't start yet no cleanup is necessary */
-        if (rte_atomic16_read(&global_termination_context->nf_init_finished) == 0) {
-                return;
-        }
-
-        /* If NF is asleep, wake it up */
-        nf = global_termination_context->nf;
-        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->sleep_state) == 1) {
-                rte_atomic16_set(nf->sleep_state, 0);
-                sem_post(nf->nf_mutex);
-        }
-
-        /* All the child termination will be done later in onvm_nflib_stop */
-
-        return;
+        
+        /* Specific signal handling logic can be implemented here */
 }
 
 /*
@@ -279,7 +258,10 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
+        struct rte_ring *msg_q;
         struct onvm_nf *nf;
+        struct onvm_nf_msg *msg;
+        struct rte_mempool *nf_msg_pool;
         static uint8_t spawned_nfs = 0;
         struct onvm_nf_init_data *nf_init_data;
 
@@ -288,9 +270,10 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         nf = onvm_nflib_get_nf(nf_init_data->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
+        msg_q = nf->msg_q;
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
-        printf("Process %d handling packets using advanced rings\n", nf_init_data->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
+        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         /* Set core affinity, as this is adv rings we do it on our own */
         onvm_threading_core_affinitize(nf_init_data->core);
 
@@ -322,6 +305,18 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         }
 
         while (nf_context->keep_running && rx_ring && tx_ring && nf) {
+                /* Check for a stop message from the manager. */
+                if (unlikely(rte_ring_count(msg_q) > 0)) {
+                        msg = NULL;
+                        rte_ring_dequeue(msg_q, (void **)(&msg));
+                        if (msg->msg_type == MSG_STOP) {
+                                nf_context->keep_running = 0;
+                        } else {
+                                printf("Received message %d, ignoring", msg->msg_type);
+                        }
+                        rte_mempool_put(nf_msg_pool, (void *)msg);
+                }
+
                 tx_batch_size = 0;
                 /* Dequeue all packets in ring up to max possible. */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
@@ -414,9 +409,8 @@ main(int argc, char *argv[]) {
                         break;
         }
 
-        /* If we're using direct rings use custom signal handling */
+        /* If we're using direct rings also pass a custom cleanup function */
         if (use_direct_rings) {
-                global_termination_context = nf_context;
                 onvm_nflib_start_signal_handler(nf_context, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_context, NULL);
