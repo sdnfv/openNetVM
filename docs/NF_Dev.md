@@ -47,7 +47,8 @@ This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on
 
 This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, if you encounter any bugs please create an issue.
 
-For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.
+For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.  
+Furthermore, the paper [NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai, Xiaoming Fu][nfvnice_paper] shows more in depth usage of the shared CPU architecture.
 
 Usage / Known Limitations:
   - To enable pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they want to share cores
@@ -118,3 +119,4 @@ values.
 [srvc_chains]: ../onvm/onvm_nflib/onvm_sc_common.h
 [msg_passing]: ../onvm/onvm_nflib/onvm_msg_common.h
 [flurries_paper]: https://dl.acm.org/citation.cfm?id=2999602
+[nfvnice_paper]: https://dl.acm.org/citation.cfm?id=3098828 
