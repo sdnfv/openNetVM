@@ -47,9 +47,7 @@ This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on
 
 This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, therefore if you encounter any bugs please create an issue or a pull request with a proposed fix.
 
-For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.
-
-Additionally, the paper [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper] shows a more in-depth usage of the shared CPU architecture.
+The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
 
 Usage / Known Limitations:
   - To enable pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they want to share cores
