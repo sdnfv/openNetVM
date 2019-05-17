@@ -80,8 +80,6 @@ struct flow_stats {
         int is_active;
 };
 
-/*Struct that holds nf meta info */
-struct onvm_nf_init_data *nf_init_data;
 struct state_info *state_info;
 
 /*
@@ -279,7 +277,7 @@ table_lookup_entry(struct rte_mbuf *pkt, struct state_info *state_info) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+callback_handler(__attribute__((unused)) struct onvm_nf *nf) {
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((state_info->elapsed_cycles - state_info->last_cycles) / rte_get_timer_hz() > state_info->print_delay) {
@@ -291,7 +289,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_init_data *nf_init_data)
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
         if (!onvm_pkt_is_ipv4(pkt)) {
                 meta->destination = state_info->destination;
                 meta->action = ONVM_NF_ACTION_TONF;

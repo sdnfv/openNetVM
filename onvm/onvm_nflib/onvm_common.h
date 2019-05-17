@@ -209,7 +209,6 @@ struct core_status {
         uint16_t nf_count;
 };
 
-struct onvm_nf_init_data;
 struct onvm_nf_context;
 struct onvm_nf;
 /* Function prototype for NF packet handlers */
@@ -222,13 +221,13 @@ typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs to handle custom messages */
-typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_init_data *nf);
+typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf *nf);
 /* Function prototype for NFs to signal handling */
 typedef void (*handle_signal_func)(int);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
-        struct onvm_nf_init_data *parent;
+        struct onvm_nf *parent;
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;

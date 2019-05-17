@@ -71,8 +71,6 @@ struct state_info {
         int print_flag;
 };
 
-/* Struct that contains information about this NF */
-struct onvm_nf_init_data *nf_init_data;
 struct state_info *state_info;
 
 /* shared data structure containing host port info */
@@ -213,7 +211,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * For RFC about ARP, see https://tools.ietf.org/html/rfc826
  * RETURNS 0 if success, -1 otherwise */
 static int
-send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
+send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *nf) {
         struct rte_mbuf *out_pkt = NULL;
         struct onvm_pkt_meta *pmeta = NULL;
         struct ether_hdr *eth_hdr = NULL;
@@ -261,11 +259,11 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
-        return onvm_nflib_return_pkt(nf_init_data, out_pkt);
+        return onvm_nflib_return_pkt(nf, out_pkt);
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
         struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;
@@ -283,7 +281,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         case ARP_OP_REQUEST:
                                 if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == state_info->source_ips[ports->id[pkt->port]]) {
                                         result =
-                                            send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
+                                            send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip, nf);
                                         if (state_info->print_flag) {
                                                 printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,
                                                        ports->id[pkt->port], result);

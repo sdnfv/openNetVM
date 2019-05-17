@@ -316,11 +316,11 @@ onvm_nf_stop(struct onvm_nf_init_data *nf_init_data) {
 
         /* Free info struct */
         /* Lookup mempool for nf_init_data struct */
-        nf_init_data_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
-        if (nf_init_data_mp == NULL)
+        nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_info_mp == NULL)
                 return 1;
 
-        rte_mempool_put(nf_init_data_mp, (void*)nf_init_data);
+        rte_mempool_put(nf_info_mp, (void*)nf_init_data);
 
         /* Further cleanup is only required if NF was succesfully started */
         if (nf_status != NF_RUNNING && nf_status != NF_PAUSED)

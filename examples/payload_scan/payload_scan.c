@@ -60,7 +60,7 @@
 #define NF_TAG "payload_scan"
 
 /* Struct that contains information about this NF */
-struct onvm_nf_init_data *nf_init_data;
+struct onvm_nf *nf;
 
 /* Number of packets between prints */
 static uint32_t print_delay = 10000000;
@@ -158,10 +158,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct onvm_nf_init_data *nf_init_data) {
+do_stats_display(struct onvm_nf *nf) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
-        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_init_data->data;
+        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf->data;
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
@@ -175,15 +175,15 @@ do_stats_display(struct onvm_nf_init_data *nf_init_data) {
         printf("\n\n");
 }
 
-static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf_init_data *nf_init_data) {
+static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf *nf) {
         int udp_pkt, tcp_pkt;
         char search_match;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
-        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_init_data->data;
+        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf->data;
 
         if (++counter == print_delay) {
-                do_stats_display(nf_init_data);
+                do_stats_display(nf);
                 counter = 0;
         }
 
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
         argv += arg_offset;
 
         stats = (struct onvm_pkt_stats *) rte_zmalloc("stats", sizeof(struct onvm_pkt_stats), 0);
-        nf_context->nf_init_data->data = (void *) stats;
+        nf_context->nf->data = (void *) stats;
 
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_context);

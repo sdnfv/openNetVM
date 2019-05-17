@@ -59,9 +59,6 @@
 
 #define NF_TAG "basic_monitor"
 
-/* Struct that contains information about this NF */
-struct onvm_nf_init_data *nf_init_data;
-
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 

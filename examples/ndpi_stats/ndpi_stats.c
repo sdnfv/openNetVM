@@ -64,7 +64,7 @@
 #define TICK_RESOLUTION 1000
 
 /* Struct that contains information about this NF */
-struct onvm_nf_init_data *nf_init_data;
+struct onvm_nf *nf;
 
 /* shared data structure containing host port info */
 extern struct port_info *ports;
@@ -333,7 +333,7 @@ print_results(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
         struct pcap_pkthdr pkt_hdr;
         struct timeval time;
         u_char *packet;

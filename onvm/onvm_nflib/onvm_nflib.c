@@ -170,7 +170,7 @@ onvm_nflib_dequeue_messages(struct onvm_nf_context *nf_context) __attribute__((a
  * Input: Info struct corresponding to this NF
  */
 static void
-onvm_nflib_terminate_children(struct onvm_nf_init_data *nf_init_data);
+onvm_nflib_terminate_children(struct onvm_nf *nf);
 
 /*
  * Set this NF's status to not running and release memory
@@ -351,6 +351,7 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func han
         int ret;
 
         nf = nf_context->nf;
+        nf->nf_mode = NF_MODE_SINGLE;
 
         /* Don't allow conflicting NF modes */
         if (nf->nf_mode == NF_MODE_RING) {
@@ -392,7 +393,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         callback = nf->nf_callback_function;
 
         printf("Sending NF_READY message to manager...\n");
-        ret = onvm_nflib_nf_ready(nf->info);
+        ret = onvm_nflib_nf_ready(nf);
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
@@ -462,7 +463,7 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t 
 }
 
 int
-onvm_nflib_nf_ready(struct onvm_nf_init_data *info) {
+onvm_nflib_nf_ready(struct onvm_nf *nf) {
         struct onvm_nf_msg *startup_msg;
         int ret;
 
@@ -472,7 +473,7 @@ onvm_nflib_nf_ready(struct onvm_nf_init_data *info) {
                 return ret;
 
         startup_msg->msg_type = MSG_NF_READY;
-        startup_msg->msg_data = info;
+        startup_msg->msg_data = nf->info;
         ret = rte_ring_enqueue(mgr_msg_queue, startup_msg);
         if (ret < 0) {
                 rte_mempool_put(nf_msg_pool, startup_msg);
@@ -480,7 +481,7 @@ onvm_nflib_nf_ready(struct onvm_nf_init_data *info) {
         }
 
         /* Don't start running before the state changes */
-        while (info->status != NF_RUNNING) {
+        while (nf->info->status != NF_RUNNING) {
                 sleep(1);
         }
 
@@ -501,7 +502,7 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_contex
                 case MSG_FROM_NF:
                         RTE_LOG(INFO, APP, "Recieved MSG from other NF");
                         if (nf_context->nf->nf_handle_msg_function != NULL) {
-                                nf_context->nf->nf_handle_msg_function(msg->msg_data, nf_context->nf_init_data);
+                                nf_context->nf->nf_handle_msg_function(msg->msg_data, nf_context->nf);
                         }
                         break;
                 case MSG_NOOP:
@@ -532,53 +533,9 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
 void
 onvm_nflib_stop(struct onvm_nf_context *nf_context) {
         /* Terminate children */
-        onvm_nflib_terminate_children(nf_context->nf_init_data);
+        onvm_nflib_terminate_children(nf_context->nf);
         /* Stop and free */
         onvm_nflib_cleanup(nf_context);
-}
-
-struct rte_ring *
-onvm_nflib_get_tx_ring(struct onvm_nf_init_data *info) {
-        if (info == NULL) {
-                return NULL;
-        }
-
-        /* Don't allow conflicting NF modes */
-        if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the tx_ring associated with the info struct */
-        nfs[info->instance_id].nf_mode = NF_MODE_RING;
-        return (struct rte_ring *)(&(nfs[info->instance_id].tx_q));
-}
-
-struct rte_ring *
-onvm_nflib_get_rx_ring(struct onvm_nf_init_data *info) {
-        if (info == NULL) {
-                return NULL;
-        }
-
-        /* Don't allow conflicting NF modes */
-        if (nfs[info->instance_id].nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the rx_ring associated with the info struct */
-        nfs[info->instance_id].nf_mode = NF_MODE_RING;
-        return (struct rte_ring *)(&(nfs[info->instance_id].rx_q));
-}
-
-struct onvm_nf *
-onvm_nflib_get_nf(uint16_t id) {
-        /* Don't allow conflicting NF modes */
-        if (nfs[id].nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the NF struct referenced by instance id */
-        nfs[id].nf_mode = NF_MODE_RING;
-        return &nfs[id];
 }
 
 struct onvm_configuration *
@@ -587,13 +544,13 @@ onvm_nflib_get_onvm_config(void) {
 }
 
 void
-onvm_nflib_set_setup_function(struct onvm_nf_init_data *info, setup_func setup) {
-        nfs[info->instance_id].nf_setup_function = setup;
+onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup) {
+        nf->nf_setup_function = setup;
 }
 
 void
-onvm_nflib_set_msg_handling_function(struct onvm_nf_init_data *info, handle_msg_func nf_handle_msg) {
-        nfs[info->instance_id].nf_handle_msg_function = nf_handle_msg;
+onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg) {
+        nf->nf_handle_msg_function = nf_handle_msg;
 }
 
 int
@@ -630,11 +587,11 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
 }
 
 struct onvm_nf_scale_info *
-onvm_nflib_get_empty_scaling_config(struct onvm_nf_init_data *parent_info) {
+onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
-        scale_info->parent = parent_info;
+        scale_info->parent = parent;
         scale_info->instance_id = NF_NO_ID;
         scale_info->flags = 0;
 
@@ -642,26 +599,24 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf_init_data *parent_info) {
 }
 
 struct onvm_nf_scale_info *
-onvm_nflib_inherit_parent_config(struct onvm_nf_init_data *parent_info, void *data) {
+onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         struct onvm_nf_scale_info *scale_info;
-        struct onvm_nf *parent_nf;
 
-        parent_nf = &nfs[parent_info->instance_id];
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
-        scale_info->parent = parent_info;
+        scale_info->parent = parent;
         scale_info->instance_id = NF_NO_ID;
-        scale_info->service_id = parent_info->service_id;
-        scale_info->tag = parent_info->tag;
-        scale_info->core = parent_info->core;
-        scale_info->flags = parent_info->flags;
+        scale_info->service_id = parent->service_id;
+        scale_info->tag = parent->tag;
+        scale_info->core = parent->core;
+        scale_info->flags = parent->flags;
         scale_info->data = data;
-        scale_info->setup_func = parent_nf->nf_setup_function;
-        scale_info->handle_msg_function = parent_nf->nf_handle_msg_function;
-        if (parent_nf->nf_mode == NF_MODE_SINGLE) {
-                scale_info->pkt_func = parent_nf->nf_pkt_function;
-                scale_info->callback_func = parent_nf->nf_callback_function;
-        } else if (parent_nf->nf_mode == NF_MODE_RING) {
-                scale_info->adv_rings_func = parent_nf->nf_advanced_rings_function;
+        scale_info->setup_func = parent->nf_setup_function;
+        scale_info->handle_msg_function = parent->nf_handle_msg_function;
+        if (parent->nf_mode == NF_MODE_SINGLE) {
+                scale_info->pkt_func = parent->nf_pkt_function;
+                scale_info->callback_func = parent->nf_callback_function;
+        } else if (parent->nf_mode == NF_MODE_RING) {
+                scale_info->adv_rings_func = parent->nf_advanced_rings_function;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
                 return NULL;
@@ -868,6 +823,9 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         /* Set the parent id to none */
         nf->parent = 0;
 
+        /* Default to advanced rings, if normal nflib run is called change the mode later */
+        nf->nf_mode = NF_MODE_RING;
+
         /* In case this instance_id is reused, clear all function pointers */
         nf->nf_pkt_function = NULL;
         nf->nf_callback_function = NULL;
@@ -1004,7 +962,7 @@ onvm_nflib_start_child(void *arg) {
         if (child->nf_pkt_function) {
                 onvm_nflib_run_callback(child_context, child->nf_pkt_function, child->nf_callback_function);
         } else if (child->nf_advanced_rings_function) {
-                onvm_nflib_nf_ready(child_info);
+                onvm_nflib_nf_ready(child);
                 if (scale_info->setup_func != NULL)
                         scale_info->setup_func(child_context);
                 scale_info->adv_rings_func(child_context);
@@ -1175,19 +1133,19 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_
 }
 
 static void
-onvm_nflib_terminate_children(struct onvm_nf_init_data *nf_init_data) {
+onvm_nflib_terminate_children(struct onvm_nf *nf) {
         uint16_t i;
 
-        while (nfs[nf_init_data->instance_id].children_cnt > 0) {
+        while (nf->children_cnt > 0) {
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].context == NULL)
                                continue;
                         
-                        if (nfs[i].parent != nf_init_data->instance_id)
+                        if (nfs[i].parent != nf->instance_id)
                                 continue;
 
                         /* First set everything to not running */
-                        nfs[i].context->keep_running = 0;
+                        nf->context->keep_running = 0;
                         
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;

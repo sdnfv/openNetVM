@@ -95,7 +95,7 @@ sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
 }
 
 static inline void
-sdn_pkt_list_flush(struct onvm_nf_init_data* nf_init_data, struct sdn_pkt_list* list) {
+sdn_pkt_list_flush(struct onvm_nf* nf, struct sdn_pkt_list* list) {
         struct sdn_pkt_entry* entry;
         struct rte_mbuf* pkt;
         struct onvm_pkt_meta* meta;
@@ -109,7 +109,7 @@ sdn_pkt_list_flush(struct onvm_nf_init_data* nf_init_data, struct sdn_pkt_list* 
                 meta = onvm_get_pkt_meta(pkt);
                 meta->action = ONVM_NF_ACTION_NEXT;
                 meta->chain_index = 0;
-                onvm_nflib_return_pkt(nf_init_data, pkt);
+                onvm_nflib_return_pkt(nf, pkt);
                 free(entry);
                 list->counter--;
         }

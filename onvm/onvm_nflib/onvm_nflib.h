@@ -170,7 +170,7 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t 
  *    0 on success, or a negative value on failure
  */
 int
-onvm_nflib_nf_ready(struct onvm_nf_init_data *info);
+onvm_nflib_nf_ready(struct onvm_nf *nf);
 
 /**
  * Process an message. Does stuff.
@@ -197,39 +197,6 @@ void
 onvm_nflib_stop(struct onvm_nf_context *nf_context);
 
 /**
- * Return the tx_ring associated with this NF.
- *
- * @param info
- *   An info struct describing this NF.
- * @return
- *   Pointer to tx_ring structure associated with info, NULL on error.
- */
-struct rte_ring *
-onvm_nflib_get_tx_ring(struct onvm_nf_init_data *info);
-
-/**
- * Return the rx_ring associated with this NF.
- *
- * @param info
- *   An info struct describing this NF app.
- * @return
- *   Pointer to rx_ring structure associated with info, NULL on error.
- */
-struct rte_ring *
-onvm_nflib_get_rx_ring(struct onvm_nf_init_data *info);
-
-/**
- * Return the nf details associated with this NF.
- *
- * @param id
- *   An instance id of the corresponding NF.
- * @return
- *   Pointer to NF structure referenced by instance id, NULL on error.
- */
-struct onvm_nf *
-onvm_nflib_get_nf(uint16_t id);
-
-/**
  * Set the setup function for the NF.
  * Function automatically executes when calling onvm_nflib_run or when scaling.
  * This will be run for "normal" mode NFs (i.e., not using advanced rings, see 'NOTE') on startup.
@@ -246,10 +213,10 @@ onvm_nflib_get_nf(uint16_t id);
  *   A NF setup function that runs before running the NF.
  */
 void
-onvm_nflib_set_setup_function(struct onvm_nf_init_data *info, setup_func setup);
+onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup);
 
 void
-onvm_nflib_set_msg_handling_function(struct onvm_nf_init_data *info, handle_msg_func nf_handle_msg);
+onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg);
 
 /**
  * Allocates an empty scaling config to be filled in by the NF.
@@ -261,7 +228,7 @@ onvm_nflib_set_msg_handling_function(struct onvm_nf_init_data *info, handle_msg_
  *   Pointer to onvm_nf_scale_info structure for running onvm_nflib_scale
  */
 struct onvm_nf_scale_info *
-onvm_nflib_get_empty_scaling_config(struct onvm_nf_init_data *parent_info);
+onvm_nflib_get_empty_scaling_config(struct onvm_nf *nf);
 
 /**
  * Fill the onvm_nflib_scale_info with the infromation of the parent, inherits
@@ -274,7 +241,7 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf_init_data *parent_info);
  *   Pointer to onvm_nf_scale_info structure which can be used to run onvm_nflib_scale
  */
 struct onvm_nf_scale_info *
-onvm_nflib_inherit_parent_config(struct onvm_nf_init_data *parent_info, void *data);
+onvm_nflib_inherit_parent_config(struct onvm_nf *nf, void *data);
 
 /*
  * Scales the NF. Determines the core to scale to, and starts a new thread for the NF.

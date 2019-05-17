@@ -86,9 +86,6 @@ struct rte_mempool *pktmbuf_pool;
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
-/* Struct that contains information about this NF */
-struct onvm_nf_init_data *nf_init_data;
-
 /* number of seconds between each print */
 static double print_delay = 0.1;
 static double time_since_print = 0;
@@ -233,7 +230,7 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
         uint64_t *timestamp;
 
         if (!ONVM_CHECK_BIT(meta->flags, LOAD_GEN_BIT)) {
@@ -252,7 +249,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_init_data *nf_init_data) {
+callback_handler(__attribute__((unused)) struct onvm_nf *nf) {
         uint32_t i;
         uint64_t cur_cycle = rte_get_tsc_cycles();
         double time_delta = (cur_cycle - last_cycle) / (double)rte_get_timer_hz();
@@ -295,7 +292,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_init_data *nf_init_data)
                         packets_sent_since_update++;
                         packets_to_send--;
                 }
-                onvm_nflib_return_pkt_bulk(nf_init_data, pkts, batch_size);
+                onvm_nflib_return_pkt_bulk(nf, pkts, batch_size);
         }
 
         time_since_print += time_delta;
@@ -356,7 +353,7 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_set_setup_function(nf_init_data, &nf_setup);
+        onvm_nflib_set_setup_function(nf_context->nf, &nf_setup);
 
         onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
 
