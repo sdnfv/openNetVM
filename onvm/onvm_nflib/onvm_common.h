@@ -261,17 +261,14 @@ struct onvm_nf {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
-        uint8_t flags;
         uint8_t status;
+        /* Advanced ring mode or packet handler mode */
+        uint8_t nf_mode;
         char *tag;
         /* If set NF will stop after time reaches time_to_live */
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
         uint16_t pkt_limit;
-        /* Pointer to NF defined state data */
-        void *data;
-        /* Advanced ring mode or packet handler mode */
-        uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
         uint16_t children_cnt;
@@ -279,6 +276,8 @@ struct onvm_nf {
         struct queue_mgr *nf_tx_mgr;
         /* Pointer to NF context (used for signal handling/termination */
         struct onvm_nf_context *context;
+        /* Pointer to NF defined state data */
+        void *data;
 
         /* NF specific functions */
         pkt_handler_func nf_pkt_function;
