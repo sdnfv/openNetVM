@@ -608,7 +608,7 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info->service_id = parent->service_id;
         scale_info->tag = parent->tag;
         scale_info->core = parent->core;
-        scale_info->flags = parent->flags;
+        scale_info->flags = parent->info->flags;
         scale_info->data = data;
         scale_info->setup_func = parent->nf_setup_function;
         scale_info->handle_msg_function = parent->nf_handle_msg_function;
