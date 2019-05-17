@@ -247,7 +247,7 @@ struct onvm_nf_context {
         struct onvm_nf *nf;
         struct onvm_nf_init_data *nf_init_data;
         rte_atomic16_t nf_init_finished;
-}
+};
 
 /*
  * Define a nf structure with all needed info, including
@@ -318,7 +318,7 @@ struct onvm_nf {
         rte_atomic16_t *sleep_state;
         /* Mutex for NF sem_wait */
         sem_t *nf_mutex;
-}
+};
 
 /*
  * Define a structure to describe one NF
@@ -335,9 +335,7 @@ struct onvm_nf_init_data {
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
         uint16_t pkt_limit;
-        /* Pointer to NF defined state data */
-        void *data;
-}
+};
 
 /*
  * Define a structure to describe a service chain entry

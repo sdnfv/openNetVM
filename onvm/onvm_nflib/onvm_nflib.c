@@ -957,7 +957,7 @@ onvm_nflib_start_child(void *arg) {
         child->nf_advanced_rings_function = scale_info->adv_rings_func;
         child->nf_handle_msg_function = scale_info->handle_msg_function;
         /* Set nf state data */
-        child_info->data = scale_info->data;
+        child->data = scale_info->data;
 
         if (child->nf_pkt_function) {
                 onvm_nflib_run_callback(child_context, child->nf_pkt_function, child->nf_callback_function);
@@ -1173,9 +1173,9 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
         nf = &nfs[nf_init_data->instance_id];
 
         /* Cleanup state data */
-        if (nf_init_data->data != NULL) {
-                rte_free(nf_init_data->data);
-                nf_init_data->data = NULL;
+        if (nf->data != NULL) {
+                rte_free(nf->data);
+                nf->data = NULL;
         }
 
         /* Cleanup context */
