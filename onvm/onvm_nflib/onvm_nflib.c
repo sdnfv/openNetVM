@@ -564,7 +564,6 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         }
 
         nfs[scale_info->parent->instance_id].children_cnt++;
-        printf("Bumping up children count here %d\n", nfs[scale_info->parent->instance_id].children_cnt);
 
         /* Careful, this is required for shared cpu scaling TODO: resolve */
         if (ONVM_ENABLE_SHARED_CPU)
