@@ -45,10 +45,11 @@ Example use of Multithreading NF scaling functionality can be seen in the scalin
 ### Shared CPU mode
 This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on a shared core.  In "normal" OpenNetVM, each NF will poll its RX queue for packets, monopolizing the CPU even if it has a low load.  This branch adds a semaphore-based communication system so that NFs will block when there are no packets available.  The NF Manger will then signal the semaphore once one or more packets arrive.
 
-This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, if you encounter any bugs please create an issue.
+This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, therefore if you encounter any bugs please create an issue or a pull request with a proposed fix.
 
-For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.  
-Furthermore, the paper [NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai, Xiaoming Fu][nfvnice_paper] shows more in depth usage of the shared CPU architecture.
+For a description of how the code works, see the paper [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper]. Note that this code does not contain the full Flurries system, only the basic support for shared-CPU NFs.
+
+Additionally, the paper [NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at SIGCOMM '17][nfvnice_paper] shows a more in-depth usage of the shared CPU architecture.
 
 Usage / Known Limitations:
   - To enable pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they want to share cores
