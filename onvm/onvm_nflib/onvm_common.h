@@ -247,7 +247,7 @@ struct onvm_nf_context {
         struct onvm_nf *nf;
         struct onvm_nf_init_data *nf_init_data;
         rte_atomic16_t nf_init_finished;
-}__attribute__((__packed__));
+}
 
 /*
  * Define a nf structure with all needed info, including
@@ -318,7 +318,7 @@ struct onvm_nf {
         rte_atomic16_t *sleep_state;
         /* Mutex for NF sem_wait */
         sem_t *nf_mutex;
-}__attribute__((__packed__));
+}
 
 /*
  * Define a structure to describe one NF
@@ -337,7 +337,7 @@ struct onvm_nf_init_data {
         uint16_t pkt_limit;
         /* Pointer to NF defined state data */
         void *data;
-}__attribute__((__packed__));
+}
 
 /*
  * Define a structure to describe a service chain entry
