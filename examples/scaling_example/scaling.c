@@ -92,7 +92,7 @@ void sig_handler(int sig);
 void sig_handler(int sig) {
         if (sig != SIGINT && sig != SIGTERM)
                 return;
-        
+
         /* Specific signal handling logic can be implemented here */
 }
 
@@ -421,7 +421,7 @@ main(int argc, char *argv[]) {
 
         argc -= arg_offset;
         argv += arg_offset;
-        
+
         nf_info = nf_context->nf_info;
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_context);

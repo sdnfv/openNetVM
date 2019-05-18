@@ -95,7 +95,7 @@ static struct rte_mempool *nf_info_mp;
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
 
-// Global NF context to manage signal termination 
+// Global NF context to manage signal termination
 static struct onvm_nf_context *global_termination_context;
 
 // Global NF specific signal handler
@@ -254,7 +254,7 @@ onvm_nflib_init_nf_context(void) {
         struct onvm_nf_context *nf_context;
 
         nf_context = (struct onvm_nf_context*)calloc(1, sizeof(struct onvm_nf_context));
-        
+
         nf_context->keep_running = 1;
         rte_atomic16_init(&nf_context->nf_init_finished);
         rte_atomic16_set(&nf_context->nf_init_finished, 0);
@@ -267,7 +267,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
         /* Signal handling is global thus save global context */
         global_termination_context = nf_context;
         global_nf_signal_handler = nf_signal_handler;
-        
+
         printf("[Press Ctrl-C to quit ...]\n");
         signal(SIGINT, onvm_nflib_handle_signal);
         signal(SIGTERM, onvm_nflib_handle_signal);
@@ -317,7 +317,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
 
         /* Initialize the info struct */
         nf_context->nf_info = onvm_nflib_info_init(nf_tag);
-        //*nf_info_p = nf_info;
 
         if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_context->nf_info)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
@@ -1185,13 +1184,12 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].context == NULL)
                                continue;
-                        
                         if (nfs[i].parent != nf_info->instance_id)
                                 continue;
 
                         /* First stop child from running */
                         nfs[i].context->keep_running = 0;
-                        
+
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
 
