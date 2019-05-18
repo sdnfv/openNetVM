@@ -175,7 +175,7 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info);
 /*
  * Set this NF's status to not running and release memory
  *
- * Input: pointer to context strcut for this NF
+ * Input: pointer to context struct for this NF
  */
 static void
 onvm_nflib_cleanup(struct onvm_nf_context *nf_context);
@@ -217,7 +217,7 @@ onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
 /*
  * Start the NF by signaling manager that its ready to recieve packets
  *
- * Input: Info struct corresponding to this NF
+ * Input: Pointer to context struct of this NF
  */
 static int
 onvm_nflib_start_nf(struct onvm_nf_context *nf_context);
@@ -225,7 +225,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context);
 /*
  * Entry point of the NF main loop
  *
- * Input: void pointer, points to the onvm_nf struct
+ * Input: void pointer, points to the onvm_nf_context struct
  */
 void *
 onvm_nflib_thread_main_loop(void *arg);
@@ -349,11 +349,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
 int
 onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func handler, callback_handler_func callback) {
         struct onvm_nf *nf;
-        //struct onvm_nf_info *info;
         int ret;
 
         nf = nf_context->nf;
-        //info = nf_context->nf_info;
 
         /* Don't allow conflicting NF modes */
         if (nf->nf_mode == NF_MODE_RING) {
@@ -484,7 +482,7 @@ onvm_nflib_nf_ready(struct onvm_nf_info *info) {
                 return ret;
         }
 
-        /* Don't start running before the state changes */
+        /* Don't start running before the onvm_mgr handshake is finished */
         while (info->status != NF_RUNNING) {
                 sleep(1);
         }
@@ -1053,8 +1051,6 @@ onvm_nflib_handle_signal(int sig) {
                 global_nf_signal_handler(sig);
 
         /* All the child termination will be done later in onvm_nflib_stop */
-
-        return;
 }
 
 static int
@@ -1184,6 +1180,7 @@ static void
 onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
         uint16_t i;
 
+        /* Keep trying to shutdown children until there are none left */
         while (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0) {
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].context == NULL)
@@ -1192,13 +1189,13 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                         if (nfs[i].parent != nf_info->instance_id)
                                 continue;
 
-                        /* First set everything to not running */
+                        /* First stop child from running */
                         nfs[i].context->keep_running = 0;
                         
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
 
-                        /* Wake up the current NF if sleeping */ 
+                        /* Wake up the child if its sleeping */ 
                         if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);

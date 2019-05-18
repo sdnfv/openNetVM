@@ -374,7 +374,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_context *nf_context) {
                 ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
                 /* Using manager mac addr for source*/
-                //rte_eth_macaddr_get(0, &ehdr->s_addr);
+                rte_eth_macaddr_get(0, &ehdr->s_addr);
                 for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                         ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                 }

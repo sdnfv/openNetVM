@@ -163,9 +163,7 @@ struct queue_mgr {
         struct packet_buf *nf_rx_bufs;
 };
 
-/*
- * NFs wakeup Info: used by manager to update NFs pool and wakeup stats
- */
+/* NFs wakeup Info: used by manager to update NFs pool and wakeup stats */
 struct wakeup_thread_context {
         unsigned first_nf;
         unsigned last_nf;
@@ -242,7 +240,7 @@ struct onvm_nf_scale_info {
 };
 
 struct onvm_nf_context {
-        /* should be atomic as there might be race cond between threads */
+        /* Might want this to be atomic, used in sig handler and in main loop */
         uint8_t keep_running;
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
