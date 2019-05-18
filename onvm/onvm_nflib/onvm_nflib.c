@@ -611,7 +611,7 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
                 return -1;
         }
 
-        nfs[scale_info->parent->instance_id].children_cnt++;
+        rte_atomic16_inc(&nfs[scale_info->parent->instance_id].children_cnt);
 
         /* Careful, this is required for shared cpu scaling TODO: resolve */
         if (ONVM_ENABLE_SHARED_CPU)
@@ -619,7 +619,7 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
         if (ret < 0) {
-                nfs[scale_info->parent->instance_id].children_cnt--;
+                rte_atomic16_dec(&nfs[scale_info->parent->instance_id].children_cnt);
                 RTE_LOG(INFO, APP, "Failed to create child thread\n");
                 return -1;
         }
@@ -871,6 +871,8 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
 
         /* Set the parent id to none */
         nf->parent = 0;
+        rte_atomic16_init(&nf->children_cnt);
+        rte_atomic16_set(&nf->children_cnt, 0);
 
         /* In case this instance_id is reused, clear all function pointers */
         nf->nf_pkt_function = NULL;
@@ -1182,7 +1184,7 @@ static void
 onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
         uint16_t i;
 
-        while (nfs[nf_info->instance_id].children_cnt > 0) {
+        while (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0) {
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].context == NULL)
                                continue;

@@ -263,7 +263,7 @@ struct onvm_nf {
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
-        uint16_t children_cnt;
+        rte_atomic16_t children_cnt;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
         /* Pointer to NF context (used for signal handling/termination */
