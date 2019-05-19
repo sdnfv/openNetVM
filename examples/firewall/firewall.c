@@ -108,6 +108,11 @@ struct firewall_pkt_stats {
 static void
 usage(const char *progname) {
         printf("Usage: %s [EAL args] -- [NF_LIB args] -- -p <print_delay> -f <rules file> [-b]\n\n", progname);
+        printf("Flags:\n");
+        printf(" - `-d DST`: Destination Service ID to forward to\n");
+        printf(" - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-b`: Debug mode: Print each incoming packets source/destination IP address as well as its drop/forward status\n");
+        printf(" - `-f`: Path to a JSON file containing firewall rules; See README for example usage\n");
 }
 
 /*
