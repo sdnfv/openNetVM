@@ -61,7 +61,6 @@ done
 if [[ $dash_dash_cnt -ge 2 ]]; then
   DPDK_ARGS="$DPDK_BASE_ARGS $(echo " ""$@" | awk -F "--" '{print $1;}')"
   ONVM_ARGS="$(echo " ""$@" | awk -F "--" '{print $2;}')"
-
   # Move to NF arguments
   shift ${non_nf_arg_cnt}
 elif [[ $dash_dash_cnt -eq 0 ]]; then
