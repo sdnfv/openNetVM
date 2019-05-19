@@ -42,16 +42,15 @@ if [ "$1" = "-F" ]
 then
   config=$2
   shift 2
-  CONFIG_ARGS="$@"
-  exec sudo $BINARY -F $config $CONFIG_ARGS
+  exec sudo $BINARY -F $config "$@"
 fi
 
 # Check if -- is present, if so parse dpdk/onvm specific args
 dash_dash_cnt=0
-arg_cnt=0
+non_nf_arg_cnt=0
 for i in "$@" ; do
-  if [[ dash_dash_cnt -le 1 ]] ; then
-        arg_cnt=$((arg_cnt+1))
+  if [[ dash_dash_cnt -lt 2 ]] ; then
+        non_nf_arg_cnt=$((non_nf_arg_cnt+1))
   fi
   if [[ $i == "--" ]] ; then
     dash_dash_cnt=$((dash_dash_cnt+1))
@@ -64,7 +63,7 @@ if [[ $dash_dash_cnt -ge 2 ]]; then
   ONVM_ARGS="$(echo " ""$@" | awk -F "--" '{print $2;}')"
 
   # Move to NF arguments
-  shift ${arg_cnt}
+  shift ${non_nf_arg_cnt}
 elif [[ $dash_dash_cnt -eq 0 ]]; then
   # Dealing with required args shared by all NFs
   service=$1
