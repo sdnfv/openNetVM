@@ -87,8 +87,15 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
 
+/*
+ * Function that initializes an LPM object
+ *
+ * Input  : the address of an lpm_request struct
+ * Output : a return code based on initialization of the LPM object
+ *
+ */
 static void
-init_lpm_region(struct lpm_request *req_lpm);
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
 /********************************Interfaces***********************************/
 
@@ -149,7 +156,7 @@ onvm_nf_check_status(void) {
                         case MSG_REQUEST_LPM_REGION:
                                 // TODO: Add stats event handler here
                                 req_lpm = (struct lpm_request *)msg->msg_data;
-                                init_lpm_region(req_lpm);
+                                onvm_nf_init_lpm_region(req_lpm);
                                 break;
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
@@ -347,7 +354,7 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 }
 
 static void
-init_lpm_region(struct lpm_request *req_lpm) {
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
         struct rte_lpm_config conf;
         struct rte_lpm* lpm_region;
 

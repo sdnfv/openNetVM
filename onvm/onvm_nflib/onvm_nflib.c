@@ -309,8 +309,8 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
                 return ret;
         }
 
-        lpm_req->status = NF_WAITING_FOR_MGR;
-        for (; lpm_req->status == (uint16_t) NF_WAITING_FOR_MGR;) {
+        lpm_req->status = NF_WAITING_FOR_LPM;
+        for (; lpm_req->status == (uint16_t) NF_WAITING_FOR_LPM;) {
                 sleep(1);
         }
 
