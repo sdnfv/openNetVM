@@ -80,6 +80,8 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
+#define ONVM_SIGNAL_TERMINATION -2
+
 /* Maximum length of NF_TAG including the \0 */
 #define TAG_SIZE 15
 
@@ -240,11 +242,12 @@ struct onvm_nf_scale_info {
 };
 
 struct onvm_nf_context {
-        /* Might want this to be atomic, used in sig handler and in main loop */
-        uint8_t keep_running;
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
         rte_atomic16_t nf_init_finished;
+        rte_atomic16_t finished_processing;
+        /* Might want this to be atomic, used in sig handler and in NF main loop */
+        uint8_t keep_running;
 };
 
 /*

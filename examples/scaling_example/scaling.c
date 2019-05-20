@@ -275,7 +275,8 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
 
         printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
         /* Set core affinity, as this is adv rings we do it on our own */
-        onvm_threading_core_affinitize(nf_info->core);
+        if (onvm_threading_core_affinitize(nf_info->core) < 0)
+                rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf_info->core);
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
@@ -344,7 +345,9 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-        onvm_nflib_stop(nf_context);
+
+        /* Set this to notify that we have finished processing packets and ready for shutdown */
+        rte_atomic16_set(&nf_context->finished_processing, 1);
 }
 
 /*
@@ -409,15 +412,25 @@ main(int argc, char *argv[]) {
                         break;
         }
 
-        /* If we're using direct rings also pass a custom cleanup function */
+        /*
+         * If we're using direct rings also pass a custom cleanup function,
+         * this can be used to handle NF specific (non onvm) cleanup logic
+         */
         if (use_direct_rings) {
                 onvm_nflib_start_signal_handler(nf_context, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_context, NULL);
         }
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
-                return -1;
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
+                onvm_nflib_stop(nf_context);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
 
         argc -= arg_offset;
         argv += arg_offset;
@@ -446,6 +459,7 @@ main(int argc, char *argv[]) {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
                 onvm_nflib_run(nf_context, &packet_handler);
         }
+        onvm_nflib_stop(nf_context);
         printf("If we reach here, program is ending\n");
         return 0;
 }

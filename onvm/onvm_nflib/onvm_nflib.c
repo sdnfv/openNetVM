@@ -254,10 +254,14 @@ onvm_nflib_init_nf_context(void) {
         struct onvm_nf_context *nf_context;
 
         nf_context = (struct onvm_nf_context*)calloc(1, sizeof(struct onvm_nf_context));
+        if (nf_context == NULL)
+                rte_exit(EXIT_FAILURE, "Failed to allocate memory for NF context\n");
 
         nf_context->keep_running = 1;
         rte_atomic16_init(&nf_context->nf_init_finished);
         rte_atomic16_set(&nf_context->nf_init_finished, 0);
+        rte_atomic16_init(&nf_context->finished_processing);
+        rte_atomic16_set(&nf_context->finished_processing, 0);
 
         return nf_context;
 }
@@ -277,8 +281,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
 
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context) {
-        int retval_parse, retval_final;
-        int retval_eal = 0;
+        int ret, retval_eal, retval_parse, retval_final;
         int use_config = 0;
 
         /* Check to see if a config file should be used */
@@ -335,7 +338,8 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
          */
         retval_final = (retval_eal + retval_parse) - 1;
 
-        onvm_nflib_start_nf(nf_context);
+        if ((ret = onvm_nflib_start_nf(nf_context)) < 0)
+                return ret;
 
         // Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
         if (use_config) {
@@ -429,9 +433,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                         nf_context->keep_running = 0;
                 }
         }
-
-        onvm_nflib_stop(nf_context);
-
+        rte_atomic16_set(&nf_context->finished_processing, 1);
         return NULL;
 }
 
@@ -778,12 +780,12 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         sigaddset(&mask, SIGINT);
         sigaddset(&mask, SIGTERM);
         if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-                printf("Could not set pthread sigmast\n");
+                printf("Could not set pthread sigmask\n");
                 return -1;
         }
 
         if (!nf_context->keep_running) {
-                rte_exit(EXIT_FAILURE, "Exiting due to user termination before got an id\n");
+                return ONVM_SIGNAL_TERMINATION;
         }
 
         nf_info = nf_context->nf_info;
@@ -811,10 +813,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                         /* Wait because we sent a message to the onvm_mgr */
                         for (i = 0; i < INIT_TERM_ITER_TIMES && nf_info->status != NF_STARTING; i++)
                                 sleep(INIT_TERM_WAIT_TIME);
-                        /* If initialized gracefully cleanup */
-                        if (nf_info->status == NF_STARTING)
-                                onvm_nflib_stop(nf_context);
-                        rte_exit(EXIT_FAILURE, "Exiting due to user termination\n");
+                        return ONVM_SIGNAL_TERMINATION;
                 }
         }
 
@@ -989,7 +988,10 @@ onvm_nflib_start_child(void *arg) {
         RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_info->service_id,
                 child_info->instance_id);
         child_context->nf_info = child_info;
-        onvm_nflib_start_nf(child_context);
+        if (onvm_nflib_start_nf(child_context) < 0) {
+                onvm_nflib_stop(child_context);
+                return NULL;
+        }
 
         child = &nfs[child_info->instance_id];
         child_context->nf = child;
@@ -1189,6 +1191,8 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
 
                         /* First stop child from running */
                         nfs[i].context->keep_running = 0;
+                        /* Recursively terminate the childrens children */
+                        onvm_nflib_terminate_children(nfs[i].info);
 
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
@@ -1198,6 +1202,13 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);
                         }
+
+                        /* Wait until NF exits processing loop */
+                        while (rte_atomic16_read(&nfs[i].context->finished_processing) == 0)
+                                sleep(1);
+
+                        /* Finally cleanup after the child */
+                        onvm_nflib_cleanup(nfs[i].context);
                 }
                 sleep(1);
         }
@@ -1219,12 +1230,6 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
         if (nf_info->data != NULL) {
                 rte_free(nf_info->data);
                 nf_info->data = NULL;
-        }
-
-        /* Cleanup context */
-        if (nf->context != NULL) {
-                free(nf->context);
-                nf->context = NULL;
         }
 
         /* Cleanup for the nf_tx_mgr pointers */
@@ -1262,6 +1267,12 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
                 rte_mempool_put(nf_info_mp, nf_info);  // give back mermory
                 rte_mempool_put(nf_msg_pool, shutdown_msg);
                 rte_exit(EXIT_FAILURE, "Cannot send nf_info to manager for shutdown");
+        }
+
+        /* Cleanup context */
+        if (nf->context != NULL) {
+                free(nf->context);
+                nf->context = NULL;
         }
 }
 
