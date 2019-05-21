@@ -345,9 +345,6 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
-
-        /* Set this to notify that we have finished processing packets and ready for shutdown */
-        rte_atomic16_set(&nf_context->finished_processing, 1);
 }
 
 /*

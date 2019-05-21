@@ -245,7 +245,6 @@ struct onvm_nf_context {
         struct onvm_nf *nf;
         struct onvm_nf_info *nf_info;
         rte_atomic16_t nf_init_finished;
-        rte_atomic16_t finished_processing;
         /* Might want this to be atomic, used in sig handler and in NF main loop */
         uint8_t keep_running;
 };
