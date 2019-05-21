@@ -258,8 +258,7 @@ lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
 
         if (!firewall_req) return 0;
 
-        snprintf(name, sizeof(name), "fw%d-%"
-        PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+        snprintf(name, sizeof(name), "fw%d-%"PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
         firewall_req->max_num_rules = 1024;
         firewall_req->num_tbl8s = 24;
         firewall_req->socket_id = rte_socket_id();
