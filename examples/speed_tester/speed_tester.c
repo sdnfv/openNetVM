@@ -386,7 +386,6 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf_context->keep_running = 0;
                 }
         }
-        onvm_nflib_stop(nf_context);
 }
 
 /*
