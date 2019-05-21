@@ -1196,7 +1196,7 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
 
-                        /* Wake up the child if its sleeping */ 
+                        /* Wake up the child if its sleeping */
                         if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].sleep_state) == 1) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);
