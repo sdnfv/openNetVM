@@ -44,7 +44,6 @@
 #include <stdio.h>
 #include <libgen.h>
 #include <inttypes.h>
-#include <unistd.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -111,7 +110,8 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID to forward to\n");
         printf(" - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.\n");
-        printf(" - `-b`: Debug mode: Print each incoming packets source/destination IP address as well as its drop/forward status\n");
+        printf(" - `-b`: Debug mode: Print each incoming packets source/destination"
+               " IP address as well as its drop/forward status\n");
         printf(" - `-f`: Path to a JSON file containing firewall rules; See README for example usage\n");
 }
 
@@ -133,13 +133,12 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 RTE_LOG(INFO, APP, "Print delay = %d\n", print_delay);
                                 break;
                         case 'f':
-                                rule_file = malloc(sizeof(char) * (strlen(optarg)));
-                                strcpy(rule_file, optarg);
+                                rule_file = strdup(optarg);
                                 rules_init = 1;
                                 break;
                         case 'b':
-                                RTE_LOG(INFO, APP,
-                                        "Debug mode enabled; printing the source IP addresses of each incoming packet as well as drop/forward status\n");
+                                RTE_LOG(INFO, APP, "Debug mode enabled; printing the source IP addresses"
+                                                   " of each incoming packet as well as drop/forward status\n");
                                 debug = 1;
                                 break;
                         case '?':
@@ -248,7 +247,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
+static int
+lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         int i, status, ret;
         uint32_t ip;
         char name[64];
@@ -258,12 +258,12 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
 
         if (!firewall_req) return 0;
 
-        snprintf(name, sizeof(name), "fw%d-%"PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+        snprintf(name, sizeof(name), "fw%d-%"
+        PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
         firewall_req->max_num_rules = 1024;
         firewall_req->num_tbl8s = 24;
         firewall_req->socket_id = rte_socket_id();
-        strcpy(firewall_req->name, name);
-
+        snprintf(firewall_req->name, sizeof(name), "%s", name);
         status = onvm_nflib_request_lpm(firewall_req);
 
         if (status < 0) {
@@ -288,11 +288,11 @@ static int lpm_setup(struct onvm_fw_rule **rules, int num_rules) {
         }
         rte_free(firewall_req);
 
-
         return 0;
 }
 
-static void lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
+static void
+lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
         int i;
 
         if (rules) {
@@ -305,9 +305,14 @@ static void lpm_teardown(struct onvm_fw_rule **rules, int num_rules) {
         if (lpm_tbl) {
                 rte_lpm_free(lpm_tbl);
         }
+
+        if (rule_file) {
+                free(rule_file);
+        }
 }
 
-struct onvm_fw_rule **setup_rules(int *total_rules, char *rules_file) {
+struct onvm_fw_rule
+**setup_rules(int *total_rules, char *rules_file) {
         int ip[4];
         int num_rules, ret;
         int i = 0;

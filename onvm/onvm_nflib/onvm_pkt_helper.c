@@ -375,7 +375,8 @@ onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
 
 void
 onvm_pkt_parse_char_ip(char* ip_dest, uint32_t ip_src) {
-        sprintf(ip_dest, "%u.%u.%u.%u", (ip_src >> 24) & 0xFF, (ip_src >> 16) & 0xFF, (ip_src >> 8) & 0xFF, ip_src & 0xFF);
+        snprintf(ip_dest, 16, "%u.%u.%u.%u", (ip_src >> 24) & 0xFF, (ip_src >> 16) & 0xFF,
+                (ip_src >> 8) & 0xFF, ip_src & 0xFF);
 }
 
 int
