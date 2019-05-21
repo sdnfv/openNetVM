@@ -808,8 +808,8 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                 sleep(1);
                 if (!nf_context->keep_running) {
                         /* Wait because we sent a message to the onvm_mgr */
-                        for (i = 0; i < INIT_TERM_ITER_TIMES && nf_info->status != NF_STARTING; i++)
-                                sleep(INIT_TERM_WAIT_TIME);
+                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_info->status != NF_STARTING; i++)
+                                sleep(NF_TERM_WAIT_TIME);
                         return ONVM_SIGNAL_TERMINATION;
                 }
         }
@@ -1179,10 +1179,11 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_info *nf_info) {
 
 static void
 onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
-        uint16_t i;
+        uint16_t i, iter_cnt;
 
+        iter_cnt = 0;
         /* Keep trying to shutdown children until there are none left */
-        while (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0) {
+        while (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0 && iter_cnt < NF_TERM_STOP_ITER_TIMES) {
                 for (i = 0; i < MAX_NFS; i++) {
                         if (nfs[i].context == NULL)
                                continue;
@@ -1200,8 +1201,16 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);
                         }
+                        iter_cnt++;
                 }
-                sleep(1);
+                RTE_LOG(INFO, APP, "NF %d: Waiting for %d children to exit\n",
+                        nf_info->instance_id, rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt));
+                sleep(NF_TERM_WAIT_TIME);
+        }
+
+        if (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0) {
+                RTE_LOG(INFO, APP, "NF %d: Up to %d children may still be running and must be killed manually\n",
+                        nf_info->instance_id, rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt));
         }
 }
 
@@ -1269,34 +1278,26 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
 
 static void
 init_shared_cpu_info(uint16_t instance_id) {
-        const char *sem_name;
-        int shmid;
         key_t key;
+        int shmid;
         char *shm;
-        struct onvm_nf *nf = &nfs[instance_id];
+        struct onvm_nf *nf;
+        const char *sem_name;
 
+        nf = &nfs[instance_id];
         sem_name = get_sem_name(instance_id);
-        fprintf(stderr, "sem_name=%s for client %d\n", sem_name, instance_id);
+
         nf->nf_mutex = sem_open(sem_name, 0, 0666, 0);
-        if (nf->nf_mutex == SEM_FAILED) {
-                perror("Unable to execute semaphore");
-                fprintf(stderr, "unable to execute semphore for client %d\n", instance_id);
-                sem_close(nf->nf_mutex);
-                exit(1);
-        }
+        if (nf->nf_mutex == SEM_FAILED)
+                rte_exit(EXIT_FAILURE, "Unable to execute semphore for NF %d\n", instance_id);
 
-        /* get flag which is shared by server */
+        /* Get flag which is shared by server */
         key = get_rx_shmkey(instance_id);
-        if ((shmid = shmget(key, SHMSZ, 0666)) < 0) {
-                perror("shmget");
-                fprintf(stderr, "unable to Locate the segment for client %d\n", instance_id);
-                exit(1);
-        }
+        if ((shmid = shmget(key, SHMSZ, 0666)) < 0)
+                rte_exit(EXIT_FAILURE, "Unable to locate the segment for NF %d\n", instance_id);
 
-        if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
-                fprintf(stderr, "can not attach the shared segment to the client space for client %d\n", instance_id);
-                exit(1);
-        }
+        if ((shm = shmat(shmid, NULL, 0)) == (char *) -1)
+                rte_exit(EXIT_FAILURE, "Can not attach the shared segment to the NF space for NF %d\n", instance_id);
 
         nf->sleep_state = (rte_atomic16_t *)shm;
 }
