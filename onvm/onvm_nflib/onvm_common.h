@@ -80,6 +80,8 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
+#define ONVM_SIGNAL_TERMINATION -2
+
 /* Maximum length of NF_TAG including the \0 */
 #define TAG_SIZE 15
 
@@ -94,8 +96,10 @@
 #define TIME_TTL_MULTIPLIER 1
 
 /* For NF termination handling */
-#define INIT_TERM_WAIT_TIME 1
-#define INIT_TERM_ITER_TIMES 3
+#define NF_TERM_WAIT_TIME 1
+#define NF_TERM_INIT_ITER_TIMES 3
+/* If a lot of children spawned this might need to be increased */
+#define NF_TERM_STOP_ITER_TIMES 10
 
 struct onvm_pkt_meta {
         uint8_t action;       /* Action to be performed */
@@ -163,9 +167,7 @@ struct queue_mgr {
         struct packet_buf *nf_rx_bufs;
 };
 
-/*
- * NFs wakeup Info: used by manager to update NFs pool and wakeup stats
- */
+/* NFs wakeup Info: used by manager to update NFs pool and wakeup stats */
 struct wakeup_thread_context {
         unsigned first_nf;
         unsigned last_nf;
@@ -242,11 +244,11 @@ struct onvm_nf_scale_info {
 };
 
 struct onvm_nf_context {
-        /* should be atomic as there might be race cond between threads */
-        uint8_t keep_running;
         struct onvm_nf *nf;
         struct onvm_nf_init_data *nf_init_data;
         rte_atomic16_t nf_init_finished;
+        /* Might want this to be atomic, used in sig handler and in NF main loop */
+        uint8_t keep_running;
 };
 
 /*
@@ -271,7 +273,7 @@ struct onvm_nf {
         uint16_t pkt_limit;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
-        uint16_t children_cnt;
+        rte_atomic16_t children_cnt;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
         /* Pointer to NF context (used for signal handling/termination */

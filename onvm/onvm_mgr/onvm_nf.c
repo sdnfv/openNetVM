@@ -255,7 +255,7 @@ onvm_nf_ready(struct onvm_nf_init_data *info) {
         services[info->service_id][service_count] = info->instance_id;
         num_nfs++;
         // Register this NF running within its service
-        info->status = NF_RUNNING;
+        nfs[info->instance_id].status = NF_RUNNING;
         return 0;
 }
 
@@ -291,7 +291,7 @@ onvm_nf_stop(struct onvm_nf_init_data *nf_init_data) {
 
         /* Tell parent we stopped running */
         if (nfs[nf_id].parent != 0)
-                nfs[nfs[nf_id].parent].children_cnt--;
+                rte_atomic16_dec(&nfs[nfs[nf_id].parent].children_cnt);
 
         /* Remove the NF from the core it was running on */
         cores[nf_init_data->core].nf_count--;

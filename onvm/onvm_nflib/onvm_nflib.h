@@ -69,6 +69,11 @@ onvm_nflib_init_nf_context(void);
 /**
  * Initialize the default OpenNetVM signal handling.
  *
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
+ * @param signal_handler
+ *   Function pointer to an optional NF specific signal handler function,
+ *   that will be called after the default onvm signal handler.
  * @return
  * Error code or 0 if succesfull 
  */
@@ -87,9 +92,8 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
  * @param tag
  *   A uniquely identifiable string for this NF.
  *   For example, can be the application name (e.g. "bridge_nf")
- * @param info
- *   A double pointer to the structure containing information relevant to this NF.
- *   For example, the instance_id and the status of the NF can be found here.
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
@@ -97,15 +101,15 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);//struct onvm_nf_init_data **nf_init_data_p);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);
 
 /**
  * Run the OpenNetVM container Library.
  * This will register the callback used for each new packet, and the callback used for batch processing. It will then
  * loop forever waiting for packets.
  *
- * @param info
- *   A pointer to the info struct describing this NF app. Must be from a huge page memzone.
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
  * @param handler
  *   A pointer to the function that will be called on each received packet.
  * @param callback_handler
@@ -121,8 +125,8 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func pkt
  * Runs the OpenNetVM container library, without using the callback function.
  * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
  *
- * @param info
- *   An info struct describing this NF. Must be from a huge page memzone.
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
  * @param handler
  *   A pointer to the function that will be called on each received packet.
  * @return
@@ -177,6 +181,8 @@ onvm_nflib_nf_ready(struct onvm_nf *nf);
  *
  * @param msg
  *    a pointer to a message to be processed
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
  * @return
  *    0 on success, or a negative value on error
  */
@@ -190,8 +196,8 @@ onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
  *
- * @param info
- *   Pointer to the context struct for this NF.
+ * @param nf_context
+ *   Pointer to a context struct of this NF.
  */
 void
 onvm_nflib_stop(struct onvm_nf_context *nf_context);

@@ -184,8 +184,15 @@ main(int argc, char *argv[]) {
         nf_context = onvm_nflib_init_nf_context();
         onvm_nflib_start_signal_handler(nf_context, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0)
-                return -1;
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
+                onvm_nflib_stop(nf_context);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
 
         argc -= arg_offset;
         argv += arg_offset;
@@ -199,6 +206,8 @@ main(int argc, char *argv[]) {
         last_cycle = rte_get_tsc_cycles();
 
         onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+
+        onvm_nflib_stop(nf_context);
         printf("If we reach here, program is ending\n");
         return 0;
 }

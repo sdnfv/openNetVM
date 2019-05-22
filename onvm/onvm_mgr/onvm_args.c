@@ -190,7 +190,7 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 break;
                         case 'c':
                                 onvm_config->flags.ONVM_ENABLE_SHARED_CPU = 1;
-                                ONVM_ENABLE_SHARED_CPU = 1; 
+                                ONVM_ENABLE_SHARED_CPU = 1;
                                 break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
