@@ -267,10 +267,12 @@ struct onvm_nf {
         /* Advanced ring mode or packet handler mode */
         uint8_t nf_mode;
         char *tag;
-        /* If set NF will stop after time reaches time_to_live */
-        uint16_t time_to_live;
-        /* If set NF will stop after pkts TX reach pkt_limit */
-        uint16_t pkt_limit;
+        struct {
+                /* If set NF will stop after time reaches time_to_live */
+                uint16_t time_to_live;
+                /* If set NF will stop after pkts TX reach pkt_limit */
+                uint16_t pkt_limit;
+        } user_flags;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
         rte_atomic16_t children_cnt;

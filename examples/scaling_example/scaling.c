@@ -265,7 +265,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         static uint8_t spawned_nfs = 0;
 
         /* Get rings from nflib */
-        nf = nf_context->nf;
+        nf = onvm_nflib_get_nf(nf_context->nf->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;

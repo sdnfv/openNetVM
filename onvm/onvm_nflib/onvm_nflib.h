@@ -193,6 +193,39 @@ int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
 
 /**
+ * Return the tx_ring associated with this NF.
+ *
+ * @param nf
+ *   An onvm_nf struct describing this NF.
+ * @return
+ *   Pointer to tx_ring structure associated with info, NULL on error.
+ */
+struct rte_ring *
+onvm_nflib_get_tx_ring(struct onvm_nf *nf);
+
+/**
+ * Return the rx_ring associated with this NF.
+ *
+ * @param nf
+ *   An onvm_nf struct describing this NF app.
+ * @return
+ *   Pointer to rx_ring structure associated with info, NULL on error.
+ */
+struct rte_ring *
+onvm_nflib_get_rx_ring(struct onvm_nf *nf);
+
+/**
+ * Return the nf details associated with this NF.
+ *
+ * @param id
+ *   An instance id of the corresponding NF.
+ * @return
+ *   Pointer to NF structure referenced by instance id, NULL on error.
+ */
+struct onvm_nf *
+onvm_nflib_get_nf(uint16_t id);
+
+/**
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
  *

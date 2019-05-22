@@ -414,12 +414,12 @@ onvm_nflib_thread_main_loop(void *arg) {
                         nf_context->keep_running = !(*callback)(nf) && nf_context->keep_running;
                 }
 
-                if (nf->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
-                                          TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->time_to_live)) {
+                if (nf->user_flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
+                                          TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->user_flags.time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         nf_context->keep_running = 0;
                 }
-                if (nf->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf->pkt_limit * PKT_TTL_MULTIPLIER)) {
+                if (nf->user_flags.pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf->user_flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
                         nf_context->keep_running = 0;
                 }
@@ -521,6 +521,50 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
         msg->msg_data = msg_data;
 
         return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+}
+
+struct rte_ring *
+onvm_nflib_get_tx_ring(struct onvm_nf *nf) {
+        if (nf == NULL) {
+                return NULL;
+        }
+
+        /* Don't allow conflicting NF modes */
+        if (nf->nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the tx_ring associated with the info struct */
+        nf->nf_mode = NF_MODE_RING;
+        return (struct rte_ring *)(&(nf->tx_q));
+}
+
+struct rte_ring *
+onvm_nflib_get_rx_ring(struct onvm_nf *nf) {
+        if (nf == NULL) {
+                return NULL;
+        }
+
+        /* Don't allow conflicting NF modes */
+        if (nf->nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the rx_ring associated with the info struct */
+        nf->nf_mode = NF_MODE_RING;
+        return (struct rte_ring *)(&(nf->rx_q));
+}
+
+struct onvm_nf *
+onvm_nflib_get_nf(uint16_t id) {
+        /* Don't allow conflicting NF modes */
+        if (nfs[id].nf_mode == NF_MODE_SINGLE) {
+                return NULL;
+        }
+
+        /* We should return the NF struct referenced by instance id */
+        nfs[id].nf_mode = NF_MODE_RING;
+        return &nfs[id];
 }
 
 void
