@@ -1201,11 +1201,11 @@ onvm_nflib_terminate_children(struct onvm_nf_info *nf_info) {
                                 rte_atomic16_set(nfs[i].sleep_state, 0);
                                 sem_post(nfs[i].nf_mutex);
                         }
-                        iter_cnt++;
                 }
                 RTE_LOG(INFO, APP, "NF %d: Waiting for %d children to exit\n",
                         nf_info->instance_id, rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt));
                 sleep(NF_TERM_WAIT_TIME);
+                iter_cnt++;
         }
 
         if (rte_atomic16_read(&nfs[nf_info->instance_id].children_cnt) > 0) {
