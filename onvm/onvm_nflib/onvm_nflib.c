@@ -355,12 +355,6 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func han
         nf = nf_context->nf;
         nf->nf_mode = NF_MODE_SINGLE;
 
-        /* Don't allow conflicting NF modes */
-        if (nf->nf_mode == NF_MODE_RING) {
-                return -1;
-        }
-        nf->nf_mode = NF_MODE_SINGLE;
-
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
         nf->nf_pkt_function = handler;
         nf->nf_callback_function = callback;
@@ -809,8 +803,8 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                 rte_atomic16_set(&nf_context->nf_init_finished, 1);
         }
 
-        /* Set mode to UNKNOWN, to be determined later */
-        nf->nf_mode = NF_MODE_UNKNOWN;
+        /* Set mode to RING, if normal mode used will be determined later */
+        nf->nf_mode = NF_MODE_RING;
 
         /* Initialize empty NF's tx manager */
         onvm_nflib_nf_tx_mgr_init(nf);

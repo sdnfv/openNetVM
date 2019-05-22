@@ -437,7 +437,7 @@ get_msg_queue_name(unsigned id) {
  */
 static inline int
 onvm_nf_is_valid(struct onvm_nf *nf) {
-        return nf && nf->info && nf->info->status == NF_RUNNING;
+        return nf && nf->status == NF_RUNNING;
 }
 
 /*

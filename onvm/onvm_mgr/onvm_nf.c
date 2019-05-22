@@ -239,8 +239,10 @@ onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
 
         nfs[nf_id].info = nf_init_data;
         nfs[nf_id].instance_id = nf_id;
+        nfs[nf_id].service_id = nf_init_data->service_id;
 
         // Let the NF continue its init process
+        nfs[nf_id].status = NF_STARTING;
         nf_init_data->status = NF_STARTING;
         return 0;
 }
@@ -248,7 +250,7 @@ onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
 inline static int
 onvm_nf_ready(struct onvm_nf_init_data *info) {
         // Ensure we've already called nf_start for this NF
-        if (info->status != NF_STARTING)
+        if (nfs[info->instance_id].status != NF_STARTING)
                 return -1;
 
         uint16_t service_count = nf_per_service_count[info->service_id]++;
@@ -256,6 +258,7 @@ onvm_nf_ready(struct onvm_nf_init_data *info) {
         num_nfs++;
         // Register this NF running within its service
         nfs[info->instance_id].status = NF_RUNNING;
+        info->status = NF_RUNNING;
         return 0;
 }
 
@@ -288,6 +291,7 @@ onvm_nf_stop(struct onvm_nf_init_data *nf_init_data) {
                 return 1;
 
         nf_init_data->status = NF_STOPPED;
+        nfs[nf_init_data->instance_id].status = NF_STOPPED;
 
         /* Tell parent we stopped running */
         if (nfs[nf_id].parent != 0)
