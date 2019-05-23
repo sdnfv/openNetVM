@@ -141,6 +141,12 @@ int
 onvm_pkt_parse_ip(char* ip_str, uint32_t* dest);
 
 /**
+ * Parse uint32 IP into a string
+ */
+void
+onvm_pkt_parse_char_ip(char* ip_dest, uint32_t ip_src);
+
+/**
  * Parsing mac addr of form xx:xx:xx:xx:xx:xx into dest array
  */
 int

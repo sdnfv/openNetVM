@@ -49,6 +49,7 @@
 #include "onvm_nf.h"
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
+#include <rte_lpm.h>
 
 /* ID 0 is reserved */
 uint16_t next_instance_id = 1;
@@ -85,6 +86,16 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
  */
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
+
+/*
+ * Function that initializes an LPM object
+ *
+ * Input  : the address of an lpm_request struct
+ * Output : a return code based on initialization of the LPM object
+ *
+ */
+static void
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
 /********************************Interfaces***********************************/
 
@@ -128,6 +139,7 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
+        struct lpm_request *req_lpm;
         int num_msgs = rte_ring_count(incoming_msg_queue);
         uint16_t stop_nf_id;
 
@@ -141,6 +153,11 @@ onvm_nf_check_status(void) {
                 msg = (struct onvm_nf_msg *)msgs[i];
 
                 switch (msg->msg_type) {
+                        case MSG_REQUEST_LPM_REGION:
+                                // TODO: Add stats event handler here
+                                req_lpm = (struct lpm_request *)msg->msg_data;
+                                onvm_nf_init_lpm_region(req_lpm);
+                                break;
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_start(nf) == 0) {
@@ -351,4 +368,20 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         }
 
         return 0;
+}
+
+static void
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
+        struct rte_lpm_config conf;
+        struct rte_lpm* lpm_region;
+
+        conf.max_rules = req_lpm->max_num_rules;
+        conf.number_tbl8s = req_lpm->num_tbl8s;
+
+        lpm_region = rte_lpm_create(req_lpm->name, req_lpm->socket_id, &conf);
+        if (lpm_region) {
+                req_lpm->status = 0;
+        } else {
+                req_lpm->status = -1;
+        }
 }
