@@ -920,7 +920,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
          * the shared cpu mode is not an option
          */
         if (ONVM_CHECK_BIT(nf->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
-                RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
+               RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
                                       "enabled, this will hurt performance, proceed with caution\n");
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
@@ -1297,6 +1297,12 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
         if (rte_ring_enqueue(mgr_msg_queue, shutdown_msg) < 0) {
                 rte_mempool_put(nf_msg_pool, shutdown_msg);
                 rte_exit(EXIT_FAILURE, "Cannot send mgr message to manager for shutdown");
+        }
+
+        /* Cleanup context */
+        if (nf->context != NULL) {
+                free(nf->context);
+                nf->context = NULL;
         }
 
         /* Cleanup context */

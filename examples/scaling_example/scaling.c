@@ -1,4 +1,4 @@
-/*********************************************************************
+        /*********************************************************************
  *                     openNetVM
  *              https://sdnfv.github.io
  *
@@ -429,7 +429,7 @@ main(int argc, char *argv[]) {
 
         argc -= arg_offset;
         argv += arg_offset;
-        
+
         if (parse_app_args(argc, argv, progname) < 0) {
                 onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");

@@ -1729,7 +1729,7 @@ def CheckForHeaderGuard(filename, clean_lines, error):
   if ifndef != cppvar:
     error_level = 0
     if ifndef != cppvar + '_':
-      error_level = 5
+      error_level = 3
 
     ParseNolintSuppressions(filename, raw_lines[ifndef_linenum], ifndef_linenum,
                             error)
@@ -1863,7 +1863,7 @@ def CheckForMultilineCommentsAndStrings(filename, clean_lines, linenum, error):
   line = line.replace('\\\\', '')
 
   if line.count('/*') > line.count('*/'):
-    error(filename, linenum, 'readability/multiline_comment', 5,
+    error(filename, linenum, 'readability/multiline_comment', 3,
           'Complex multi-line /*...*/-style comment found. '
           'Lint may give bogus warnings.  '
           'Consider replacing these with //-style comments, '
@@ -4628,7 +4628,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
   # naming convention but not the include convention.
   match = Match(r'#include\s*"([^/]+\.h)"', line)
   if match and not _THIRD_PARTY_HEADERS_PATTERN.match(match.group(1)):
-    error(filename, linenum, 'build/include', 4,
+    error(filename, linenum, 'build/include', 3,
           'Include the directory when naming .h files')
 
   # we shouldn't include a file more than once. actually, there are a
@@ -4817,7 +4817,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
   else:
     match = Search(r'\b(short|long(?! +double)|long long)\b', line)
     if match:
-      error(filename, linenum, 'runtime/int', 4,
+      error(filename, linenum, 'runtime/int', 3,
             'Use int16/int64/etc, rather than the C type %s' % match.group(1))
 
   # Check if some verboten operator overloading is going on
