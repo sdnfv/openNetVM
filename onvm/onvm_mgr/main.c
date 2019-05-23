@@ -137,7 +137,7 @@ master_thread_main(void) {
 
         /* Tell all NFs to stop */
         for (i = 0; i < MAX_NFS; i++) {
-                if (nfs[i].info == NULL)
+                if (nfs[i].status != NF_RUNNING)
                         continue;
 
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);

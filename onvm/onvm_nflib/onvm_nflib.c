@@ -353,6 +353,11 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func han
         int ret;
 
         nf = nf_context->nf;
+
+	/* Don't allow conflicting NF modes */
+        if (nf->nf_mode == NF_MODE_RING) {
+                return -1;
+        }
         nf->nf_mode = NF_MODE_SINGLE;
 
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
@@ -383,7 +388,7 @@ onvm_nflib_thread_main_loop(void *arg) {
 
         nf_context = (struct onvm_nf_context *)arg;
         nf = nf_context->nf;
-        onvm_threading_core_affinitize(nf->info->core);
+        onvm_threading_core_affinitize(nf->core);
 
         handler = nf->nf_pkt_function;
         callback = nf->nf_callback_function;
@@ -466,7 +471,7 @@ onvm_nflib_nf_ready(struct onvm_nf *nf) {
                 return ret;
 
         startup_msg->msg_type = MSG_NF_READY;
-        startup_msg->msg_data = nf->info;
+        startup_msg->msg_data = nf;
         ret = rte_ring_enqueue(mgr_msg_queue, startup_msg);
         if (ret < 0) {
                 rte_mempool_put(nf_msg_pool, startup_msg);
@@ -644,7 +649,8 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info->service_id = parent->service_id;
         scale_info->tag = parent->tag;
         scale_info->core = parent->core;
-        scale_info->flags = parent->info->flags;
+        //TODO might need to get flags
+        //scale_info->flags = parent->info->flags;
         scale_info->data = data;
         scale_info->setup_func = parent->nf_setup_function;
         scale_info->handle_msg_function = parent->nf_handle_msg_function;
@@ -847,8 +853,8 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                 rte_atomic16_set(&nf_context->nf_init_finished, 1);
         }
 
-        /* Set mode to RING, if normal mode used will be determined later */
-        nf->nf_mode = NF_MODE_RING;
+        /* Set mode to UNKNOWN, to be determined later */
+        nf->nf_mode = NF_MODE_UNKNOWN;
 
         /* Initialize empty NF's tx manager */
         onvm_nflib_nf_tx_mgr_init(nf);
@@ -857,9 +863,6 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         nf->parent = 0;
         rte_atomic16_init(&nf->children_cnt);
         rte_atomic16_set(&nf->children_cnt, 0);
-
-        /* Default to advanced rings, if normal nflib run is called change the mode later */
-        nf->nf_mode = NF_MODE_RING;
 
         /* In case this instance_id is reused, clear all function pointers */
         nf->nf_pkt_function = NULL;
@@ -966,7 +969,7 @@ onvm_nflib_start_child(void *arg) {
         parent = &nfs[scale_info->parent->instance_id];
 
         /* Initialize the info struct */
-        child_info = onvm_nflib_info_init(parent->info->tag);
+        child_info = onvm_nflib_info_init(parent->tag);
 
         /* Set child NF service and instance id */
         child_info->service_id = scale_info->service_id;
@@ -1092,7 +1095,7 @@ onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf) {
         nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
         nf->nf_tx_mgr->mgr_type_t = NF;
         nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
-        nf->nf_tx_mgr->id = nf->info->instance_id;
+        nf->nf_tx_mgr->id = nf->instance_id;
         nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
 }
 
@@ -1210,8 +1213,9 @@ onvm_nflib_terminate_children(struct onvm_nf *nf) {
 
 static void
 onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
-        struct onvm_nf *nf;
         struct onvm_nf_init_data *nf_init_data;
+        struct onvm_nf_msg *shutdown_msg;
+        struct onvm_nf *nf;
 
         if (nf_context == NULL || nf_context->nf_init_data == NULL) {
                 return;
@@ -1242,8 +1246,6 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
                 nf->nf_tx_mgr = NULL;
         }
 
-        struct onvm_nf_msg *shutdown_msg;
-
         /* Put this NF's info struct back into queue for manager to ack shutdown */
         if (mgr_msg_queue == NULL) {
                 rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory
@@ -1255,7 +1257,7 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
         }
 
         shutdown_msg->msg_type = MSG_NF_STOPPING;
-        shutdown_msg->msg_data = nf_init_data;
+        shutdown_msg->msg_data = nf;
 
         if (rte_ring_enqueue(mgr_msg_queue, shutdown_msg) < 0) {
                 rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory

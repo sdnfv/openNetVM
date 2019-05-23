@@ -259,7 +259,7 @@ struct onvm_nf {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
         struct rte_ring *msg_q;
-        struct onvm_nf_init_data *info;
+        //struct onvm_nf_init_data *info;
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
