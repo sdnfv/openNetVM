@@ -101,7 +101,7 @@ static struct ether_hdr *ehdr;
 
 /* Sets up variables for the load generator */
 void
-nf_setup(struct onvm_nf_info *nf_info);
+nf_setup(struct onvm_nf_context *nf_context);
 
 /*
  * Print a usage message
@@ -311,7 +311,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
  * Sets up load generator values
  */
 void
-nf_setup(struct onvm_nf_info *nf_info) {
+nf_setup(struct onvm_nf_context *nf_context) {
         int j;
 
         start_cycle = rte_get_tsc_cycles();
@@ -320,7 +320,7 @@ nf_setup(struct onvm_nf_info *nf_info) {
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -339,26 +339,37 @@ nf_setup(struct onvm_nf_info *nf_info) {
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-
+        struct onvm_nf_context *nf_context;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_context = onvm_nflib_init_nf_context();
+        onvm_nflib_start_signal_handler(nf_context, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
+                onvm_nflib_stop(nf_context);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         onvm_nflib_set_setup_function(nf_info, &nf_setup);
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
 
         free(ehdr);
 
+        onvm_nflib_stop(nf_context);
         printf("If we reach here, program is ending\n");
-
         return 0;
 }

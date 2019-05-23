@@ -46,6 +46,10 @@ Options:
                 -s      a string (stdout/stderr/web) specifying where to
                         output statistics.
 
+                -v      an integer specifying verbosity level
+
+                -c      flag to enable shared_cpu mode
+
                 -t      an integer specifying the time to live in seconds
 
                 -l      an integer specifying the RX packet limit in 

@@ -96,6 +96,7 @@
 #define ONVM_NUM_RX_THREADS 1
 /* Number of auxiliary threads in manager, 1 reserved for stats */
 #define ONVM_NUM_MGR_AUX_THREADS 1
+#define ONVM_NUM_WAKEUP_THREADS 1  // Enabled when using shared cpu mode
 
 /*************************External global variables***************************/
 
@@ -121,6 +122,13 @@ extern uint16_t global_stats_sleep_time;
 extern uint32_t global_time_to_live;
 extern uint32_t global_pkt_limit;
 extern uint8_t global_verbosity_level;
+
+/* Custom flags for onvm */
+extern struct onvm_configuration *onvm_config;
+extern uint8_t ONVM_ENABLE_SHARED_CPU;
+
+/* For handling shared cpu logic */
+extern struct nf_wakeup_info *nf_wakeup_infos;
 
 /**********************************Functions**********************************/
 

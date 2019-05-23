@@ -54,6 +54,8 @@
 struct onvm_nf *nfs = NULL;
 struct port_info *ports = NULL;
 struct core_status *cores = NULL;
+struct onvm_configuration *onvm_config = NULL;
+struct nf_wakeup_info *nf_wakeup_infos = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_info_pool;
@@ -66,18 +68,30 @@ struct onvm_service_chain **default_sc_p;
 
 /*************************Internal Functions Prototypes***********************/
 
+static void
+set_default_config(struct onvm_configuration *config);
+
 static int
 init_mbuf_pools(void);
+
 static int
 init_nf_info_pool(void);
+
 static int
 init_nf_msg_pool(void);
+
 static int
 init_port(uint8_t port_num);
+
 static int
 init_shm_rings(void);
+
+static void
+init_shared_sem(void);
+
 static int
 init_info_queue(void);
+
 static void
 check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 
@@ -129,6 +143,7 @@ init(int argc, char *argv[]) {
         const struct rte_memzone *mz_scp;
         const struct rte_memzone *mz_services;
         const struct rte_memzone *mz_nf_per_service;
+        const struct rte_memzone *mz_onvm_config;
         uint8_t i, total_ports, port_id;
 
         /* init EAL, parsing EAL args */
@@ -182,6 +197,14 @@ init(int argc, char *argv[]) {
         }
         nf_per_service_count = mz_nf_per_service->addr;
 
+        /* set up custom flags */
+        mz_onvm_config = rte_memzone_reserve(MZ_ONVM_CONFIG, sizeof(uint16_t), rte_socket_id(), NO_FLAGS);
+        if (mz_onvm_config == NULL) {
+                rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for ONVM custom flags.\n");
+        }
+        onvm_config = mz_onvm_config->addr;
+        set_default_config(onvm_config);
+
         /* parse additional, application arguments */
         retval = parse_app_args(total_ports, argc, argv);
         if (retval != 0)
@@ -224,6 +247,9 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
+        /* initialise the shared memory for shared cpu mode */
+        init_shared_sem();
+
         /*initialize a default service chain*/
         default_chain = onvm_sc_create();
         retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
@@ -248,6 +274,14 @@ init(int argc, char *argv[]) {
 }
 
 /*****************************Internal functions******************************/
+
+/**
+ * Initialise the default onvm config structure
+ */
+static void
+set_default_config(struct onvm_configuration *config) {
+        config->flags.ONVM_ENABLE_SHARED_CPU = ONVM_ENABLE_SHARED_CPU_DEFAULT;
+}
 
 /**
  * Initialise the mbuf pool for packet reception for the NIC, and any other
@@ -371,6 +405,50 @@ init_port(uint8_t port_num) {
         printf("done: \n");
 
         return 0;
+}
+
+/**
+ * Initialize shared cpu structs (mutex/semaphore)
+ */
+static void
+init_shared_sem(void) {
+        uint16_t i;
+        key_t key;
+        int shmid;
+        char *shm;
+        sem_t *mutex;
+        const char * sem_name;
+
+        nf_wakeup_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
+
+        if (!ONVM_ENABLE_SHARED_CPU)
+                return;
+
+        for (i = 0; i < MAX_NFS; i++) {
+                sem_name = get_sem_name(i);
+                nf_wakeup_infos[i].sem_name = sem_name;
+
+                mutex = sem_open(sem_name, O_CREAT, 06666, 0);
+                if (mutex == SEM_FAILED) {
+                        fprintf(stderr, "can not create semaphore for NF %d\n", i);
+                        sem_unlink(sem_name);
+                        exit(1);
+                }
+                nf_wakeup_infos[i].mutex = mutex;
+
+                key = get_rx_shmkey(i);
+                if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+                        fprintf(stderr, "can not create the shared memory segment for NF %d\n", i);
+                        exit(1);
+                }
+
+                if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+                        fprintf(stderr, "can not attach the shared segment to the server space for NF %d\n", i);
+                        exit(1);
+                }
+
+                nf_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
+        }
 }
 
 /**
