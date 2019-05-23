@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -62,8 +62,9 @@
 struct onvm_nf_info *nf_info;
 
 /* number of package between each print */
-static uint32_t print_delay = 1000000;
+static uint32_t print_delay = 50000000;
 
+extern struct port_info *ports;
 /*
  * Print a usage message
  */
@@ -139,20 +140,33 @@ do_stats_display(struct rte_mbuf* pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
+        //meta->reserved_word=NF_BYPASS_RSYNC;
+        if(likely(NULL != ports)) {
+                if(likely(ports->num_ports > 1)) {
+                        meta->destination = (pkt->port == 0)? (1):(0);
+                        if((PRIMARY_OUT_PORT == meta->destination) && (ports->down_status[PRIMARY_OUT_PORT])) {
+                                meta->destination = SECONDARY_OUT_PORT;
+                                //printf("Shifted traffic from primary out port sts=%d, to secondary out port\n", ports->down_status[PRIMARY_OUT_PORT]);
+                        }
+                }
+                else {
+                        meta->destination = (pkt->port);
+                }
+        } else {
+                if (pkt->port == 0) {
+                        meta->destination = 1;
+                }
+                else {
+                        meta->destination = 0;
+                }
+        }
+        meta->action = ONVM_NF_ACTION_OUT;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
-
-        if (pkt->port == 0) {
-                meta->destination = 1;
-        }
-        else {
-                meta->destination = 0;
-        }
-        meta->action = ONVM_NF_ACTION_OUT;
         return 0;
 }
 
@@ -162,13 +176,13 @@ int main(int argc, char *argv[]) {
 
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+                onvm_nflib_stop(nf_info);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 

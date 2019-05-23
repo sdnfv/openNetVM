@@ -49,3 +49,4 @@ _preinstall
 
 # Debug files
 *.dSYM/
+nbproject/

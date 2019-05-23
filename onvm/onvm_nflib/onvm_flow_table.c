@@ -19,9 +19,9 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * The name of the author may not be used to endorse or promote
- *       products derived from this software without specific prior
- *       written permission.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -80,7 +80,7 @@ onvm_ft_create(int cnt, int entry_size) {
         if (hash == NULL) {
                 return NULL;
         }
-	ft = (struct onvm_ft*)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
+        ft = (struct onvm_ft*)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
         if (ft == NULL) {
                 rte_hash_free(hash);
                 return NULL;
@@ -167,13 +167,13 @@ onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt)
 int
 onvm_ft_add_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
         int32_t tbl_index;
-	uint32_t softrss;
+        uint32_t softrss;
 
-	softrss = onvm_softrss(key);
+        softrss = onvm_softrss(key);
 
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)key, softrss);
         if (tbl_index >= 0) {
-		*data = onvm_ft_get_data(table, tbl_index);
+                *data = onvm_ft_get_data(table, tbl_index);
         }
 
         return tbl_index;

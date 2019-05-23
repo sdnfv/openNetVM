@@ -6,8 +6,8 @@
 # OpenNetVM is distributed under the following BSD LICENSE:
 #
 # Copyright(c)
-#       2015-2016 George Washington University
-#       2015-2016 University of California Riverside
+#       2015-2017 George Washington University
+#       2015-2017 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -90,15 +90,15 @@ if [ -z $CMD ]
 then
         if [ -z $DIR ]
         then
-                sudo docker run -it --network none --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -w=$DWD --name=$NAME ubuntu:14.04 /bin/bash
+                sudo docker run -it --privileged --network bridge --ipc="host" --pid="host" --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM ${DEVICES[@]} -w=$DWD --name=$NAME sdnfv/opennetvm /bin/bash
         else
-                sudo docker run -it --network none --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -v $DIR:/$(basename $DIR) -w=$DWD --name=$NAME ubuntu:14.04 /bin/bash
+                sudo docker run -it --network bridge --ipc="host" --pid="host" --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -v $DIR:/$(basename $DIR) -w=$DWD --name=$NAME sdnfv/opennetvm /bin/bash
         fi
 else
         if [ -z $DIR ]
         then
-                sudo docker run -d=true --network none --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -w=$DWD --name=$NAME ubuntu:14.04 bash -c $CMD
+                sudo docker run -d=true --network bridge --ipc="host" --pid="host" --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -w=$DWD --name=$NAME sdnfv/opennetvm bash -c $CMD
         else
-                sudo docker run -d=true --network none --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -v $DIR:/$(basename $DIR) -w=$DWD --name=$NAME ubuntu:14.04 bash -c $CMD
+                sudo docker run -d=true --network bridge --ipc="host" --pid="host" --privileged ${DEVICES[@]} -v /var/run:/var/run -v $HUGE:$HUGE -v $ONVM:/openNetVM -v $DIR:/$(basename $DIR) -w=$DWD --name=$NAME sdnfv/opennetvm bash -c $CMD
         fi
 fi

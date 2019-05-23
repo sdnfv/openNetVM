@@ -4,8 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,10 +38,10 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
 # binary name
 APP = test_flow_dir
@@ -55,8 +55,24 @@ ONVM= $(SRCDIR)/../../onvm
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
 
 CFLAGS += -I$(ONVM)/onvm_nflib
-CFLAGS += -I$(ONVM)/onvm_mgr
-LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/libonvm.a
+CFLAGS += -I$(ONVM)/lib
+#CFLAGS += -I$(ONVM)/shared
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
+#LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_nflib.a
+#LDFLAGS += $(ONVM)/onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_nflib.o
+
+#LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_shared.a
+#LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_pkt_helper.o
+#LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_sc_common.o
+#LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_flow_table.o
+#LDFLAGS += $(ONVM)/shared/shared/$(RTE_TARGET)/onvm_flow_dir.o
+
+CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include/
+LDFLAGS += $(RTE_SDK)/$(RTE_TARGET)/lib/librte_timer.a
+#LDFLAGS += $(RTE_SDK)/lib/librte_timer
+#LDFLAGS += -L$(RTE_SDK)/lib
+#LDLIBS += -lrte_timer
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

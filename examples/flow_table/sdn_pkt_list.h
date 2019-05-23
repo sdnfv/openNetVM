@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ sdn_pkt_list_get_flag(struct sdn_pkt_list* list) {
 }
 
 static inline void
-sdn_pkt_list_flush(struct sdn_pkt_list* list) {
+sdn_pkt_list_flush(struct onvm_nf_info *nf_info, struct sdn_pkt_list* list) {
 	struct sdn_pkt_entry* entry;
 	struct rte_mbuf *pkt;
 	struct onvm_pkt_meta* meta;
@@ -110,7 +110,7 @@ sdn_pkt_list_flush(struct sdn_pkt_list* list) {
 		meta = onvm_get_pkt_meta(pkt);
 		meta->action = ONVM_NF_ACTION_NEXT;
 		meta->chain_index = 0;
-		onvm_nflib_return_pkt(pkt);
+		onvm_nflib_return_pkt(nf_info, pkt);
 		free(entry);
 		list->counter--;
 	}

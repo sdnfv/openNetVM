@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -167,6 +167,27 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
                 key->dst_port = 0;
         }
         return 0;
+}
+
+static inline int
+onvm_ft_fill_key_symmetric(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
+        if (onvm_ft_fill_key(key, pkt) < 0) {
+                return -EPROTONOSUPPORT;
+        }
+
+         if (key->dst_addr > key->src_addr) {
+                uint32_t temp = key->dst_addr;
+                key->dst_addr = key->src_addr;
+                key->src_addr = temp;
+         }
+
+         if (key->dst_port > key->src_port) {
+                uint16_t temp = key->dst_port;
+                key->dst_port = key->src_port;
+                key->src_port = temp;
+         }
+
+         return 0;
 }
 
 /* Hash a flow key to get an int. From L3 fwd example */

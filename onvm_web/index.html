@@ -12,7 +12,9 @@
 
         <link rel="stylesheet" href="./css/main.css">
 
-        <script src="Chart.min.js"></script>
+        <script src="js/Chart-v2-5-0.min.js"></script>
+        <script src="js/jquery-v3-1-0.min.js"></script>
+        <script src="js/onvm.js"></script>
 
         <style>
             canvas {
@@ -46,12 +48,20 @@
                             <a href="https://github.com/sdnfv/openNetVM/">Github</a>.
                         </p>
 
+                        <button id="auto-update-button" onClick="handleAutoUpdateButtonClick();">Pause Auto Update</button>
+			<button id="download-button" onClick="handleDownloadButtonClick();">Download Data as CSV</button>
+                        <br/><br/>
+
                         <h3 id="current-status">Host Port Statistics</h3>
                         <p id="onvm_port_stats" style="width: 100%; height: auto;"></p>
                         <h3 id="current-status">NF Statistics</h3>
                         <p id="onvm_nf_stats" style="width: 100%; height: auto;"></p>
+
                         <h3 id="current-status">ONVM Raw Console Output</h3>
                         <pre><p id="onvm_raw_stats" style="font-size: 1vw; width: 100%; height: auto;"></p></pre>
+
+                        <br/>
+                        <p>Last Updated: <span id="last-updated-time">Never</span></p>
 
                     </article>
                 </div>
@@ -90,121 +100,9 @@
             </div>
         </footer>
 
+
         <script>
-            var onvm_raw;
-            var onvm_json;
-            var str;
-            var port_out = document.getElementById("onvm_port_stats");
-            var nf_out = document.getElementById("onvm_nf_stats");
-            var raw_out = document.getElementById("onvm_raw_stats");
-            var graph_colors = ["#3c0f6b", "#d3a85c", "#ace536", "#2e650e",
-                                "#2e554c", "#ed7b7b", "#b27caa", "#9a015c",
-                                "#eab7c1", "#20c297", "#e7cf3d", "#c71e1e",
-                                "#e23a60", "#d7647b", "#eb5703", "#d3abbe"];
-
-            function read_text_file(file) {
-                var rawFile = new XMLHttpRequest();
-                rawFile.open("GET", file, false);
-                rawFile.onreadystatechange = function () {
-                    if(rawFile.readyState === 4) {
-                        if(rawFile.status === 200 || rawFile.status == 0) {
-                            str = rawFile.responseText;
-                        }
-                    }
-                }
-                rawFile.send(null);
-                return null;
-            }
-
-            function onvm_render_stats() {
-                var num_ports = onvm_json.onvm_port_stats.length;
-                var num_nfs = onvm_json.onvm_nf_stats.length;
-
-                for (var i = 0; i < num_ports; i++) {
-                    var stat = onvm_json.onvm_port_stats[i];
-
-                    var graph = document.createElement('canvas');
-                    graph.id = stat.Label;
-                    graph.style = "display: inline-block; padding: 15px;";
-                    graph.width = 25;
-                    graph.height = 25;
-                    port_out.appendChild(graph);
-
-                    draw_chart(stat, graph_colors[i]);
-                }
-
-                for (var i = 0; i < num_nfs; i++) {
-                    var stat = onvm_json.onvm_nf_stats[i];
-
-                    var graph = document.createElement('canvas');
-                    graph.id = stat.Label;
-                    graph.style = "display: inline-block; padding: 15px;";
-                    graph.width = 25;
-                    graph.height = 25;
-                    nf_out.appendChild(graph);
-
-                    draw_chart(stat, graph_colors[graph_colors.length-1-i]);
-                }
-
-                raw_out.innerHTML = onvm_raw;
-            }
-
-            function draw_chart(onvm_stat_obj, color) {
-                var ctx = document.getElementById(onvm_stat_obj.Label);
-
-                var myChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ["RX Rate (PPS)", "TX Rate (PPS)"],
-                        datasets: [{
-                            label: onvm_stat_obj.Label,
-                            data: [onvm_stat_obj.RX, onvm_stat_obj.TX],
-                            backgroundColor: color
-                        }]
-                    },
-                    options: {
-                        scales: { yAxes: [{ ticks: { beginAtZero:true } }] },
-                        animation: false
-                    }
-                });
-            }
-
-            function onvm_web_stats() {
-                read_text_file("./onvm_stats.txt");
-                onvm_raw = str;
-
-                read_text_file("./onvm_json_stats.json")
-                onvm_json = JSON.parse(str);
-
-                onvm_render_stats();
-            }
-
-            function onvm_update_stats() {
-                window.location.reload(false);
-
-                /*
-                 * The following loops cause weird scrolling effects so we're not using them.
-                 */
-                //while (port_out.hasChildNodes()) {
-                //    port_out.removeChild(port_out.firstChild);
-                //}
-
-                //while (nf_out.hasChildNodes()) {
-                //    nf_out.removeChild(nf_out.firstChild);
-                //}
-
-                //while (raw_out.hasChildNodes()) {
-                //    raw_out.removeChild(raw_out.firstChild);
-                //}
-
-                //onvm_web_stats();
-            }
-
-            document.addEventListener("DOMContentLoaded", function() {
-                onvm_web_stats();
-                setInterval('onvm_update_stats()', 2000);
-            });
-
+          initWebStats();
         </script>
     </body>
 </html>

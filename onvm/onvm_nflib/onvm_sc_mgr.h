@@ -19,9 +19,9 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * The name of the author may not be used to endorse or promote
- *       products derived from this software without specific prior
- *       written permission.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -43,6 +43,13 @@
 
 #include <rte_mbuf.h>
 #include "onvm_common.h"
+
+
+typedef struct active_sc_entries {
+        uint32_t sc_count;
+        struct onvm_service_chain *sc[SDN_FT_ENTRIES];
+} __rte_cache_aligned active_sc_entries_t;
+extern active_sc_entries_t active_sc_list;
 
 static inline uint8_t
 onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
@@ -70,8 +77,24 @@ onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt)
 	return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
 }
 
+static inline int
+onvm_sc_get_next_action_and_destionation(struct onvm_service_chain* chain,
+        struct rte_mbuf* pkt, uint16_t* next_act, uint16_t* next_dst ) {
+        uint16_t index = onvm_get_pkt_chain_index(pkt);
+        if (unlikely(index >= chain->chain_length)) {
+                *next_act = ONVM_NF_ACTION_DROP;
+                return -1;
+        }
+        *next_act = chain->sc[index].action;
+        *next_dst = chain->sc[index].destination;
+
+        return index;
+}
+
 /*get service chain*/
 struct onvm_service_chain* onvm_sc_get(void);
 /*create service chain*/
 struct onvm_service_chain* onvm_sc_create(void);
+/* Get List of active service chains */
+const active_sc_entries_t* onvm_sc_get_all_active_chains(void);
 #endif  // _SC_MGR_H_

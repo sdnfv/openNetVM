@@ -19,9 +19,9 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * The name of the author may not be used to endorse or promote
- *       products derived from this software without specific prior
- *       written permission.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -45,9 +45,24 @@
 #include "onvm_sc_mgr.h"
 #include "onvm_sc_common.h"
 
+
+active_sc_entries_t active_sc_list;
+/******************************Helper Functions********************************/
+static inline int add_chain_to_active_sc_list(struct onvm_service_chain *chain);
+
+static inline int add_chain_to_active_sc_list(struct onvm_service_chain *chain) {
+        if(active_sc_list.sc_count == SDN_FT_ENTRIES) return -1;
+        active_sc_list.sc[active_sc_list.sc_count++]=chain;
+        return active_sc_list.sc_count;
+}
+
+/*********************************Interfaces**********************************/
+const active_sc_entries_t* onvm_sc_get_all_active_chains(void) {
+        return &active_sc_list;
+}
 struct onvm_service_chain*
 onvm_sc_get(void) {
-	return NULL;
+        return NULL;
 }
 
 struct onvm_service_chain*
@@ -60,6 +75,6 @@ onvm_sc_create(void)
         if (chain == NULL) {
                 rte_exit(EXIT_FAILURE, "Cannot allocate memory for service chain\n");
         }
-
+        add_chain_to_active_sc_list(chain);
 	return chain;
 }

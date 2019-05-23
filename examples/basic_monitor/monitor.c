@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,9 @@
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_flow_dir.h"
+
+
 
 #define NF_TAG "basic_monitor"
 
@@ -64,6 +67,27 @@ struct onvm_nf_info *nf_info;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+typedef struct monitor_state_info_table {
+        uint16_t ft_index;
+        uint16_t tag_counter;
+        uint32_t pkt_counter;
+}monitor_state_info_table_t;
+monitor_state_info_table_t *mon_state_tbl = NULL;
+
+#if 0
+typedef struct dirty_mon_state_map_tbl {
+        uint64_t dirty_index;   //Bit index to every 1K LSB=0-1K, MSB=63-64K
+}dirty_mon_state_map_tbl_t;
+dirty_mon_state_map_tbl_t *dirty_state_map = NULL;
+#endif
+
+#ifdef ENABLE_NFV_RESL
+#define MAX_STATE_ELEMENTS  ((_NF_STATE_SIZE-sizeof(dirty_mon_state_map_tbl_t))/sizeof(monitor_state_info_table_t))
+#endif
+
+#ifdef MIMIC_FTMB
+extern uint8_t SV_ACCES_PER_PACKET;
+#endif
 /*
  * Print a usage message
  */
@@ -110,9 +134,11 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static void
 do_stats_display(struct rte_mbuf* pkt) {
+//	return ;
         const char clr[] = { 27, '[', '2', 'J', '\0' };
         const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
         static uint64_t pkt_process = 0;
+
         struct ipv4_hdr* ip;
 
         pkt_process += print_delay;
@@ -125,20 +151,113 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
         printf("Hash : %u\n", pkt->hash.rss);
-	printf("N°   : %"PRIu64"\n", pkt_process);
+        printf("N°   : %"PRIu64"\n", pkt_process);
+#ifdef ENABLE_NFV_RESL
+        printf("MAX State: %lu\n", MAX_STATE_ELEMENTS);
+        if(mon_state_tbl) {
+                printf("Share Counter: %d\n", mon_state_tbl[0].tag_counter);
+                printf("Pkt Counter: %d\n", mon_state_tbl[0].pkt_counter);
+                printf("Dirty Bits: 0x%lx\n", dirty_state_map->dirty_index);
+        }
+#endif
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
         if (ip != NULL) {
                 onvm_pkt_print(pkt);
         } else {
-                printf("No IP4 header found\n");
+                printf("No IP4 header found [%"PRIu64"]\n", pkt_process);
         }
 }
+#ifdef ENABLE_NFV_RESL
+//#define ENABLE_LOCAL_LATENCY_PROFILER
+static inline uint64_t map_tag_index_to_dirty_chunk_bit_index(uint16_t vlan_tbl_index) {
+        uint32_t start_offset = sizeof(dirty_mon_state_map_tbl_t) + vlan_tbl_index*sizeof(monitor_state_info_table_t);
+        uint32_t end_offset = start_offset + sizeof(monitor_state_info_table_t);
+        uint64_t dirty_map_bitmask = 0;
+        dirty_map_bitmask |= (1<< (start_offset/DIRTY_MAP_PER_CHUNK_SIZE));
+        dirty_map_bitmask |= (1<< (end_offset/DIRTY_MAP_PER_CHUNK_SIZE));
+        //printf("\n For %d, 0x%lx\n",(int)vlan_tbl_index, dirty_map_bitmask);
+        return dirty_map_bitmask;
+}
+static inline int update_dirty_state_index(uint16_t flow_index) {
+        if(dirty_state_map) {
+                dirty_state_map->dirty_index |= map_tag_index_to_dirty_chunk_bit_index(flow_index);
+                ////dirty_state_map->dirty_index |= (1L<<(rand() % 60));
+                ////dirty_state_map->dirty_index |= (-1);
+                dirty_state_map->dirty_index |= (0xFFFFFFFF);
+        }
+        return flow_index;
+}
 
+static int save_packet_state(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+//return 0;
+#ifdef ENABLE_LOCAL_LATENCY_PROFILER
+        static int countm = 0;uint64_t start_cycle=0;onvm_interval_timer_t ts_p;
+        countm++;
+        if(countm == 1000*1000*20) {
+                onvm_util_get_start_time(&ts_p);
+                start_cycle = onvm_util_get_current_cpu_cycles();
+        }
+#endif
+        if(nf_info->nf_state_mempool) {
+                uint16_t ft_index = 0;
+                if(mon_state_tbl  == NULL) {
+                        dirty_state_map = (dirty_mon_state_map_tbl_t*)nf_info->nf_state_mempool;
+                        mon_state_tbl = (monitor_state_info_table_t*)(dirty_state_map+1);
+                        //mon_state_tbl[0].ft_index = 0;
+                        mon_state_tbl[0].tag_counter+=1;
+                }
+                if(mon_state_tbl) {
+                        if(meta && pkt) {
+                                struct onvm_flow_entry *flow_entry = NULL;
+                                onvm_flow_dir_get_pkt(pkt, &flow_entry);
+                                ft_index = (uint16_t)flow_entry->entry_index;
+                                if(flow_entry) {
+                                        mon_state_tbl[flow_entry->entry_index].ft_index = meta->src;
+                                        mon_state_tbl[flow_entry->entry_index].pkt_counter +=1;
+                                }
+                        }
+                        mon_state_tbl[0].pkt_counter+=1;
+                }
+                update_dirty_state_index(ft_index);
+        }
+#ifdef ENABLE_LOCAL_LATENCY_PROFILER
+        if(countm == 1000*1000*20) {
+                fprintf(stdout, "STATE REPLICATION TIME (Marking): %li(ns) and %li (cycles) \n", onvm_util_get_elapsed_time(&ts_p), onvm_util_get_elapsed_cpu_cycles(start_cycle));
+                countm=0;
+        }
+#endif
+        return 0;
+}
+
+static int save_packet_state_new(__attribute__((unused)) struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+//return 0;
+        if(mon_state_tbl) {
+                int16_t ft_index = -1;
+#ifdef ENABLE_FT_INDEX_IN_META
+                ft_index = (uint16_t) (meta->ft_index);
+#else
+                {
+                        struct onvm_flow_entry *flow_entry = NULL;
+                        onvm_flow_dir_get_pkt(pkt, &flow_entry);
+                        if(flow_entry)
+                                ft_index = flow_entry->entry_index;
+                }
+#endif
+                if(ft_index>=0) {
+                        mon_state_tbl[ft_index].ft_index = meta->src;
+                } else ft_index=0;
+                mon_state_tbl[ft_index].pkt_counter+=1;
+                update_dirty_state_index(ft_index);
+        }
+        return 0;
+}
+#endif //#ifdef ENABLE_NFV_RESL
 static int
-packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
+packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
         static uint32_t counter = 0;
+        //if (++counter == 0) {
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
@@ -147,9 +266,15 @@ packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta) {
         meta->action = ONVM_NF_ACTION_OUT;
         meta->destination = pkt->port;
 
+
         if (onvm_pkt_mac_addr_swap(pkt, 0) != 0) {
                 printf("ERROR: MAC failed to swap!\n");
         }
+
+#ifdef ENABLE_NFV_RESL
+        return save_packet_state_new(pkt,meta,nf_info);
+        save_packet_state(pkt,meta,nf_info);
+#endif //#ifdef ENABLE_NFV_RESL
         return 0;
 }
 
@@ -159,16 +284,22 @@ int main(int argc, char *argv[]) {
 
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG)) < 0)
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
                 return -1;
         argc -= arg_offset;
         argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop();
+        if (parse_app_args(argc, argv, progname) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+#ifdef ENABLE_NFV_RESL
+        if(nf_info->nf_state_mempool) {
+                dirty_state_map = (dirty_mon_state_map_tbl_t*)nf_info->nf_state_mempool;
+                mon_state_tbl = (monitor_state_info_table_t*)(dirty_state_map+1);
         }
-
+#endif
+#ifdef MIMIC_FTMB
+SV_ACCES_PER_PACKET = 5;
+#endif
         onvm_nflib_run(nf_info, &packet_handler);
         printf("If we reach here, program is ending\n");
         return 0;

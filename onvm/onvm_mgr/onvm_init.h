@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2017 George Washington University
+ *            2015-2017 University of California Riverside
  *            2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
@@ -61,6 +61,7 @@
 #include <sys/ipc.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <mqueue.h>
 //#endif //INTERRUPT_SEM
 
 /********************************DPDK library*********************************/
@@ -71,6 +72,9 @@
 #include <rte_fbk_hash.h>
 #include <rte_cycles.h>
 #include <rte_errno.h>
+#ifdef RTE_LIBRTE_PDUMP
+#include <rte_pdump.h>
+#endif
 
 
 /*****************************Internal library********************************/
@@ -89,115 +93,63 @@
 /***********************************Macros************************************/
 
 
-#define MBUFS_PER_CLIENT 1536
-#define MBUFS_PER_PORT 1536
+#define MBUFS_PER_NF 1536 //65536 //10240 //1536                            (use U: 1536, T:1536)
+#define MBUFS_PER_PORT 1536 //(10240) //2048 //10240 //65536 //10240 //1536    (use U: 10240, T:10240)
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 #define RX_MBUF_DATA_SIZE 2048
 #define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
 
 #define NF_INFO_SIZE sizeof(struct onvm_nf_info)
-#define NF_INFO_CACHE 8
+#define NF_INFO_CACHE (8)    //(8); 16 seems slightly better than 8 increase of 0.1mpps at a client NF; may be same...
 
 #define NF_MSG_SIZE sizeof(struct onvm_nf_msg)
 #define NF_MSG_CACHE_SIZE 8
 
-#define RTE_MP_RX_DESC_DEFAULT 512
-#define RTE_MP_TX_DESC_DEFAULT 512
-#define CLIENT_QUEUE_RINGSIZE 128
-#define CLIENT_MSG_QUEUE_SIZE 128
+//For TCP UDP use 70,40
+//For TCP TCP, IO use 80 20
+// Note: Based on the approach the tuned values change. For NF Throttling (80/75,20/25) works better, for Packet Throttling (70,50 or 70,40 or 80,40) seems better -- must be tuned and set accordingly.
+#ifdef NF_BACKPRESSURE_APPROACH_1
+#define CLIENT_QUEUE_RING_THRESHOLD (80)
+#define CLIENT_QUEUE_RING_THRESHOLD_GAP (20) //(25)
+#else  // defined NF_BACKPRESSURE_APPROACH_2 or other
+#define CLIENT_QUEUE_RING_THRESHOLD (80)
+#define CLIENT_QUEUE_RING_THRESHOLD_GAP (20)
+#endif //NF_BACKPRESSURE_APPROACH_1
 
+#define CLIENT_QUEUE_RING_WATER_MARK_SIZE ((uint32_t)((NF_QUEUE_RINGSIZE*CLIENT_QUEUE_RING_THRESHOLD)/100))
+#define CLIENT_QUEUE_RING_LOW_THRESHOLD ((CLIENT_QUEUE_RING_THRESHOLD > CLIENT_QUEUE_RING_THRESHOLD_GAP) ? (CLIENT_QUEUE_RING_THRESHOLD-CLIENT_QUEUE_RING_THRESHOLD_GAP):(CLIENT_QUEUE_RING_THRESHOLD))
+#define CLIENT_QUEUE_RING_LOW_WATER_MARK_SIZE ((uint32_t)((NF_QUEUE_RINGSIZE*CLIENT_QUEUE_RING_LOW_THRESHOLD)/100))
+#define ECN_EWMA_ALPHA  (0.25)
+#define CLIENT_QUEUE_RING_ECN_MARK_SIZE ((uint32_t)(((1-ECN_EWMA_ALPHA)*CLIENT_QUEUE_RING_WATER_MARK_SIZE) + ((ECN_EWMA_ALPHA)*CLIENT_QUEUE_RING_LOW_WATER_MARK_SIZE)))///2)
 #define NO_FLAGS 0
 
-#define ONVM_NUM_RX_THREADS 1
+#define DYNAMIC_CLIENTS 1
+#define STATIC_CLIENTS 0
 
 
 /******************************Data structures********************************/
-
-
-/*
- * Define a client structure with all needed info, including
- * stats from the clients.
- */
-struct client {
-        struct rte_ring *rx_q;
-        struct rte_ring *tx_q;
-        struct rte_ring *msg_q;
-        struct onvm_nf_info *info;
-        uint16_t instance_id;
-        /* these stats hold how many packets the client will actually receive,
-         * and how many packets were dropped because the client's queue was full.
-         * The port-info stats, in contrast, record how many packets were received
-         * or transmitted on an actual NIC port.
-         */
-        struct {
-                volatile uint64_t rx;
-                volatile uint64_t rx_drop;
-                volatile uint64_t act_out;
-                volatile uint64_t act_tonf;
-                volatile uint64_t act_drop;
-                volatile uint64_t act_next;
-                volatile uint64_t act_buffer;
-                #ifdef INTERRUPT_SEM
-                volatile uint64_t prev_rx;
-		volatile uint64_t prev_rx_drop;
-                #endif
-        } stats;
-        
-        /* mutex and semaphore name for NFs to wait on */ 
-        #ifdef INTERRUPT_SEM
-        const char *sem_name;
-        sem_t *mutex;
-        key_t shm_key;
-        rte_atomic16_t *shm_server;
-        #endif
-};
-
-/*
- * Shared port info, including statistics information for display by server.
- * Structure will be put in a memzone.
- * - All port id values share one cache line as this data will be read-only
- * during operation.
- * - All rx statistic values share cache lines, as this data is written only
- * by the server process. (rare reads by stats display)
- * - The tx statistics have values for all ports per cache line, but the stats
- * themselves are written by the clients, so we have a distinct set, on different
- * cache lines for each client to use.
- */
-struct rx_stats{
-        uint64_t rx[RTE_MAX_ETHPORTS];
-};
-
-
-struct tx_stats{
-        uint64_t tx[RTE_MAX_ETHPORTS];
-        uint64_t tx_drop[RTE_MAX_ETHPORTS];
-};
-
-
-struct port_info {
-        uint8_t num_ports;
-        uint8_t id[RTE_MAX_ETHPORTS];
-        volatile struct rx_stats rx_stats;
-        volatile struct tx_stats tx_stats;
-};
-
-
+//all moved to common.h
 
 /*************************External global variables***************************/
 
 
-extern struct client *clients;
-
+extern struct onvm_nf *nfs;
 /* NF to Manager data flow */
 extern struct rte_ring *incoming_msg_queue;
+extern struct rte_ring *mgr_msg_queue;      // Ring for Messages to Mgr
+#ifdef ENABLE_SYNC_MGR_TO_NF_MSG
+extern struct rte_ring *mgr_rsp_queue;      // Ring for Responses to Mgr
+#endif
+extern struct rte_mempool *nf_info_pool;    // Pool for NF_IFO of all NFs
+extern struct rte_mempool *nf_msg_pool;     // Pool for Messages to NF
 
 /* the shared port information: port numbers, rx and tx stats etc. */
 extern struct port_info *ports;
 
 extern struct rte_mempool *pktmbuf_pool;
 extern struct rte_mempool *nf_msg_pool;
-extern uint16_t num_clients;
+extern volatile uint16_t num_nfs;
 extern uint16_t num_services;
 extern uint16_t default_service;
 extern uint16_t **services;
@@ -206,7 +158,62 @@ extern unsigned num_sockets;
 extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
 extern ONVM_STATS_OUTPUT stats_destination;
+extern uint16_t global_stats_sleep_time;
+extern uint8_t global_verbosity_level;
 
+#ifdef ENABLE_NF_MGR_IDENTIFIER
+extern uint32_t nf_mgr_id;
+#endif
+
+#ifdef ENABLE_PER_SERVICE_MEMPOOL
+/* Service state pool that can be accessed by other modules/files in MGR : Mainly NF.c that sets up the NFs pool based on the instantiated service type. */
+extern void **services_state_pool;
+#endif
+
+#ifdef ENABLE_PER_FLOW_TS_STORE
+/* TS Info that can be accessed and updated by MGR Tx Threads and exported */
+extern void *onvm_mgr_tx_per_flow_ts_info;
+#ifdef ENABLE_RSYNC_WITH_DOUBLE_BUFFERING_MODE
+#ifdef ENABLE_RSYNC_MULTI_BUFFERING
+extern void *onvm_mgr_tx_per_flow_ts_info_db[ENABLE_RSYNC_MULTI_BUFFERING];
+#else
+extern void *onvm_mgr_tx_per_flow_ts_info_db;
+#endif
+#endif
+#endif
+
+#ifdef ENABLE_REMOTE_SYNC_WITH_TX_LATCH
+extern int node_role; //0= PREDECESSOR; 1=PRIMARY; 2=SECONDARY
+#endif
+
+#ifdef ENABLE_REMOTE_SYNC_WITH_TX_LATCH
+extern struct rte_ring *tx_port_ring[RTE_MAX_ETHPORTS];     //ONVM_NUM_RSYNC_PORTS      //ring used by NFs and Other Tx threads to transmit out port packets
+extern struct rte_ring *tx_tx_state_latch_ring[RTE_MAX_ETHPORTS];  //ONVM_NUM_RSYNC_PORTS //ring used by TX_RSYNC to store packets till 2 Phase commit of TS STAT Update
+extern struct rte_ring *tx_nf_state_latch_ring[RTE_MAX_ETHPORTS]; //ONVM_NUM_RSYNC_PORTS//ring used by TX_RSYNC to store packets till 2 phase commit of NFs in the chain resulting in non-determinism.
+#ifdef ENABLE_RSYNC_WITH_DOUBLE_BUFFERING_MODE
+#ifdef ENABLE_RSYNC_MULTI_BUFFERING
+extern struct rte_ring *tx_tx_state_latch_db_ring[ENABLE_RSYNC_MULTI_BUFFERING][RTE_MAX_ETHPORTS]; //additional Double buffer ring used by TX_RSYNC to store packets till 2 Phase commit of TS STAT Update
+extern struct rte_ring *tx_nf_state_latch_db_ring[ENABLE_RSYNC_MULTI_BUFFERING][RTE_MAX_ETHPORTS]; //additional Double buffer ring used by TX_RSYNC to store packets till 2 phase commit of NFs in the chain resulting in non-determinism.
+#else
+extern struct rte_ring *tx_tx_state_latch_db_ring[RTE_MAX_ETHPORTS]; //additional Double buffer ring used by TX_RSYNC to store packets till 2 Phase commit of TS STAT Update
+extern struct rte_ring *tx_nf_state_latch_db_ring[RTE_MAX_ETHPORTS]; //additional Double buffer ring used by TX_RSYNC to store packets till 2 phase commit of NFs in the chain resulting in non-determinism.
+#endif
+#endif
+
+#if 0
+extern struct rte_ring *tx_port_ring;           //ring used by NFs and Other Tx threads to transmit out port packets
+extern struct rte_ring *tx_tx_state_latch_ring; //ring used by TX_RSYNC to store packets till 2 Phase commit of TS STAT Update
+extern struct rte_ring *tx_nf_state_latch_ring; //ring used by TX_RSYNC to store packets till 2 phase commit of NFs in the chain resulting in non-determinism.
+#endif
+
+#endif
+
+#ifdef ENABLE_VXLAN
+#ifndef ENABLE_ZOOKEEPER
+extern uint8_t remote_eth_addr[6];
+extern struct ether_addr remote_eth_addr_struct;
+#endif //ENABLE_ZOOKEEPER
+#endif //ENABLE_VXLAN
 /**********************************Functions**********************************/
 
 /*

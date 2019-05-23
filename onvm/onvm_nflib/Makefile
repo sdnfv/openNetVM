@@ -4,10 +4,10 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 #          2010-2014 Intel Corporation.
-#          2016 Hewlett Packard Enterprise Development LP
+#          2016-2017 Hewlett Packard Enterprise Development LP
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,8 +49,24 @@ RTE_TARGET ?= x86_64-native-linuxapp-gcc
 LIB    = libonvm.a
 
 # all source are stored in SRCS-y
-SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c
+SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c 
+#SRCS-y += onvm_pkt_common.c 
+SRCS-y += onvm_config_common.c
+SRCS-y += histogram.c
+SRCS-y += onvm_sort.c
+SRCS-y += onvm_ringbuf.c
+SRCS-y += onvm_comm_utils.c
+CFLAGS += -DUSE_HISTOGRAM_AS_LIB
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+CFLAGS += -I$(SRCDIR)/../lib/
+#CFLAGS += -I$(ONVM_HOME)/onvm/lib/
+CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include/
+LDFLAGS += $(RTE_SDK)/$(RTE_TARGET)/lib/librte_timer.a
+
+LDFLAGS += -L/usr/local/lib
+#LDLIBS+= -lzmq
+#LDFLAGS += ./libzmq.a
+
 
 include $(RTE_SDK)/mk/rte.extlib.mk

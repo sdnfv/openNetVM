@@ -4,8 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2016 George Washington University
-#          2015-2016 University of California Riverside
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 #          2010-2014 Intel Corporation.
 # All rights reserved.
 #
@@ -53,20 +53,32 @@ endif
 APP = onvm_mgr
 
 # all source are stored in SRCS-y
-SRCS-y := main.c onvm_init.c onvm_args.c onvm_stats.c onvm_pkt.c onvm_nf.c cJSON.c
+SRCS-y := main.c onvm_init.c onvm_args.c onvm_stats.c onvm_pkt.c onvm_nf.c 
+SRCS-y += onvm_bfd.c onvm_wakemgr.c onvm_special_nf0.c onvm_ft_install.c onvm_rsync.c
+#SRCS-y += onvm_zookeeper.c onvm_zk_watch.c onvm_zk_common.c onvm_vxlan.c
 
-INC := onvm_mgr.h onvm_init.h onvm_args.h onvm_stats.h onvm_nf.h onvm_pkt.h cJSON.h
+INC := onvm_mgr.h onvm_init.h onvm_args.h onvm_stats.h onvm_nf.h onvm_pkt.h 
+INC += onvm_bfd.h onvm_wakemgr.h onvm_special_nf0.h onvm_ft_install.h onvm_rsync.h
+INC += onvm_zookeeper.h onvm_zk_watch.h onvm_zk_common.h onvm_vxlan.h zoo_queue.h
 
 CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += -I$(SRCDIR)/../ -I$(SRCDIR)/../onvm_nflib/
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_common.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_sc_mgr.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_table.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_pkt_helper.o
-LDFLAGS += $(SRCDIR)/../onvm_nflib/onvm_nflib/$(RTE_TARGET)/onvm_flow_dir.o
+CFLAGS += -I$(SRCDIR)/../
+CFLAGS += -I$(SRCDIR)/../lib/
+CFLAGS += -I$(SRCDIR)/../onvm_nflib/
+
+LDFLAGS += $(SRCDIR)/../lib/$(RTE_TARGET)/libonvmhelper.a
+LDFLAGS += $(SRCDIR)/../onvm_nflib/$(RTE_TARGET)/libonvm.a
+#LDFLAGS += $(SRCDIR)/../shared/shared/$(RTE_TARGET)/onvm_shared.a
+
+LDFLAGS += -L/usr/local/lib
+#LDLIBS+= -lzmq
+LDFLAGS+= -L/usr/lib/x86_64-linux-gnu
+LDLIBS+= -lpcap
+#EXTRA_LDLIBS += -lzookeeper_mt -lzooqueue
 
 # for newer gcc, e.g. 4.4, no-strict-aliasing may not be necessary
 # and so the next line can be removed in those cases.
-EXTRA_CFLAGS += -fno-strict-aliasing
+EXTRA_CFLAGS += -fno-strict-aliasing 
+#EXTRA_CFLAGS += -lzmq
 
 include $(RTE_SDK)/mk/rte.extapp.mk

@@ -19,9 +19,9 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * The name of the author may not be used to endorse or promote
- *       products derived from this software without specific prior
- *       written permission.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -55,6 +55,7 @@ struct onvm_flow_entry {
         uint16_t hard_timeout;
         uint64_t packet_count;
         uint64_t byte_count;
+        uint64_t entry_index;
 };
 
 /* Get a pointer to the flow entry entry for this packet.
@@ -74,4 +75,11 @@ int onvm_flow_dir_get_key(struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entr
 int onvm_flow_dir_add_key(struct onvm_ft_ipv4_5tuple* key, struct onvm_flow_entry **flow_entry);
 int onvm_flow_dir_del_key(struct onvm_ft_ipv4_5tuple* key);
 int onvm_flow_dir_del_and_free_key(struct onvm_ft_ipv4_5tuple* key);
+void onvm_flow_dir_print_stats(FILE *fp);
+int onvm_flow_dir_clear_all_entries(void);
+int onvm_flow_dir_reset_entry(struct onvm_flow_entry *flow_entry);
+void onvm_flow_dir_set_index(void);
+
+uint32_t extract_active_service_chains(uint32_t *bft_count, sc_entries_list *c_list, uint32_t max_entries);
+
 #endif // _ONVM_FLOW_DIR_H_

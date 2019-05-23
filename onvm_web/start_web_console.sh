@@ -6,8 +6,8 @@
 # OpenNetVM is distributed under the following BSD LICENSE:
 #
 # Copyright(c)
-#       2015-2016 George Washington University
-#       2015-2016 University of California Riverside
+#       2015-2017 George Washington University
+#       2015-2017 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,25 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Fetch chart.js from github
-wget https://github.com/chartjs/Chart.js/releases/download/v2.3.0/Chart.min.js -O Chart.min.js
+function usage {
+    echo "$0 [-p WEB-PORT-NUMBER]"
+    exit 1
+}
 
-# Start ONVM web stats console at http://localhost:8080
-echo "Starting openNetVM Web Stats Console at http://localhost:8080"
-python -m SimpleHTTPServer 8080
+web_port=8080
+
+while getopts "p:" opt; do
+    case $opt in
+        p) web_port="$OPTARG";;
+        \?) echo "Unknown option -$OPTARG" && usage
+            ;;
+    esac
+done
+
+
+# Start ONVM web stats console at http://localhost:<port num>
+echo -n "Starting openNetVM Web Stats Console at http://localhost:"
+echo $web_port
+
+nohup python -m SimpleHTTPServer $web_port &
+export ONVM_WEB_PID=$!
