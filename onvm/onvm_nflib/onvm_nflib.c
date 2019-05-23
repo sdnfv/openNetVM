@@ -257,11 +257,38 @@ onvm_nflib_init_nf_context(void) {
         if (nf_context == NULL)
                 rte_exit(EXIT_FAILURE, "Failed to allocate memory for NF context\n");
 
-        nf_context->keep_running = 1;
+        rte_atomic16_init(&nf_context->keep_running);
+        rte_atomic16_set(&nf_context->keep_running, 1);
         rte_atomic16_init(&nf_context->nf_init_finished);
         rte_atomic16_set(&nf_context->nf_init_finished, 0);
 
         return nf_context;
+}
+
+int
+onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) return ret;
+
+        request_message->msg_type = MSG_REQUEST_LPM_REGION;
+        request_message->msg_data = lpm_req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        lpm_req->status = NF_WAITING_FOR_LPM;
+        for (; lpm_req->status == (uint16_t) NF_WAITING_FOR_LPM;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return lpm_req->status;
 }
 
 int
@@ -403,7 +430,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                 nf->nf_setup_function(nf_context);
 
         start_time = rte_get_tsc_cycles();
-        for (; nf_context->keep_running;) {
+        for (; rte_atomic16_read(&nf_context->keep_running);) {
                 nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
 
                 if (likely(nb_pkts_added > 0)) {
@@ -416,17 +443,17 @@ onvm_nflib_thread_main_loop(void *arg) {
 
                 onvm_nflib_dequeue_messages(nf_context);
                 if (callback != ONVM_NO_CALLBACK) {
-                        nf_context->keep_running = !(*callback)(nf) && nf_context->keep_running;
+                        rte_atomic16_set(&nf_context->keep_running, !(*callback)(nf->info) && rte_atomic16_read(&nf_context->keep_running));
                 }
 
                 if (nf->user_flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                           TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->user_flags.time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
-                        nf_context->keep_running = 0;
+                        rte_atomic16_set(&nf_context->keep_running, 0);
                 }
                 if (nf->user_flags.pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf->user_flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
-                        nf_context->keep_running = 0;
+                        rte_atomic16_set(&nf_context->keep_running, 0);
                 }
         }
         return NULL;
@@ -491,7 +518,7 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_contex
         switch (msg->msg_type) {
                 case MSG_STOP:
                         RTE_LOG(INFO, APP, "Shutting down...\n");
-                        nf_context->keep_running = 0;
+                        rte_atomic16_set(&nf_context->keep_running, 0);
                         break;
                 case MSG_SCALE:
                         RTE_LOG(INFO, APP, "Received scale message...\n");
@@ -778,7 +805,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                 return -1;
         }
 
-        if (!nf_context->keep_running) {
+        if (!rte_atomic16_read(&nf_context->keep_running)) {
                 return ONVM_SIGNAL_TERMINATION;
         }
 
@@ -803,7 +830,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
         for (; nf_init_data->status == (uint16_t)NF_WAITING_FOR_ID;) {
                 sleep(1);
-                if (!nf_context->keep_running) {
+                if (!rte_atomic16_read(&nf_context->keep_running)) {
                         /* Wait because we sent a message to the onvm_mgr */
                         for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_data->status != NF_STARTING; i++)
                                 sleep(NF_TERM_WAIT_TIME);
@@ -847,7 +874,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         nf = &nfs[nf_init_data->instance_id];
         nf->context = nf_context;
 
-        /* Signal handler will now do proper cleanup, only called from main thread */
+        /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
         if (rte_atomic16_read(&nf_context->nf_init_finished) == 0) {
                 nf_context->nf = nf;
                 rte_atomic16_set(&nf_context->nf_init_finished, 1);
@@ -1034,7 +1061,7 @@ onvm_nflib_handle_signal(int sig) {
                 return;
 
         /* Stops both starting and running NFs */
-        global_termination_context->keep_running = 0;
+        rte_atomic16_set(&global_termination_context->keep_running, 0);
 
         /* If NF didn't start yet no cleanup is necessary */
         if (rte_atomic16_read(&global_termination_context->nf_init_finished) == 0) {
@@ -1191,7 +1218,7 @@ onvm_nflib_terminate_children(struct onvm_nf *nf) {
                                 continue;
 
                         /* First stop child from running */
-                        nfs[i].context->keep_running = 0;
+                        rte_atomic16_set(&nfs[i].context->keep_running, 0);
 
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;

@@ -303,13 +303,13 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 }
         }
 
-        while (nf_context->keep_running && rx_ring && tx_ring && nf) {
+        while (rte_atomic16_read(&nf_context->keep_running) && rx_ring && tx_ring && nf) {
                 /* Check for a stop message from the manager. */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
                         rte_ring_dequeue(msg_q, (void **)(&msg));
                         if (msg->msg_type == MSG_STOP) {
-                                nf_context->keep_running = 0;
+                                rte_atomic16_set(&nf_context->keep_running, 0);
                         } else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }

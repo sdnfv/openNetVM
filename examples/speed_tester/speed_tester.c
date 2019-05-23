@@ -333,13 +333,13 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         start_time = rte_get_tsc_cycles();
 
-        while (nf_context->keep_running && rx_ring && tx_ring && nf) {
+        while (rte_atomic16_read(&nf_context->keep_running) && rx_ring && tx_ring && nf) {
                 /* Check for a stop message from the manager. */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
                         rte_ring_dequeue(msg_q, (void **)(&msg));
                         if (msg->msg_type == MSG_STOP) {
-                                nf_context->keep_running = 0;
+                                rte_atomic16_set(&nf_context->keep_running, 0);
                         } else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
@@ -376,12 +376,12 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 if (nf->user_flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                              TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->user_flags.time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
-                        nf_context->keep_running = 0;
+                        rte_atomic16_set(&nf_context->keep_running, 0);
                 }
                 if (nf->user_flags.pkt_limit && unlikely(nf->stats.rx >=
                                           (uint64_t) nf->user_flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
-                        nf_context->keep_running = 0;
+                        rte_atomic16_set(&nf_context->keep_running, 0);
                 }
         }
 }
@@ -449,7 +449,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_init_data, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_context->nf_info, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
