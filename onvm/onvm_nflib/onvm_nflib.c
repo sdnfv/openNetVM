@@ -850,7 +850,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         nf = &nfs[nf_info->instance_id];
         nf->context = nf_context;
 
-        /* Signal handler will now do proper cleanup, only called from main thread */
+        /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
         if (rte_atomic16_read(&nf_context->nf_init_finished) == 0) {
                 nf_context->nf = nf;
                 rte_atomic16_set(&nf_context->nf_init_finished, 1);
