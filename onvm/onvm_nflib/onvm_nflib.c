@@ -443,7 +443,7 @@ onvm_nflib_thread_main_loop(void *arg) {
 
                 onvm_nflib_dequeue_messages(nf_context);
                 if (callback != ONVM_NO_CALLBACK) {
-                        rte_atomic16_set(&nf_context->keep_running, !(*callback)(nf->info) && rte_atomic16_read(&nf_context->keep_running));
+                        rte_atomic16_set(&nf_context->keep_running, !(*callback)(nf) && rte_atomic16_read(&nf_context->keep_running));
                 }
 
                 if (nf->user_flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *

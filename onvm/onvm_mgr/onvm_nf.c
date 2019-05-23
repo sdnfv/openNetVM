@@ -137,11 +137,12 @@ void
 onvm_nf_check_status(void) {
         int i;
         void *msgs[MAX_NFS];
+        struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
-        struct onvm_nf_info *nf;
+        struct onvm_nf_init_data *nf_init_data;
         struct lpm_request *req_lpm;
-        int num_msgs = rte_ring_count(incoming_msg_queue);
         uint16_t stop_nf_id;
+        int num_msgs = rte_ring_count(incoming_msg_queue);
 
         if (num_msgs == 0)
                 return;
