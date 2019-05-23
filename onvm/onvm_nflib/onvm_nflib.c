@@ -751,7 +751,7 @@ onvm_nflib_lookup_shared_structs(void) {
 
         mgr_msg_queue = rte_ring_lookup(_MGR_MSG_QUEUE_NAME);
         if (mgr_msg_queue == NULL)
-                rte_exit(EXIT_FAILURE, "Cannot get nf_init_data ring");
+                rte_exit(EXIT_FAILURE, "Cannot get mgr message ring");
 
         return 0;
 }
@@ -853,6 +853,9 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
                 rte_atomic16_set(&nf_context->nf_init_finished, 1);
         }
 
+        /* Init finished free the bootstrap struct */
+        rte_mempool_put(nf_init_data_mp, nf_init_data);
+
         /* Set mode to UNKNOWN, to be determined later */
         nf->nf_mode = NF_MODE_UNKNOWN;
 
@@ -873,23 +876,23 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
 
         if (ONVM_ENABLE_SHARED_CPU) {
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
-                init_shared_cpu_info(nf_init_data->instance_id);
+                init_shared_cpu_info(nf->instance_id);
         }
 
-        RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf_init_data->instance_id);
-        RTE_LOG(INFO, APP, "Using Service ID %d\n", nf_init_data->service_id);
-        RTE_LOG(INFO, APP, "Running on core %d\n", nf_init_data->core);
+        RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf->instance_id);
+        RTE_LOG(INFO, APP, "Using Service ID %d\n", nf->service_id);
+        RTE_LOG(INFO, APP, "Running on core %d\n", nf->core);
 
-        if (nf_init_data->time_to_live)
-                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf_init_data->time_to_live);
-        if (nf_init_data->pkt_limit)
-                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf_init_data->pkt_limit);
+        if (nf->user_flags.time_to_live)
+                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf->user_flags.time_to_live);
+        if (nf->user_flags.pkt_limit)
+                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf->user_flags.pkt_limit);
 
         /*
          * Allow this for cases when there is not enough cores and using 
          * the shared cpu mode is not an option
          */
-        if (ONVM_CHECK_BIT(nf_init_data->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
+        if (ONVM_CHECK_BIT(nf->flags, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
                 RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
                                       "enabled, this will hurt performance, proceed with caution\n");
 
@@ -1213,16 +1216,26 @@ onvm_nflib_terminate_children(struct onvm_nf *nf) {
 
 static void
 onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
-        struct onvm_nf_init_data *nf_init_data;
         struct onvm_nf_msg *shutdown_msg;
         struct onvm_nf *nf;
 
-        if (nf_context == NULL || nf_context->nf_init_data == NULL) {
+        if (nf_context == NULL) {
                 return;
         }
 
-        nf_init_data = nf_context->nf_init_data;
-        nf = &nfs[nf_init_data->instance_id];
+        /* In case init wasn't finished */
+        if (rte_atomic16_read(&nf_context->nf_init_finished) == 0) {
+                free(nf_context);
+                nf_context = NULL;
+                return;
+        }
+
+        nf = nf_context->nf;
+
+        /* Sanity check */
+        if (nf == NULL) {
+                rte_exit(EXIT_FAILURE, "NF init finished but context->nf is NULL");
+        }
 
         /* Cleanup state data */
         if (nf->data != NULL) {
@@ -1246,23 +1259,17 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
                 nf->nf_tx_mgr = NULL;
         }
 
-        /* Put this NF's info struct back into queue for manager to ack shutdown */
-        if (mgr_msg_queue == NULL) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory
-                rte_exit(EXIT_FAILURE, "Cannot get nf_init_data ring for shutdown");
-        }
-        if (rte_mempool_get(nf_msg_pool, (void **)(&shutdown_msg)) != 0) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory
+        if (mgr_msg_queue == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot get mgr message ring for shutdown");
+        if (rte_mempool_get(nf_msg_pool, (void **)(&shutdown_msg)) != 0)
                 rte_exit(EXIT_FAILURE, "Cannot create shutdown msg");
-        }
 
         shutdown_msg->msg_type = MSG_NF_STOPPING;
         shutdown_msg->msg_data = nf;
 
         if (rte_ring_enqueue(mgr_msg_queue, shutdown_msg) < 0) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory
                 rte_mempool_put(nf_msg_pool, shutdown_msg);
-                rte_exit(EXIT_FAILURE, "Cannot send nf_init_data to manager for shutdown");
+                rte_exit(EXIT_FAILURE, "Cannot send mgr message to manager for shutdown");
         }
 
         /* Cleanup context */

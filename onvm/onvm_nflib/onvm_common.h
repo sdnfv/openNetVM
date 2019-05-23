@@ -273,6 +273,7 @@ struct onvm_nf {
                 /* If set NF will stop after pkts TX reach pkt_limit */
                 uint16_t pkt_limit;
         } user_flags;
+                uint16_t flags;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
         rte_atomic16_t children_cnt;
