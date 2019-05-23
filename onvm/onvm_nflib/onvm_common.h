@@ -72,7 +72,7 @@
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3   // send the packet out the NIC port set in the argument field
+#define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
 #define PKT_WAKEUP_THRESHOLD 1 // for shared cpu mode, how many packets are required to wake up the NF
 
@@ -344,6 +344,14 @@ struct onvm_service_chain {
         int ref_cnt;
 };
 
+struct lpm_request {
+        char name[64];
+        uint32_t max_num_rules;
+        uint32_t num_tbl8s;
+        int socket_id;
+        int status;
+};
+
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
@@ -381,6 +389,7 @@ struct onvm_service_chain {
 #define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
 #define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
 #define NF_CORE_BUSY 12           // The manually selected core is busy
+#define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
 #define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other

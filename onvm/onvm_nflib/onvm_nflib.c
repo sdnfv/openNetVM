@@ -265,6 +265,32 @@ onvm_nflib_init_nf_context(void) {
 }
 
 int
+onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) return ret;
+
+        request_message->msg_type = MSG_REQUEST_LPM_REGION;
+        request_message->msg_data = lpm_req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        lpm_req->status = NF_WAITING_FOR_LPM;
+        for (; lpm_req->status == (uint16_t) NF_WAITING_FOR_LPM;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return lpm_req->status;
+}
+
+int
 onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func nf_signal_handler) {
         /* Signal handling is global thus save global context */
         global_termination_context = nf_context;

@@ -451,7 +451,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_context->nf_info, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */

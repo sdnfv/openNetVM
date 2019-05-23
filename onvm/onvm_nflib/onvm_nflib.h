@@ -293,6 +293,17 @@ onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data);
 int
 onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 
+/**
+ * Request LPM memory region. Returns the success or failure of this initialization.
+ *
+ * @param lpm_request
+ *   An LPM request struct to initialize the LPM region
+ * @return
+ *   Request response status
+ */
+int
+onvm_nflib_request_lpm(struct lpm_request *req);
+
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 

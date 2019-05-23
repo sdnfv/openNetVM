@@ -373,6 +373,12 @@ onvm_pkt_parse_ip(char* ip_str, uint32_t* dest) {
         return 0;
 }
 
+void
+onvm_pkt_parse_char_ip(char* ip_dest, uint32_t ip_src) {
+        snprintf(ip_dest, 16, "%u.%u.%u.%u", (ip_src >> 24) & 0xFF, (ip_src >> 16) & 0xFF,
+                (ip_src >> 8) & 0xFF, ip_src & 0xFF);
+}
+
 int
 onvm_pkt_parse_mac(char* mac_str, uint8_t* dest) {
         int ret, i;
