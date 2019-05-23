@@ -24,7 +24,7 @@ check_exit_code "ERROR: Building ONVM failed"
 
 print_header "Running ONVM Manager"
 cd onvm
-./go.sh 0,1,2,3 0 0xF0 -s web &
+./go.sh 0,1,2,3 0 0xF0 -s web -a 0x7f000000000 &
 mgr_pid=$?
 if [ $mgr_pid -ne 0 ]
 then
