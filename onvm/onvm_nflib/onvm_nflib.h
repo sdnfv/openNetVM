@@ -193,16 +193,6 @@ int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
 
 /**
- * Stop this NF and clean up its memory
- * Sends shutdown message to manager.
- *
- * @param nf_context
- *   Pointer to a context struct of this NF.
- */
-void
-onvm_nflib_stop(struct onvm_nf_context *nf_context);
-
-/**
  * Return the tx_ring associated with this NF.
  *
  * @param nf
