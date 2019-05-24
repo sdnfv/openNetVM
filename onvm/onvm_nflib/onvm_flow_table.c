@@ -38,31 +38,26 @@
  * onvm_flow_table.c - a generic flow table
  ********************************************************************/
 
+#include <rte_cycles.h>
 #include <rte_ether.h>
 #include <rte_hash.h>
 #include <rte_lcore.h>
-#include <rte_cycles.h>
 #include <rte_malloc.h>
 
 #include "onvm_flow_table.h"
 
-uint8_t rss_symmetric_key[40] = { 0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,
-                                     0x6d, 0x5a, 0x6d, 0x5a,};
+uint8_t rss_symmetric_key[40] = {
+    0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a,
+    0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a,
+    0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a,
+};
 
 /* Create a new flow table made of an rte_hash table and a fixed size
  * data array for storing values. Only supports IPv4 5-tuple lookups. */
-struct onvm_ft*
+struct onvm_ft *
 onvm_ft_create(int cnt, int entry_size) {
-        struct rte_hash* hash;
-        struct onvm_ft* ft;
+        struct rte_hash *hash;
+        struct onvm_ft *ft;
         struct rte_hash_parameters ipv4_hash_params = {
             .name = NULL,
             .entries = cnt,
@@ -75,12 +70,12 @@ onvm_ft_create(int cnt, int entry_size) {
         /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
         ipv4_hash_params.name = s;
         ipv4_hash_params.socket_id = rte_socket_id();
-        snprintf(s, sizeof(s), "onvm_ft_%d-%"PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+        snprintf(s, sizeof(s), "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
         hash = rte_hash_create(&ipv4_hash_params);
         if (hash == NULL) {
                 return NULL;
         }
-	ft = (struct onvm_ft*)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
+        ft = (struct onvm_ft *)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
         if (ft == NULL) {
                 rte_hash_free(hash);
                 return NULL;
@@ -106,7 +101,7 @@ Returns:
  -ENOSPC if there is no space in the hash for this key.
 */
 int
-onvm_ft_add_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
+onvm_ft_add_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int err;
@@ -117,7 +112,7 @@ onvm_ft_add_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
         }
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
         if (tbl_index >= 0) {
-        	*data = &table->data[tbl_index*table->entry_size];
+                *data = &table->data[tbl_index * table->entry_size];
         }
         return tbl_index;
 }
@@ -129,7 +124,7 @@ onvm_ft_add_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
     -EINVAL if the parameters are invalid.
 */
 int
-onvm_ft_lookup_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
+onvm_ft_lookup_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int ret;
@@ -147,7 +142,8 @@ onvm_ft_lookup_pkt(struct onvm_ft* table, struct rte_mbuf *pkt, char** data) {
 
 /* Removes an entry from the flow table
    Returns:
-    A positive value that can be used by the caller as an offset into an array of user data. This value is unique for this key, and is the same value that was returned when the key was added.
+    A positive value that can be used by the caller as an offset into an array of user data. This value is unique for
+   this key, and is the same value that was returned when the key was added.
     -ENOENT if the key is not found.
     -EINVAL if the parameters are invalid.
 */
@@ -164,33 +160,33 @@ onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt) {
 }
 
 int
-onvm_ft_add_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
+onvm_ft_add_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key, char **data) {
         int32_t tbl_index;
-	uint32_t softrss;
+        uint32_t softrss;
 
-	softrss = onvm_softrss(key);
+        softrss = onvm_softrss(key);
 
         tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)key, softrss);
         if (tbl_index >= 0) {
-		*data = onvm_ft_get_data(table, tbl_index);
+                *data = onvm_ft_get_data(table, tbl_index);
         }
 
         return tbl_index;
 }
 
 int
-onvm_ft_lookup_key(struct onvm_ft* table, struct onvm_ft_ipv4_5tuple *key, char** data) {
+onvm_ft_lookup_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key, char **data) {
         int32_t tbl_index;
-	uint32_t softrss;
+        uint32_t softrss;
 
-	softrss = onvm_softrss(key);
+        softrss = onvm_softrss(key);
 
         tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)key, softrss);
-	if (tbl_index >= 0) {
+        if (tbl_index >= 0) {
                 *data = onvm_ft_get_data(table, tbl_index);
         }
 
-	return tbl_index;
+        return tbl_index;
 }
 
 int32_t
@@ -205,7 +201,8 @@ onvm_ft_remove_key(struct onvm_ft *table, struct onvm_ft_ipv4_5tuple *key) {
    Parameters:
      key: Output containing the key where current iterator was pointing at
      data: Output containing the data associated with key. Returns NULL if data was not stored.
-     next: Pointer to iterator. Should be 0 to start iterating the hash table. Iterator is incremented after each call of this function.
+     next: Pointer to iterator. Should be 0 to start iterating the hash table. Iterator is incremented after each call
+   of this function.
    Returns:
      Position where key was stored, if successful.
     -EINVAL if the parameters are invalid.

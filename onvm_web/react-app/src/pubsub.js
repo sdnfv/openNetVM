@@ -7,7 +7,8 @@ export type OnvmNfData = {|
   TX_Drop_Rate: number,
   RX_Drop_Rate: number,
   instance_id: number,
-  service_id: number
+  service_id: number,
+  core: number
 |};
 
 export type ColumnRestoreData = Array<Array<string | number>>;
@@ -25,7 +26,8 @@ type OnvmResponse = {|
 export type OnvmEvent = {|
   message: string,
   instance_id: number,
-  service_id: number
+  service_id: number,
+  core: number
 |};
 type OnvmEventsResponse = Array<OnvmEvent>;
 

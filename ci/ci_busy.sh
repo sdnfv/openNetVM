@@ -29,18 +29,26 @@ fi
 
 if [[ -z "$3" ]]
 then
-    echo "ERROR: Missing third argument, Request body!"
+    echo "ERROR: Missing third argument, Repo name!"
     exit 1
 else
-    REQUEST=$3
+    REPO_NAME=$3
 fi
 
 if [[ -z "$4" ]]
 then
-    echo "ERROR: Missing fourth argument, POST_MSG!"
+    echo "ERROR: Missing fourth argument, Request body!"
     exit 1
 else
-    POST_MSG=$4
+    REQUEST=$4
+fi
+
+if [[ -z "$5" ]]
+then
+    echo "ERROR: Missing fifth argument, POST_MSG!"
+    exit 1
+else
+    POST_MSG=$5
 fi
 
 . $1 # source the variables from config file
@@ -48,21 +56,15 @@ fi
 print_header "Checking Required Variables"
 
 
- if [[ -z "$GITHUB_CREDS" ]]
+if [[ -z "$GITHUB_CREDS" ]]
 then
     echo "ERROR: GITHUB_CREDS not provided"
     exit 1
 fi
 
- if [[ -z "$REPO_OWNER" ]]
+if [[ -z "$REPO_OWNER" ]]
 then
     echo "ERROR: REPO_OWNER not provided"
-    exit 1
-fi
-
- if [[ -z "$REPO_NAME" ]]
-then
-    echo "ERROR: REPO_NAME not provided"
     exit 1
 fi
 

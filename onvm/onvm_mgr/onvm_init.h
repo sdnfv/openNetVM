@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                  onvm_init.h
@@ -49,39 +48,34 @@
 
 ******************************************************************************/
 
-
 #ifndef _ONVM_INIT_H_
 #define _ONVM_INIT_H_
-
 
 /********************************DPDK library*********************************/
 
 #include <rte_byteorder.h>
-#include <rte_memcpy.h>
-#include <rte_malloc.h>
-#include <rte_fbk_hash.h>
 #include <rte_cycles.h>
 #include <rte_errno.h>
+#include <rte_fbk_hash.h>
+#include <rte_malloc.h>
+#include <rte_memcpy.h>
 #ifdef RTE_LIBRTE_PDUMP
 #include <rte_pdump.h>
 #endif
 
-
 /*****************************Internal library********************************/
 
-
+#include "onvm_common.h"
+#include "onvm_flow_dir.h"
+#include "onvm_flow_table.h"
+#include "onvm_includes.h"
 #include "onvm_mgr/onvm_args.h"
 #include "onvm_mgr/onvm_stats.h"
-#include "onvm_includes.h"
-#include "onvm_common.h"
-#include "onvm_sc_mgr.h"
 #include "onvm_sc_common.h"
-#include "onvm_flow_table.h"
-#include "onvm_flow_dir.h"
+#include "onvm_sc_mgr.h"
 #include "onvm_threading.h"
 
 /***********************************Macros************************************/
-
 
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
@@ -102,10 +96,9 @@
 #define ONVM_NUM_RX_THREADS 1
 /* Number of auxiliary threads in manager, 1 reserved for stats */
 #define ONVM_NUM_MGR_AUX_THREADS 1
-
+#define ONVM_NUM_WAKEUP_THREADS 1  // Enabled when using shared cpu mode
 
 /*************************External global variables***************************/
-
 
 /* NF to Manager data flow */
 extern struct rte_ring *incoming_msg_queue;
@@ -126,7 +119,16 @@ extern struct onvm_service_chain *default_chain;
 extern struct onvm_ft *sdn_ft;
 extern ONVM_STATS_OUTPUT stats_destination;
 extern uint16_t global_stats_sleep_time;
+extern uint32_t global_time_to_live;
+extern uint32_t global_pkt_limit;
 extern uint8_t global_verbosity_level;
+
+/* Custom flags for onvm */
+extern struct onvm_configuration *onvm_config;
+extern uint8_t ONVM_ENABLE_SHARED_CPU;
+
+/* For handling shared cpu logic */
+extern struct nf_wakeup_info *nf_wakeup_infos;
 
 /**********************************Functions**********************************/
 
@@ -139,6 +141,7 @@ extern uint8_t global_verbosity_level;
  * Output : an error code
  *
  */
-int init(int argc, char *argv[]);
+int
+init(int argc, char *argv[]);
 
 #endif  // _ONVM_INIT_H_

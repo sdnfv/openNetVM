@@ -77,6 +77,18 @@ fi
 # Set state variables
 start_dir=$(pwd)
 
+if [ -z "$ONVM_HOME" ]; then
+    echo "Please export \$ONVM_HOME and set it to $start_dir"
+    exit 1
+fi
+
+# Source DPDK helper functions
+. $ONVM_HOME/scripts/dpdk_helper_scripts.sh
+
+set +e
+remove_igb_uio_module
+set -e
+
 # Compile dpdk
 cd $RTE_SDK
 echo "Compiling and installing dpdk in $RTE_SDK"
@@ -99,13 +111,9 @@ sudo -v
 
 cd $start_dir
 
-# Configure HugePages only if user wants to
+# Setup/Check for free HugePages if the user wants to
 if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
-	hp_size=$(cat /proc/meminfo | grep Hugepagesize | awk '{print $2}')
-	hp_count="${ONVM_NUM_HUGEPAGES:-1024}"
-	echo "Configuring $hp_count hugepages with size $hp_size"
-	sleep 1
-	sudo mkdir -p /mnt/huge
+    set_numa_pages
 fi
 
 grep -m 1 "huge" /etc/fstab | cat
@@ -114,16 +122,6 @@ if [ ${PIPESTATUS[0]} != 0 ] && [ -z "$ONVM_SKIP_FSTAB" ]; then
     echo "Adding huge fs to /etc/fstab"
     sleep 1
     sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"
-fi
-
-#Only mount hugepages if user wants to 
-if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
-	echo "Mounting hugepages"
-	sleep 1
-	sudo mount -t hugetlbfs nodev /mnt/huge
-	echo "Creating $hp_count hugepages"
-	sleep 1
-	sudo sh -c "echo $hp_count > /sys/devices/system/node/node0/hugepages/hugepages-${hp_size}kB/nr_hugepages"
 fi
 
 # Configure local environment

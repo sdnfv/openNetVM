@@ -99,7 +99,7 @@ check_exit_code(){
 
 # runs the linter
 run_linter() {
-    for fn in $(git ls-files *.c | grep -v "cJSON" | grep -v "ndpi"); do
-        python style/gwclint.py --verbose=5 $fn 2>&1 | grep -v "Done" | grep -v "Total errors found: 0" >> $1
+    for fn in $(git diff --name-only upstream/develop...HEAD -- '*.c' '*.cpp' '*.h' | grep -v "cJSON" | grep -v "ndpi"); do
+        python $SCRIPT_LOC/../style/gwclint.py --verbose=4 $fn 2>&1 | grep -v "Done" | grep -v "Total errors found: 0" >> $1
     done
 }

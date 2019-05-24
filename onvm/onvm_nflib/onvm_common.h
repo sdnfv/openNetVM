@@ -39,57 +39,85 @@
  * onvm_common.h - shared data between host and NFs
  ********************************************************************/
 
-#ifndef _COMMON_H_
-#define _COMMON_H_
+#ifndef _ONVM_COMMON_H_
+#define _ONVM_COMMON_H_
 
 #include <stdint.h>
 
-#include <rte_mbuf.h>
+/* Std C library includes for shared cpu */
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <rte_ether.h>
+#include <rte_mbuf.h>
 
-#include "onvm_msg_common.h"
 #include "onvm_config_common.h"
+#include "onvm_msg_common.h"
 
-#define ONVM_MAX_CHAIN_LENGTH 4 // the maximum chain length
-#define MAX_NFS 128             // total number of NFs allowed
-#define MAX_SERVICES 32         // total number of unique services allowed
-#define MAX_NFS_PER_SERVICE 32  // max number of NFs per service.
+#define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
+#define MAX_NFS 128              // total number of concurrent NFs allowed (-1 because ID 0 is reserved)
+#define MAX_SERVICES 32          // total number of unique services allowed
+#define MAX_NFS_PER_SERVICE 32   // max number of NFs per service.
 
-#define NUM_MBUFS 32767         // total number of mbufs (2^15 - 1)
-#define NF_QUEUE_RINGSIZE 16384 //size of queue for NFs
+#define NUM_MBUFS 32767          // total number of mbufs (2^15 - 1)
+#define NF_QUEUE_RINGSIZE 16384  // size of queue for NFs
 
 #define PACKET_READ_SIZE ((uint16_t)32)
 
-#define ONVM_NF_ACTION_DROP 0   // drop packet
-#define ONVM_NF_ACTION_NEXT 1   // to whatever the next action is configured by the SDN controller in the flow table
-#define ONVM_NF_ACTION_TONF 2   // send to the NF specified in the argument field (assume it is on the same host)
-#define ONVM_NF_ACTION_OUT 3    // send the packet out the NIC port set in the argument field
+#define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
+
+#define ONVM_NF_ACTION_DROP 0  // drop packet
+#define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
+#define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
+#define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
+
+#define PKT_WAKEUP_THRESHOLD 1 // for shared cpu mode, how many packets are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-//extern uint8_t rss_symmetric_key[40];
+#define ONVM_SIGNAL_TERMINATION -2
 
-//flag operations that should be used on onvm_pkt_meta
+/* Maximum length of NF_TAG including the \0 */
+#define TAG_SIZE 15
+
+// flag operations that should be used on onvm_pkt_meta
 #define ONVM_CHECK_BIT(flags, n) !!((flags) & (1 << (n)))
 #define ONVM_SET_BIT(flags, n) ((flags) | (1 << (n)))
 #define ONVM_CLEAR_BIT(flags, n) ((flags) & (0 << (n)))
 
+/* Measured in millions of packets */
+#define PKT_TTL_MULTIPLIER 1000000
+/* Measured in seconds */
+#define TIME_TTL_MULTIPLIER 1
+
+/* For NF termination handling */
+#define NF_TERM_WAIT_TIME 1
+#define NF_TERM_INIT_ITER_TIMES 3
+/* If a lot of children spawned this might need to be increased */
+#define NF_TERM_STOP_ITER_TIMES 10
+
 struct onvm_pkt_meta {
-        uint8_t action; /* Action to be performed */
+        uint8_t action;       /* Action to be performed */
         uint16_t destination; /* where to go next */
-        uint16_t src; /* who processed the packet last */
-        uint8_t chain_index; /*index of the current step in the service chain*/
-        uint8_t flags; /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
+        uint16_t src;         /* who processed the packet last */
+        uint8_t chain_index;  /*index of the current step in the service chain*/
+        uint8_t flags;        /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
 };
 
-static inline struct onvm_pkt_meta* onvm_get_pkt_meta(struct rte_mbuf* pkt) {
-        return (struct onvm_pkt_meta*)&pkt->udata64;
+static inline struct onvm_pkt_meta *
+onvm_get_pkt_meta(struct rte_mbuf *pkt) {
+        return (struct onvm_pkt_meta *)&pkt->udata64;
 }
 
-static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
-        return ((struct onvm_pkt_meta*)&pkt->udata64)->chain_index;
+static inline uint8_t
+onvm_get_pkt_chain_index(struct rte_mbuf *pkt) {
+        struct onvm_pkt_meta* pkt_meta = (struct onvm_pkt_meta*) &pkt->udata64;
+        return pkt_meta->chain_index;
 }
 
 /*
@@ -105,10 +133,10 @@ static inline uint8_t onvm_get_pkt_chain_index(struct rte_mbuf* pkt) {
  */
 /*******************************Data Structures*******************************/
 
-/*  
+/*
  * Packets may be transported by a tx thread or by an NF.
- * This data structure encapsulates data specific to  
- * tx threads. 
+ * This data structure encapsulates data specific to
+ * tx threads.
  */
 struct tx_thread_info {
         unsigned first_nf;
@@ -131,7 +159,7 @@ struct packet_buf {
  * */
 struct queue_mgr {
         unsigned id;
-        enum {NF, MGR} mgr_type_t;
+        enum { NF, MGR } mgr_type_t;
         union {
                 struct tx_thread_info *tx_thread_info;
                 struct packet_buf *to_tx_buf;
@@ -139,11 +167,26 @@ struct queue_mgr {
         struct packet_buf *nf_rx_bufs;
 };
 
-struct rx_stats{
+/* NFs wakeup Info: used by manager to update NFs pool and wakeup stats */
+struct wakeup_thread_context {
+        unsigned first_nf;
+        unsigned last_nf;
+};
+
+struct nf_wakeup_info {
+        const char *sem_name;
+        sem_t *mutex;
+        key_t shm_key;
+        rte_atomic16_t *shm_server;
+        uint64_t num_wakeups;
+        uint64_t prev_num_wakeups;
+};
+
+struct rx_stats {
         uint64_t rx[RTE_MAX_ETHPORTS];
 };
 
-struct tx_stats{
+struct tx_stats {
         uint64_t tx[RTE_MAX_ETHPORTS];
         uint64_t tx_drop[RTE_MAX_ETHPORTS];
 };
@@ -156,6 +199,12 @@ struct port_info {
         volatile struct tx_stats tx_stats;
 };
 
+struct onvm_configuration {
+        struct {
+                uint8_t ONVM_ENABLE_SHARED_CPU;
+        } flags;
+};
+
 struct core_status {
         uint8_t enabled;
         uint8_t is_dedicated_core;
@@ -163,14 +212,20 @@ struct core_status {
 };
 
 struct onvm_nf_info;
+struct onvm_nf_context;
 /* Function prototype for NF packet handlers */
-typedef int(*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info);
+typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+                                __attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NF callback handlers */
-typedef int(*callback_handler_func)(__attribute__ ((unused)) struct onvm_nf_info *nf_info);
+typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf_info *nf_info);
 /* Function prototype for NFs running advanced rings */
-typedef void(*advanced_rings_func)(struct onvm_nf_info *nf_info);
+typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void(*setup_func)(struct onvm_nf_info *nf_info);
+typedef void (*setup_func)(struct onvm_nf_context *nf_context);
+/* Function prototype for NFs to handle custom messages */
+typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf_info *nf_info);
+/* Function prototype for NFs to signal handling */
+typedef void (*handle_signal_func)(int);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
@@ -179,12 +234,20 @@ struct onvm_nf_scale_info {
         uint16_t service_id;
         uint16_t core;
         uint8_t flags;
-        const char *tag;
+        char *tag;
         void *data;
         setup_func setup_func;
         pkt_handler_func pkt_func;
         callback_handler_func callback_func;
         advanced_rings_func adv_rings_func;
+        handle_msg_func handle_msg_function;
+};
+
+struct onvm_nf_context {
+        struct onvm_nf *nf;
+        struct onvm_nf_info *nf_info;
+        rte_atomic16_t nf_init_finished;
+        rte_atomic16_t keep_running;
 };
 
 /*
@@ -201,14 +264,18 @@ struct onvm_nf {
         uint8_t nf_mode;
         /* Instance ID of parent NF or 0 */
         uint16_t parent;
+        rte_atomic16_t children_cnt;
         /* Struct for NF to NF communication (NF tx) */
         struct queue_mgr *nf_tx_mgr;
+        /* Pointer to NF context (used for signal handling/termination */
+        struct onvm_nf_context *context;
 
-        /* NF specifc functions */
+        /* NF specific functions */
         pkt_handler_func nf_pkt_function;
         callback_handler_func nf_callback_function;
         advanced_rings_func nf_advanced_rings_function;
         setup_func nf_setup_function;
+        handle_msg_func nf_handle_msg_function;
 
         /*
          * Define a structure with stats from the NFs.
@@ -232,6 +299,15 @@ struct onvm_nf {
                 volatile uint64_t act_buffer;
         } stats;
 
+        /* NF accessible shared mem (shared cpu vars)
+         * 
+         * flag (shared mem variable) to track state of NF and trigger wakeups 
+         *     flag = 1 => NF sleeping (waiting on semaphore)
+         *     flag = 0 => NF is running and processing (not waiting on semaphore)
+         */
+        rte_atomic16_t *sleep_state;
+        /* Mutex for NF sem_wait */
+        sem_t *nf_mutex;
 };
 
 /*
@@ -244,7 +320,12 @@ struct onvm_nf_info {
         uint16_t core;
         uint8_t flags;
         uint8_t status;
-        const char *tag;
+        char *tag;
+        /* If set NF will stop after time reaches time_to_live */
+        uint16_t time_to_live;
+        /* If set NF will stop after pkts TX reach pkt_limit */
+        uint16_t pkt_limit;
+        /* Pointer to NF defined state data */
         void *data;
 };
 
@@ -262,15 +343,25 @@ struct onvm_service_chain {
         int ref_cnt;
 };
 
+struct lpm_request {
+        char name[64];
+        uint32_t max_num_rules;
+        uint32_t num_tbl8s;
+        int socket_id;
+        int status;
+};
+
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
+#define MP_CLIENT_SEM_NAME "MProc_Client_%u_SEM"
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define MZ_PORT_INFO "MProc_port_info"
 #define MZ_CORES_STATUS "MProc_cores_info"
 #define MZ_NF_INFO "MProc_nf_info"
 #define MZ_SERVICES_INFO "MProc_services_info"
 #define MZ_NF_PER_SERVICE_INFO "MProc_nf_per_service_info"
+#define MZ_ONVM_CONFIG "MProc_onvm_config"
 #define MZ_SCP_INFO "MProc_scp_info"
 #define MZ_FTP_INFO "MProc_ftp_info"
 
@@ -279,24 +370,28 @@ struct onvm_service_chain {
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
 
+/* interrupt semaphore specific updates */
+#define SHMSZ 4                         // size of shared memory segement (page_size)
+#define KEY_PREFIX 123                  // prefix len for key
+
 /* common names for NF states */
-#define NF_WAITING_FOR_ID 0      // First step in startup process, doesn't have ID confirmed by manager yet
-#define NF_STARTING 1            // When a NF is in the startup process and already has an id
-#define NF_RUNNING 2             // Running normally
-#define NF_PAUSED  3             // NF is not receiving packets, but may in the future
-#define NF_STOPPED 4             // NF has stopped and in the shutdown process
-#define NF_ID_CONFLICT 5         // NF is trying to declare an ID already in use
-#define NF_NO_IDS 6              // There are no available IDs for this NF
-#define NF_SERVICE_MAX 7         // Service ID has exceeded the maximum amount
-#define NF_SERVICE_COUNT_MAX 8   // Maximum amount of NF's per service spawned
-#define NF_NO_CORES 9            // There are no cores available or specified core can't be used
-#define NF_NO_DEDICATED_CORES 10 // There is no space for a dedicated core
-#define NF_CORE_OUT_OF_RANGE 11  // The manually selected core is out of range
-#define NF_CORE_BUSY 12          // The manually selected core is busy
+#define NF_WAITING_FOR_ID 0       // First step in startup process, doesn't have ID confirmed by manager yet
+#define NF_STARTING 1             // When a NF is in the startup process and already has an id
+#define NF_RUNNING 2              // Running normally
+#define NF_PAUSED 3               // NF is not receiving packets, but may in the future
+#define NF_STOPPED 4              // NF has stopped and in the shutdown process
+#define NF_ID_CONFLICT 5          // NF is trying to declare an ID already in use
+#define NF_NO_IDS 6               // There are no available IDs for this NF
+#define NF_SERVICE_MAX 7          // Service ID has exceeded the maximum amount
+#define NF_SERVICE_COUNT_MAX 8    // Maximum amount of NF's per service spawned
+#define NF_NO_CORES 9             // There are no cores available or specified core can't be used
+#define NF_NO_DEDICATED_CORES 10  // There is no space for a dedicated core
+#define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
+#define NF_CORE_BUSY 12           // The manually selected core is busy
+#define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
-#define ONVM_NF_HANDLE_TX 1     // should be true if NFs primarily pass packets to each other
-
+#define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
 
 /*
  * Given the rx queue name template above, get the queue name
@@ -345,6 +440,39 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
         return nf && nf->info && nf->info->status == NF_RUNNING;
 }
 
+/*
+ * Given the rx queue name template above, get the key of the shared memory
+ */
+static inline key_t
+get_rx_shmkey(unsigned id) {
+        return KEY_PREFIX * 10 + id;
+}
+
+/*
+ * Given the sem name template above, get the sem name
+ */
+static inline const char *
+get_sem_name(unsigned id) {
+        /* buffer for return value. Size calculated by %u being replaced
+         * by maximum 3 digits (plus an extra byte for safety) */
+        static char buffer[sizeof(MP_CLIENT_SEM_NAME) + 2];
+
+        snprintf(buffer, sizeof(buffer) - 1, MP_CLIENT_SEM_NAME, id);
+        return buffer;
+}
+
+static inline int
+whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
+                return 0;
+
+        /* Check if its already woken up */
+        if (rte_atomic16_read(nf_wakeup_info->shm_server) == 0)
+                return 0;
+
+        return 1;
+}
+
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
-#endif  // _COMMON_H_
+#endif  // _ONVM_COMMON_H_

@@ -86,8 +86,11 @@ class NFGraph extends React.PureComponent<Props, State> {
 
   componentDidMount(): void {
     console.log("Graph Mount: " + this.props.nfLabel);
+    var nfLabel = `NF ${this.props.nfLabel.split(" - ")[1]}`;
+    if(this.props.nfLabel.substring(0, 4) === "Port")
+      nfLabel = this.props.nfLabel;
     const columnStateToRestore = registerNFSubscriber(
-      this.props.nfLabel,
+      nfLabel,
       this.dataCallback
     );
     if (columnStateToRestore) {
@@ -100,8 +103,11 @@ class NFGraph extends React.PureComponent<Props, State> {
 
   componentWillUnmount(): void {
     console.log("Graph Unmount: " + this.props.nfLabel);
+    var nfLabel = `NF ${this.props.nfLabel.split(" - ")[1]}`;
+    if(this.props.nfLabel.substring(0, 4) === "Port")
+      nfLabel = this.props.nfLabel;
     unregisterNFSubscriber(
-      this.props.nfLabel,
+      nfLabel,
       this.dataCallback,
       this.state.graphData.columns
     );

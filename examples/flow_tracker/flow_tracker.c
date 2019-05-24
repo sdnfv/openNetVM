@@ -38,26 +38,26 @@
  * flow_tracker.c - an example using onvm. Stores incoming flows and prints info about them.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <rte_common.h>
-#include <rte_mbuf.h>
-#include <rte_ip.h>
-#include <rte_hash.h>
-#include <rte_malloc.h>
 #include <rte_cycles.h>
+#include <rte_hash.h>
+#include <rte_ip.h>
+#include <rte_malloc.h>
+#include <rte_mbuf.h>
 
+#include "onvm_flow_table.h"
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
-#include "onvm_flow_table.h"
 
 #define NF_TAG "flow_tracker"
 #define TBL_SIZE 100
@@ -102,39 +102,39 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-          int c, dst_flag = 0;
+        int c, dst_flag = 0;
 
-          while ((c = getopt(argc, argv, "d:p:")) != -1) {
-                switch(c) {
-                case 'd':
-                        state_info->destination = strtoul(optarg, NULL, 10);
-                        dst_flag = 1;
-                        RTE_LOG(INFO, APP, "Sending packets to service ID %d\n", state_info->destination);
-                        break;
-                case 'p':
-                        state_info->print_delay = strtoul(optarg, NULL, 10);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
-                        else if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character\n");
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+        while ((c = getopt(argc, argv, "d:p:")) != -1) {
+                switch (c) {
+                        case 'd':
+                                state_info->destination = strtoul(optarg, NULL, 10);
+                                dst_flag = 1;
+                                RTE_LOG(INFO, APP, "Sending packets to service ID %d\n", state_info->destination);
+                                break;
+                        case 'p':
+                                state_info->print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
+                                else if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character\n");
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
-          }
+        }
 
-          if (!dst_flag) {
+        if (!dst_flag) {
                 RTE_LOG(INFO, APP, "Flow Tracker NF requires a destination NF service ID with the -d flag \n");
                 return -1;
-          }
+        }
 
-          return optind;
+        return optind;
 }
 
 /*
@@ -206,8 +206,7 @@ do_stats_display(struct state_info *state_info) {
                 printf("%d. Status: ", index);
                 if (data->is_active) {
                         printf("Active\n");
-                }
-                else {
+                } else {
                         printf("Expired\n");
                 }
 
@@ -222,7 +221,7 @@ do_stats_display(struct state_info *state_info) {
  * if so, it calls clear_entries() to free up space.
  */
 static int
-table_add_entry(struct onvm_ft_ipv4_5tuple* key, struct state_info *state_info) {
+table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct state_info *state_info) {
         struct flow_stats *data = NULL;
 
         if (unlikely(key == NULL || state_info == NULL)) {
@@ -254,7 +253,7 @@ table_add_entry(struct onvm_ft_ipv4_5tuple* key, struct state_info *state_info) 
  * and if it doesn't, it calls table_add_entry() to add it to the table.
  */
 static int
-table_lookup_entry(struct rte_mbuf* pkt, struct state_info *state_info) {
+table_lookup_entry(struct rte_mbuf *pkt, struct state_info *state_info) {
         struct flow_stats *data = NULL;
         struct onvm_ft_ipv4_5tuple key;
 
@@ -312,17 +311,28 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
+        struct onvm_nf_context *nf_context;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_context = onvm_nflib_init_nf_context();
+        onvm_nflib_start_signal_handler(nf_context, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
+                onvm_nflib_stop(nf_context);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
 
         argc -= arg_offset;
         argv += arg_offset;
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
@@ -330,21 +340,22 @@ main(int argc, char *argv[]) {
         state_info->num_stored = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
         state_info->ft = onvm_ft_create(TBL_SIZE, sizeof(struct flow_stats));
         if (state_info->ft == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
         /*Initialize NF timer */
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
 
+        onvm_nflib_stop(nf_context);
         printf("If we reach here, program is ending!\n");
         return 0;
 }

@@ -24,4 +24,5 @@ App Specific Arguments
 --
   - `-d DST`: Destination Service ID, functionality depends on mode
   - `-n NUM_CHILDREN`: Sets the number of children for the NF to spawn
+  - `-c`: Set spawned children to use shared cpu core allocation
   - `-a`: Use advanced rings interface instead of default `packet_handler`

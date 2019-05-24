@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                           onvm_stats.c
 
@@ -47,16 +46,22 @@
 
 ******************************************************************************/
 
-#include <unistd.h>
-#include <time.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "onvm_mgr.h"
-#include "onvm_stats.h"
 #include "onvm_nf.h"
+#include "onvm_stats.h"
 
 /************************Internal Functions Prototypes************************/
 
+/*
+ * Function to send json events to web view
+ *
+ */
+static void
+onvm_stats_add_event(struct onvm_event *event_info);
 
 /*
  * Function displaying statistics for all ports
@@ -67,7 +72,6 @@
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level);
 
-
 /*
  * Function displaying statistics for all NFs
  *
@@ -75,14 +79,12 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level);
 static void
 onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level);
 
-
 /*
  * Function clearing the terminal and moving back the cursor to the top left.
  *
  */
 static void
 onvm_stats_clear_terminal(void);
-
 
 /*
  * Function giving the MAC address of a port in string format.
@@ -118,7 +120,6 @@ static FILE *stats_out;
 static FILE *json_stats_out;
 static FILE *json_events_out;
 
-
 /****************************Global variables***************************************/
 
 /* Holds current timestamp, might want to make this not global */
@@ -130,7 +131,10 @@ void
 onvm_stats_init(uint8_t verbocity_level) {
         if (verbocity_level == ONVM_RAW_STATS_DUMP) {
                 printf("#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n");
-                printf("#YYYY-MM-DD HH:MM:SS,instance_id,service_id,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_out,act_tonf,act_drop,act_next,act_buffer,act_returned\n");
+                printf(
+                    "#YYYY-MM-DD "
+                    "HH:MM:SS,instance_id,service_id,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_"
+                    "out,act_tonf,act_drop,act_next,act_buffer,act_returned\n");
         }
 }
 
@@ -180,10 +184,10 @@ onvm_stats_cleanup(void) {
 void
 onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         time_t time_raw_format;
-        struct tm * ptr_time;
-        time ( &time_raw_format );
-        ptr_time = localtime ( &time_raw_format );
-        if(strftime(buffer, 20, "%F %T", ptr_time) == 0){
+        struct tm *ptr_time;
+        time(&time_raw_format);
+        ptr_time = localtime(&time_raw_format);
+        if (strftime(buffer, 20, "%F %T", ptr_time) == 0) {
                 perror("Couldn't prepare formatted string");
         }
 
@@ -206,7 +210,6 @@ onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level) {
         onvm_stats_flush();
 }
 
-
 void
 onvm_stats_clear_all_nfs(void) {
         unsigned i;
@@ -226,37 +229,86 @@ onvm_stats_clear_nf(uint16_t id) {
 }
 
 void
-onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
-        if (msg == NULL || stats_destination != ONVM_STATS_WEB) {
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
                 return;
         }
-        char event_time_buf[20];
-        time_t time_raw_format;
-        struct tm * ptr_time;
-        time ( &time_raw_format );
-        ptr_time = localtime ( &time_raw_format );
-        if (strftime(event_time_buf, 20, "%F %T", ptr_time) == 0) {
-                perror("Couldn't prepare formatted string");
-        }
-        cJSON* new_event = cJSON_CreateObject();
-        cJSON* source = cJSON_CreateObject();
-        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
-        cJSON_AddStringToObject(new_event, "message", msg);
-        if (nf_info == NULL) {
-                cJSON_AddStringToObject(source, "type", "MGR");
-        } else {
-                cJSON_AddStringToObject(source, "type", "NF");
-                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
-                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
-        }
-        cJSON_AddItemToObject(new_event, "source", source);
 
-        cJSON_AddItemToArray(onvm_json_events_arr, new_event);
+        event->type = type;
+        event->msg = msg;
+        event->data = data;
+
+        onvm_stats_add_event(event);
 }
 
+void
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
+                return;
+        }
+
+        event->type = ONVM_EVENT_NF_INFO;
+        event->msg = msg;
+        event->data = nf_info;
+
+        onvm_stats_add_event(event);
+}
 
 /****************************Internal functions*******************************/
 
+static void
+onvm_stats_add_event(struct onvm_event *event_info) {
+        if (event_info == NULL || stats_destination != ONVM_STATS_WEB) {
+                return;
+        }
+        char event_time_buf[20];
+        uint8_t type;
+        struct tm *ptr_time;
+        struct onvm_nf_info *nf_info;
+        time_t time_raw_format;
+        time(&time_raw_format);
+        type = event_info->type;
+
+        ptr_time = localtime(&time_raw_format);
+        if (strftime(event_time_buf, 20, "%F %T", ptr_time) == 0) {
+                perror("Couldn't prepare formatted string");
+        }
+
+        cJSON *source = cJSON_CreateObject();
+        cJSON *new_event = cJSON_CreateObject();
+        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
+        cJSON_AddStringToObject(new_event, "message", event_info->msg);
+
+        if (type == ONVM_EVENT_WITH_CORE) {
+                cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
+        } else if (type == ONVM_EVENT_PORT_INFO) {
+                cJSON_AddStringToObject(source, "type", "MGR");
+        } else if (type == ONVM_EVENT_NF_INFO) {
+                nf_info = (struct onvm_nf_info *)event_info->data;
+                if (nf_info->tag)
+                        cJSON_AddStringToObject(source, "type", (char *)nf_info->tag);
+                else
+                        cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
+                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
+        } else if (type == ONVM_EVENT_NF_STOP) {
+                cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));
+        } else
+                rte_exit(-1, "Invalid stats event type\n");
+
+        cJSON_AddItemToObject(new_event, "source", source);
+        cJSON_AddItemToArray(onvm_json_events_arr, new_event);
+}
 
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
@@ -265,7 +317,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
         uint64_t nic_tx_pkts = 0;
         uint64_t nic_rx_pps = 0;
         uint64_t nic_tx_pps = 0;
-        char* port_label = NULL;
+        char *port_label = NULL;
         /* Arrays to store last TX/RX count to calculate rate */
         static uint64_t tx_last[RTE_MAX_ETHPORTS];
         static uint64_t rx_last[RTE_MAX_ETHPORTS];
@@ -273,12 +325,12 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 
         PORT_MSG[0] = PORT_MSG[1] = "PORTS\n-----\n";
         PORT_MSG[2] = "";
-        fprintf(stats_out, "%s", PORT_MSG[verbosity_level-1]);
+        fprintf(stats_out, "%s", PORT_MSG[verbosity_level - 1]);
 
         if (verbosity_level != ONVM_RAW_STATS_DUMP) {
                 for (i = 0; i < ports->num_ports; i++)
                         fprintf(stats_out, "Port %u: '%s'\t", (unsigned)ports->id[i],
-                                            onvm_stats_print_MAC(ports->id[i]));
+                                onvm_stats_print_MAC(ports->id[i]));
                 fprintf(stats_out, "\n\n");
         }
         for (i = 0; i < ports->num_ports; i++) {
@@ -289,31 +341,22 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%"PRIu64",%"PRIu64",%"PRIu64"%"PRIu64"\n",
-                                        buffer,
-                                        (unsigned)ports->id[i],
-                                        nic_rx_pkts,
-                                        nic_rx_pps,
-                                        nic_tx_pkts,
-                                        nic_tx_pps);
+                        fprintf(stats_out, "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 "%" PRIu64 "\n", buffer,
+                                (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
-                        fprintf(stats_out, "Port %u - rx: %9"PRIu64"  (%9"PRIu64" pps)\t"
-                                        "tx: %9"PRIu64"  (%9"PRIu64" pps)\n",
-                                        (unsigned)ports->id[i],
-                                        nic_rx_pkts,
-                                        nic_rx_pps,
-                                        nic_tx_pkts,
-                                        nic_tx_pps);
+                        fprintf(stats_out, "Port %u - rx: %9" PRIu64 "  (%9" PRIu64
+                                           " pps)\t"
+                                           "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n",
+                                (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
                 }
 
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {
                         ONVM_SNPRINTF(port_label, 8, "Port %d", i);
 
-                        cJSON_AddItemToObject(onvm_json_port_stats_obj,
-                                             port_label,
-                                             onvm_json_port_stats[i] = cJSON_CreateObject());
+                        cJSON_AddItemToObject(onvm_json_port_stats_obj, port_label,
+                                              onvm_json_port_stats[i] = cJSON_CreateObject());
                         cJSON_AddStringToObject(onvm_json_port_stats[i], "Label", port_label);
                         cJSON_AddNumberToObject(onvm_json_port_stats[i], "RX", nic_rx_pps);
                         cJSON_AddNumberToObject(onvm_json_port_stats[i], "TX", nic_tx_pps);
@@ -327,10 +370,28 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
         }
 }
 
+static void
+onvm_stats_display_client_wakeup_thread_context(int difftime) {
+        uint64_t num_wakeups = 0;
+        uint64_t prev_num_wakeups = 0;
+        uint64_t wakeup_rate;
+        unsigned i = 0;
+
+        for (i = 0; i < MAX_NFS; i++) {
+                if (!onvm_nf_is_valid(&nfs[i]))
+                        continue;
+                num_wakeups += nf_wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += nf_wakeup_infos[i].prev_num_wakeups;
+                nf_wakeup_infos[i].prev_num_wakeups = nf_wakeup_infos[i].num_wakeups;
+        }
+
+        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+        fprintf(stats_out, "Total wakeups = %"PRIu64", Wakeup rate = %"PRIu64"\n", num_wakeups, wakeup_rate);
+}
 
 static void
 onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
-        char* nf_label = NULL;
+        char *nf_label = NULL;
         unsigned i = 0;
         /* Arrays to store last TX/RX count for NFs to calculate rate */
         static uint64_t nf_tx_last[MAX_NFS];
@@ -340,9 +401,23 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static uint64_t nf_rx_drop_last[MAX_NFS];
         static const char *NF_MSG[3];
 
-        NF_MSG[0] = "\nNF IID / SID     rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   drop\n-----------------------------------------------------------------------------------------------\n";
-        NF_MSG[1] = "\nNF IID / SID     rx_pps  /  tx_pps            rx  /  tx                out   /    tonf     /   drop\n"
-                      "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   ret\n---------------------------------------------------------------------------------------------------\n";
+        NF_MSG[0] =
+            "\nNF IID / SID     rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   drop\n"
+            "\n-----------------------------------------------------------------------------------------------\n";
+        if (ONVM_ENABLE_SHARED_CPU) {
+                NF_MSG[1] =
+                    "\nNF IID / SID     rx_pps  /  tx_pps            rx  /  tx                out   /    tonf     /   drop\n"
+                    "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   ret\n"
+                    "                     nf_state         num_wakeups /  wakeup_rate"
+                    "\n---------------------------------------------------------------------------------------------------"
+                    "\n";
+        } else {
+                NF_MSG[1] =
+                    "\nNF IID / SID     rx_pps  /  tx_pps            rx  /  tx                out   /    tonf     /   drop\n"
+                    "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   ret\n"
+                    "\n---------------------------------------------------------------------------------------------------"
+                    "\n";
+        }
         NF_MSG[2] = "";
 
         /* For same service id TX/RX stats */
@@ -367,7 +442,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 rx_for_service[i] = 0;
                 tx_for_service[i] = 0;
                 rx_drop_for_service[i] = 0;
-                tx_drop_for_service[i] = 0;;
+                tx_drop_for_service[i] = 0;
                 rx_pps_for_service[i] = 0;
                 tx_pps_for_service[i] = 0;
                 rx_drop_rate_for_service[i] = 0;
@@ -380,7 +455,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 act_returned_for_service[i] = 0;
         }
 
-        fprintf(stats_out, "%s", NF_MSG[verbosity_level-1]);
+        fprintf(stats_out, "%s", NF_MSG[verbosity_level - 1]);
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
@@ -394,10 +469,23 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const uint64_t act_next = nfs[i].stats.act_next;
                 const uint64_t act_buffer = nfs[i].stats.tx_buffer;
                 const uint64_t act_returned = nfs[i].stats.tx_returned;
-                const uint64_t rx_pps = (rx - nf_rx_last[i])/difftime;
-                const uint64_t tx_pps = (tx - nf_tx_last[i])/difftime;
-                const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i])/difftime;
-                const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i])/difftime;
+                const uint64_t rx_pps = (rx - nf_rx_last[i]) / difftime;
+                const uint64_t tx_pps = (tx - nf_tx_last[i]) / difftime;
+                const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i]) / difftime;
+                const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i]) / difftime;
+                const uint64_t num_wakeups = nf_wakeup_infos[i].num_wakeups;
+                const uint64_t prev_num_wakeups = nf_wakeup_infos[i].prev_num_wakeups;
+                const uint64_t wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+                const char *state;
+
+                uint8_t active = 0;
+                if (ONVM_ENABLE_SHARED_CPU)
+                        active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
+                if (!active) {
+                        state = "working ";
+                } else {
+                        state = "sleeping";
+                }
 
                 /* Save stats for NFs with same service id */
                 if (print_total_stats) {
@@ -418,43 +506,47 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 }
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%u,%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n",
-                                        buffer, nfs[i].info->instance_id, nfs[i].info->service_id,
-                                        rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate,
-                                        act_out, act_tonf, act_drop, act_next, act_buffer, act_returned);
+                        fprintf(stats_out, "%s,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
+                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
+                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ", %d\n",
+                                buffer, nfs[i].info->instance_id, nfs[i].info->service_id, rx, tx, rx_pps, tx_pps,
+                                rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, act_next,
+                                act_buffer, act_returned, num_wakeups, wakeup_rate, active);
                 } else if (verbosity_level == 2) {
-                        fprintf(stats_out, "NF  %2u / %-2u  - %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n"
-                                              "               %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n",
-                                        nfs[i].info->instance_id, nfs[i].info->service_id,
-                                        rx_pps, tx_pps, rx, tx, act_out, act_tonf, act_drop,
-                                        rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer, act_returned);
+                        fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
+                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
+                                           "\n"
+                                           "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
+                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx, tx, act_out,
+                                act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer,
+                                act_returned);
+                        if (ONVM_ENABLE_SHARED_CPU)
+                                fprintf(stats_out, "                      %s        %11" PRIu64 " / %-11" PRIu64"\n",
+                                        state, num_wakeups, wakeup_rate);
+                        fprintf(stats_out, "\n");
                 } else {
-                        fprintf(stats_out, "NF  %2u / %-2u  - %9"PRIu64" / %-9"PRIu64"  %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64" \n",
-                                        nfs[i].info->instance_id, nfs[i].info->service_id,
-                                        rx_pps, tx_pps, rx_drop, tx_drop, act_out, act_tonf, act_drop);
+                        fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
+                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
+                                act_out, act_tonf, act_drop);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {
                         ONVM_SNPRINTF(nf_label, 6, "NF %d", i);
 
-                        cJSON_AddItemToObject(onvm_json_nf_stats_obj,
-                                                nf_label,
-                                                onvm_json_nf_stats[i] = cJSON_CreateObject());
+                        cJSON_AddItemToObject(onvm_json_nf_stats_obj, nf_label,
+                                              onvm_json_nf_stats[i] = cJSON_CreateObject());
 
-                        cJSON_AddStringToObject(onvm_json_nf_stats[i],
-                                                "Label", nf_label);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "RX", rx_pps);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "TX", tx_pps);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "TX_Drop_Rate", tx_drop_rate);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "RX_Drop_Rate", rx_drop_rate);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "service_id", (int16_t)nfs[i].info->service_id);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i],
-                                                "instance_id", (int16_t)nfs[i].info->instance_id);
+                        cJSON_AddStringToObject(onvm_json_nf_stats[i], "Label", nf_label);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "RX", rx_pps);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX", tx_pps);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX_Drop_Rate", tx_drop_rate);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "RX_Drop_Rate", rx_drop_rate);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].info->service_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "instance_id",
+                                                (int16_t)nfs[i].info->instance_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].info->core);
 
                         free(nf_label);
                         nf_label = NULL;
@@ -474,37 +566,49 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 fprintf(stats_out, "-----------------\n");
                 for (i = 0; i < MAX_SERVICES; i++) {
                         uint16_t nfs_for_service = nf_per_service_count[i];
-                        const char *nf_count = nfs_for_service==1 ? "NF " : "NFs";
+                        const char *nf_count = nfs_for_service == 1 ? "NF " : "NFs";
                         if (nfs_for_service == 0)
                                 continue;
                         if (verbosity_level == 2) {
-                                fprintf(stats_out, "SID %-2u %2u%s - %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n"
-                                                     "               %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64"\n",
-                                                i, nfs_for_service, nf_count,
-                                                rx_pps_for_service[i],  tx_pps_for_service[i], rx_for_service[i], tx_for_service[i], act_out_for_service[i], act_tonf_for_service[i], act_drop_for_service[i],
-                                                rx_drop_rate_for_service[i], tx_drop_rate_for_service[i], rx_drop_for_service[i], tx_drop_for_service[i], act_next_for_service[i], act_buffer_for_service[i], act_returned_for_service[i]);
+                                fprintf(
+                                    stats_out, "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
+                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
+                                               "\n"
+                                               "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
+                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                                    i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
+                                    rx_for_service[i], tx_for_service[i], act_out_for_service[i],
+                                    act_tonf_for_service[i], act_drop_for_service[i], rx_drop_rate_for_service[i],
+                                    tx_drop_rate_for_service[i], rx_drop_for_service[i], tx_drop_for_service[i],
+                                    act_next_for_service[i], act_buffer_for_service[i], act_returned_for_service[i]);
                         } else {
-                                fprintf(stats_out, "SID %-2u %2u%s - %9"PRIu64" / %-9"PRIu64"  %9"PRIu64" / %-9"PRIu64"  %11"PRIu64" / %-11"PRIu64" / %-11"PRIu64" \n",
-                                                i, nfs_for_service, nf_count,
-                                                rx_pps_for_service[i],  tx_pps_for_service[i],  rx_drop_for_service[i],  tx_drop_for_service[i],
-                                                act_out_for_service[i],  act_tonf_for_service[i],  act_drop_for_service[i]);
+                                fprintf(stats_out,
+                                        "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
+                                        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
+                                        i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
+                                        rx_drop_for_service[i], tx_drop_for_service[i], act_out_for_service[i],
+                                        act_tonf_for_service[i], act_drop_for_service[i]);
                         }
                 }
         }
-}
 
+        if (ONVM_ENABLE_SHARED_CPU) {
+                fprintf(stats_out, "\n\nShared CPU stats\n");
+                fprintf(stats_out, "----------------\n");
+                onvm_stats_display_client_wakeup_thread_context(difftime);
+        }
+
+}
 
 /***************************Helper functions**********************************/
 
-
 static void
 onvm_stats_clear_terminal(void) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
         fprintf(stats_out, "%s%s", clr, topLeft);
 }
-
 
 static const char *
 onvm_stats_print_MAC(uint8_t port) {
@@ -517,16 +621,12 @@ onvm_stats_print_MAC(uint8_t port) {
         if (unlikely(addresses[port][0] == '\0')) {
                 struct ether_addr mac;
                 rte_eth_macaddr_get(port, &mac);
-                snprintf(addresses[port], sizeof(addresses[port]),
-                                "%02x:%02x:%02x:%02x:%02x:%02x\n",
-                                mac.addr_bytes[0], mac.addr_bytes[1],
-                                mac.addr_bytes[2], mac.addr_bytes[3],
-                                mac.addr_bytes[4], mac.addr_bytes[5]);
+                snprintf(addresses[port], sizeof(addresses[port]), "%02x:%02x:%02x:%02x:%02x:%02x\n", mac.addr_bytes[0],
+                         mac.addr_bytes[1], mac.addr_bytes[2], mac.addr_bytes[3], mac.addr_bytes[4], mac.addr_bytes[5]);
         }
 
         return addresses[port];
 }
-
 
 static void
 onvm_stats_flush(void) {
@@ -538,7 +638,6 @@ onvm_stats_flush(void) {
         fflush(json_stats_out);
         fflush(json_events_out);
 }
-
 
 static void
 onvm_stats_truncate(void) {
@@ -556,7 +655,6 @@ onvm_stats_truncate(void) {
         }
 }
 
-
 static void
 onvm_json_reset_objects(void) {
         time_t current_time;
@@ -570,10 +668,8 @@ onvm_json_reset_objects(void) {
 
         current_time = time(0);
 
-        cJSON_AddStringToObject(onvm_json_root, ONVM_JSON_TIMESTAMP_KEY,
-                              ctime(&current_time));
+        cJSON_AddStringToObject(onvm_json_root, ONVM_JSON_TIMESTAMP_KEY, ctime(&current_time));
         cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_PORT_STATS_KEY,
                               onvm_json_port_stats_obj = cJSON_CreateObject());
-        cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY,
-                              onvm_json_nf_stats_obj = cJSON_CreateObject());
+        cJSON_AddItemToObject(onvm_json_root, ONVM_JSON_NF_STATS_KEY, onvm_json_nf_stats_obj = cJSON_CreateObject());
 }
