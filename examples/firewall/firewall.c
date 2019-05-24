@@ -73,8 +73,7 @@ static uint16_t destination;
 static int debug = 0;
 char *rule_file = NULL;
 
-/* Structs that contain information about this NF/set up LPM rules */
-struct onvm_nf_info *nf_info;
+/* Structs that contain information to setup LPM and its rules */
 struct lpm_request *firewall_req;
 static struct firewall_pkt_stats stats;
 struct rte_lpm *lpm_tbl;
