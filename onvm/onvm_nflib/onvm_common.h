@@ -245,7 +245,6 @@ struct onvm_nf_scale_info {
 
 struct onvm_nf_context {
         struct onvm_nf *nf;
-        struct onvm_nf_init_data *nf_init_data;
         rte_atomic16_t nf_init_finished;
         rte_atomic16_t keep_running;
 };
@@ -258,7 +257,6 @@ struct onvm_nf {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
         struct rte_ring *msg_q;
-        //struct onvm_nf_init_data *info;
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;

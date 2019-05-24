@@ -220,7 +220,7 @@ onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
  * Input: Pointer to context struct of this NF
  */
 static int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context);
+onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data);
 
 /*
  * Entry point of the NF main loop
@@ -306,6 +306,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
 
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context) {
+        struct onvm_nf_init_data *nf_init_data;
         int ret, retval_eal, retval_parse, retval_final;
         int use_config = 0;
 
@@ -344,9 +345,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
         onvm_nflib_lookup_shared_structs();
 
         /* Initialize the info struct */
-        nf_context->nf_init_data = onvm_nflib_info_init(nf_tag);
+        nf_init_data = onvm_nflib_info_init(nf_tag);
 
-        if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_context->nf_init_data)) < 0)
+        if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_init_data)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         /* Reset getopt global variables opterr and optind to their default values */
@@ -363,7 +364,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
          */
         retval_final = (retval_eal + retval_parse) - 1;
 
-        if ((ret = onvm_nflib_start_nf(nf_context)) < 0)
+        if ((ret = onvm_nflib_start_nf(nf_context, nf_init_data)) < 0)
                 return ret;
 
         // Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
@@ -789,9 +790,8 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
 }
 
 static int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
+onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data) {
         struct onvm_nf_msg *startup_msg;
-        struct onvm_nf_init_data *nf_init_data;
         struct onvm_nf *nf;
         int i;
 
@@ -808,8 +808,6 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context) {
         if (!rte_atomic16_read(&nf_context->keep_running)) {
                 return ONVM_SIGNAL_TERMINATION;
         }
-
-        nf_init_data = nf_context->nf_init_data;
 
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
@@ -989,7 +987,7 @@ static void *
 onvm_nflib_start_child(void *arg) {
         struct onvm_nf *parent;
         struct onvm_nf *child;
-        struct onvm_nf_init_data *child_info;
+        struct onvm_nf_init_data *child_nf_init_data;
         struct onvm_nf_scale_info *scale_info;
         struct onvm_nf_context *child_context;
 
@@ -999,25 +997,24 @@ onvm_nflib_start_child(void *arg) {
         parent = &nfs[scale_info->parent->instance_id];
 
         /* Initialize the info struct */
-        child_info = onvm_nflib_info_init(parent->tag);
+        child_nf_init_data = onvm_nflib_info_init(parent->tag);
 
         /* Set child NF service and instance id */
-        child_info->service_id = scale_info->service_id;
-        child_info->instance_id = scale_info->instance_id;
+        child_nf_init_data->service_id = scale_info->service_id;
+        child_nf_init_data->instance_id = scale_info->instance_id;
 
         /* Set child NF core options */
-        child_info->core = scale_info->flags;
-        child_info->flags = scale_info->flags;
+        child_nf_init_data->core = scale_info->flags;
+        child_nf_init_data->flags = scale_info->flags;
 
-        RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_info->service_id,
-                child_info->instance_id);
-        child_context->nf_init_data = child_info;
-        if (onvm_nflib_start_nf(child_context) < 0) {
+        RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_nf_init_data->service_id,
+                child_nf_init_data->instance_id);
+        if (onvm_nflib_start_nf(child_context, child_nf_init_data) < 0) {
                 onvm_nflib_stop(child_context);
                 return NULL;
         }
 
-        child = &nfs[child_info->instance_id];
+        child = &nfs[child_nf_init_data->instance_id];
         child_context->nf = child;
         /* Save the parent id for future clean up */
         child->parent = parent->instance_id;
