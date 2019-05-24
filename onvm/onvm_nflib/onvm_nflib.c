@@ -1301,12 +1301,6 @@ onvm_nflib_cleanup(struct onvm_nf_context *nf_context) {
                 free(nf->context);
                 nf->context = NULL;
         }
-
-        /* Cleanup context */
-        if (nf->context != NULL) {
-                free(nf->context);
-                nf->context = NULL;
-        }
 }
 
 static void
