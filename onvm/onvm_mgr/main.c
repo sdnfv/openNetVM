@@ -208,6 +208,8 @@ rx_thread_main(void *arg) {
 
         RTE_LOG(INFO, APP, "Core %d: RX thread done\n", rte_lcore_id());
 
+        free(rx_mgr->nf_rx_bufs);
+        free(rx_mgr);
         return 0;
 }
 
@@ -253,6 +255,9 @@ tx_thread_main(void *arg) {
 
         RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
 
+        free(tx_mgr->tx_thread_info);
+        free(tx_mgr->nf_rx_bufs);
+        free(tx_mgr);
         return 0;
 }
 
@@ -300,6 +305,7 @@ wakeup_thread_main(void *arg) {
                 }
         }
 
+        free(wakeup_ctx);
         return 0;
 }
 
