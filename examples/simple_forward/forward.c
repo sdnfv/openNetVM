@@ -58,9 +58,6 @@
 
 #define NF_TAG "simple_forward"
 
-/* Struct that contains information about this NF */
-struct onvm_nf *nf;
-
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 

@@ -59,9 +59,6 @@
 
 #define NF_TAG "payload_scan"
 
-/* Struct that contains information about this NF */
-struct onvm_nf *nf;
-
 /* Number of packets between prints */
 static uint32_t print_delay = 10000000;
 

@@ -63,9 +63,6 @@
 #define NF_TAG "ndpi_stat"
 #define TICK_RESOLUTION 1000
 
-/* Struct that contains information about this NF */
-struct onvm_nf *nf;
-
 /* shared data structure containing host port info */
 extern struct port_info *ports;
 
