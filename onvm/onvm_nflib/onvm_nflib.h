@@ -176,6 +176,24 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t 
 int
 onvm_nflib_nf_ready(struct onvm_nf *nf);
 
+/*
+ * Function that initialize a NF info data structure.
+ *
+ * Input  : the tag to name the NF
+ * Output : the data structure initialized
+ *
+ */
+struct onvm_nf_init_data *
+onvm_nflib_info_init(const char *tag);
+
+/*
+ * Start the NF by signaling manager that its ready to recieve packets
+ *
+ * Input: Pointer to context struct of this NF
+ */
+int
+onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data);
+
 /**
  * Process an message. Does stuff.
  *
@@ -191,39 +209,6 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_contex
 
 int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
-
-/**
- * Return the tx_ring associated with this NF.
- *
- * @param nf
- *   An onvm_nf struct describing this NF.
- * @return
- *   Pointer to tx_ring structure associated with info, NULL on error.
- */
-struct rte_ring *
-onvm_nflib_get_tx_ring(struct onvm_nf *nf);
-
-/**
- * Return the rx_ring associated with this NF.
- *
- * @param nf
- *   An onvm_nf struct describing this NF app.
- * @return
- *   Pointer to rx_ring structure associated with info, NULL on error.
- */
-struct rte_ring *
-onvm_nflib_get_rx_ring(struct onvm_nf *nf);
-
-/**
- * Return the nf details associated with this NF.
- *
- * @param id
- *   An instance id of the corresponding NF.
- * @return
- *   Pointer to NF structure referenced by instance id, NULL on error.
- */
-struct onvm_nf *
-onvm_nflib_get_nf(uint16_t id);
 
 /**
  * Stop this NF and clean up its memory

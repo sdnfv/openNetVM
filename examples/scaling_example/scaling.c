@@ -88,6 +88,8 @@ void
 nf_setup(struct onvm_nf_context *nf_context);
 
 void sig_handler(int sig);
+void *start_child(void *arg);
+int thread_main_loop(struct onvm_nf_context *nf_context);
 
 void sig_handler(int sig) {
         if (sig != SIGINT && sig != SIGTERM)
@@ -251,6 +253,46 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 static void
 run_advanced_rings(struct onvm_nf_context *nf_context) {
+        struct onvm_nf *nf;
+        struct onvm_configuration *onvm_config;
+        pthread_t nf_thread[num_children];
+        int i;
+
+        nf = nf_context->nf;
+        onvm_config = onvm_nflib_get_onvm_config();
+        ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+
+        for (i = 0; i < num_children; i++) {
+                struct onvm_nf_init_data *child_context;
+                child_context = onvm_nflib_info_init(nf->tag);
+                /* Prepare state data for the child */
+                child_context->service_id = nf->service_id;
+                pthread_create(&nf_thread[i], NULL, start_child, (void *)child_context);
+        }
+        for (i = 0; i < num_children; i++) {
+                pthread_join(nf_thread[i], NULL);
+        }
+}
+
+void *
+start_child(void *arg) {
+        struct onvm_nf_context *nf_context;
+        struct onvm_nf_init_data * nf_init_info;
+
+        nf_init_info = (struct onvm_nf_init_data*) arg;
+        nf_context = onvm_nflib_init_nf_context();
+        //check return code
+        onvm_nflib_start_nf(nf_context, nf_init_info);
+
+        onvm_nflib_nf_ready(nf_context->nf);
+        //data unitialized - nf_setup(nf_context);
+        thread_main_loop(nf_context);
+        onvm_nflib_stop(nf_context);
+        return NULL;
+}
+
+int
+thread_main_loop(struct onvm_nf_context *nf_context) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
         uint16_t i, j, nb_pkts;
@@ -262,46 +304,24 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
         struct rte_mempool *nf_msg_pool;
-        static uint8_t spawned_nfs = 0;
 
+        nf = nf_context->nf;
+
+        printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
         /* Get rings from nflib */
-        nf = onvm_nflib_get_nf(nf_context->nf->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
+        /* This is a bit ackward, maybe return data back into init struct */
+        void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
+        *(uint16_t *)data = destination;
+        nf->data = data;
+
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
-        /* Set core affinity, as this is adv rings we do it on our own */
         if (onvm_threading_core_affinitize(nf->core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->core);
-
-        /* Testing NF scaling */
-        if (spawned_nfs == 0) {
-                /* As this is advanced rings if we want the children to inherit the same function we need to set it
-                 * first */
-                nf->nf_advanced_rings_function = &run_advanced_rings;
-                struct onvm_nf_scale_info *scale_info;
-
-                /* Spawn children until we hit the set number */
-                while (spawned_nfs < num_children) {
-                        /* Prepare state data for the child */
-                        void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
-                        *(uint16_t *)data = destination;
-                        /* Get the filled in scale struct by inheriting parent properties */
-                        scale_info = onvm_nflib_inherit_parent_config(nf, data);
-                        if (use_shared_cpu_core_allocation)
-                                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
-
-                        RTE_LOG(INFO, APP, "NF %d trying to spawn child SID %u; running advanced_rings\n",
-                                nf->instance_id, scale_info->service_id);
-                        if (onvm_nflib_scale(scale_info) == 0)
-                                RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->service_id);
-                        else
-                                rte_exit(EXIT_FAILURE, "Can't initialize the child!\n");
-                        spawned_nfs++;
-                }
-        }
 
         while (rte_atomic16_read(&nf_context->keep_running) && rx_ring && tx_ring && nf) {
                 /* Check for a stop message from the manager. */
@@ -343,6 +363,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf->stats.tx += tx_batch_size;
                 }
         }
+        return 0;
 }
 
 /*
@@ -393,7 +414,6 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
         struct onvm_nf *nf;
-        struct onvm_configuration *onvm_config;
         struct onvm_nf_context *nf_context;
         int i;
 
@@ -445,9 +465,6 @@ main(int argc, char *argv[]) {
         *(uint16_t *)nf->data = nf->service_id;
 
         if (use_direct_rings) {
-                printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
-                onvm_config = onvm_nflib_get_onvm_config();
-                ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
                 onvm_nflib_nf_ready(nf);
                 nf_setup(nf_context);
                 run_advanced_rings(nf_context);

@@ -113,16 +113,6 @@ uint8_t ONVM_ENABLE_SHARED_CPU;
 /***********************Internal Functions Prototypes*************************/
 
 /*
- * Function that initialize a NF info data structure.
- *
- * Input  : the tag to name the NF
- * Output : the data structure initialized
- *
- */
-static struct onvm_nf_init_data *
-onvm_nflib_info_init(const char *tag);
-
-/*
  * Function that initialize a nf tx info data structure.
  *
  * Input  : onvm_nf_init_data struct pointer
@@ -213,14 +203,6 @@ onvm_nflib_lookup_shared_structs(void);
  */
 static void
 onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
-
-/*
- * Start the NF by signaling manager that its ready to recieve packets
- *
- * Input: Pointer to context struct of this NF
- */
-static int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data);
 
 /*
  * Entry point of the NF main loop
@@ -381,12 +363,6 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func han
         int ret;
 
         nf = nf_context->nf;
-
-	/* Don't allow conflicting NF modes */
-        if (nf->nf_mode == NF_MODE_RING) {
-                return -1;
-        }
-        nf->nf_mode = NF_MODE_SINGLE;
 
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
         nf->nf_pkt_function = handler;
@@ -554,50 +530,6 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
         msg->msg_data = msg_data;
 
         return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
-}
-
-struct rte_ring *
-onvm_nflib_get_tx_ring(struct onvm_nf *nf) {
-        if (nf == NULL) {
-                return NULL;
-        }
-
-        /* Don't allow conflicting NF modes */
-        if (nf->nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the tx_ring associated with the info struct */
-        nf->nf_mode = NF_MODE_RING;
-        return (struct rte_ring *)(&(nf->tx_q));
-}
-
-struct rte_ring *
-onvm_nflib_get_rx_ring(struct onvm_nf *nf) {
-        if (nf == NULL) {
-                return NULL;
-        }
-
-        /* Don't allow conflicting NF modes */
-        if (nf->nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the rx_ring associated with the info struct */
-        nf->nf_mode = NF_MODE_RING;
-        return (struct rte_ring *)(&(nf->rx_q));
-}
-
-struct onvm_nf *
-onvm_nflib_get_nf(uint16_t id) {
-        /* Don't allow conflicting NF modes */
-        if (nfs[id].nf_mode == NF_MODE_SINGLE) {
-                return NULL;
-        }
-
-        /* We should return the NF struct referenced by instance id */
-        nfs[id].nf_mode = NF_MODE_RING;
-        return &nfs[id];
 }
 
 void
@@ -789,7 +721,7 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
         ONVM_ENABLE_SHARED_CPU = config->flags.ONVM_ENABLE_SHARED_CPU;
 }
 
-static int
+int
 onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data) {
         struct onvm_nf_msg *startup_msg;
         struct onvm_nf *nf;
@@ -1087,7 +1019,7 @@ onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
         return 0;
 }
 
-static struct onvm_nf_init_data *
+struct onvm_nf_init_data *
 onvm_nflib_info_init(const char *tag) {
         void *mempool_data;
         struct onvm_nf_init_data *info;

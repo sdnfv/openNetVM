@@ -249,6 +249,7 @@ struct onvm_nf_context {
         rte_atomic16_t keep_running;
 };
 
+#if 0
 /*
  * Define a nf structure with all needed info, including
  * stats from the nfs.
@@ -261,7 +262,7 @@ struct onvm_nf {
         uint16_t service_id;
         uint16_t core;
         uint8_t status;
-        /* Advanced ring mode or packet handler mode */
+        /* Deprecated will be removed (Advanced ring mode or packet handler mode) */
         uint8_t nf_mode;
         char *tag;
         struct {
@@ -282,11 +283,14 @@ struct onvm_nf {
         void *data;
 
         /* NF specific functions */
-        pkt_handler_func nf_pkt_function;
-        callback_handler_func nf_callback_function;
-        advanced_rings_func nf_advanced_rings_function;
-        setup_func nf_setup_function;
-        handle_msg_func nf_handle_msg_function;
+        struct {
+                pkt_handler_func pkt_handler;
+                callback_handler_func callback;
+                /* Deprecated will be removed */
+                advanced_rings_func nf_advanced_rings_function;
+                setup_func setup;
+                handle_msg_func handle_msg;
+        } functions;
 
         /*
          * Define a structure with stats from the NFs.
@@ -310,15 +314,65 @@ struct onvm_nf {
                 volatile uint64_t act_buffer;
         } stats;
 
-        /* NF accessible shared mem (shared cpu vars)
-         * 
-         * flag (shared mem variable) to track state of NF and trigger wakeups 
-         *     flag = 1 => NF sleeping (waiting on semaphore)
-         *     flag = 0 => NF is running and processing (not waiting on semaphore)
-         */
-        rte_atomic16_t *sleep_state;
-        /* Mutex for NF sem_wait */
-        sem_t *nf_mutex;
+        struct {
+                /* NF accessible shared mem (shared cpu vars)
+                 * 
+                 * flag (shared mem variable) to track state of NF and trigger wakeups 
+                 *     flag = 1 => NF sleeping (waiting on semaphore)
+                 *     flag = 0 => NF is running and processing (not waiting on semaphore)
+                 */
+                rte_atomic16_t *sleep_state;
+                /* Mutex for NF sem_wait */
+                sem_t *nf_mutex;
+        } shared_core;
+};
+#endif
+
+struct onvm_nf {
+        struct rte_ring *rx_q;
+        struct rte_ring *tx_q;
+        struct rte_ring *msg_q;
+        struct queue_mgr *nf_tx_mgr;
+        uint16_t instance_id;
+        uint16_t service_id;
+        uint8_t status;
+        char *tag;
+        void *data;
+        struct onvm_nf_context *context;
+
+	        uint16_t core;
+	        uint16_t parent;
+	        rte_atomic16_t children_cnt;
+                struct{
+                uint16_t time_to_live;
+                uint16_t pkt_limit;
+                } user_flags;
+                uint16_t flags;
+
+                                setup_func nf_setup_function;
+                pkt_handler_func nf_pkt_function;
+                        callback_handler_func nf_callback_function;
+                                        handle_msg_func nf_handle_msg_function;
+
+        struct {
+                volatile uint64_t rx;
+                volatile uint64_t rx_drop;
+                volatile uint64_t tx;
+                volatile uint64_t tx_drop;
+                volatile uint64_t tx_buffer;
+                volatile uint64_t tx_returned;
+                volatile uint64_t act_out;
+                volatile uint64_t act_tonf;
+                volatile uint64_t act_drop;
+                volatile uint64_t act_next;
+                volatile uint64_t act_buffer;
+	}stats;
+                rte_atomic16_t *sleep_state;
+                sem_t *nf_mutex;
+	uint16_t nf_mode;
+
+        advanced_rings_func nf_advanced_rings_function;
+	
 };
 
 /*
