@@ -255,6 +255,7 @@ tx_thread_main(void *arg) {
 
         RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
 
+        free(tx_mgr->tx_thread_info->port_tx_bufs);
         free(tx_mgr->tx_thread_info);
         free(tx_mgr->nf_rx_bufs);
         free(tx_mgr);
