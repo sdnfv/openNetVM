@@ -218,10 +218,6 @@ typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta
                                 __attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NF callback handlers */
 typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf *nf);
-/* Function prototype for NFs running advanced rings 
- * Deprecated, will be removed in the future advanced rings rework 
- */
-typedef void (*advanced_rings_func)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
@@ -239,8 +235,6 @@ struct onvm_nf_scale_info {
                 handle_msg_func handle_msg;
                 pkt_handler_func pkt_handler;
                 callback_handler_func callback;
-                /* Deprecated, will be removed in the future advanced rings rework */
-                advanced_rings_func adv_rings;
         } functions;
 };
 
@@ -263,8 +257,6 @@ struct onvm_nf {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
-        /* Deprecated, will be removed in the future advanced rings rework */
-        uint8_t nf_mode;
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
@@ -292,8 +284,6 @@ struct onvm_nf {
                 handle_msg_func handle_msg;
                 pkt_handler_func pkt_handler;
                 callback_handler_func callback;
-                /* Deprecated, will be removed in the future advanced rings rework */
-                advanced_rings_func adv_rings;
         } functions;
 
         /*
