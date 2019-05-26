@@ -100,6 +100,7 @@ check_exit_code() {
 # runs the linter
 run_linter() {
     for fn in $(git diff --name-only upstream/develop...HEAD -- '*.c' '*.cpp' '*.h' | grep -v "cJSON" | grep -v "ndpi"); do
+        file_modification=()
         while read -r diff_line
         do
             if [[ $diff_line == @@* ]]
