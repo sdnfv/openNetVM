@@ -103,34 +103,44 @@ run_linter() {
         file_modification=()
         while read -r diff_line
         do
+            # line number is denoted by @@ -lines_deleted +lines_added @@
             if [[ $diff_line == @@* ]]
             then
                 diff_line=$(cut -d ' ' -f 3 <<< "$diff_line")
                 diff_line=${diff_line:1}
                 line_start=$(cut -d ',' -f 1 <<< "$diff_line")
                 line_end=$(cut -d ',' -f 2 <<< "$diff_line")
+                # parse out the start and end lines
                 [[ ! $line_end == $line_start ]] && line_end=$(($line_start + $line_end))
                 file_modification[$line_start]=$line_end
-            fi
+                # create mapping of start of chunk -> end line
+            fi  
         done < <(git diff -U0 upstream/develop...HEAD -- $fn)
+        # loop through the lines changed in the current file
 
         file_lint=$(python $SCRIPT_LOC/../style/gwclint.py --verbose=4 $fn 2>&1 | grep -v "Done" | grep -v "Total errors found:")
         errors_found=0
         while read -r line; do
             error_line=$(cut -d ':' -f 2 <<< "$line")
+            # lint error is denoted by *:line:*
             for start in "${!file_modification[@]}"
-            do
+            do  
+                # loop through the git diff line numbers
                 end=${file_modification[$start]}
                 if [[ $error_line -ge $start && $error_line -le $end ]]
                 then
+                    # git diff and linter output are in range, add to lint file
                     errors_found=$(($errors_found+1))
                     echo "$line" >> $1
-                fi
+                    break
+                fi  
             done
         done <<< "$file_lint"
+        # loop through the linter output
         if [[ $errors_found -gt 0 ]]
         then
+            # only output to file if we had errors
             echo "Total errors found: $errors_found" >> $1
-        fi
+        fi  
     done
 }
