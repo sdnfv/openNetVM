@@ -409,7 +409,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                     "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop"
                     "           next  /    buf      /   ret\n"
                     "                   nf_state    num_wakeups /  wakeup_rate\n"
-                    "---------------------------------------------------------------------------------------------------\n";
+                    "----------------------------------------------------------------------------------------------------------------------\n";
         } else
                 NF_MSG[1] = ONVM_STATS_ADV_MSG;
         NF_MSG[2] = "";
