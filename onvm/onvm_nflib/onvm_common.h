@@ -233,7 +233,7 @@ struct onvm_nf_scale_info {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
-        uint8_t flags;
+        uint8_t init_options;
         char *tag;
         void *data;
         setup_func setup_func;
@@ -257,36 +257,43 @@ struct onvm_nf {
         struct rte_ring *rx_q;
         struct rte_ring *tx_q;
         struct rte_ring *msg_q;
+        /* Struct for NF to NF communication (NF tx) */
+        struct queue_mgr *nf_tx_mgr;
         uint16_t instance_id;
         uint16_t service_id;
-        uint16_t core;
         uint8_t status;
-        /* Advanced ring mode or packet handler mode */
+        /* Deprecated, will be removed in the future advanced rings rework */
         uint8_t nf_mode;
         char *tag;
+        /* Pointer to NF defined state data */
+        void *data;
+        /* Pointer to NF context (used for signal handling/termination */
+        struct onvm_nf_context *context;
+
+        struct {
+                uint16_t core;
+                /* Instance ID of parent NF or 0 */
+                uint16_t parent;
+                rte_atomic16_t children_cnt;
+        } thread_info;
+
         struct {
                 /* If set NF will stop after time reaches time_to_live */
                 uint16_t time_to_live;
                 /* If set NF will stop after pkts TX reach pkt_limit */
                 uint16_t pkt_limit;
-        } user_flags;
-                uint16_t flags;
-        /* Instance ID of parent NF or 0 */
-        uint16_t parent;
-        rte_atomic16_t children_cnt;
-        /* Struct for NF to NF communication (NF tx) */
-        struct queue_mgr *nf_tx_mgr;
-        /* Pointer to NF context (used for signal handling/termination */
-        struct onvm_nf_context *context;
-        /* Pointer to NF defined state data */
-        void *data;
+                uint16_t init_options;
+        } flags;
 
         /* NF specific functions */
-        pkt_handler_func nf_pkt_function;
-        callback_handler_func nf_callback_function;
-        advanced_rings_func nf_advanced_rings_function;
-        setup_func nf_setup_function;
-        handle_msg_func nf_handle_msg_function;
+        struct {
+                pkt_handler_func pkt_handler;
+                callback_handler_func callback;
+                /* Deprecated, will be removed in the future advanced rings rework */
+                advanced_rings_func adv_rings;
+                setup_func setup;
+                handle_msg_func handle_msg;
+        } functions;
 
         /*
          * Define a structure with stats from the NFs.
@@ -310,15 +317,16 @@ struct onvm_nf {
                 volatile uint64_t act_buffer;
         } stats;
 
-        /* NF accessible shared mem (shared cpu vars)
-         * 
-         * flag (shared mem variable) to track state of NF and trigger wakeups 
-         *     flag = 1 => NF sleeping (waiting on semaphore)
-         *     flag = 0 => NF is running and processing (not waiting on semaphore)
-         */
-        rte_atomic16_t *sleep_state;
-        /* Mutex for NF sem_wait */
-        sem_t *nf_mutex;
+        struct {
+                 /* 
+                 * flag (shared mem variable) to track state of NF and trigger wakeups 
+                 *     flag = 1 => NF sleeping (waiting on semaphore)
+                 *     flag = 0 => NF is running and processing (not waiting on semaphore)
+                 */
+                rte_atomic16_t *sleep_state;
+                /* Mutex for NF sem_wait */
+                sem_t *nf_mutex;
+        } shared_core;
 };
 
 /*
@@ -329,7 +337,7 @@ struct onvm_nf_init_data {
         uint16_t instance_id;
         uint16_t service_id;
         uint16_t core;
-        uint8_t flags;
+        uint16_t init_options;
         uint8_t status;
         char *tag;
         /* If set NF will stop after time reaches time_to_live */

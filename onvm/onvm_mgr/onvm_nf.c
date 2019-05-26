@@ -252,7 +252,7 @@ onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
         nf_init_data->instance_id = nf_id;
 
         /* If not successful return will contain the error code */
-        ret = onvm_threading_get_core(&nf_init_data->core, nf_init_data->flags, cores);
+        ret = onvm_threading_get_core(&nf_init_data->core, nf_init_data->init_options, cores);
         if (ret != 0) {
                 nf_init_data->status = ret;
                 return 1;
@@ -262,9 +262,9 @@ onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
         spawned_nf->service_id = nf_init_data->service_id;
         spawned_nf->status = NF_STARTING;
         spawned_nf->tag = nf_init_data->tag;
-        spawned_nf->core = nf_init_data->core;
-        spawned_nf->user_flags.time_to_live = nf_init_data->time_to_live;
-        spawned_nf->user_flags.pkt_limit = nf_init_data->pkt_limit;
+        spawned_nf->thread_info.core = nf_init_data->core;
+        spawned_nf->flags.time_to_live = nf_init_data->time_to_live;
+        spawned_nf->flags.pkt_limit = nf_init_data->pkt_limit;
         // Let the NF continue its init process
         nf_init_data->status = NF_STARTING;
         return 0;
@@ -316,16 +316,16 @@ onvm_nf_stop(struct onvm_nf *nf) {
         nfs[nf->instance_id].status = NF_STOPPED;
 
         /* Tell parent we stopped running */
-        if (nfs[nf_id].parent != 0)
-                rte_atomic16_dec(&nfs[nfs[nf_id].parent].children_cnt);
+        if (nfs[nf_id].thread_info.parent != 0)
+                rte_atomic16_dec(&nfs[nfs[nf_id].thread_info.parent].thread_info.children_cnt);
 
         /* Tell parent we stopped running */
-        if (nfs[nf_id].parent != 0)
-                rte_atomic16_dec(&nfs[nfs[nf_id].parent].children_cnt);
+        if (nfs[nf_id].thread_info.parent != 0)
+                rte_atomic16_dec(&nfs[nfs[nf_id].thread_info.parent].thread_info.children_cnt);
 
         /* Remove the NF from the core it was running on */
-        cores[nf->core].nf_count--;
-        cores[nf->core].is_dedicated_core = 0;
+        cores[nf->thread_info.core].nf_count--;
+        cores[nf->thread_info.core].is_dedicated_core = 0;
 
         /* Clean up possible left over objects in rings */
         while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].rx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {

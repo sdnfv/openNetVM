@@ -327,8 +327,8 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
 
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
-        if (onvm_threading_core_affinitize(nf->core) < 0)
-                rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->core);
+        if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
+                rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         start_time = rte_get_tsc_cycles();
@@ -352,8 +352,8 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
 
                 if (unlikely(nb_pkts == 0)) {
                         if (ONVM_ENABLE_SHARED_CPU) {
-                                rte_atomic16_set(nf->sleep_state, 1);
-                                sem_wait(nf->nf_mutex);
+                                rte_atomic16_set(nf->shared_core.sleep_state, 1);
+                                sem_wait(nf->shared_core.nf_mutex);
                         }
                         continue;
                 }
@@ -373,13 +373,13 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         nf->stats.tx += tx_batch_size;
                 }
 
-                if (nf->user_flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
-                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->user_flags.time_to_live)) {
+                if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
+                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->flags.time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         rte_atomic16_set(&nf_context->keep_running, 0);
                 }
-                if (nf->user_flags.pkt_limit && unlikely(nf->stats.rx >=
-                                          (uint64_t) nf->user_flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
+                if (nf->flags.pkt_limit && unlikely(nf->stats.rx >=
+                                          (uint64_t) nf->flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
                         rte_atomic16_set(&nf_context->keep_running, 0);
                 }

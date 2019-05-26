@@ -299,7 +299,7 @@ onvm_stats_add_event(struct onvm_event *event_info) {
                         cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf->instance_id);
                 cJSON_AddNumberToObject(source, "service_id", (int16_t)nf->service_id);
-                cJSON_AddNumberToObject(source, "core", (int16_t)nf->core);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf->thread_info.core);
         } else if (type == ONVM_EVENT_NF_STOP) {
                 cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));
@@ -546,7 +546,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].service_id);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "instance_id",
                                                 (int16_t)nfs[i].instance_id);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].core);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].thread_info.core);
 
                         free(nf_label);
                         nf_label = NULL;

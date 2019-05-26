@@ -194,7 +194,7 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 /* Run the setup function to generate packets */
                 scale_info->setup_func = &nf_setup;
                 if (use_shared_cpu_core_allocation)
-                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                        scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Custom packet handler */
                 scale_info->pkt_func = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
@@ -234,7 +234,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 scale_info->service_id = destination;
                 scale_info->pkt_func = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
-                        scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                        scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n",
@@ -273,14 +273,14 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
 
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         /* Set core affinity, as this is adv rings we do it on our own */
-        if (onvm_threading_core_affinitize(nf->core) < 0)
-                rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->core);
+        if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
+                rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
         /* Testing NF scaling */
         if (spawned_nfs == 0) {
                 /* As this is advanced rings if we want the children to inherit the same function we need to set it
                  * first */
-                nf->nf_advanced_rings_function = &run_advanced_rings;
+                nf->functions.adv_rings = &run_advanced_rings;
                 struct onvm_nf_scale_info *scale_info;
 
                 /* Spawn children until we hit the set number */
@@ -291,7 +291,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf, data);
                         if (use_shared_cpu_core_allocation)
-                                scale_info->flags = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                                scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                         RTE_LOG(INFO, APP, "NF %d trying to spawn child SID %u; running advanced_rings\n",
                                 nf->instance_id, scale_info->service_id);
@@ -322,8 +322,8 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
 
                 if (unlikely(nb_pkts == 0)) {
                         if (ONVM_ENABLE_SHARED_CPU) {
-                                rte_atomic16_set(nf->sleep_state, 1);
-                                sem_wait(nf->nf_mutex);
+                                rte_atomic16_set(nf->shared_core.sleep_state, 1);
+                                sem_wait(nf->shared_core.nf_mutex);
                         }
                         continue;
                 }
