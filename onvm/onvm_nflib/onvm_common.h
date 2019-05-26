@@ -250,7 +250,6 @@ struct onvm_nf_local_ctx {
         rte_atomic16_t keep_running;
 };
 
-#if 0
 /*
  * Define a nf structure with all needed info, including
  * stats from the nfs.

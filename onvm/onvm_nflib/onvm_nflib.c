@@ -113,27 +113,6 @@ uint8_t ONVM_ENABLE_SHARED_CPU;
 /***********************Internal Functions Prototypes*************************/
 
 /*
- * Function that initialize the NF init config data structure.
- *
- * Input  : the tag to name the NF
- * Output : the data structure initialized
- *
- */
-static struct onvm_nf_init_cfg *
-onvm_nflib_nf_init_cfg_init(const char *tag);
-
-/*
- * Function that initialize the NF init config data structure.
- * the arguments are copied from the parent information
- *
- * Input  : pointer to the parent NF
- * Output : the data structure initialized
- *
- */
-static struct onvm_nf_init_cfg *
-onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent);
-
-/*
  * Function that initialize a nf tx info data structure.
  *
  * Input  : onvm_nf_init_cfg struct pointer
@@ -224,14 +203,6 @@ onvm_nflib_lookup_shared_structs(void);
  */
 static void
 onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
-
-/*
- * Start the NF by signaling manager that its ready to recieve packets
- *
- * Input: Pointer to context struct of this NF
- */
-static int
-onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg);
 
 /*
  * Entry point of the NF main loop
@@ -384,6 +355,139 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
         }
 
         return retval_final;
+}
+
+int
+onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg) {
+        struct onvm_nf_msg *startup_msg;
+        struct onvm_nf *nf;
+        int i;
+
+        /* Block signals, ensure only the parent signal handler gets the signal */
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGTERM);
+        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
+                printf("Could not set pthread sigmask\n");
+                return -1;
+        }
+
+        if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
+                return ONVM_SIGNAL_TERMINATION;
+        }
+
+        /* Put this NF's info struct onto queue for manager to process startup */
+        if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back memory
+                rte_exit(EXIT_FAILURE, "Cannot create startup msg");
+        }
+
+        /* Tell the manager we're ready to recieve packets */
+        startup_msg->msg_type = MSG_NF_STARTING;
+        startup_msg->msg_data = nf_init_cfg;
+        if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back mermory
+                rte_mempool_put(nf_msg_pool, startup_msg);
+                rte_exit(EXIT_FAILURE, "Cannot send nf_init_cfg to manager");
+        }
+
+        /* Wait for a NF id to be assigned by the manager */
+        RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
+        for (; nf_init_cfg->status == (uint16_t)NF_WAITING_FOR_ID;) {
+                sleep(1);
+                if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
+                        /* Wait because we sent a message to the onvm_mgr */
+                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++)
+                                sleep(NF_TERM_WAIT_TIME);
+                        return ONVM_SIGNAL_TERMINATION;
+                }
+        }
+
+        /* This NF is trying to declare an ID already in use. */
+        if (nf_init_cfg->status == NF_ID_CONFLICT) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
+        } else if (nf_init_cfg->status == NF_SERVICE_MAX) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
+        } else if (nf_init_cfg->status == NF_SERVICE_COUNT_MAX) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d",
+                         MAX_NFS_PER_SERVICE);
+        } else if (nf_init_cfg->status == NF_NO_IDS) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
+        } else if (nf_init_cfg->status == NF_NO_CORES) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
+        } else if (nf_init_cfg->status == NF_NO_DEDICATED_CORES) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_NO_IDS,
+                         "There is no space to assign a dedicated core, "
+                         "or manually selected core has NFs running\n");
+        } else if (nf_init_cfg->status == NF_CORE_OUT_OF_RANGE) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_NO_IDS, "Requested core is not enabled or not in range\n");
+        } else if (nf_init_cfg->status == NF_CORE_BUSY) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(NF_NO_IDS, "Requested core is busy\n");
+        } else if (nf_init_cfg->status != NF_STARTING) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+                rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
+        }
+
+        nf = &nfs[nf_init_cfg->instance_id];
+        nf->context = nf_local_ctx;
+
+        /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
+        if (rte_atomic16_read(&nf_local_ctx->nf_init_finished) == 0) {
+                nf_local_ctx->nf = nf;
+                rte_atomic16_set(&nf_local_ctx->nf_init_finished, 1);
+        }
+
+        /* Init finished free the bootstrap struct */
+        rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
+
+        /* Initialize empty NF's tx manager */
+        onvm_nflib_nf_tx_mgr_init(nf);
+
+        /* Set the parent id to none */
+        nf->thread_info.parent = 0;
+        rte_atomic16_init(&nf->thread_info.children_cnt);
+        rte_atomic16_set(&nf->thread_info.children_cnt, 0);
+
+        /* In case this instance_id is reused, clear all function pointers */
+        nf->functions.pkt_handler = NULL;
+        nf->functions.callback = NULL;
+        nf->functions.setup = NULL;
+        nf->functions.handle_msg = NULL;
+
+        if (ONVM_ENABLE_SHARED_CPU) {
+                RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
+                init_shared_cpu_info(nf->instance_id);
+        }
+
+        RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf->instance_id);
+        RTE_LOG(INFO, APP, "Using Service ID %d\n", nf->service_id);
+        RTE_LOG(INFO, APP, "Running on core %d\n", nf->thread_info.core);
+
+        if (nf->flags.time_to_live)
+                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf->flags.time_to_live);
+        if (nf->flags.pkt_limit)
+                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf->flags.pkt_limit);
+
+        /*
+         * Allow this for cases when there is not enough cores and using 
+         * the shared cpu mode is not an option
+         */
+        if (ONVM_CHECK_BIT(nf->flags.init_options, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
+               RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
+                                      "enabled, this will hurt performance, proceed with caution\n");
+
+        RTE_LOG(INFO, APP, "Finished Process Init.\n");
+
+        return 0;
 }
 
 int
@@ -616,6 +720,51 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
         return 0;
 }
 
+struct onvm_nf_init_cfg *
+onvm_nflib_nf_init_cfg_init(const char *tag) {
+        void *mempool_data;
+        struct onvm_nf_init_cfg *nf_init_cfg;
+
+        if (rte_mempool_get(nf_init_cfg_mp, &mempool_data) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to get nf nf_init_cfg memory\n");
+        }
+
+        if (mempool_data == NULL) {
+                rte_exit(EXIT_FAILURE, "Client Info struct not allocated\n");
+        }
+
+        nf_init_cfg = (struct onvm_nf_init_cfg *)mempool_data;
+        nf_init_cfg->instance_id = NF_NO_ID;
+        nf_init_cfg->core = rte_lcore_id();
+        nf_init_cfg->init_options = 0;
+        nf_init_cfg->status = NF_WAITING_FOR_ID;
+
+        /* Allocate memory for the tag so that onvm_mgr can access it */
+        nf_init_cfg->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(nf_init_cfg->tag, tag, TAG_SIZE);
+
+        /* TTL and packet limit disabled by default */
+        nf_init_cfg->time_to_live = 0;
+        nf_init_cfg->pkt_limit = 0;
+
+        return nf_init_cfg;
+}
+
+struct onvm_nf_init_cfg *
+onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent) {
+        struct onvm_nf_init_cfg *nf_init_cfg;
+
+        nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
+
+        nf_init_cfg->service_id = parent->service_id;
+        nf_init_cfg->core = parent->thread_info.core;
+        nf_init_cfg->init_options = parent->flags.init_options;
+        nf_init_cfg->time_to_live = parent->flags.time_to_live;
+        nf_init_cfg->pkt_limit = parent->flags.pkt_limit;
+
+        return nf_init_cfg;
+}
+
 struct onvm_nf_scale_info *
 onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
@@ -634,18 +783,11 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
+        scale_info->data = data;
         scale_info->functions.setup = parent->functions.setup;
         scale_info->functions.handle_msg = parent->functions.handle_msg;
-        scale_info->data = data;
-        if (parent->nf_mode == NF_MODE_SINGLE) {
-                scale_info->functions.pkt_handler = parent->functions.pkt_handler;
-                scale_info->functions.callback = parent->functions.callback;
-        } else if (parent->nf_mode == NF_MODE_RING) {
-                scale_info->functions.adv_rings = parent->functions.adv_rings;
-        } else {
-                RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
-                return NULL;
-        }
+        scale_info->functions.pkt_handler = parent->functions.pkt_handler;
+        scale_info->functions.callback = parent->functions.callback;
 
         return scale_info;
 }
@@ -744,143 +886,6 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
         ONVM_ENABLE_SHARED_CPU = config->flags.ONVM_ENABLE_SHARED_CPU;
 }
 
-static int
-onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg) {
-        struct onvm_nf_msg *startup_msg;
-        struct onvm_nf *nf;
-        int i;
-
-        /* Block signals, ensure only the parent signal handler gets the signal */
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGTERM);
-        if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-                printf("Could not set pthread sigmask\n");
-                return -1;
-        }
-
-        if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
-                return ONVM_SIGNAL_TERMINATION;
-        }
-
-        /* Put this NF's info struct onto queue for manager to process startup */
-        if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back memory
-                rte_exit(EXIT_FAILURE, "Cannot create startup msg");
-        }
-
-        /* Tell the manager we're ready to recieve packets */
-        startup_msg->msg_type = MSG_NF_STARTING;
-        startup_msg->msg_data = nf_init_cfg;
-        if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back mermory
-                rte_mempool_put(nf_msg_pool, startup_msg);
-                rte_exit(EXIT_FAILURE, "Cannot send nf_init_cfg to manager");
-        }
-
-        /* Wait for a NF id to be assigned by the manager */
-        RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_init_cfg->status == (uint16_t)NF_WAITING_FOR_ID;) {
-                sleep(1);
-                if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
-                        /* Wait because we sent a message to the onvm_mgr */
-                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++)
-                                sleep(NF_TERM_WAIT_TIME);
-                        return ONVM_SIGNAL_TERMINATION;
-                }
-        }
-
-        /* This NF is trying to declare an ID already in use. */
-        if (nf_init_cfg->status == NF_ID_CONFLICT) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
-        } else if (nf_init_cfg->status == NF_SERVICE_MAX) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
-        } else if (nf_init_cfg->status == NF_SERVICE_COUNT_MAX) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d",
-                         MAX_NFS_PER_SERVICE);
-        } else if (nf_init_cfg->status == NF_NO_IDS) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
-        } else if (nf_init_cfg->status == NF_NO_CORES) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
-        } else if (nf_init_cfg->status == NF_NO_DEDICATED_CORES) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS,
-                         "There is no space to assign a dedicated core, "
-                         "or manually selected core has NFs running\n");
-        } else if (nf_init_cfg->status == NF_CORE_OUT_OF_RANGE) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "Requested core is not enabled or not in range\n");
-        } else if (nf_init_cfg->status == NF_CORE_BUSY) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "Requested core is busy\n");
-        } else if (nf_init_cfg->status != NF_STARTING) {
-                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
-        }
-
-        nf = &nfs[nf_init_cfg->instance_id];
-        nf->context = nf_local_ctx;
-
-        /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
-        if (rte_atomic16_read(&nf_local_ctx->nf_init_finished) == 0) {
-                nf_local_ctx->nf = nf;
-                rte_atomic16_set(&nf_local_ctx->nf_init_finished, 1);
-        }
-
-        /* Init finished free the bootstrap struct */
-        rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-
-        /* Set mode to UNKNOWN, to be determined later */
-        nf->nf_mode = NF_MODE_UNKNOWN;
-
-        /* Initialize empty NF's tx manager */
-        onvm_nflib_nf_tx_mgr_init(nf);
-
-        /* Set the parent id to none */
-        nf->thread_info.parent = 0;
-        rte_atomic16_init(&nf->thread_info.children_cnt);
-        rte_atomic16_set(&nf->thread_info.children_cnt, 0);
-
-        /* In case this instance_id is reused, clear all function pointers */
-        nf->functions.pkt_handler = NULL;
-        nf->functions.callback = NULL;
-        nf->functions.adv_rings = NULL;
-        nf->functions.setup = NULL;
-        nf->functions.handle_msg = NULL;
-
-        if (ONVM_ENABLE_SHARED_CPU) {
-                RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
-                init_shared_cpu_info(nf->instance_id);
-        }
-
-        RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf->instance_id);
-        RTE_LOG(INFO, APP, "Using Service ID %d\n", nf->service_id);
-        RTE_LOG(INFO, APP, "Running on core %d\n", nf->thread_info.core);
-
-        if (nf->flags.time_to_live)
-                RTE_LOG(INFO, APP, "Time to live set to %u\n", nf->flags.time_to_live);
-        if (nf->flags.pkt_limit)
-                RTE_LOG(INFO, APP, "Packet limit (rx) set to %u\n", nf->flags.pkt_limit);
-
-        /*
-         * Allow this for cases when there is not enough cores and using 
-         * the shared cpu mode is not an option
-         */
-        if (ONVM_CHECK_BIT(nf->flags.init_options, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
-               RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
-                                      "enabled, this will hurt performance, proceed with caution\n");
-
-        RTE_LOG(INFO, APP, "Finished Process Init.\n");
-
-        return 0;
-}
-
 static inline uint16_t
 onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func handler) {
         struct onvm_pkt_meta *meta;
@@ -969,22 +974,11 @@ onvm_nflib_start_child(void *arg) {
         child->functions.setup = scale_info->functions.setup;
         child->functions.pkt_handler = scale_info->functions.pkt_handler;
         child->functions.callback = scale_info->functions.callback;
-        child->functions.adv_rings = scale_info->functions.adv_rings;
         child->functions.handle_msg = scale_info->functions.handle_msg;
         /* Set nf state data */
         child->data = scale_info->data;
 
-        if (child->functions.pkt_handler) {
-                onvm_nflib_run_callback(child_context, child->functions.pkt_handler, child->functions.callback);
-        } else if (child->functions.adv_rings) {
-                onvm_nflib_nf_ready(child);
-                if (child->functions.setup != NULL)
-                        child->functions.setup(child_context);
-                child->functions.adv_rings(child_context);
-        } else {
-                /* Sanity check */
-                rte_exit(EXIT_FAILURE, "Spawned NF doesn't have a pkt_handler or an advanced rings function\n");
-        }
+        onvm_nflib_run_callback(child_context, child->functions.pkt_handler, child->functions.callback);
 
         /* Clean up after the child */
         onvm_nflib_stop(child_context);
@@ -1027,57 +1021,7 @@ onvm_nflib_handle_signal(int sig) {
 
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
-        if (scale_info->nf_init_cfg->service_id == 0 || 
-            (scale_info->functions.pkt_handler == NULL && scale_info->functions.adv_rings == NULL) ||
-            (scale_info->functions.pkt_handler != NULL && scale_info->functions.adv_rings != NULL))
-                return -1;
-
-        return 0;
-}
-
-static struct onvm_nf_init_cfg *
-onvm_nflib_nf_init_cfg_init(const char *tag) {
-        void *mempool_data;
-        struct onvm_nf_init_cfg *nf_init_cfg;
-
-        if (rte_mempool_get(nf_init_cfg_mp, &mempool_data) < 0) {
-                rte_exit(EXIT_FAILURE, "Failed to get nf nf_init_cfg memory\n");
-        }
-
-        if (mempool_data == NULL) {
-                rte_exit(EXIT_FAILURE, "Client Info struct not allocated\n");
-        }
-
-        nf_init_cfg = (struct onvm_nf_init_cfg *)mempool_data;
-        nf_init_cfg->instance_id = NF_NO_ID;
-        nf_init_cfg->core = rte_lcore_id();
-        nf_init_cfg->init_options = 0;
-        nf_init_cfg->status = NF_WAITING_FOR_ID;
-
-        /* Allocate memory for the tag so that onvm_mgr can access it */
-        nf_init_cfg->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
-        strncpy(nf_init_cfg->tag, tag, TAG_SIZE);
-
-        /* TTL and packet limit disabled by default */
-        nf_init_cfg->time_to_live = 0;
-        nf_init_cfg->pkt_limit = 0;
-
-        return nf_init_cfg;
-}
-
-static struct onvm_nf_init_cfg *
-onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent) {
-        struct onvm_nf_init_cfg *nf_init_cfg;
-
-        nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
-
-        nf_init_cfg->service_id = parent->service_id;
-        nf_init_cfg->core = parent->thread_info.core;
-        nf_init_cfg->init_options = parent->flags.init_options;
-        nf_init_cfg->time_to_live = parent->flags.time_to_live;
-        nf_init_cfg->pkt_limit = parent->flags.pkt_limit;
-
-        return nf_init_cfg;
+        return scale_info->nf_init_cfg->service_id != 0 && scale_info->functions.pkt_handler != NULL;
 }
 
 static void

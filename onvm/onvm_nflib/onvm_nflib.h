@@ -177,22 +177,12 @@ int
 onvm_nflib_nf_ready(struct onvm_nf *nf);
 
 /*
- * Function that initialize a NF info data structure.
- *
- * Input  : the tag to name the NF
- * Output : the data structure initialized
- *
- */
-struct onvm_nf_init_data *
-onvm_nflib_info_init(const char *tag);
-
-/*
  * Start the NF by signaling manager that its ready to recieve packets
  *
  * Input: Pointer to context struct of this NF
  */
 int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data);
+onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg);
 
 /**
  * Process an message. Does stuff.
@@ -241,6 +231,27 @@ onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup);
 
 void
 onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg);
+
+/*
+ * Function that initialize the NF init config data structure.
+ *
+ * Input  : the tag to name the NF
+ * Output : the data structure initialized
+ *
+ */
+struct onvm_nf_init_cfg *
+onvm_nflib_nf_init_cfg_init(const char *tag);
+
+/*
+ * Function that initialize the NF init config data structure.
+ * the arguments are copied from the parent information
+ *
+ * Input  : pointer to the parent NF
+ * Output : the data structure initialized
+ *
+ */
+struct onvm_nf_init_cfg *
+onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent);
 
 /**
  * Allocates an empty scaling config to be filled in by the NF.
