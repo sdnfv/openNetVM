@@ -4,10 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2017 George Washington University
-#          2015-2017 University of California Riverside
-#          2010-2014 Intel Corporation.
-#          2016-2017 Hewlett Packard Enterprise Development LP
+#          2015-2016 George Washington University
+#          2015-2016 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,22 +38,25 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-ifeq ($(ONVM_HOME),)
-$(error "Please define the ONVM_HOME environment variable")
-endif
+RTE_TARGET ?= $(RTE_TARGET)
 
 # Default target, can be overriden by command line or environment
 include $(RTE_SDK)/mk/rte.vars.mk
 
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
-
 # binary name
-LIB    = libonvm.a
+APP = firewall
 
 # all source are stored in SRCS-y
-SRCS-y := onvm_pkt_helper.c onvm_sc_common.c onvm_sc_mgr.c onvm_flow_table.c onvm_flow_dir.c onvm_nflib.c onvm_pkt_common.c onvm_config_common.c onvm_threading.c
+SRCS-y := firewall.c
 
-CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
-CFLAGS += -I$(ONVM_HOME)/onvm/lib
+# OpenNetVM path
+ONVM= $(SRCDIR)/../../onvm
 
-include $(RTE_SDK)/mk/rte.extlib.mk
+CFLAGS += -O3 $(USER_FLAGS)
+
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
+
+include $(RTE_SDK)/mk/rte.extapp.mk

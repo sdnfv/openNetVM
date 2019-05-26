@@ -128,8 +128,8 @@ char buffer[20];
 /****************************Interfaces***************************************/
 
 void
-onvm_stats_init(uint8_t verbocity_level) {
-        if (verbocity_level == ONVM_RAW_STATS_DUMP) {
+onvm_stats_init(uint8_t verbosity_level) {
+        if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                 printf("#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n");
                 printf(
                     "#YYYY-MM-DD "
@@ -371,6 +371,25 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 }
 
 static void
+onvm_stats_display_client_wakeup_thread_context(int difftime) {
+        uint64_t num_wakeups = 0;
+        uint64_t prev_num_wakeups = 0;
+        uint64_t wakeup_rate;
+        unsigned i = 0;
+
+        for (i = 0; i < MAX_NFS; i++) {
+                if (!onvm_nf_is_valid(&nfs[i]))
+                        continue;
+                num_wakeups += nf_wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += nf_wakeup_infos[i].prev_num_wakeups;
+                nf_wakeup_infos[i].prev_num_wakeups = nf_wakeup_infos[i].num_wakeups;
+        }
+
+        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+        fprintf(stats_out, "Total wakeups = %"PRIu64", Wakeup rate = %"PRIu64"\n", num_wakeups, wakeup_rate);
+}
+
+static void
 onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         char *nf_label = NULL;
         unsigned i = 0;
@@ -383,7 +402,16 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static const char *NF_MSG[3];
 
         NF_MSG[0] = ONVM_STATS_MSG;
-        NF_MSG[1] = ONVM_STATS_ADV_MSG;
+        if (ONVM_ENABLE_SHARED_CPU) {
+                NF_MSG[1] =
+                    "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"
+                    "           out   /    tonf     /   drop\n"
+                    "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop"
+                    "           next  /    buf      /   ret\n"
+                    "                   nf_state    num_wakeups /  wakeup_rate\n"
+                    "---------------------------------------------------------------------------------------------------\n";
+        } else
+                NF_MSG[1] = ONVM_STATS_ADV_MSG;
         NF_MSG[2] = "";
 
         /* For same service id TX/RX stats */
@@ -439,6 +467,19 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const uint64_t tx_pps = (tx - nf_tx_last[i]) / difftime;
                 const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i]) / difftime;
                 const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i]) / difftime;
+                const uint64_t num_wakeups = nf_wakeup_infos[i].num_wakeups;
+                const uint64_t prev_num_wakeups = nf_wakeup_infos[i].prev_num_wakeups;
+                const uint64_t wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+                const char *state;
+
+                uint8_t active = 0;
+                if (ONVM_ENABLE_SHARED_CPU)
+                        active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
+                if (!active) {
+                        state = "working ";
+                } else {
+                        state = "sleeping";
+                }
 
                 /* Save stats for NFs with same service id */
                 if (print_total_stats) {
@@ -461,24 +502,28 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, "%s,%s,%u,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
                                            ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
-                                buffer, nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, 
-                                rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, 
-                                act_next, act_buffer, act_returned);
+                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ", %d\n",
+                                buffer, nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core,
+                                rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop,
+                                act_next, act_buffer, act_returned, num_wakeups, wakeup_rate, active);
                 } else if (verbosity_level == 2) {
                         fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
                                            "\n"
                                            "                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
-                                nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps, 
-                                tx_pps, rx, tx, act_out, act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, 
+                                nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps,
+                                tx_pps, rx, tx, act_out, act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next,
                                 act_buffer, act_returned);
+                        if (ONVM_ENABLE_SHARED_CPU)
+                                fprintf(stats_out, "                    %s   %11" PRIu64 " / %-11" PRIu64"\n",
+                                        state, num_wakeups, wakeup_rate);
+                        fprintf(stats_out, "\n");
                 } else {
                         fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
-                                nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps, tx_pps, 
-                                rx_drop, tx_drop, act_out, act_tonf, act_drop);
+                                nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps,
+                                tx_pps, rx_drop, tx_drop, act_out, act_tonf, act_drop);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {
@@ -540,6 +585,13 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         }
                 }
         }
+
+        if (ONVM_ENABLE_SHARED_CPU) {
+                fprintf(stats_out, "\n\nShared CPU stats\n");
+                fprintf(stats_out, "----------------\n");
+                onvm_stats_display_client_wakeup_thread_context(difftime);
+        }
+
 }
 
 /***************************Helper functions**********************************/

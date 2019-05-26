@@ -42,13 +42,16 @@ if [ "$1" = "-F" ]
 then
   config=$2
   shift 2
-  CONFIG_ARGS="$@"
-  exec sudo $BINARY -F $config $CONFIG_ARGS
+  exec sudo $BINARY -F $config "$@"
 fi
 
 # Check if -- is present, if so parse dpdk/onvm specific args
 dash_dash_cnt=0
+non_nf_arg_cnt=0
 for i in "$@" ; do
+  if [[ dash_dash_cnt -lt 2 ]] ; then
+        non_nf_arg_cnt=$((non_nf_arg_cnt+1))
+  fi
   if [[ $i == "--" ]] ; then
     dash_dash_cnt=$((dash_dash_cnt+1))
   fi
@@ -58,7 +61,8 @@ done
 if [[ $dash_dash_cnt -ge 2 ]]; then
   DPDK_ARGS="$DPDK_BASE_ARGS $(echo " ""$@" | awk -F "--" '{print $1;}')"
   ONVM_ARGS="$(echo " ""$@" | awk -F "--" '{print $2;}')"
-  NF_ARGS="$(echo " ""$@" | awk -F "--" '{print $3;}')"
+  # Move to NF arguments
+  shift ${non_nf_arg_cnt}
 elif [[ $dash_dash_cnt -eq 0 ]]; then
   # Dealing with required args shared by all NFs
   service=$1
@@ -66,7 +70,6 @@ elif [[ $dash_dash_cnt -eq 0 ]]; then
 
   DPDK_ARGS="-l $DEFAULT_CORE_ID $DPDK_BASE_ARGS"
   ONVM_ARGS="-r $service"
-  NF_ARGS="$@"
 elif [[ $dash_dash_cnt -eq 1 ]]; then
   # Don't allow only one `--`
   echo "This script expects 0 or at least 2 '--' argument separators"
@@ -74,4 +77,4 @@ elif [[ $dash_dash_cnt -eq 1 ]]; then
   exit 1
 fi
 
-exec sudo $BINARY $DPDK_ARGS -- $ONVM_ARGS -- $NF_ARGS 
+exec sudo $BINARY $DPDK_ARGS -- $ONVM_ARGS -- "$@"

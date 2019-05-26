@@ -12,6 +12,8 @@ function usage {
         echo -e "\tRuns OVNM the same as above, but runs the web stats on port 9000 instead of defaulting to 8080"
         echo -e "$0 0,1,2,3 3 0xF0 -s stdout"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout"
+        echo -e "$0 0,1,2,3 3 0xF0 -s stdout -c"
+        echo -e "\tRuns ONVM the same way as above, but enables shared cpu support"
         echo -e "$0 0,1,2,3 3 0xF0 -s stdout -t 42"
         echo -e "\tRuns ONVM the same way as above, but shuts down after 42 seconds"
         echo -e "$0 0,1,2,3 3 0xF0 -s stdout -l 64"
@@ -42,7 +44,7 @@ then
     usage
 fi
 
-while getopts "a:r:d:s:t:l:p:z:v" opt; do
+while getopts "a:r:d:s:t:l:p:z:cv" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
@@ -52,6 +54,7 @@ while getopts "a:r:d:s:t:l:p:z:v" opt; do
         l) packet_limit="-l $OPTARG";;
         p) web_port="$OPTARG";;
         z) stats_sleep_time="-z $OPTARG";;
+        c) shared_cpu_flag="-c";;
         v) verbosity=$(($verbosity+1));;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
@@ -74,7 +77,7 @@ then
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} 
+sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
 
 if [ "${stats}" = "-s web" ]
 then

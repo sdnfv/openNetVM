@@ -58,10 +58,12 @@
 #define ONVM_STR_STATS_WEB "web"
 
 extern const char *NF_MSG[3];
-#define ONVM_STATS_MSG "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"\
+#define ONVM_STATS_MSG \
+        "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"\
         "         out   /    tonf     /   drop\n"\
-        "------------------------------------------------------------------------------------------------------------------\n";
-#define ONVM_STATS_ADV_MSG "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"\
+        "--------------------------------------------------------------------------------------------------------------------\n";
+#define ONVM_STATS_ADV_MSG \
+        "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"\
         "           out   /    tonf     /   drop\n"\
         "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
         "----------------------------------------------------------------------------------------------------------------------\n";

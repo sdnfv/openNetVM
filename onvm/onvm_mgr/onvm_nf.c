@@ -49,6 +49,7 @@
 #include "onvm_nf.h"
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
+#include <rte_lpm.h>
 
 /* ID 0 is reserved */
 uint16_t next_instance_id = 1;
@@ -85,6 +86,16 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
  */
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info);
+
+/*
+ * Function that initializes an LPM object
+ *
+ * Input  : the address of an lpm_request struct
+ * Output : a return code based on initialization of the LPM object
+ *
+ */
+static void
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
 /********************************Interfaces***********************************/
 
@@ -128,6 +139,7 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf_msg *msg;
         struct onvm_nf_info *nf;
+        struct lpm_request *req_lpm;
         int num_msgs = rte_ring_count(incoming_msg_queue);
         uint16_t stop_nf_id;
 
@@ -141,6 +153,11 @@ onvm_nf_check_status(void) {
                 msg = (struct onvm_nf_msg *)msgs[i];
 
                 switch (msg->msg_type) {
+                        case MSG_REQUEST_LPM_REGION:
+                                // TODO: Add stats event handler here
+                                req_lpm = (struct lpm_request *)msg->msg_data;
+                                onvm_nf_init_lpm_region(req_lpm);
+                                break;
                         case MSG_NF_STARTING:
                                 nf = (struct onvm_nf_info *)msg->msg_data;
                                 if (onvm_nf_start(nf) == 0) {
@@ -251,21 +268,24 @@ onvm_nf_ready(struct onvm_nf_info *info) {
         if (info->status != NF_STARTING)
                 return -1;
 
-        // Register this NF running within its service
-        info->status = NF_RUNNING;
         uint16_t service_count = nf_per_service_count[info->service_id]++;
         services[info->service_id][service_count] = info->instance_id;
         num_nfs++;
+        // Register this NF running within its service
+        info->status = NF_RUNNING;
         return 0;
 }
 
 inline static int
 onvm_nf_stop(struct onvm_nf_info *nf_info) {
         uint16_t nf_id;
-        uint16_t service_id;
         uint16_t nf_status;
+        uint16_t service_id;
+        uint16_t nb_pkts, i;
         int mapIndex;
+        struct onvm_nf_msg *msg;
         struct rte_mempool *nf_info_mp;
+        struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
         if (nf_info == NULL)
                 return 1;
@@ -286,9 +306,27 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
 
         nf_info->status = NF_STOPPED;
 
+        /* Tell parent we stopped running */
+        if (nfs[nf_id].parent != 0)
+                rte_atomic16_dec(&nfs[nfs[nf_id].parent].children_cnt);
+
         /* Remove the NF from the core it was running on */
         cores[nf_info->core].nf_count--;
         cores[nf_info->core].is_dedicated_core = 0;
+
+        /* Clean up possible left over objects in rings */
+        while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].rx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {
+                for (i = 0; i < nb_pkts; i++)
+                        rte_pktmbuf_free(pkts[i]);
+        }
+        while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].tx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {
+                for (i = 0; i < nb_pkts; i++)
+                        rte_pktmbuf_free(pkts[i]);
+        }
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        while (rte_ring_dequeue(nfs[nf_id].msg_q, (void**)(&msg)) == 0) {
+                rte_mempool_put(nf_msg_pool, (void*)msg);
+        }
 
         /* Clean up dangling pointers to info struct */
         nfs[nf_id].info = NULL;
@@ -334,4 +372,20 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         }
 
         return 0;
+}
+
+static void
+onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
+        struct rte_lpm_config conf;
+        struct rte_lpm* lpm_region;
+
+        conf.max_rules = req_lpm->max_num_rules;
+        conf.number_tbl8s = req_lpm->num_tbl8s;
+
+        lpm_region = rte_lpm_create(req_lpm->name, req_lpm->socket_id, &conf);
+        if (lpm_region) {
+                req_lpm->status = 0;
+        } else {
+                req_lpm->status = -1;
+        }
 }

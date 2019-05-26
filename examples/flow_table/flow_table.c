@@ -71,6 +71,7 @@
 #define NF_TAG "flow_table"
 
 /* Struct that contains information about this NF */
+struct onvm_nf_context *global_termination_context;
 struct onvm_nf_info *nf_info;
 
 struct rte_ring *ring_to_sdn;
@@ -99,7 +100,7 @@ setup_rings(void) {
         ring_to_sdn = rte_ring_create("ring_to_sdn", SDN_RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
         ring_from_sdn = rte_ring_create("ring_from_sdn", SDN_RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
         if (ring_to_sdn == NULL || ring_from_sdn == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(global_termination_context);
                 rte_exit(EXIT_FAILURE, "Unable to create SDN rings\n");
         }
 }
@@ -235,7 +236,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 printf("Error in flow lookup: %d (ENOENT=%d, EINVAL=%d)\n", tbl_index, ENOENT, EINVAL);
                 onvm_pkt_print(pkt);
 #endif
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(global_termination_context);
                 rte_exit(EXIT_FAILURE, "Error in flow lookup\n");
         }
 
@@ -251,19 +252,33 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int
 main(int argc, char *argv[]) {
-        int retval;
+        int arg_offset;
+        struct onvm_nf_context *nf_context;
         unsigned sdn_core = 0;
 
-        if ((retval = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
-        argc -= retval;
-        argv += retval;
+        nf_context = onvm_nflib_init_nf_context();
+        global_termination_context = nf_context;
+        onvm_nflib_start_signal_handler(nf_context, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
+                onvm_nflib_stop(nf_context);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
+        argc -= arg_offset;
+        argv += arg_offset;
         if (parse_app_args(argc, argv) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_context);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
         printf("Flow table running on %d\n", rte_lcore_id());
 
+        nf_info = nf_context->nf_info;
         def_destination = nf_info->service_id + 1;
         printf("Setting up hash table with default destination: %d\n", def_destination);
         total_flows = 0;
@@ -278,7 +293,9 @@ main(int argc, char *argv[]) {
         /* Map sdn_ft table */
         onvm_flow_dir_nf_init();
         printf("Starting packet handler.\n");
-        onvm_nflib_run(nf_info, &packet_handler);
+        onvm_nflib_run(nf_context, &packet_handler);
+        
+        onvm_nflib_stop(nf_context);
         printf("NF exiting...\n");
         cleanup();
         return 0;
