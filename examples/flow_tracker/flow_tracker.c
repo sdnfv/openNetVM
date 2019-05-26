@@ -309,14 +309,14 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -330,7 +330,7 @@ main(int argc, char *argv[]) {
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
@@ -338,22 +338,22 @@ main(int argc, char *argv[]) {
         state_info->num_stored = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
         state_info->ft = onvm_ft_create(TBL_SIZE, sizeof(struct flow_stats));
         if (state_info->ft == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
         /*Initialize NF timer */
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_local_ctx, &packet_handler, &callback_handler);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending!\n");
         return 0;
 }

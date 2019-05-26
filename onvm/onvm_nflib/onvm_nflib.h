@@ -63,13 +63,13 @@
  * @return
  * Pointer to the created NF context
  */
-struct onvm_nf_context *
-onvm_nflib_init_nf_context(void);
+struct onvm_nf_local_ctx *
+onvm_nflib_init_nf_local_ctx(void);
 
 /**
  * Initialize the default OpenNetVM signal handling.
  *
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  * @param signal_handler
  *   Function pointer to an optional NF specific signal handler function,
@@ -78,7 +78,7 @@ onvm_nflib_init_nf_context(void);
  * Error code or 0 if succesfull 
  */
 int
-onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signal_func signal_hanlder);
+onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func signal_hanlder);
 
 /**
  * Initialize the OpenNetVM container Library.
@@ -92,7 +92,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
  * @param tag
  *   A uniquely identifiable string for this NF.
  *   For example, can be the application name (e.g. "bridge_nf")
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
@@ -101,14 +101,14 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx);
 
 /**
  * Run the OpenNetVM container Library.
  * This will register the callback used for each new packet, and the callback used for batch processing. It will then
  * loop forever waiting for packets.
  *
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  * @param handler
  *   A pointer to the function that will be called on each received packet.
@@ -118,14 +118,14 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func pkt_handler,
+onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_handler,
                         callback_handler_func callback_handler);
 
 /**
  * Runs the OpenNetVM container library, without using the callback function.
  * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
  *
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  * @param handler
  *   A pointer to the function that will be called on each received packet.
@@ -133,7 +133,7 @@ onvm_nflib_run_callback(struct onvm_nf_context *nf_context, pkt_handler_func pkt
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_context *nf_context, pkt_handler_func pkt_handler);
+onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_handler);
 
 /**
  * Return a packet that was created by the NF or has previously had the
@@ -199,13 +199,13 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data
  *
  * @param msg
  *    a pointer to a message to be processed
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  * @return
  *    0 on success, or a negative value on error
  */
 int
-onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_context *nf_context);
+onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_local_ctx);
 
 int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
@@ -214,11 +214,11 @@ onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
  * Stop this NF and clean up its memory
  * Sends shutdown message to manager.
  *
- * @param nf_context
+ * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
  */
 void
-onvm_nflib_stop(struct onvm_nf_context *nf_context);
+onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx);
 
 /**
  * Set the setup function for the NF.
