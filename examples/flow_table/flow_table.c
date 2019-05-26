@@ -71,7 +71,7 @@
 #define NF_TAG "flow_table"
 
 /* Struct that contains information about this NF */
-struct onvm_nf_context *global_termination_context;
+struct onvm_nf_local_ctx *global_termination_context;
 
 struct onvm_nf *nf;
 
@@ -254,15 +254,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         unsigned sdn_core = 0;
 
-        nf_context = onvm_nflib_init_nf_context();
-        global_termination_context = nf_context;
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        global_termination_context = nf_local_ctx;
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -274,13 +274,13 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
         if (parse_app_args(argc, argv) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
         printf("Flow table running on %d\n", rte_lcore_id());
 
-        nf = nf_context->nf;
-        def_destination = nf_context->nf->service_id + 1;
+        nf = nf_local_ctx->nf;
+        def_destination = nf_local_ctx->nf->service_id + 1;
         printf("Setting up hash table with default destination: %d\n", def_destination);
         total_flows = 0;
 
@@ -294,9 +294,9 @@ main(int argc, char *argv[]) {
         /* Map sdn_ft table */
         onvm_flow_dir_nf_init();
         printf("Starting packet handler.\n");
-        onvm_nflib_run(nf_context, &packet_handler);
+        onvm_nflib_run(nf_local_ctx, &packet_handler);
         
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("NF exiting...\n");
         cleanup();
         return 0;

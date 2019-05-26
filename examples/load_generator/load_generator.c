@@ -98,7 +98,7 @@ static struct ether_hdr *ehdr;
 
 /* Sets up variables for the load generator */
 void
-nf_setup(struct onvm_nf_context *nf_context);
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 
 /*
  * Print a usage message
@@ -308,7 +308,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf *nf) {
  * Sets up load generator values
  */
 void
-nf_setup(struct onvm_nf_context *nf_context) {
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         int j;
 
         start_cycle = rte_get_tsc_cycles();
@@ -317,7 +317,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -336,14 +336,14 @@ nf_setup(struct onvm_nf_context *nf_context) {
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -356,17 +356,17 @@ main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_set_setup_function(nf_context->nf, &nf_setup);
+        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
 
-        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_local_ctx, &packet_handler, &callback_handler);
 
         free(ehdr);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

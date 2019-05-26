@@ -211,7 +211,7 @@ struct core_status {
         uint16_t nf_count;
 };
 
-struct onvm_nf_context;
+struct onvm_nf_local_ctx;
 struct onvm_nf;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
@@ -221,9 +221,9 @@ typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf *nf)
 /* Function prototype for NFs running advanced rings 
  * Deprecated, will be removed in the future advanced rings rework 
  */
-typedef void (*advanced_rings_func)(struct onvm_nf_context *nf_context);
+typedef void (*advanced_rings_func)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void (*setup_func)(struct onvm_nf_context *nf_context);
+typedef void (*setup_func)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
 typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf *nf);
 /* Function prototype for NFs to signal handling */
@@ -242,7 +242,7 @@ struct onvm_nf_scale_info {
         handle_msg_func handle_msg;
 };
 
-struct onvm_nf_context {
+struct onvm_nf_local_ctx {
         struct onvm_nf *nf;
         rte_atomic16_t nf_init_finished;
         rte_atomic16_t keep_running;
@@ -267,7 +267,7 @@ struct onvm_nf {
         /* Pointer to NF defined state data */
         void *data;
         /* Pointer to NF context (used for terminating NF's children) */
-        struct onvm_nf_context *context;
+        struct onvm_nf_local_ctx *context;
 
         struct {
                 uint16_t core;

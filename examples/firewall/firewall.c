@@ -352,7 +352,7 @@ struct onvm_fw_rule
 }
 
 int main(int argc, char *argv[]) {
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_fw_rule **rules;
         int arg_offset, num_rules;
 
@@ -360,11 +360,11 @@ int main(int argc, char *argv[]) {
         stats.pkt_drop = 0;
         stats.pkt_accept = 0;
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -377,16 +377,16 @@ int main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
-        onvm_nflib_run(nf_context, &packet_handler);
+        onvm_nflib_run(nf_local_ctx, &packet_handler);
 
         lpm_teardown(rules, num_rules);
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

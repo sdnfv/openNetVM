@@ -228,14 +228,14 @@ static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, stru
 int main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_pkt_stats *stats;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -248,16 +248,16 @@ int main(int argc, char *argv[]) {
         argv += arg_offset;
 
         stats = (struct onvm_pkt_stats *) rte_zmalloc("stats", sizeof(struct onvm_pkt_stats), 0);
-        nf_context->nf->data = (void *) stats;
+        nf_local_ctx->nf->data = (void *) stats;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_run(nf_context, &packet_handler);
+        onvm_nflib_run(nf_local_ctx, &packet_handler);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

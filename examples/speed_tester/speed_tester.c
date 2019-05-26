@@ -107,7 +107,7 @@ static uint8_t ONVM_ENABLE_SHARED_CPU = 0;
 char *pcap_filename = NULL;
 
 void
-nf_setup(struct onvm_nf_context *nf_context);
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 
 void sig_handler(int sig);
 
@@ -304,7 +304,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 }
 
 static void
-run_advanced_rings(struct onvm_nf_context *nf_context) {
+run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
         uint16_t i, j, nb_pkts;
@@ -319,7 +319,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         struct rte_mempool *nf_msg_pool;
 
         /* Get rings from nflib */
-        nf = onvm_nflib_get_nf(nf_context->nf->instance_id);
+        nf = onvm_nflib_get_nf(nf_local_ctx->nf->instance_id);
         rx_ring = nf->rx_q;
         tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
@@ -333,13 +333,13 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         start_time = rte_get_tsc_cycles();
 
-        while (rte_atomic16_read(&nf_context->keep_running) && rx_ring && tx_ring && nf) {
+        while (rte_atomic16_read(&nf_local_ctx->keep_running) && rx_ring && tx_ring && nf) {
                 /* Check for a stop message from the manager. */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
                         rte_ring_dequeue(msg_q, (void **)(&msg));
                         if (msg->msg_type == MSG_STOP) {
-                                rte_atomic16_set(&nf_context->keep_running, 0);
+                                rte_atomic16_set(&nf_local_ctx->keep_running, 0);
                         } else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
@@ -360,7 +360,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_context->nf);
+                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_local_ctx->nf);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -376,12 +376,12 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
                                              TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf->flags.time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
-                        rte_atomic16_set(&nf_context->keep_running, 0);
+                        rte_atomic16_set(&nf_local_ctx->keep_running, 0);
                 }
                 if (nf->flags.pkt_limit && unlikely(nf->stats.rx >=
                                           (uint64_t) nf->flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
-                        rte_atomic16_set(&nf_context->keep_running, 0);
+                        rte_atomic16_set(&nf_local_ctx->keep_running, 0);
                 }
         }
 }
@@ -390,7 +390,7 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
  * Generates fake packets or loads them from a pcap file
  */
 void
-nf_setup(struct onvm_nf_context *nf_context) {
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         uint32_t i;
         uint32_t pkts_generated;
         struct rte_mempool *pktmbuf_pool;
@@ -398,7 +398,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
         pkts_generated = 0;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -449,7 +449,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_context->nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf_info, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
@@ -499,7 +499,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
                         pkts[i] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_context->nf, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
@@ -513,12 +513,12 @@ nf_setup(struct onvm_nf_context *nf_context) {
 int
 main(int argc, char *argv[]) {
         struct onvm_configuration *onvm_config;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         int arg_offset, i;
 
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
 
         /* Hack to know if we're using advanced rings before running getopts */
         for (i = argc - 1; i > 0; i--) {
@@ -533,13 +533,13 @@ main(int argc, char *argv[]) {
          * this can be used to handle NF specific (non onvm) cleanup logic
          */
         if (use_direct_rings) {
-                onvm_nflib_start_signal_handler(nf_context, sig_handler);
+                onvm_nflib_start_signal_handler(nf_local_ctx, sig_handler);
         } else {
-                onvm_nflib_start_signal_handler(nf_context, NULL);
+                onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
         }
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -552,25 +552,25 @@ main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf_context->nf, &nf_setup);
+        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
 
         if (use_direct_rings) {
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
-                nf_setup(nf_context);
-                onvm_nflib_nf_ready(nf_context->nf);
-                run_advanced_rings(nf_context);
+                nf_setup(nf_local_ctx);
+                onvm_nflib_nf_ready(nf_local_ctx->nf);
+                run_advanced_rings(nf_local_ctx);
         } else {
-                onvm_nflib_run(nf_context, &packet_handler);
+                onvm_nflib_run(nf_local_ctx, &packet_handler);
         }
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

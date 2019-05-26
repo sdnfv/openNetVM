@@ -563,15 +563,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int
 main(int argc, char *argv[]) {
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
         int arg_offset;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -585,7 +585,7 @@ main(int argc, char *argv[]) {
 
         lb = rte_calloc("state", 1, sizeof(struct loadbalance), 0);
         if (lb == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF lb struct");
         }
 
@@ -594,7 +594,7 @@ main(int argc, char *argv[]) {
 
         lb->ft = onvm_ft_create(TABLE_SIZE, sizeof(struct flow_info));
         if (lb->ft == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
@@ -604,9 +604,9 @@ main(int argc, char *argv[]) {
         lb->expire_time = 32;
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+        onvm_nflib_run_callback(nf_local_ctx, &packet_handler, &callback_handler);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
