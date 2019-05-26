@@ -684,14 +684,14 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
-        scale_info->setup = parent->functions.setup;
-        scale_info->handle_msg = parent->functions.handle_msg;
+        scale_info->functions.setup = parent->functions.setup;
+        scale_info->functions.handle_msg = parent->functions.handle_msg;
         scale_info->data = data;
         if (parent->nf_mode == NF_MODE_SINGLE) {
-                scale_info->pkt_handler = parent->functions.pkt_handler;
-                scale_info->callback = parent->functions.callback;
+                scale_info->functions.pkt_handler = parent->functions.pkt_handler;
+                scale_info->functions.callback = parent->functions.callback;
         } else if (parent->nf_mode == NF_MODE_RING) {
-                scale_info->adv_rings = parent->functions.adv_rings;
+                scale_info->functions.adv_rings = parent->functions.adv_rings;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
                 return NULL;
@@ -1016,11 +1016,11 @@ onvm_nflib_start_child(void *arg) {
         /* Save the parent id for future clean up */
         child->thread_info.parent = parent->instance_id;
         /* Save nf specifc functions for possible future use */
-        child->functions.setup = scale_info->setup;
-        child->functions.pkt_handler = scale_info->pkt_handler;
-        child->functions.callback = scale_info->callback;
-        child->functions.adv_rings = scale_info->adv_rings;
-        child->functions.handle_msg = scale_info->handle_msg;
+        child->functions.setup = scale_info->functions.setup;
+        child->functions.pkt_handler = scale_info->functions.pkt_handler;
+        child->functions.callback = scale_info->functions.callback;
+        child->functions.adv_rings = scale_info->functions.adv_rings;
+        child->functions.handle_msg = scale_info->functions.handle_msg;
         /* Set nf state data */
         child->data = scale_info->data;
 
@@ -1078,8 +1078,8 @@ onvm_nflib_handle_signal(int sig) {
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
         if (scale_info->nf_init_cfg->service_id == 0 || 
-            (scale_info->pkt_handler == NULL && scale_info->adv_rings == NULL) ||
-            (scale_info->pkt_handler != NULL && scale_info->adv_rings != NULL))
+            (scale_info->functions.pkt_handler == NULL && scale_info->functions.adv_rings == NULL) ||
+            (scale_info->functions.pkt_handler != NULL && scale_info->functions.adv_rings != NULL))
                 return -1;
 
         return 0;

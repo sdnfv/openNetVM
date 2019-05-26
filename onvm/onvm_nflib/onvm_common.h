@@ -231,15 +231,17 @@ typedef void (*handle_signal_func)(int);
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
-        void *data;
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct onvm_nf *parent;
-        pkt_handler_func pkt_handler;
-        callback_handler_func callback;
-        /* Deprecated, will be removed in the future advanced rings rework */
-        advanced_rings_func adv_rings;
-        setup_func setup;
-        handle_msg_func handle_msg;
+        void * data;
+        struct {
+                setup_func setup;
+                handle_msg_func handle_msg;
+                pkt_handler_func pkt_handler;
+                callback_handler_func callback;
+                /* Deprecated, will be removed in the future advanced rings rework */
+                advanced_rings_func adv_rings;
+        } functions;
 };
 
 struct onvm_nf_local_ctx {
@@ -266,7 +268,7 @@ struct onvm_nf {
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
-        /* Pointer to NF context (used for terminating NF's children) */
+        /* Pointer to NF context (used for signal handling/terminating NF's children) */
         struct onvm_nf_local_ctx *context;
 
         struct {
@@ -286,12 +288,12 @@ struct onvm_nf {
 
         /* NF specific functions */
         struct {
+                setup_func setup;
+                handle_msg_func handle_msg;
                 pkt_handler_func pkt_handler;
                 callback_handler_func callback;
                 /* Deprecated, will be removed in the future advanced rings rework */
                 advanced_rings_func adv_rings;
-                setup_func setup;
-                handle_msg_func handle_msg;
         } functions;
 
         /*

@@ -192,11 +192,11 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 /* Sets service id of child */
                 scale_info->nf_init_cfg->service_id = destination;
                 /* Run the setup function to generate packets */
-                scale_info->setup = &nf_setup;
+                scale_info->functions.setup = &nf_setup;
                 if (use_shared_cpu_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Custom packet handler */
-                scale_info->pkt_handler = &packet_handler_fwd;
+                scale_info->functions.pkt_handler = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
                 scale_info->data = state_data;
 
@@ -232,7 +232,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 /* Get the filled in scale struct by inheriting parent properties */
                 scale_info = onvm_nflib_inherit_parent_config(nf, data);
                 scale_info->nf_init_cfg->service_id = destination;
-                scale_info->pkt_handler = &packet_handler_child;
+                scale_info->functions.pkt_handler = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
