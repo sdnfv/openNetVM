@@ -65,7 +65,7 @@ uint16_t starting_instance_id = 1;
  *
  */
 inline static int
-onvm_nf_start(struct onvm_nf_init_data *nf_init_data);
+onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg);
 
 /*
  * Function to mark a NF as ready.
@@ -139,7 +139,7 @@ onvm_nf_check_status(void) {
         void *msgs[MAX_NFS];
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
-        struct onvm_nf_init_data *nf_init_data;
+        struct onvm_nf_init_cfg *nf_init_cfg;
         struct lpm_request *req_lpm;
         uint16_t stop_nf_id;
         int num_msgs = rte_ring_count(incoming_msg_queue);
@@ -160,9 +160,9 @@ onvm_nf_check_status(void) {
                                 onvm_nf_init_lpm_region(req_lpm);
                                 break;
                         case MSG_NF_STARTING:
-                                nf_init_data = (struct onvm_nf_init_data *)msg->msg_data;
-                                if (onvm_nf_start(nf_init_data) == 0) {
-                                        onvm_stats_gen_event_nf_info("NF Starting", &nfs[nf_init_data->instance_id]);
+                                nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
+                                if (onvm_nf_start(nf_init_cfg) == 0) {
+                                        onvm_stats_gen_event_nf_info("NF Starting", &nfs[nf_init_cfg->instance_id]);
                                 }
                                 break;
                         case MSG_NF_READY:
@@ -208,7 +208,7 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
 /******************************Internal functions*****************************/
 
 inline static int
-onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
+onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
         struct onvm_nf *spawned_nf;
         uint16_t nf_id;
         int ret;
@@ -216,57 +216,57 @@ onvm_nf_start(struct onvm_nf_init_data *nf_init_data) {
         // take code from init_shm_rings in init.c
         // flush rx/tx queue at the this index to start clean?
 
-        if (nf_init_data == NULL || nf_init_data->status != NF_WAITING_FOR_ID)
+        if (nf_init_cfg == NULL || nf_init_cfg->status != NF_WAITING_FOR_ID)
                 return 1;
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        nf_id = nf_init_data->instance_id == (uint16_t)NF_NO_ID ? onvm_nf_next_instance_id() : nf_init_data->instance_id;
+        nf_id = nf_init_cfg->instance_id == (uint16_t)NF_NO_ID ? onvm_nf_next_instance_id() : nf_init_cfg->instance_id;
         spawned_nf = &nfs[nf_id];
 
         if (nf_id >= MAX_NFS) {
                 // There are no more available IDs for this NF
-                nf_init_data->status = NF_NO_IDS;
+                nf_init_cfg->status = NF_NO_IDS;
                 return 1;
         }
 
-        if (nf_init_data->service_id >= MAX_SERVICES) {
+        if (nf_init_cfg->service_id >= MAX_SERVICES) {
                 // Service ID must be less than MAX_SERVICES and greater than 0
-                nf_init_data->status = NF_SERVICE_MAX;
+                nf_init_cfg->status = NF_SERVICE_MAX;
                 return 1;
         }
 
-        if (nf_per_service_count[nf_init_data->service_id] >= MAX_NFS_PER_SERVICE) {
+        if (nf_per_service_count[nf_init_cfg->service_id] >= MAX_NFS_PER_SERVICE) {
                 // Maximum amount of NF's per service spawned
-                nf_init_data->status = NF_SERVICE_COUNT_MAX;
+                nf_init_cfg->status = NF_SERVICE_COUNT_MAX;
                 return 1;
         }
 
         if (onvm_nf_is_valid(spawned_nf)) {
                 // This NF is trying to declare an ID already in use
-                nf_init_data->status = NF_ID_CONFLICT;
+                nf_init_cfg->status = NF_ID_CONFLICT;
                 return 1;
         }
 
         // Keep reference to this NF in the manager
-        nf_init_data->instance_id = nf_id;
+        nf_init_cfg->instance_id = nf_id;
 
         /* If not successful return will contain the error code */
-        ret = onvm_threading_get_core(&nf_init_data->core, nf_init_data->init_options, cores);
+        ret = onvm_threading_get_core(&nf_init_cfg->core, nf_init_cfg->init_options, cores);
         if (ret != 0) {
-                nf_init_data->status = ret;
+                nf_init_cfg->status = ret;
                 return 1;
         }
 
         spawned_nf->instance_id = nf_id;
-        spawned_nf->service_id = nf_init_data->service_id;
+        spawned_nf->service_id = nf_init_cfg->service_id;
         spawned_nf->status = NF_STARTING;
-        spawned_nf->tag = nf_init_data->tag;
-        spawned_nf->thread_info.core = nf_init_data->core;
-        spawned_nf->flags.time_to_live = nf_init_data->time_to_live;
-        spawned_nf->flags.pkt_limit = nf_init_data->pkt_limit;
+        spawned_nf->tag = nf_init_cfg->tag;
+        spawned_nf->thread_info.core = nf_init_cfg->core;
+        spawned_nf->flags.time_to_live = nf_init_cfg->time_to_live;
+        spawned_nf->flags.pkt_limit = nf_init_cfg->pkt_limit;
         // Let the NF continue its init process
-        nf_init_data->status = NF_STARTING;
+        nf_init_cfg->status = NF_STARTING;
         return 0;
 }
 

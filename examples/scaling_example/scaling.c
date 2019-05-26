@@ -190,20 +190,20 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
                 *state_data = nf->service_id;
                 /* Sets service id of child */
-                scale_info->service_id = destination;
+                scale_info->nf_init_cfg->service_id = destination;
                 /* Run the setup function to generate packets */
-                scale_info->setup_func = &nf_setup;
+                scale_info->setup = &nf_setup;
                 if (use_shared_cpu_core_allocation)
-                        scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                        scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Custom packet handler */
-                scale_info->pkt_func = &packet_handler_fwd;
+                scale_info->pkt_handler = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
                 scale_info->data = state_data;
 
                 /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_fwd packet function\n",
-                                scale_info->service_id);
+                                scale_info->nf_init_cfg->service_id);
                 else
                         rte_exit(EXIT_FAILURE, "Can't spawn child\n");
                 spawned_nfs++;
@@ -231,14 +231,14 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 *(uint16_t *)data = destination;
                 /* Get the filled in scale struct by inheriting parent properties */
                 scale_info = onvm_nflib_inherit_parent_config(nf, data);
-                scale_info->service_id = destination;
-                scale_info->pkt_func = &packet_handler_child;
+                scale_info->nf_init_cfg->service_id = destination;
+                scale_info->pkt_handler = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
-                        scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                        scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
                         RTE_LOG(INFO, APP, "Spawning child SID %u; with packet_handler_child packet function\n",
-                                scale_info->service_id);
+                                scale_info->nf_init_cfg->service_id);
                 else
                         rte_exit(EXIT_FAILURE, "Can't initialize the first child!\n");
         }
@@ -291,12 +291,12 @@ run_advanced_rings(struct onvm_nf_context *nf_context) {
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf, data);
                         if (use_shared_cpu_core_allocation)
-                                scale_info->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
+                                scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                         RTE_LOG(INFO, APP, "NF %d trying to spawn child SID %u; running advanced_rings\n",
-                                nf->instance_id, scale_info->service_id);
+                                nf->instance_id, scale_info->nf_init_cfg->service_id);
                         if (onvm_nflib_scale(scale_info) == 0)
-                                RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->service_id);
+                                RTE_LOG(INFO, APP, "Spawning child SID %u\n", scale_info->nf_init_cfg->service_id);
                         else
                                 rte_exit(EXIT_FAILURE, "Can't initialize the child!\n");
                         spawned_nfs++;

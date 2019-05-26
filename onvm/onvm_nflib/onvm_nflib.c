@@ -90,7 +90,7 @@ uint16_t **services;
 uint16_t *nf_per_service_count;
 
 // Shared pool for all NFs info
-static struct rte_mempool *nf_init_data_mp;
+static struct rte_mempool *nf_init_cfg_mp;
 
 // Shared pool for mgr <--> NF messages
 static struct rte_mempool *nf_msg_pool;
@@ -113,19 +113,30 @@ uint8_t ONVM_ENABLE_SHARED_CPU;
 /***********************Internal Functions Prototypes*************************/
 
 /*
- * Function that initialize a NF info data structure.
+ * Function that initialize the NF init config data structure.
  *
  * Input  : the tag to name the NF
  * Output : the data structure initialized
  *
  */
-static struct onvm_nf_init_data *
-onvm_nflib_info_init(const char *tag);
+static struct onvm_nf_init_cfg *
+onvm_nflib_nf_init_cfg_init(const char *tag);
+
+/*
+ * Function that initialize the NF init config data structure.
+ * the arguments are copied from the parent information
+ *
+ * Input  : pointer to the parent NF
+ * Output : the data structure initialized
+ *
+ */
+static struct onvm_nf_init_cfg *
+onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent);
 
 /*
  * Function that initialize a nf tx info data structure.
  *
- * Input  : onvm_nf_init_data struct pointer
+ * Input  : onvm_nf_init_cfg struct pointer
  * Output : the data structure initialized
  *
  */
@@ -150,7 +161,7 @@ onvm_nflib_usage(const char *progname);
  *
  */
 static int
-onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_data);
+onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_cfg *nf_init_cfg);
 
 /*
  * Check if there are packets in this NF's RX Queue and process them
@@ -220,7 +231,7 @@ onvm_nflib_parse_config(struct onvm_configuration *onvm_config);
  * Input: Pointer to context struct of this NF
  */
 static int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data);
+onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_cfg *nf_init_cfg);
 
 /*
  * Entry point of the NF main loop
@@ -306,7 +317,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_context *nf_context, handle_signa
 
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_context *nf_context) {
-        struct onvm_nf_init_data *nf_init_data;
+        struct onvm_nf_init_cfg *nf_init_cfg;
         int ret, retval_eal, retval_parse, retval_final;
         int use_config = 0;
 
@@ -345,9 +356,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
         onvm_nflib_lookup_shared_structs();
 
         /* Initialize the info struct */
-        nf_init_data = onvm_nflib_info_init(nf_tag);
+        nf_init_cfg = onvm_nflib_nf_init_cfg_init(nf_tag);
 
-        if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_init_data)) < 0)
+        if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_init_cfg)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
         /* Reset getopt global variables opterr and optind to their default values */
@@ -364,7 +375,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_conte
          */
         retval_final = (retval_eal + retval_parse) - 1;
 
-        if ((ret = onvm_nflib_start_nf(nf_context, nf_init_data)) < 0)
+        if ((ret = onvm_nflib_start_nf(nf_context, nf_init_cfg)) < 0)
                 return ret;
 
         // Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
@@ -660,9 +671,8 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        scale_info->nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
         scale_info->parent = parent;
-        scale_info->instance_id = NF_NO_ID;
-        scale_info->init_options = 0;
 
         return scale_info;
 }
@@ -672,20 +682,16 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
-        scale_info->instance_id = NF_NO_ID;
-        scale_info->service_id = parent->service_id;
-        scale_info->tag = parent->tag;
-        scale_info->core = parent->thread_info.core;
-        scale_info->init_options = parent->flags.init_options;
+        scale_info->setup = parent->functions.setup;
+        scale_info->handle_msg = parent->functions.handle_msg;
         scale_info->data = data;
-        scale_info->setup_func = parent->functions.setup;
-        scale_info->handle_msg_function = parent->functions.handle_msg;
         if (parent->nf_mode == NF_MODE_SINGLE) {
-                scale_info->pkt_func = parent->functions.pkt_handler;
-                scale_info->callback_func = parent->functions.callback;
+                scale_info->pkt_handler = parent->functions.pkt_handler;
+                scale_info->callback = parent->functions.callback;
         } else if (parent->nf_mode == NF_MODE_RING) {
-                scale_info->adv_rings_func = parent->functions.adv_rings;
+                scale_info->adv_rings = parent->functions.adv_rings;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
                 return NULL;
@@ -721,9 +727,9 @@ onvm_nflib_lookup_shared_structs(void) {
         struct rte_mempool *mp;
         struct onvm_service_chain **scp;
 
-        /* Lookup mempool for nf_init_data struct */
-        nf_init_data_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
-        if (nf_init_data_mp == NULL)
+        /* Lookup mempool for nf_init_cfg struct */
+        nf_init_cfg_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
+        if (nf_init_cfg_mp == NULL)
                 rte_exit(EXIT_FAILURE, "No NF Info mempool - bye\n");
 
         /* Lookup mempool for NF messages */
@@ -789,7 +795,7 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
 }
 
 static int
-onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data *nf_init_data) {
+onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_cfg *nf_init_cfg) {
         struct onvm_nf_msg *startup_msg;
         struct onvm_nf *nf;
         int i;
@@ -810,65 +816,65 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data
 
         /* Put this NF's info struct onto queue for manager to process startup */
         if (rte_mempool_get(nf_msg_pool, (void **)(&startup_msg)) != 0) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back memory
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back memory
                 rte_exit(EXIT_FAILURE, "Cannot create startup msg");
         }
 
         /* Tell the manager we're ready to recieve packets */
         startup_msg->msg_type = MSG_NF_STARTING;
-        startup_msg->msg_data = nf_init_data;
+        startup_msg->msg_data = nf_init_cfg;
         if (rte_ring_enqueue(mgr_msg_queue, startup_msg) < 0) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);  // give back mermory
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);  // give back mermory
                 rte_mempool_put(nf_msg_pool, startup_msg);
-                rte_exit(EXIT_FAILURE, "Cannot send nf_init_data to manager");
+                rte_exit(EXIT_FAILURE, "Cannot send nf_init_cfg to manager");
         }
 
         /* Wait for a NF id to be assigned by the manager */
         RTE_LOG(INFO, APP, "Waiting for manager to assign an ID...\n");
-        for (; nf_init_data->status == (uint16_t)NF_WAITING_FOR_ID;) {
+        for (; nf_init_cfg->status == (uint16_t)NF_WAITING_FOR_ID;) {
                 sleep(1);
                 if (!rte_atomic16_read(&nf_context->keep_running)) {
                         /* Wait because we sent a message to the onvm_mgr */
-                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_data->status != NF_STARTING; i++)
+                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++)
                                 sleep(NF_TERM_WAIT_TIME);
                         return ONVM_SIGNAL_TERMINATION;
                 }
         }
 
         /* This NF is trying to declare an ID already in use. */
-        if (nf_init_data->status == NF_ID_CONFLICT) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        if (nf_init_cfg->status == NF_ID_CONFLICT) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
-        } else if (nf_init_data->status == NF_SERVICE_MAX) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_SERVICE_MAX) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
-        } else if (nf_init_data->status == NF_SERVICE_COUNT_MAX) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_SERVICE_COUNT_MAX) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d",
                          MAX_NFS_PER_SERVICE);
-        } else if (nf_init_data->status == NF_NO_IDS) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_NO_IDS) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
-        } else if (nf_init_data->status == NF_NO_CORES) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_NO_CORES) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
-        } else if (nf_init_data->status == NF_NO_DEDICATED_CORES) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_NO_DEDICATED_CORES) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_NO_IDS,
                          "There is no space to assign a dedicated core, "
                          "or manually selected core has NFs running\n");
-        } else if (nf_init_data->status == NF_CORE_OUT_OF_RANGE) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_CORE_OUT_OF_RANGE) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_NO_IDS, "Requested core is not enabled or not in range\n");
-        } else if (nf_init_data->status == NF_CORE_BUSY) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status == NF_CORE_BUSY) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(NF_NO_IDS, "Requested core is busy\n");
-        } else if (nf_init_data->status != NF_STARTING) {
-                rte_mempool_put(nf_init_data_mp, nf_init_data);
+        } else if (nf_init_cfg->status != NF_STARTING) {
+                rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
                 rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
         }
 
-        nf = &nfs[nf_init_data->instance_id];
+        nf = &nfs[nf_init_cfg->instance_id];
         nf->context = nf_context;
 
         /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
@@ -878,7 +884,7 @@ onvm_nflib_start_nf(struct onvm_nf_context *nf_context, struct onvm_nf_init_data
         }
 
         /* Init finished free the bootstrap struct */
-        rte_mempool_put(nf_init_data_mp, nf_init_data);
+        rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
 
         /* Set mode to UNKNOWN, to be determined later */
         nf->nf_mode = NF_MODE_UNKNOWN;
@@ -986,7 +992,7 @@ static void *
 onvm_nflib_start_child(void *arg) {
         struct onvm_nf *parent;
         struct onvm_nf *child;
-        struct onvm_nf_init_data *child_nf_init_data;
+        struct onvm_nf_init_cfg *child_nf_init_cfg;
         struct onvm_nf_scale_info *scale_info;
         struct onvm_nf_context *child_context;
 
@@ -996,33 +1002,25 @@ onvm_nflib_start_child(void *arg) {
         parent = &nfs[scale_info->parent->instance_id];
 
         /* Initialize the info struct */
-        child_nf_init_data = onvm_nflib_info_init(parent->tag);
+        child_nf_init_cfg = scale_info->nf_init_cfg;
 
-        /* Set child NF service and instance id */
-        child_nf_init_data->service_id = scale_info->service_id;
-        child_nf_init_data->instance_id = scale_info->instance_id;
-
-        /* Set child NF core options */
-        child_nf_init_data->core = scale_info->init_options;
-        child_nf_init_data->init_options = scale_info->init_options;
-
-        RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_nf_init_data->service_id,
-                child_nf_init_data->instance_id);
-        if (onvm_nflib_start_nf(child_context, child_nf_init_data) < 0) {
+        RTE_LOG(INFO, APP, "Starting child NF with service %u, instance id %u\n", child_nf_init_cfg->service_id,
+                child_nf_init_cfg->instance_id);
+        if (onvm_nflib_start_nf(child_context, child_nf_init_cfg) < 0) {
                 onvm_nflib_stop(child_context);
                 return NULL;
         }
 
-        child = &nfs[child_nf_init_data->instance_id];
+        child = &nfs[child_nf_init_cfg->instance_id];
         child_context->nf = child;
         /* Save the parent id for future clean up */
         child->thread_info.parent = parent->instance_id;
         /* Save nf specifc functions for possible future use */
-        child->functions.setup = scale_info->setup_func;
-        child->functions.pkt_handler = scale_info->pkt_func;
-        child->functions.callback = scale_info->callback_func;
-        child->functions.adv_rings = scale_info->adv_rings_func;
-        child->functions.handle_msg = scale_info->handle_msg_function;
+        child->functions.setup = scale_info->setup;
+        child->functions.pkt_handler = scale_info->pkt_handler;
+        child->functions.callback = scale_info->callback;
+        child->functions.adv_rings = scale_info->adv_rings;
+        child->functions.handle_msg = scale_info->handle_msg;
         /* Set nf state data */
         child->data = scale_info->data;
 
@@ -1030,9 +1028,9 @@ onvm_nflib_start_child(void *arg) {
                 onvm_nflib_run_callback(child_context, child->functions.pkt_handler, child->functions.callback);
         } else if (child->functions.adv_rings) {
                 onvm_nflib_nf_ready(child);
-                if (scale_info->setup_func != NULL)
-                        scale_info->setup_func(child_context);
-                scale_info->adv_rings_func(child_context);
+                if (child->functions.setup != NULL)
+                        child->functions.setup(child_context);
+                child->functions.adv_rings(child_context);
         } else {
                 /* Sanity check */
                 rte_exit(EXIT_FAILURE, "Spawned NF doesn't have a pkt_handler or an advanced rings function\n");
@@ -1079,41 +1077,57 @@ onvm_nflib_handle_signal(int sig) {
 
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
-        if (scale_info->service_id == 0 || (scale_info->pkt_func == NULL && scale_info->adv_rings_func == NULL) ||
-            (scale_info->pkt_func != NULL && scale_info->adv_rings_func != NULL))
+        if (scale_info->nf_init_cfg->service_id == 0 || 
+            (scale_info->pkt_handler == NULL && scale_info->adv_rings == NULL) ||
+            (scale_info->pkt_handler != NULL && scale_info->adv_rings != NULL))
                 return -1;
 
         return 0;
 }
 
-static struct onvm_nf_init_data *
-onvm_nflib_info_init(const char *tag) {
+static struct onvm_nf_init_cfg *
+onvm_nflib_nf_init_cfg_init(const char *tag) {
         void *mempool_data;
-        struct onvm_nf_init_data *info;
+        struct onvm_nf_init_cfg *nf_init_cfg;
 
-        if (rte_mempool_get(nf_init_data_mp, &mempool_data) < 0) {
-                rte_exit(EXIT_FAILURE, "Failed to get nf info memory\n");
+        if (rte_mempool_get(nf_init_cfg_mp, &mempool_data) < 0) {
+                rte_exit(EXIT_FAILURE, "Failed to get nf nf_init_cfg memory\n");
         }
 
         if (mempool_data == NULL) {
                 rte_exit(EXIT_FAILURE, "Client Info struct not allocated\n");
         }
 
-        info = (struct onvm_nf_init_data *)mempool_data;
-        info->instance_id = NF_NO_ID;
-        info->core = rte_lcore_id();
-        info->init_options = 0;
-        info->status = NF_WAITING_FOR_ID;
+        nf_init_cfg = (struct onvm_nf_init_cfg *)mempool_data;
+        nf_init_cfg->instance_id = NF_NO_ID;
+        nf_init_cfg->core = rte_lcore_id();
+        nf_init_cfg->init_options = 0;
+        nf_init_cfg->status = NF_WAITING_FOR_ID;
 
         /* Allocate memory for the tag so that onvm_mgr can access it */
-        info->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
-        strncpy(info->tag, tag, TAG_SIZE);
+        nf_init_cfg->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
+        strncpy(nf_init_cfg->tag, tag, TAG_SIZE);
 
         /* TTL and packet limit disabled by default */
-        info->time_to_live = 0;
-        info->pkt_limit = 0;
+        nf_init_cfg->time_to_live = 0;
+        nf_init_cfg->pkt_limit = 0;
 
-        return info;
+        return nf_init_cfg;
+}
+
+static struct onvm_nf_init_cfg *
+onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent) {
+        struct onvm_nf_init_cfg *nf_init_cfg;
+
+        nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
+
+        nf_init_cfg->service_id = parent->service_id;
+        nf_init_cfg->core = parent->thread_info.core;
+        nf_init_cfg->init_options = parent->flags.init_options;
+        nf_init_cfg->time_to_live = parent->flags.time_to_live;
+        nf_init_cfg->pkt_limit = parent->flags.pkt_limit;
+
+        return nf_init_cfg;
 }
 
 static void
@@ -1139,7 +1153,7 @@ onvm_nflib_usage(const char *progname) {
 }
 
 static int
-onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_data) {
+onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_cfg *nf_init_cfg) {
         const char *progname = argv[0];
         int c, initial_instance_id;
         int service_id = -1;
@@ -1149,7 +1163,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_
                 switch (c) {
                         case 'n':
                                 initial_instance_id = (uint16_t)strtoul(optarg, NULL, 10);
-                                nf_init_data->instance_id = initial_instance_id;
+                                nf_init_cfg->instance_id = initial_instance_id;
                                 break;
                         case 'r':
                                 service_id = (uint16_t)strtoul(optarg, NULL, 10);
@@ -1158,24 +1172,24 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_
                                         service_id = -1;
                                 break;
                         case 't':
-                                nf_init_data->time_to_live = (uint16_t) strtoul(optarg, NULL, 10);
-                                if (nf_init_data->time_to_live == 0) {
+                                nf_init_cfg->time_to_live = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_init_cfg->time_to_live == 0) {
                                         fprintf(stderr, "Time to live argument can't be 0\n");
                                         return -1;
                                 }
                                 break;
                         case 'l':
-                                nf_init_data->pkt_limit = (uint16_t) strtoul(optarg, NULL, 10);
-                                if (nf_init_data->pkt_limit == 0) {
+                                nf_init_cfg->pkt_limit = (uint16_t) strtoul(optarg, NULL, 10);
+                                if (nf_init_cfg->pkt_limit == 0) {
                                         fprintf(stderr, "Packet time to live argument can't be 0\n");
                                         return -1;
                                 }
                                 break;
                         case 'm':
-                                nf_init_data->init_options = ONVM_SET_BIT(nf_init_data->init_options, MANUAL_CORE_ASSIGNMENT_BIT);
+                                nf_init_cfg->init_options = ONVM_SET_BIT(nf_init_cfg->init_options, MANUAL_CORE_ASSIGNMENT_BIT);
                                 break;
                         case 's':
-                                nf_init_data->init_options = ONVM_SET_BIT(nf_init_data->init_options, SHARE_CORE_BIT);
+                                nf_init_cfg->init_options = ONVM_SET_BIT(nf_init_cfg->init_options, SHARE_CORE_BIT);
                                 break;
                         case '?':
                                 onvm_nflib_usage(progname);
@@ -1195,7 +1209,7 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_data *nf_init_
                 fprintf(stderr, "You must provide a nonzero service ID with -r\n");
                 return -1;
         }
-        nf_init_data->service_id = service_id;
+        nf_init_cfg->service_id = service_id;
 
         return optind;
 }
