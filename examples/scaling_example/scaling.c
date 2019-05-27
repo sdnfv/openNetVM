@@ -95,6 +95,7 @@ void sig_handler(int sig) {
         if (sig != SIGINT && sig != SIGTERM)
                 return;
 
+
         /* Specific signal handling logic can be implemented here */
 }
 
@@ -251,6 +252,11 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
+struct child_spawn_info {
+        struct onvm_nf_init_cfg *child_cfg;
+        struct onvm_nf *parent;
+};
+
 static void
 run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct onvm_nf *nf;
@@ -267,10 +273,17 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
                 /* Prepare state data for the child */
                 child_cfg->service_id = nf->service_id;
-                pthread_create(&nf_thread[i], NULL, start_child, (void *)child_cfg);
+                struct child_spawn_info *child_data = malloc(sizeof(struct child_spawn_info));
+                child_data->child_cfg = child_cfg;
+                child_data->parent = nf;
+                /* Increment the children count because we want the ovnm_nflib to handle children termination */
+                rte_atomic16_inc(&nf->thread_info.children_cnt);
+                pthread_create(&nf_thread[i], NULL, start_child, (void *)child_data);
         }
-        
-        /* need children & parent nflib_stop cleanup */
+
+        thread_main_loop(nf_local_ctx);
+        onvm_nflib_stop(nf_local_ctx);
+
         for (i = 0; i < num_children; i++) {
                 pthread_join(nf_thread[i], NULL);
         }
@@ -278,16 +291,27 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
 
 void *
 start_child(void *arg) {
-        struct onvm_nf_local_ctx *nf_local_ctx;
-        struct onvm_nf_init_cfg * nf_init_cfg;
+        struct onvm_nf_local_ctx *child_local_ctx;
+        struct onvm_nf_init_cfg *child_init_cfg;
+        struct onvm_nf *parent;
+        struct child_spawn_info *spawn_info;
 
-        nf_init_cfg = (struct onvm_nf_init_cfg*) arg;
-        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
-        //check return code
-        onvm_nflib_start_nf(nf_local_ctx, nf_init_cfg);
+        spawn_info = (struct child_spawn_info *)arg;
+        child_init_cfg = spawn_info->child_cfg;
+        parent = spawn_info->parent; 
+        child_local_ctx = onvm_nflib_init_nf_local_ctx();
 
-        thread_main_loop(nf_local_ctx);
-        onvm_nflib_stop(nf_local_ctx);
+        if (onvm_nflib_start_nf(child_local_ctx, child_init_cfg) < 0) {
+                printf("Failed to spawn child NF\n");
+                return NULL;
+        }
+
+        /* Keep track of parent for proper termination */
+        child_local_ctx->nf->thread_info.parent = parent->instance_id;
+
+        thread_main_loop(child_local_ctx);
+        onvm_nflib_stop(child_local_ctx);
+        free(spawn_info);
         return NULL;
 }
 
@@ -306,10 +330,10 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct rte_mempool *nf_msg_pool;
 
         nf = nf_local_ctx->nf;
- 
+
         /* This is a bit ackward, maybe return data back into init struct */
         void *data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
-        *(uint16_t *)data = destination;       
+        *(uint16_t *)data = destination;
         nf->data = data;
 
         onvm_nflib_nf_ready(nf);
@@ -321,14 +345,12 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
-        nf->data = data;
-
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
         while (rte_atomic16_read(&nf_local_ctx->keep_running) && rx_ring && tx_ring && nf) {
-                /* Check for a stop message from the manager. */
+                /* Check for a stop message from the manager */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
                         rte_ring_dequeue(msg_q, (void **)(&msg));
@@ -341,7 +363,7 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
 
                 tx_batch_size = 0;
-                /* Dequeue all packets in ring up to max possible. */
+                /* Dequeue all packets in ring up to max possible */
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
@@ -417,7 +439,6 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
-        struct onvm_nf *nf;
         struct onvm_nf_local_ctx *nf_local_ctx;
         int i;
 
@@ -459,14 +480,12 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        nf = nf_local_ctx->nf;
-
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf, &nf_setup);
+        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
 
-        nf->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
-        *(uint16_t *)nf->data = nf->service_id;
+        nf_local_ctx->nf->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
+        *(uint16_t *)nf_local_ctx->nf->data = nf_local_ctx->nf->service_id;
 
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
@@ -474,8 +493,8 @@ main(int argc, char *argv[]) {
         } else {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
                 onvm_nflib_run(nf_local_ctx, &packet_handler);
+                onvm_nflib_stop(nf_local_ctx);
         }
-        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
