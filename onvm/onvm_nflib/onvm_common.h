@@ -216,7 +216,7 @@ struct onvm_nf;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                                 __attribute__((unused)) struct onvm_nf *nf);
-/* Function prototype for NF callback handlers */
+/* Function prototype for NF the callback */
 typedef int (*callback_func)(__attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NFs running advanced rings 
  * Deprecated, will be removed in the future advanced rings rework 
