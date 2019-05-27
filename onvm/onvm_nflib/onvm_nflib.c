@@ -120,7 +120,7 @@ uint8_t ONVM_ENABLE_SHARED_CPU;
  *
  */
 static struct onvm_nf_init_cfg *
-onvm_nflib_nf_init_cfg_init(const char *tag);
+onvm_nflib_init_nf_init_cfg(const char *tag);
 
 /*
  * Function that initialize the NF init config data structure.
@@ -356,7 +356,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
         onvm_nflib_lookup_shared_structs();
 
         /* Initialize the info struct */
-        nf_init_cfg = onvm_nflib_nf_init_cfg_init(nf_tag);
+        nf_init_cfg = onvm_nflib_init_nf_init_cfg(nf_tag);
 
         if ((retval_parse = onvm_nflib_parse_args(argc, argv, nf_init_cfg)) < 0)
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
@@ -671,7 +671,7 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
-        scale_info->nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
+        scale_info->nf_init_cfg = onvm_nflib_init_nf_init_cfg(parent->tag);
         scale_info->parent = parent;
 
         return scale_info;
@@ -1086,7 +1086,7 @@ onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
 }
 
 static struct onvm_nf_init_cfg *
-onvm_nflib_nf_init_cfg_init(const char *tag) {
+onvm_nflib_init_nf_init_cfg(const char *tag) {
         void *mempool_data;
         struct onvm_nf_init_cfg *nf_init_cfg;
 
@@ -1119,7 +1119,7 @@ static struct onvm_nf_init_cfg *
 onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent) {
         struct onvm_nf_init_cfg *nf_init_cfg;
 
-        nf_init_cfg = onvm_nflib_nf_init_cfg_init(parent->tag);
+        nf_init_cfg = onvm_nflib_init_nf_init_cfg(parent->tag);
 
         nf_init_cfg->service_id = parent->service_id;
         nf_init_cfg->core = parent->thread_info.core;
