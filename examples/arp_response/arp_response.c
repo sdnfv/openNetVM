@@ -279,9 +279,9 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                 switch (rte_cpu_to_be_16(in_arp_hdr->arp_op)) {
                         case ARP_OP_REQUEST:
-                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == 
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) ==
                                                 state_info->source_ips[ports->id[pkt->port]]) {
-                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr, 
+                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr,
                                                                 in_arp_hdr->arp_data.arp_sip, nf);
                                         if (state_info->print_flag) {
                                                 printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,

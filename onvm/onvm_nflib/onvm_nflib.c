@@ -455,7 +455,7 @@ onvm_nflib_thread_main_loop(void *arg) {
 
                 onvm_nflib_dequeue_messages(nf_local_ctx);
                 if (callback != ONVM_NO_CALLBACK) {
-                        rte_atomic16_set(&nf_local_ctx->keep_running, 
+                        rte_atomic16_set(&nf_local_ctx->keep_running,
                                          !(*callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
@@ -1079,7 +1079,7 @@ onvm_nflib_handle_signal(int sig) {
 
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
-        if (scale_info->nf_init_cfg->service_id == 0 || 
+        if (scale_info->nf_init_cfg->service_id == 0 ||
             (scale_info->functions.pkt_handler == NULL && scale_info->functions.adv_rings == NULL) ||
             (scale_info->functions.pkt_handler != NULL && scale_info->functions.adv_rings != NULL))
                 return -1;
