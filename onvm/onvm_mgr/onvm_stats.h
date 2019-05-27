@@ -67,7 +67,13 @@ extern const char *NF_MSG[3];
         "           out   /    tonf     /   drop\n"\
         "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
         "----------------------------------------------------------------------------------------------------------------------\n";
-
+#define ONVM_STATS_SHARED_CPU_MSG \
+        "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"\
+        "           out   /    tonf     /   drop\n"\
+        "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop"\
+        "           next  /    buf      /   ret\n"\
+        "         children / state / parent                       num_wakeups / wakeup_rate\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
 #define ONVM_STATS_FOPEN_ARGS "w+"
 #define ONVM_STATS_PATH_BASE "../onvm_web/"
 #define ONVM_JSON_STATS_FILE ONVM_STATS_PATH_BASE "onvm_json_stats.json"

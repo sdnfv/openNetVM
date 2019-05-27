@@ -403,13 +403,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
 
         NF_MSG[0] = ONVM_STATS_MSG;
         if (ONVM_ENABLE_SHARED_CPU) {
-                NF_MSG[1] =
-                    "\nNF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop"
-                    "           out   /    tonf     /   drop\n"
-                    "                                 drop_pps  /  drop_pps      rx_drop  /  tx_drop"
-                    "           next  /    buf      /   ret\n"
-                    "                   nf_state    num_wakeups /  wakeup_rate\n"
-                    "----------------------------------------------------------------------------------------------------------------------\n";
+                NF_MSG[1] = ONVM_STATS_SHARED_CPU_MSG;
         } else
                 NF_MSG[1] = ONVM_STATS_ADV_MSG;
         NF_MSG[2] = "";
@@ -470,15 +464,15 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const uint64_t num_wakeups = nf_wakeup_infos[i].num_wakeups;
                 const uint64_t prev_num_wakeups = nf_wakeup_infos[i].prev_num_wakeups;
                 const uint64_t wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
-                const char *state;
+                char state;
 
                 uint8_t active = 0;
                 if (ONVM_ENABLE_SHARED_CPU)
                         active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
                 if (!active) {
-                        state = "working ";
+                        state = 'W';
                 } else {
-                        state = "sleeping";
+                        state = 'S';
                 }
 
                 /* Save stats for NFs with same service id */
@@ -516,8 +510,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 tx_pps, rx, tx, act_out, act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next,
                                 act_buffer, act_returned);
                         if (ONVM_ENABLE_SHARED_CPU)
-                                fprintf(stats_out, "                    %s   %11" PRIu64 " / %-11" PRIu64"\n",
-                                        state, num_wakeups, wakeup_rate);
+                                fprintf(stats_out, "            %5" PRId16 "  /  %c  /  %u                            %11" 
+                                        PRIu64 " / %-11" PRIu64"\n",
+                                        rte_atomic16_read(&nfs[i].children_cnt), state, nfs[i].parent, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
                 } else {
                         fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
