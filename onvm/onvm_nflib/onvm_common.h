@@ -217,7 +217,7 @@ struct onvm_nf;
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                                 __attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NF callback handlers */
-typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf *nf);
+typedef int (*callback_func)(__attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NFs running advanced rings 
  * Deprecated, will be removed in the future advanced rings rework 
  */
@@ -237,8 +237,8 @@ struct onvm_nf_scale_info {
         struct {
                 setup_func setup;
                 handle_msg_func handle_msg;
+                callback_func callback;
                 pkt_handler_func pkt_handler;
-                callback_handler_func callback;
                 /* Deprecated, will be removed in the future advanced rings rework */
                 advanced_rings_func adv_rings;
         } functions;
@@ -290,8 +290,8 @@ struct onvm_nf {
         struct {
                 setup_func setup;
                 handle_msg_func handle_msg;
+                callback_func callback;
                 pkt_handler_func pkt_handler;
-                callback_handler_func callback;
                 /* Deprecated, will be removed in the future advanced rings rework */
                 advanced_rings_func adv_rings;
         } functions;

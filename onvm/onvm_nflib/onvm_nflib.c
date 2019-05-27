@@ -387,7 +387,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
 }
 
 int
-onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_handler_func callback) {
+onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_func callback) {
         struct onvm_nf *nf;
         int ret;
 
@@ -421,7 +421,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf *nf;
         uint16_t nb_pkts_added;
         pkt_handler_func handler;
-        callback_handler_func callback;
+        callback_func callback;
         uint64_t start_time;
         int ret;
 

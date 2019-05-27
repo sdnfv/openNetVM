@@ -119,7 +119,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
  */
 int
 onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_handler,
-                        callback_handler_func callback_handler);
+                        callback_func callback_handler);
 
 /**
  * Runs the OpenNetVM container library, without using the callback function.
