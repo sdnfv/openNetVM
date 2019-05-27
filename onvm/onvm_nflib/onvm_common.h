@@ -245,8 +245,10 @@ struct onvm_nf_local_ctx {
 };
 
 /*
- * Define a nf structure with all needed info, including
- * stats from the nfs.
+ * Define a NF structure with all needed info, including:
+ *      thread information, function callbacks, flags, stats and shared core info.
+ *
+ * This structure is available in the NF when processing packets or executing the callback.
  */
 struct onvm_nf {
         struct rte_ring *rx_q;
@@ -321,8 +323,7 @@ struct onvm_nf {
 };
 
 /*
- * Define a structure to describe one NF
- * This structure is available in the NF when processing packets or executing the callback.
+ * The config structure to inialize the NF with onvm_mgr
  */
 struct onvm_nf_init_cfg {
         uint16_t instance_id;

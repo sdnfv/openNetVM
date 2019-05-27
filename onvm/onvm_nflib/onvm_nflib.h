@@ -139,8 +139,8 @@ onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_hand
  * Return a packet that was created by the NF or has previously had the
  * ONVM_NF_ACTION_BUFFER action called on it.
  *
- * @param info
- *    Pointer to a struct containing information used to describe this NF.
+ * @param nf
+ *    Pointer to a struct containing information about this NF.
  * @param pkt
  *    a pointer to a packet that should now have a action other than buffer.
  * @return
@@ -168,8 +168,8 @@ onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t 
  * This only needs to be called when the NF is using advanced rings
  * Otherwise, onvm_nflib_run will call this
  *
- * @param info
- *    A pointer to this NF's info struct
+ * @param nf
+ *    Pointer to a struct containing information about this NF.
  * @return
  *    0 on success, or a negative value on failure
  */
@@ -221,8 +221,8 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx);
  * NOTE: This function doesn't work for advanced rings main NFs, but works for their children.
  *       For the main NF just manually call the function.
  *
- * @param info
- *   An info struct describing this NF app.
+ * @param nf
+ *   An onvm_nf struct describing this NF.
  * @param setup
  *   A NF setup function that runs before running the NF.
  */
@@ -257,8 +257,8 @@ onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent);
  * Allocates an empty scaling config to be filled in by the NF.
  * Defines the instance_id to NF_NO_ID..
  *
- * @param info
- *   An info struct describing this NF app.
+ * @param nf
+ *   An onvm_nf struct describing this NF.
  * @return
  *   Pointer to onvm_nf_scale_info structure for running onvm_nflib_scale
  */
@@ -269,9 +269,10 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf *nf);
  * Fill the onvm_nflib_scale_info with the infromation of the parent, inherits
  * service id, pkt functions(setup, pkt_handler, callback, advanced rings).
  *
- * @param info
- *   An info struct describing this NF app.
- *   Data pointer for the scale_info.
+ * @param nf
+ *   An onvm_nf struct describing this NF.
+ * @param data
+ *   Void data pointer for the scale_info.
  * @return
  *   Pointer to onvm_nf_scale_info structure which can be used to run onvm_nflib_scale
  */
@@ -281,8 +282,8 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *nf, void *data);
 /*
  * Scales the NF. Determines the core to scale to, and starts a new thread for the NF.
  *
- * @param id
- *   An Info struct describing this NF app.
+ * @param scale_info
+ *   A scale info struct describing the child NF to be launched
  * @return
  *   Error code or 0 if successful.
  */
