@@ -155,7 +155,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-                RTE_LOG(INFO, APP, "Destination id not passed, running default example funcitonality.\n");
+                RTE_LOG(INFO, APP, "Destination id not passed, running default example funcitonality.\n                  ");
                 return -1;
         }
 
