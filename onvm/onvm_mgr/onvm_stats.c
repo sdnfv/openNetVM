@@ -341,13 +341,11 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 "%" PRIu64 "\n", buffer,
+                        fprintf(stats_out, ONVM_STATS_ADV_PORTS, buffer,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
-                        fprintf(stats_out, "Port %u - rx: %9" PRIu64 "  (%9" PRIu64
-                                           " pps)\t"
-                                           "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n",
+                        fprintf(stats_out, ONVM_STATS_REG_PORTS,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
                 }
 
@@ -494,29 +492,21 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 }
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%s,%u,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ", %d\n",
+                        fprintf(stats_out, ONVM_STATS_RAW_DUMP_CONTENT,
                                 buffer, nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core,
                                 rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop,
                                 act_next, act_buffer, act_returned, num_wakeups, wakeup_rate, active);
                 } else if (verbosity_level == 2) {
-                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
-                                           "\n"
-                                           "                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                        fprintf(stats_out, ONVM_STATS_ADV_CONTENT,
                                 nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps,
                                 tx_pps, rx, tx, act_out, act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next,
                                 act_buffer, act_returned);
                         if (ONVM_ENABLE_SHARED_CPU)
-                                fprintf(stats_out, "            %5" PRId16 "  /  %c  /  %u                            %11" 
-                                        PRIu64 " / %-11" PRIu64"\n",
+                                fprintf(stats_out, ONVM_STATS_SHARED_CPU_CONTENT,
                                         rte_atomic16_read(&nfs[i].children_cnt), state, nfs[i].parent, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
                 } else {
-                        fprintf(stats_out, "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
+                        fprintf(stats_out, ONVM_STATS_REG_CONTENT,
                                 nfs[i].info->tag, nfs[i].info->instance_id, nfs[i].info->service_id, nfs[i].info->core, rx_pps,
                                 tx_pps, rx_drop, tx_drop, act_out, act_tonf, act_drop);
                 }
@@ -559,21 +549,14 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         if (nfs_for_service == 0)
                                 continue;
                         if (verbosity_level == 2) {
-                                fprintf(
-                                    stats_out, "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64
-                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
-                                               "\n"
-                                               "                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64
-                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                                fprintf(stats_out, ONVM_STATS_ADV_TOTALS,
                                     i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                     rx_for_service[i], tx_for_service[i], act_out_for_service[i],
                                     act_tonf_for_service[i], act_drop_for_service[i], rx_drop_rate_for_service[i],
                                     tx_drop_rate_for_service[i], rx_drop_for_service[i], tx_drop_for_service[i],
                                     act_next_for_service[i], act_buffer_for_service[i], act_returned_for_service[i]);
                         } else {
-                                fprintf(stats_out,
-                                        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64
-                                        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
+                                fprintf(stats_out, ONVM_STATS_REG_TOTALS,
                                         i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                         rx_drop_for_service[i], tx_drop_for_service[i], act_out_for_service[i],
                                         act_tonf_for_service[i], act_drop_for_service[i]);
