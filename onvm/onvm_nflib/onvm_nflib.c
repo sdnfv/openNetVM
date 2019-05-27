@@ -491,7 +491,7 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 }
 
 int
-onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_handler_func callback) {
+onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_func callback) {
         struct onvm_nf *nf;
         int ret;
 
@@ -519,7 +519,7 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf *nf;
         uint16_t nb_pkts_added;
         pkt_handler_func handler;
-        callback_handler_func callback;
+        callback_func callback;
         uint64_t start_time;
         int ret;
 
@@ -553,7 +553,8 @@ onvm_nflib_thread_main_loop(void *arg) {
 
                 onvm_nflib_dequeue_messages(nf_local_ctx);
                 if (callback != ONVM_NO_CALLBACK) {
-                        rte_atomic16_set(&nf_local_ctx->keep_running, !(*callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
+                        rte_atomic16_set(&nf_local_ctx->keep_running,
+                                         !(*callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
@@ -561,7 +562,8 @@ onvm_nflib_thread_main_loop(void *arg) {
                         printf("Time to live exceeded, shutting down\n");
                         rte_atomic16_set(&nf_local_ctx->keep_running, 0);
                 }
-                if (nf->flags.pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf->flags.pkt_limit * PKT_TTL_MULTIPLIER)) {
+                if (nf->flags.pkt_limit && unlikely(nf->stats.rx >= (uint64_t)nf->flags.pkt_limit *
+                                                                    PKT_TTL_MULTIPLIER)) {
                         printf("Packet limit exceeded, shutting down\n");
                         rte_atomic16_set(&nf_local_ctx->keep_running, 0);
                 }
@@ -1080,7 +1082,8 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_cfg *nf_init_c
                                 }
                                 break;
                         case 'm':
-                                nf_init_cfg->init_options = ONVM_SET_BIT(nf_init_cfg->init_options, MANUAL_CORE_ASSIGNMENT_BIT);
+                                nf_init_cfg->init_options = ONVM_SET_BIT(nf_init_cfg->init_options,
+                                                                         MANUAL_CORE_ASSIGNMENT_BIT);
                                 break;
                         case 's':
                                 nf_init_cfg->init_options = ONVM_SET_BIT(nf_init_cfg->init_options, SHARE_CORE_BIT);

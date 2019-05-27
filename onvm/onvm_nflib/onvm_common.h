@@ -216,8 +216,8 @@ struct onvm_nf;
 /* Function prototype for NF packet handlers */
 typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                                 __attribute__((unused)) struct onvm_nf *nf);
-/* Function prototype for NF callback handlers */
-typedef int (*callback_handler_func)(__attribute__((unused)) struct onvm_nf *nf);
+/* Function prototype for NF the callback */
+typedef int (*callback_func)(__attribute__((unused)) struct onvm_nf *nf);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*setup_func)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
@@ -233,8 +233,8 @@ struct onvm_nf_scale_info {
         struct {
                 setup_func setup;
                 handle_msg_func handle_msg;
+                callback_func callback;
                 pkt_handler_func pkt_handler;
-                callback_handler_func callback;
         } functions;
 };
 
@@ -282,8 +282,8 @@ struct onvm_nf {
         struct {
                 setup_func setup;
                 handle_msg_func handle_msg;
+                callback_func callback;
                 pkt_handler_func pkt_handler;
-                callback_handler_func callback;
         } functions;
 
         /*
