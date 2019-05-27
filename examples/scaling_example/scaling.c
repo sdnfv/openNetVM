@@ -264,7 +264,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         for (i = 0; i < num_children; i++) {
                 struct onvm_nf_init_cfg *child_cfg;
-                child_cfg = onvm_nflib_nf_init_cfg_init(nf->tag);
+                child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
                 /* Prepare state data for the child */
                 child_cfg->service_id = nf->service_id;
                 pthread_create(&nf_thread[i], NULL, start_child, (void *)child_cfg);

@@ -240,7 +240,7 @@ onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_hand
  *
  */
 struct onvm_nf_init_cfg *
-onvm_nflib_nf_init_cfg_init(const char *tag);
+onvm_nflib_init_nf_init_cfg(const char *tag);
 
 /*
  * Function that initialize the NF init config data structure.
