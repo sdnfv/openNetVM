@@ -420,17 +420,12 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf *nf;
         uint16_t nb_pkts_added;
-        pkt_handler_func handler;
-        callback_func callback;
         uint64_t start_time;
         int ret;
 
         nf_local_ctx = (struct onvm_nf_local_ctx *)arg;
         nf = nf_local_ctx->nf;
         onvm_threading_core_affinitize(nf->thread_info.core);
-
-        handler = nf->functions.pkt_handler;
-        callback = nf->functions.callback;
 
         printf("Sending NF_READY message to manager...\n");
         ret = onvm_nflib_nf_ready(nf);
@@ -443,7 +438,7 @@ onvm_nflib_thread_main_loop(void *arg) {
 
         start_time = rte_get_tsc_cycles();
         for (; rte_atomic16_read(&nf_local_ctx->keep_running);) {
-                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
+                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, nf->functions.pkt_handler);
 
                 if (likely(nb_pkts_added > 0)) {
                         onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pkts, nb_pkts_added, nf);
@@ -454,9 +449,9 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
 
                 onvm_nflib_dequeue_messages(nf_local_ctx);
-                if (callback != ONVM_NO_CALLBACK) {
+                if (nf->functions.callback != ONVM_NO_CALLBACK) {
                         rte_atomic16_set(&nf_local_ctx->keep_running,
-                                         !(*callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
+                                         !(*nf->functions.callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
@@ -1293,8 +1288,6 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         free(nf->nf_tx_mgr->nf_rx_bufs);
                         nf->nf_tx_mgr->nf_rx_bufs = NULL;
                 }
-        }
-        if (nf->nf_tx_mgr != NULL) {
                 free(nf->nf_tx_mgr);
                 nf->nf_tx_mgr = NULL;
         }
@@ -1313,10 +1306,9 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 
         /* Cleanup context */
-        if (nf->context != NULL) {
-                free(nf->context);
-                nf->context = NULL;
-        }
+        free(nf_local_ctx);
+        nf->context = NULL;
+
 }
 
 static void
