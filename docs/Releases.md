@@ -18,13 +18,42 @@ is the month.
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
 
+The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
+
+
 Usage:
-Run NFs as usual but include the `-c` flag for the onvm_mgr to enable the shared cpu mode.
+  - To enable shared core mode pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they can share cores with other NFs
+
+Notes:
+  - All code for sharing CPUs is within `if (ONVM_ENABLE_SHARED_CPU)` blocks
+  - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets
+  - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
+  - Note that the manager threads all still use polling
 
 ### Major Architectureal/API/Initialization/Signal Handling Changes:
-Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.
-Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.
+Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
+Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
 Instead of `onvm_nf_info` the NF will now pass the `onvm_nf_init_ctx` struct to onvm_mgr. This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool. 
+
+The new NF launch/shutdown sequence looks as follows:
+```
+        struct onvm_nf_local_ctx *nf_local_ctx;
+
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0)
+                // error checks
+
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0)
+                // error checks
+
+        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_stop(nf_local_ctx);
+```
 
 ### CI PR Review:
 CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purpoces. The new CI system is able to approve/reject pull requsts.
@@ -32,6 +61,21 @@ CI currently performs these checks:
  - Check the branch (for our discussed change of develop->master as main branch)
  - Run performance check (speed tester currently with 35mil benchmark)
  - Run linter (only on files from the PR diff)
+
+### LPM Firewall NF:
+FILL_IN
+
+### Payload Search NF:
+FILL_IN
+
+### TTL Flags:
+FILL_IN
+
+### Minor improvements
+FILL_IN
+
+### Bug fixes:
+FILL_IN
 
 **v19.05 API Changes:**
 FILL_IN
