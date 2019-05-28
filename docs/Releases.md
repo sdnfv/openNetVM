@@ -14,6 +14,9 @@ like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
 ## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, CI PR Review, Web Stats Updates, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+**This release features a lot of breaking API changes.**
 
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
