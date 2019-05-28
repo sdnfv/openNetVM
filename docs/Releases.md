@@ -13,6 +13,32 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, CI PR Review, Web Stats Updates, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+
+### Shared Core Mode:
+This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
+
+Usage:
+Run NFs as usual but include the `-c` flag for the onvm_mgr to enable the shared cpu mode.
+
+### Major Architectureal/API/Initialization/Signal Handling Changes:
+Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.
+Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.
+Instead of `onvm_nf_info` the NF will now pass the `onvm_nf_init_ctx` struct to onvm_mgr. This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool. 
+
+### CI PR Review:
+CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purpoces. The new CI system is able to approve/reject pull requsts.
+CI currently performs these checks:
+ - Check the branch (for our discussed change of develop->master as main branch)
+ - Run performance check (speed tester currently with 35mil benchmark)
+ - Run linter (only on files from the PR diff)
+
+**v19.05 API Changes:**
+FILL_IN
+
+**v19.05 API Additions:**
+FILL_IN
+
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
