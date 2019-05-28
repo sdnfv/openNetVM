@@ -1306,9 +1306,9 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 
         /* Cleanup context */
-        free(nf_local_ctx);
         nf->context = NULL;
-
+        nf_local_ctx->nf = NULL;
+        free(nf_local_ctx);
 }
 
 static void
