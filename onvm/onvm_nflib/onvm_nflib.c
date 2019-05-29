@@ -276,6 +276,18 @@ onvm_nflib_init_nf_local_ctx(void) {
         return nf_local_ctx;
 }
 
+struct onvm_nf_function_table *
+onvm_nflib_init_nf_function_table(pkt_handler_func pkt_handler) {
+        struct onvm_nf_function_table *nf_function_table;
+
+        nf_function_table = (struct onvm_nf_function_table*)calloc(1, sizeof(struct onvm_nf_function_table));
+        if (nf_function_table == NULL)
+                rte_exit(EXIT_FAILURE, "Failed to allocate memory for NF context\n");
+        nf_function_table->pkt_handler = pkt_handler;
+
+        return nf_function_table;
+}
+
 int
 onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
         struct onvm_nf_msg *request_message;
@@ -387,7 +399,7 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
 }
 
 int
-onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_func callback) {
+onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_function_table *nf_function_table) {
         struct onvm_nf *nf;
         int ret;
 
@@ -400,8 +412,7 @@ onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func
         nf->nf_mode = NF_MODE_SINGLE;
 
         /* Save the nf specifc functions, can be used if NFs spawn new threads */
-        nf->functions.pkt_handler = handler;
-        nf->functions.callback = callback;
+        nf->functions = nf_function_table;
 
         pthread_t main_loop_thread;
         if ((ret = pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf_local_ctx)) < 0) {
@@ -433,12 +444,12 @@ onvm_nflib_thread_main_loop(void *arg) {
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
         /* Run the setup function (this might send pkts so done after the state change) */
-        if (nf->functions.setup != NULL)
-                nf->functions.setup(nf_local_ctx);
+        if (nf->functions->setup != NULL)
+                nf->functions->setup(nf_local_ctx);
 
         start_time = rte_get_tsc_cycles();
         for (; rte_atomic16_read(&nf_local_ctx->keep_running);) {
-                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, nf->functions.pkt_handler);
+                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, nf->functions->pkt_handler);
 
                 if (likely(nb_pkts_added > 0)) {
                         onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pkts, nb_pkts_added, nf);
@@ -449,9 +460,9 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
 
                 onvm_nflib_dequeue_messages(nf_local_ctx);
-                if (nf->functions.callback != ONVM_NO_CALLBACK) {
+                if (nf->functions->callback != ONVM_NO_CALLBACK) {
                         rte_atomic16_set(&nf_local_ctx->keep_running,
-                                         !(*nf->functions.callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
+                                         !(*nf->functions->callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
@@ -466,11 +477,6 @@ onvm_nflib_thread_main_loop(void *arg) {
                 }
         }
         return NULL;
-}
-
-int
-onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler) {
-        return onvm_nflib_run_callback(nf_local_ctx, handler, ONVM_NO_CALLBACK);
 }
 
 int
@@ -535,8 +541,8 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_loca
                         break;
                 case MSG_FROM_NF:
                         RTE_LOG(INFO, APP, "Recieved MSG from other NF");
-                        if (nf_local_ctx->nf->functions.handle_msg != NULL) {
-                                nf_local_ctx->nf->functions.handle_msg(msg->msg_data, nf_local_ctx->nf);
+                        if (nf_local_ctx->nf->functions->handle_msg != NULL) {
+                                nf_local_ctx->nf->functions->handle_msg(msg->msg_data, nf_local_ctx->nf);
                         }
                         break;
                 case MSG_NOOP:
@@ -623,12 +629,12 @@ onvm_nflib_get_onvm_config(void) {
 
 void
 onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup) {
-        nf->functions.setup = setup;
+        nf->functions->setup = setup;
 }
 
 void
 onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg) {
-        nf->functions.handle_msg = nf_handle_msg;
+        nf->functions->handle_msg = nf_handle_msg;
 }
 
 int
@@ -681,14 +687,14 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
-        scale_info->functions.setup = parent->functions.setup;
-        scale_info->functions.handle_msg = parent->functions.handle_msg;
+        scale_info->functions->setup = parent->functions->setup;
+        scale_info->functions->handle_msg = parent->functions->handle_msg;
         scale_info->data = data;
         if (parent->nf_mode == NF_MODE_SINGLE) {
-                scale_info->functions.pkt_handler = parent->functions.pkt_handler;
-                scale_info->functions.callback = parent->functions.callback;
+                scale_info->functions->pkt_handler = parent->functions->pkt_handler;
+                scale_info->functions->callback = parent->functions->callback;
         } else if (parent->nf_mode == NF_MODE_RING) {
-                scale_info->functions.adv_rings = parent->functions.adv_rings;
+                scale_info->functions->adv_rings = parent->functions->adv_rings;
         } else {
                 RTE_LOG(INFO, APP, "Unknown NF mode detected\n");
                 return NULL;
@@ -895,11 +901,14 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
         rte_atomic16_set(&nf->thread_info.children_cnt, 0);
 
         /* In case this instance_id is reused, clear all function pointers */
-        nf->functions.pkt_handler = NULL;
-        nf->functions.callback = NULL;
-        nf->functions.adv_rings = NULL;
-        nf->functions.setup = NULL;
-        nf->functions.handle_msg = NULL;
+        nf->functions = NULL;
+        /*
+        nf->functions->pkt_handler = NULL;
+        nf->functions->callback = NULL;
+        nf->functions->adv_rings = NULL;
+        nf->functions->setup = NULL;
+        nf->functions->handle_msg = NULL;
+        */
 
         if (ONVM_ENABLE_SHARED_CPU) {
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
@@ -1013,21 +1022,21 @@ onvm_nflib_start_child(void *arg) {
         /* Save the parent id for future clean up */
         child->thread_info.parent = parent->instance_id;
         /* Save nf specifc functions for possible future use */
-        child->functions.setup = scale_info->functions.setup;
-        child->functions.pkt_handler = scale_info->functions.pkt_handler;
-        child->functions.callback = scale_info->functions.callback;
-        child->functions.adv_rings = scale_info->functions.adv_rings;
-        child->functions.handle_msg = scale_info->functions.handle_msg;
+        child->functions->setup = scale_info->functions->setup;
+        child->functions->pkt_handler = scale_info->functions->pkt_handler;
+        child->functions->callback = scale_info->functions->callback;
+        child->functions->adv_rings = scale_info->functions->adv_rings;
+        child->functions->handle_msg = scale_info->functions->handle_msg;
         /* Set nf state data */
         child->data = scale_info->data;
 
-        if (child->functions.pkt_handler) {
-                onvm_nflib_run_callback(child_context, child->functions.pkt_handler, child->functions.callback);
-        } else if (child->functions.adv_rings) {
+        if (child->functions->pkt_handler) {
+                onvm_nflib_run(child_context, child->functions);
+        } else if (child->functions->adv_rings) {
                 onvm_nflib_nf_ready(child);
-                if (child->functions.setup != NULL)
-                        child->functions.setup(child_context);
-                child->functions.adv_rings(child_context);
+                if (child->functions->setup != NULL)
+                        child->functions->setup(child_context);
+                child->functions->adv_rings(child_context);
         } else {
                 /* Sanity check */
                 rte_exit(EXIT_FAILURE, "Spawned NF doesn't have a pkt_handler or an advanced rings function\n");
@@ -1075,8 +1084,8 @@ onvm_nflib_handle_signal(int sig) {
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
         if (scale_info->nf_init_cfg->service_id == 0 ||
-            (scale_info->functions.pkt_handler == NULL && scale_info->functions.adv_rings == NULL) ||
-            (scale_info->functions.pkt_handler != NULL && scale_info->functions.adv_rings != NULL))
+            (scale_info->functions->pkt_handler == NULL && scale_info->functions->adv_rings == NULL) ||
+            (scale_info->functions->pkt_handler != NULL && scale_info->functions->adv_rings != NULL))
                 return -1;
 
         return 0;

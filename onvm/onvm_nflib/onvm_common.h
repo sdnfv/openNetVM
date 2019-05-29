@@ -229,19 +229,22 @@ typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf *nf);
 /* Function prototype for NFs to signal handling */
 typedef void (*handle_signal_func)(int);
 
+/* Contains all functions the NF might use */
+struct onvm_nf_function_table {
+        setup_func setup;
+        handle_msg_func handle_msg;
+        callback_func callback;
+        pkt_handler_func pkt_handler;
+        /* Deprecated, will be removed in the future advanced rings rework */
+        advanced_rings_func adv_rings;
+};
+
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct onvm_nf *parent;
         void * data;
-        struct {
-                setup_func setup;
-                handle_msg_func handle_msg;
-                callback_func callback;
-                pkt_handler_func pkt_handler;
-                /* Deprecated, will be removed in the future advanced rings rework */
-                advanced_rings_func adv_rings;
-        } functions;
+        struct onvm_nf_function_table *functions;
 };
 
 struct onvm_nf_local_ctx {
@@ -289,14 +292,7 @@ struct onvm_nf {
         } flags;
 
         /* NF specific functions */
-        struct {
-                setup_func setup;
-                handle_msg_func handle_msg;
-                callback_func callback;
-                pkt_handler_func pkt_handler;
-                /* Deprecated, will be removed in the future advanced rings rework */
-                advanced_rings_func adv_rings;
-        } functions;
+        struct onvm_nf_function_table *functions;
 
         /*
          * Define a structure with stats from the NFs.

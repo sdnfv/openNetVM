@@ -67,6 +67,17 @@ struct onvm_nf_local_ctx *
 onvm_nflib_init_nf_local_ctx(void);
 
 /**
+ * Initialize a basic NF functional table
+ *
+ * @param pkt_handler
+ *   Function pointer to a the NF's packet handler
+ * @return
+ * Pointer to the created NF context
+ */
+struct onvm_nf_function_table *
+onvm_nflib_init_nf_function_table(pkt_handler_func pkt_handler);
+
+/**
  * Initialize the default OpenNetVM signal handling.
  *
  * @param nf_local_ctx
@@ -104,36 +115,18 @@ int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx);
 
 /**
- * Run the OpenNetVM container Library.
- * This will register the callback used for each new packet, and the callback used for batch processing. It will then
- * loop forever waiting for packets.
+ * Runs the OpenNetVM container library.
+ * The functions exectured are passed in the function table.
  *
  * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
- * @param handler
- *   A pointer to the function that will be called on each received packet.
- * @param callback_handler
- *   A pointer to the callback handler that is called every attempted batch
- * @return
- *   0 on success, or a negative value on error.
- */
-int
-onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_handler,
-                        callback_func callback_handler);
-
-/**
- * Runs the OpenNetVM container library, without using the callback function.
- * It calls the onvm_nflib_run_callback function with only the passed packet handler, and uses null for callback
- *
- * @param nf_local_ctx
- *   Pointer to a context struct of this NF.
- * @param handler
+ * @param nf_function_table
  *   A pointer to the function that will be called on each received packet.
  * @return
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func pkt_handler);
+onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_function_table *nf_function_table);
 
 /**
  * Return a packet that was created by the NF or has previously had the

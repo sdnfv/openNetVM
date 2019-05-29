@@ -558,7 +558,7 @@ main(int argc, char *argv[]) {
 
         /* Set the function to execute before running the NF
          * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
+//        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
 
         if (use_direct_rings) {
                 onvm_config = onvm_nflib_get_onvm_config();
@@ -567,7 +567,15 @@ main(int argc, char *argv[]) {
                 onvm_nflib_nf_ready(nf_local_ctx->nf);
                 run_advanced_rings(nf_local_ctx);
         } else {
-                onvm_nflib_run(nf_local_ctx, &packet_handler);
+                /*
+                struct onvm_nf_function_table table;
+                memset(&table, 0, sizeof(struct onvm_nf_function_table));
+                table.pkt_handler = &packet_handler;
+                table.setup = &nf_setup;
+                */
+                struct onvm_nf_function_table *nf_function_table = onvm_nflib_init_nf_function_table(&packet_handler);
+                nf_function_table->setup = &nf_setup;
+                onvm_nflib_run(nf_local_ctx, nf_function_table);
         }
 
         onvm_nflib_stop(nf_local_ctx);
