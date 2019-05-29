@@ -191,15 +191,12 @@ process(Flow &f) {
         if (((*(int *)f["flag_syn"]) == _t2) &&
             (hh[f][(*(IP *)f["sip"])] != _t3 && hh_counter[f][(*(IP *)f["sip"])] != threshold[f])) {
                 hh_counter[f][(*(IP *)f["sip"])] = hh_counter[f][(*(IP *)f["sip"])] + _t4;
-                // printf("2\n");
         } else if (((*(int *)f["flag_syn"]) == _t5) &&
                    (hh[f][(*(IP *)f["sip"])] != _t6 && hh_counter[f][(*(IP *)f["sip"])] == threshold[f])) {
                 hh[f][(*(IP *)f["sip"])] = _t7;
-                // printf("3\n");
         } else if (((*(int *)f["flag_syn"]) == _t8) && (hh[f][(*(IP *)f["sip"])] == _t9)) {
-                // printf("4\n");
+                return -1;
         } else if ((*(int *)f["flag_syn"]) != _t10) {
-                // printf("5\n");
         }
         f.clean();
         return 0;
@@ -322,8 +319,13 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
 
         ok = HHD(pkt, length);
 
-        meta->action = ONVM_NF_ACTION_TONF;
-        meta->destination = destination;
+        if (ok == -1) {
+                meta->action = ONVM_NF_ACTION_DROP;
+        } else {
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
+        }
+
         ////////////////////////////////////////////////
         return 0;
 }
