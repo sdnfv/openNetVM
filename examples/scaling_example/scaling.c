@@ -217,7 +217,8 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  * Main packet handler
  */
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         (void)pkt;
         static uint32_t spawned_child = 0;
         struct onvm_nf_scale_info *scale_info;
