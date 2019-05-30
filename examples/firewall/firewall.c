@@ -195,7 +195,7 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct ipv4_hdr *ipv4_hdr;
         static uint32_t counter = 0;
         int ret;
@@ -353,6 +353,7 @@ struct onvm_fw_rule
 
 int main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         struct onvm_fw_rule **rules;
         int arg_offset, num_rules;
 
@@ -363,7 +364,10 @@ int main(int argc, char *argv[]) {
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -383,7 +387,7 @@ int main(int argc, char *argv[]) {
 
         rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
-        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         lpm_teardown(rules, num_rules);
         onvm_nflib_stop(nf_local_ctx);

@@ -164,9 +164,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                   __attribute__((unused)) struct onvm_nf *nf) {
+                   __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         (void)pkt;
-        meta->destination = *(uint16_t *)nf->data;
+        meta->destination = *(uint16_t *)nf_local_ctx->nf->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
@@ -177,26 +177,27 @@ packet_handler_fwd(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  */
 static int
 packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                     __attribute__((unused)) struct onvm_nf *nf) {
+                   __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         (void)pkt;
         /* As this is already a child, 1 NF has been spawned */
         static int spawned_nfs = 1;
-        meta->destination = *(uint16_t *)nf->data;
+        meta->destination = *(uint16_t *)nf_local_ctx->nf->data;
         meta->action = ONVM_NF_ACTION_TONF;
 
         /* Spawn children until we hit the set number */
         while (spawned_nfs < num_children) {
-                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf);
+                struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_local_ctx->nf);
                 uint16_t *state_data = rte_malloc("nf_state_data", sizeof(uint16_t), 0);
-                *state_data = nf->service_id;
+                *state_data = nf_local_ctx->nf->service_id;
                 /* Sets service id of child */
                 scale_info->nf_init_cfg->service_id = destination;
+                scale_info->function_table = onvm_nflib_init_nf_function_table();
                 /* Run the setup function to generate packets */
-                scale_info->functions.setup = &nf_setup;
+                scale_info->function_table->setup = &nf_setup;
+                /* Custom packet handler */
+                scale_info->function_table->pkt_handler = &packet_handler_fwd;
                 if (use_shared_cpu_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
-                /* Custom packet handler */
-                scale_info->functions.pkt_handler = &packet_handler_fwd;
                 /* Insert state data, will be used to forward packets to itself */
                 scale_info->data = state_data;
 
@@ -216,7 +217,7 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
  * Main packet handler
  */
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         (void)pkt;
         static uint32_t spawned_child = 0;
         struct onvm_nf_scale_info *scale_info;
@@ -230,9 +231,12 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 data = (void *)rte_malloc("nf_state_data", sizeof(uint16_t), 0);
                 *(uint16_t *)data = destination;
                 /* Get the filled in scale struct by inheriting parent properties */
-                scale_info = onvm_nflib_inherit_parent_config(nf, data);
+                scale_info = onvm_nflib_inherit_parent_config(nf_local_ctx->nf, data);
                 scale_info->nf_init_cfg->service_id = destination;
-                scale_info->functions.pkt_handler = &packet_handler_child;
+                /* Run the setup function to generate packets */
+                scale_info->function_table = onvm_nflib_init_nf_function_table();
+                /* Custom packet handler */
+                scale_info->function_table->pkt_handler = &packet_handler_child;
                 if (use_shared_cpu_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
@@ -243,7 +247,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         rte_exit(EXIT_FAILURE, "Can't initialize the first child!\n");
         }
 
-        meta->destination = nf->service_id;
+        meta->destination = nf_local_ctx->nf->service_id;
         meta->action = ONVM_NF_ACTION_TONF;
 
         return 0;
@@ -280,7 +284,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
         if (spawned_nfs == 0) {
                 /* As this is advanced rings if we want the children to inherit the same function we need to set it
                  * first */
-                nf->functions.adv_rings = &run_advanced_rings;
+                nf->function_table->adv_ring_handler = &run_advanced_rings;
                 struct onvm_nf_scale_info *scale_info;
 
                 /* Spawn children until we hit the set number */
@@ -330,7 +334,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf);
+                        packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -395,6 +399,7 @@ main(int argc, char *argv[]) {
         struct onvm_nf *nf;
         struct onvm_configuration *onvm_config;
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int i;
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
@@ -417,7 +422,10 @@ main(int argc, char *argv[]) {
                 onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
         }
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -437,10 +445,6 @@ main(int argc, char *argv[]) {
 
         nf = nf_local_ctx->nf;
 
-        /* Set the function to execute before running the NF
-         * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf, &nf_setup);
-
         nf->data = (void *)rte_malloc("nf_specific_data", sizeof(uint16_t), 0);
         *(uint16_t *)nf->data = nf->service_id;
 
@@ -453,7 +457,7 @@ main(int argc, char *argv[]) {
                 run_advanced_rings(nf_local_ctx);
         } else {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
-                onvm_nflib_run(nf_local_ctx, &packet_handler);
+                onvm_nflib_run(nf_local_ctx);
         }
         onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");

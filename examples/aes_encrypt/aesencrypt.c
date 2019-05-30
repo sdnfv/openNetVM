@@ -170,7 +170,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct udp_hdr *udp;
 
         static uint32_t counter = 0;
@@ -212,6 +212,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
 
         const char *progname = argv[0];
@@ -219,7 +220,10 @@ main(int argc, char *argv[]) {
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -240,7 +244,7 @@ main(int argc, char *argv[]) {
         /* Initialise encryption engine. Key should be configurable. */
         aes_key_setup(key[0], key_schedule, 256);
 
-        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");

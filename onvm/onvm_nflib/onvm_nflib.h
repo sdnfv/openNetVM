@@ -67,15 +67,13 @@ struct onvm_nf_local_ctx *
 onvm_nflib_init_nf_local_ctx(void);
 
 /**
- * Initialize a basic NF functional table
+ * Initialize an empty NF functional table
  *
- * @param pkt_handler
- *   Function pointer to a the NF's packet handler
  * @return
  * Pointer to the created NF context
  */
 struct onvm_nf_function_table *
-onvm_nflib_init_nf_function_table(pkt_handler_func pkt_handler);
+onvm_nflib_init_nf_function_table(void);
 
 /**
  * Initialize the default OpenNetVM signal handling.
@@ -105,6 +103,8 @@ onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_s
  *   For example, can be the application name (e.g. "bridge_nf")
  * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
+ * @param nf_function_table
+ *   Pointer to a function table struct for this NF
  * @return
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
@@ -112,7 +112,8 @@ onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_s
  *   On error, a negative value .
  */
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx);
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx,
+                struct onvm_nf_function_table *nf_function_table);
 
 /**
  * Runs the OpenNetVM container library.
@@ -120,13 +121,11 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
  *
  * @param nf_local_ctx
  *   Pointer to a context struct of this NF.
- * @param nf_function_table
- *   A pointer to the function that will be called on each received packet.
  * @return
  *   0 on success, or a negative value on error.
  */
 int
-onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_function_table *nf_function_table);
+onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx);
 
 /**
  * Return a packet that was created by the NF or has previously had the
@@ -227,28 +226,6 @@ onvm_nflib_get_nf(uint16_t id);
  */
 void
 onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx);
-
-/**
- * Set the setup function for the NF.
- * Function automatically executes when calling onvm_nflib_run or when scaling.
- * This will be run for "normal" mode NFs (i.e., not using advanced rings, see 'NOTE') on startup.
- *
- * To make a child inherit this setting, use `onvm_nflib_inherit_parent_config` to get a
- * scaling struct with the parent's function pointers.
- *
- * NOTE: This function doesn't work for advanced rings main NFs, but works for their children.
- *       For the main NF just manually call the function.
- *
- * @param nf
- *   An onvm_nf struct describing this NF.
- * @param setup
- *   A NF setup function that runs before running the NF.
- */
-void
-onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup);
-
-void
-onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg);
 
 /**
  * Allocates an empty scaling config to be filled in by the NF.

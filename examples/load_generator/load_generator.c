@@ -230,7 +230,7 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint64_t *timestamp;
 
         if (!ONVM_CHECK_BIT(meta->flags, LOAD_GEN_BIT)) {
@@ -249,7 +249,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf *nf) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint32_t i;
         uint64_t cur_cycle = rte_get_tsc_cycles();
         double time_delta = (cur_cycle - last_cycle) / (double)rte_get_timer_hz();
@@ -292,7 +292,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf *nf) {
                         packets_sent_since_update++;
                         packets_to_send--;
                 }
-                onvm_nflib_return_pkt_bulk(nf, pkts, batch_size);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, batch_size);
         }
 
         time_since_print += time_delta;
@@ -337,12 +337,17 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -360,9 +365,7 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
-
-        onvm_nflib_run_callback(nf_local_ctx, &packet_handler, &callback_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         free(ehdr);
 

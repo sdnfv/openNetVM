@@ -276,7 +276,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -360,7 +360,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_local_ctx->nf);
+                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
@@ -514,11 +514,13 @@ int
 main(int argc, char *argv[]) {
         struct onvm_configuration *onvm_config;
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table; 
         int arg_offset, i;
 
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        nf_function_table = onvm_nflib_init_nf_function_table();
 
         /* Hack to know if we're using advanced rings before running getopts */
         for (i = argc - 1; i > 0; i--) {
@@ -538,7 +540,12 @@ main(int argc, char *argv[]) {
                 onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
         }
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -556,10 +563,6 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        /* Set the function to execute before running the NF
-         * For advanced rings manually run the function */
-//        onvm_nflib_set_setup_function(nf_local_ctx->nf, &nf_setup);
-
         if (use_direct_rings) {
                 onvm_config = onvm_nflib_get_onvm_config();
                 ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
@@ -567,15 +570,7 @@ main(int argc, char *argv[]) {
                 onvm_nflib_nf_ready(nf_local_ctx->nf);
                 run_advanced_rings(nf_local_ctx);
         } else {
-                /*
-                struct onvm_nf_function_table table;
-                memset(&table, 0, sizeof(struct onvm_nf_function_table));
-                table.pkt_handler = &packet_handler;
-                table.setup = &nf_setup;
-                */
-                struct onvm_nf_function_table *nf_function_table = onvm_nflib_init_nf_function_table(&packet_handler);
-                nf_function_table->setup = &nf_setup;
-                onvm_nflib_run(nf_local_ctx, nf_function_table);
+                onvm_nflib_run(nf_local_ctx);
         }
 
         onvm_nflib_stop(nf_local_ctx);
