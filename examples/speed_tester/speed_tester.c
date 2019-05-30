@@ -540,10 +540,9 @@ main(int argc, char *argv[]) {
                 onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
         }
 
-        nf_function_table->pkt_handler = &packet_handler;
-        nf_function_table->setup = &nf_setup;
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
