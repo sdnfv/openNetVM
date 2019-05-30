@@ -214,28 +214,31 @@ struct core_status {
 struct onvm_nf_local_ctx;
 struct onvm_nf;
 /* Function prototype for NF packet handlers */
-typedef int (*pkt_handler_func)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                                __attribute__((unused)) struct onvm_nf *nf);
+typedef int (*nf_pkt_handler_fn)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+                                 __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NF the callback */
-typedef int (*callback_func)(__attribute__((unused)) struct onvm_nf *nf);
+typedef int (*nf_user_actions_fn)(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void (*setup_func)(struct onvm_nf_local_ctx *nf_local_ctx);
+typedef void (*nf_setup_fn)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
-typedef void (*handle_msg_func)(void *msg_data, struct onvm_nf *nf);
+typedef void (*nf_msg_handler_fn)(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to signal handling */
 typedef void (*handle_signal_func)(int);
+
+/* Contains all functions the NF might use */
+struct onvm_nf_function_table {
+        nf_setup_fn  setup;
+        nf_msg_handler_fn  msg_handler;
+        nf_user_actions_fn user_actions;
+        nf_pkt_handler_fn  pkt_handler;
+};
 
 /* Information needed to initialize a new NF child thread */
 struct onvm_nf_scale_info {
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct onvm_nf *parent;
         void * data;
-        struct {
-                setup_func setup;
-                handle_msg_func handle_msg;
-                callback_func callback;
-                pkt_handler_func pkt_handler;
-        } functions;
+        struct onvm_nf_function_table *function_table;
 };
 
 struct onvm_nf_local_ctx {
@@ -262,8 +265,6 @@ struct onvm_nf {
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
-        /* Pointer to NF context (used for signal handling/terminating NF's children) */
-        struct onvm_nf_local_ctx *context;
 
         struct {
                 uint16_t core;
@@ -281,12 +282,7 @@ struct onvm_nf {
         } flags;
 
         /* NF specific functions */
-        struct {
-                setup_func setup;
-                handle_msg_func handle_msg;
-                callback_func callback;
-                pkt_handler_func pkt_handler;
-        } functions;
+        struct onvm_nf_function_table *function_table;
 
         /*
          * Define a structure with stats from the NFs.

@@ -172,15 +172,15 @@ do_stats_display(struct onvm_nf *nf) {
         printf("\n\n");
 }
 
-static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf *nf) {
+static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf_local_ctx *nf_local_ctx) {
         int udp_pkt, tcp_pkt;
         char search_match;
         static uint32_t counter = 0;
         uint8_t *pkt_data;
-        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf->data;
+        struct onvm_pkt_stats *stats = (struct onvm_pkt_stats *) nf_local_ctx->nf->data;
 
         if (++counter == print_delay) {
-                do_stats_display(nf);
+                do_stats_display(nf_local_ctx->nf);
                 counter = 0;
         }
 
@@ -229,12 +229,16 @@ int main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_pkt_stats *stats;
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -255,7 +259,7 @@ int main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");

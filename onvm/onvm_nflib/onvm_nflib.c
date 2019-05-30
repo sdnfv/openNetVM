@@ -96,7 +96,7 @@ static struct rte_mempool *nf_init_cfg_mp;
 static struct rte_mempool *nf_msg_pool;
 
 // Global NF context to manage signal termination
-static struct onvm_nf_local_ctx *global_termination_context;
+static struct onvm_nf_local_ctx *main_nf_local_ctx;
 
 // Global NF specific signal handler
 static handle_signal_func global_nf_signal_handler = NULL;
@@ -146,7 +146,8 @@ onvm_nflib_parse_args(int argc, char *argv[], struct onvm_nf_init_cfg *nf_init_c
  * Check if there are packets in this NF's RX Queue and process them
  */
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func handler) __attribute__((always_inline));
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_local_ctx *nf_local_ctx,
+                           nf_pkt_handler_fn handler) __attribute__((always_inline));
 
 /*
  * Check if there is a message available for this NF and process it
@@ -247,6 +248,17 @@ onvm_nflib_init_nf_local_ctx(void) {
         return nf_local_ctx;
 }
 
+struct onvm_nf_function_table *
+onvm_nflib_init_nf_function_table(void) {
+        struct onvm_nf_function_table *nf_function_table;
+
+        nf_function_table = (struct onvm_nf_function_table*)calloc(1, sizeof(struct onvm_nf_function_table));
+        if (nf_function_table == NULL)
+                rte_exit(EXIT_FAILURE, "Failed to allocate memory for NF context\n");
+
+        return nf_function_table;
+}
+
 int
 onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
         struct onvm_nf_msg *request_message;
@@ -276,7 +288,7 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 int
 onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func nf_signal_handler) {
         /* Signal handling is global thus save global context */
-        global_termination_context = nf_local_ctx;
+        main_nf_local_ctx = nf_local_ctx;
         global_nf_signal_handler = nf_signal_handler;
 
         printf("[Press Ctrl-C to quit ...]\n");
@@ -287,7 +299,8 @@ onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_s
 }
 
 int
-onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx) {
+onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx,
+                struct onvm_nf_function_table *nf_function_table) {
         struct onvm_nf_init_cfg *nf_init_cfg;
         int ret, retval_eal, retval_parse, retval_final;
         int use_config = 0;
@@ -348,6 +361,9 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
 
         if ((ret = onvm_nflib_start_nf(nf_local_ctx, nf_init_cfg)) < 0)
                 return ret;
+
+        /* Save the nf specifc function table */
+        nf_local_ctx->nf->function_table = nf_function_table;
 
         // Set to 3 because that is the bare minimum number of arguments, the config file will increase this number
         if (use_config) {
@@ -438,7 +454,6 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
         }
 
         nf = &nfs[nf_init_cfg->instance_id];
-        nf->context = nf_local_ctx;
 
         /* Mark init as finished, sig handler/onvm_nflib_stop will now do proper cleanup */
         if (rte_atomic16_read(&nf_local_ctx->nf_init_finished) == 0) {
@@ -458,10 +473,7 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
         rte_atomic16_set(&nf->thread_info.children_cnt, 0);
 
         /* In case this instance_id is reused, clear all function pointers */
-        nf->functions.pkt_handler = NULL;
-        nf->functions.callback = NULL;
-        nf->functions.setup = NULL;
-        nf->functions.handle_msg = NULL;
+        nf->function_table = NULL;
 
         if (ONVM_ENABLE_SHARED_CPU) {
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
@@ -491,15 +503,8 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 }
 
 int
-onvm_nflib_run_callback(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler, callback_func callback) {
-        struct onvm_nf *nf;
+onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx) {
         int ret;
-
-        nf = nf_local_ctx->nf;
-
-        /* Save the nf specifc functions, can be used if NFs spawn new threads */
-        nf->functions.pkt_handler = handler;
-        nf->functions.callback = callback;
 
         pthread_t main_loop_thread;
         if ((ret = pthread_create(&main_loop_thread, NULL, onvm_nflib_thread_main_loop, (void *)nf_local_ctx)) < 0) {
@@ -518,8 +523,6 @@ onvm_nflib_thread_main_loop(void *arg) {
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf *nf;
         uint16_t nb_pkts_added;
-        pkt_handler_func handler;
-        callback_func callback;
         uint64_t start_time;
         int ret;
 
@@ -527,21 +530,18 @@ onvm_nflib_thread_main_loop(void *arg) {
         nf = nf_local_ctx->nf;
         onvm_threading_core_affinitize(nf->thread_info.core);
 
-        handler = nf->functions.pkt_handler;
-        callback = nf->functions.callback;
-
         printf("Sending NF_READY message to manager...\n");
         ret = onvm_nflib_nf_ready(nf);
         if (ret != 0)
                 rte_exit(EXIT_FAILURE, "Unable to message manager\n");
 
         /* Run the setup function (this might send pkts so done after the state change) */
-        if (nf->functions.setup != NULL)
-                nf->functions.setup(nf_local_ctx);
+        if (nf->function_table->setup != NULL)
+                nf->function_table->setup(nf_local_ctx);
 
         start_time = rte_get_tsc_cycles();
-        for (; rte_atomic16_read(&nf_local_ctx->keep_running);) {
-                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf, handler);
+        for (;rte_atomic16_read(&nf_local_ctx->keep_running) && rte_atomic16_read(&main_nf_local_ctx->keep_running);) {
+                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf_local_ctx, nf->function_table->pkt_handler);
 
                 if (likely(nb_pkts_added > 0)) {
                         onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pkts, nb_pkts_added, nf);
@@ -552,9 +552,9 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
 
                 onvm_nflib_dequeue_messages(nf_local_ctx);
-                if (callback != ONVM_NO_CALLBACK) {
+                if (nf->function_table->user_actions != ONVM_NO_CALLBACK) {
                         rte_atomic16_set(&nf_local_ctx->keep_running,
-                                         !(*callback)(nf) && rte_atomic16_read(&nf_local_ctx->keep_running));
+                                         !(*nf->function_table->user_actions)(nf_local_ctx) && rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
@@ -569,11 +569,6 @@ onvm_nflib_thread_main_loop(void *arg) {
                 }
         }
         return NULL;
-}
-
-int
-onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx, pkt_handler_func handler) {
-        return onvm_nflib_run_callback(nf_local_ctx, handler, ONVM_NO_CALLBACK);
 }
 
 int
@@ -638,8 +633,8 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_loca
                         break;
                 case MSG_FROM_NF:
                         RTE_LOG(INFO, APP, "Recieved MSG from other NF");
-                        if (nf_local_ctx->nf->functions.handle_msg != NULL) {
-                                nf_local_ctx->nf->functions.handle_msg(msg->msg_data, nf_local_ctx->nf);
+                        if (nf_local_ctx->nf->function_table->msg_handler != NULL) {
+                                nf_local_ctx->nf->function_table->msg_handler(msg->msg_data, nf_local_ctx);
                         }
                         break;
                 case MSG_NOOP:
@@ -678,16 +673,6 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
 struct onvm_configuration *
 onvm_nflib_get_onvm_config(void) {
         return onvm_config;
-}
-
-void
-onvm_nflib_set_setup_function(struct onvm_nf *nf, setup_func setup) {
-        nf->functions.setup = setup;
-}
-
-void
-onvm_nflib_set_msg_handling_function(struct onvm_nf *nf, handle_msg_func nf_handle_msg) {
-        nf->functions.handle_msg = nf_handle_msg;
 }
 
 int
@@ -786,10 +771,7 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
         scale_info->data = data;
-        scale_info->functions.setup = parent->functions.setup;
-        scale_info->functions.handle_msg = parent->functions.handle_msg;
-        scale_info->functions.pkt_handler = parent->functions.pkt_handler;
-        scale_info->functions.callback = parent->functions.callback;
+        scale_info->function_table = parent->function_table;
 
         return scale_info;
 }
@@ -889,11 +871,14 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
 }
 
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func handler) {
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_local_ctx *nf_local_ctx, nf_pkt_handler_fn  handler) {
+        struct onvm_nf *nf;
         struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
         struct packet_buf tx_buf;
         int ret_act;
+
+        nf = nf_local_ctx->nf;
 
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
@@ -912,7 +897,7 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf *nf, pkt_handler_func han
         /* Give each packet to the user proccessing function */
         for (i = 0; i < nb_pkts; i++) {
                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf);
+                ret_act = (*handler)((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                 /* NF returns 0 to return packets or 1 to buffer */
                 if (likely(ret_act == 0)) {
                         tx_buf.buffer[tx_buf.count++] = pkts[i];
@@ -972,15 +957,12 @@ onvm_nflib_start_child(void *arg) {
         child_context->nf = child;
         /* Save the parent id for future clean up */
         child->thread_info.parent = parent->instance_id;
-        /* Save nf specifc functions for possible future use */
-        child->functions.setup = scale_info->functions.setup;
-        child->functions.pkt_handler = scale_info->functions.pkt_handler;
-        child->functions.callback = scale_info->functions.callback;
-        child->functions.handle_msg = scale_info->functions.handle_msg;
+        /* Save the nf specifc function table */
+        child->function_table = scale_info->function_table;
         /* Set nf state data */
         child->data = scale_info->data;
 
-        onvm_nflib_run_callback(child_context, child->functions.pkt_handler, child->functions.callback);
+        onvm_nflib_run(child_context);
 
         /* Clean up after the child */
         onvm_nflib_stop(child_context);
@@ -1001,15 +983,15 @@ onvm_nflib_handle_signal(int sig) {
                 return;
 
         /* Stops both starting and running NFs */
-        rte_atomic16_set(&global_termination_context->keep_running, 0);
+        rte_atomic16_set(&main_nf_local_ctx->keep_running, 0);
 
         /* If NF didn't start yet no cleanup is necessary */
-        if (rte_atomic16_read(&global_termination_context->nf_init_finished) == 0) {
+        if (rte_atomic16_read(&main_nf_local_ctx->nf_init_finished) == 0) {
                 return;
         }
 
         /* If NF is asleep, wake it up */
-        nf = global_termination_context->nf;
+        nf = main_nf_local_ctx->nf;
         if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->shared_core.sleep_state) == 1) {
                 rte_atomic16_set(nf->shared_core.sleep_state, 0);
                 sem_post(nf->shared_core.nf_mutex);
@@ -1023,7 +1005,8 @@ onvm_nflib_handle_signal(int sig) {
 
 static int
 onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
-        return scale_info->nf_init_cfg->service_id != 0 && scale_info->functions.pkt_handler != NULL;
+        return scale_info->nf_init_cfg->service_id != 0 && scale_info->function_table != NULL &&
+               scale_info->function_table->pkt_handler != NULL;
 }
 
 static void
@@ -1119,13 +1102,8 @@ onvm_nflib_terminate_children(struct onvm_nf *nf) {
         /* Keep trying to shutdown children until there are none left */
         while (rte_atomic16_read(&nf->thread_info.children_cnt) > 0 && iter_cnt < NF_TERM_STOP_ITER_TIMES) {
                 for (i = 0; i < MAX_NFS; i++) {
-                        if (nfs[i].context == NULL)
-                               continue;
                         if (nfs[i].thread_info.parent != nf->instance_id)
                                 continue;
-
-                        /* First stop child from running */
-                        rte_atomic16_set(&nfs[i].context->keep_running, 0);
 
                         if (!onvm_nf_is_valid(&nfs[i]))
                                continue;
@@ -1187,10 +1165,13 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         free(nf->nf_tx_mgr->nf_rx_bufs);
                         nf->nf_tx_mgr->nf_rx_bufs = NULL;
                 }
-        }
-        if (nf->nf_tx_mgr != NULL) {
                 free(nf->nf_tx_mgr);
                 nf->nf_tx_mgr = NULL;
+        }
+
+        if (nf->function_table) {
+                free(nf->function_table);
+                nf->function_table = NULL;
         }
 
         if (mgr_msg_queue == NULL)
@@ -1207,10 +1188,8 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 
         /* Cleanup context */
-        if (nf->context != NULL) {
-                free(nf->context);
-                nf->context = NULL;
-        }
+        nf_local_ctx->nf = NULL;
+        free(nf_local_ctx);
 }
 
 static void

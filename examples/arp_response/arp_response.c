@@ -263,7 +263,7 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *n
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf *nf) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;
@@ -282,7 +282,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                                 if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) ==
                                                 state_info->source_ips[ports->id[pkt->port]]) {
                                         result = send_arp_reply(pkt->port, &eth_hdr->s_addr,
-                                                                in_arp_hdr->arp_data.arp_sip, nf);
+                                                                in_arp_hdr->arp_data.arp_sip, nf_local_ctx->nf);
                                         if (state_info->print_flag) {
                                                 printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,
                                                        ports->id[pkt->port], result);
@@ -311,12 +311,16 @@ int
 main(int argc, char *argv[]) {
         int arg_offset;
         struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0) {
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
@@ -346,7 +350,7 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
-        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
