@@ -521,7 +521,6 @@ main(int argc, char *argv[]) {
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
-        nf_function_table = onvm_nflib_init_nf_function_table();
 
         /* Hack to know if we're using advanced rings before running getopts */
         for (i = argc - 1; i > 0; i--) {
