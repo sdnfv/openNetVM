@@ -214,18 +214,18 @@ struct core_status {
 struct onvm_nf_local_ctx;
 struct onvm_nf;
 /* Function prototype for NF packet handlers */
-typedef int (*nf_pkt_handler_fn )(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-                                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
+typedef int (*nf_pkt_handler_fn)(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+                                 __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NF the callback */
-typedef int (*nf_user_actions_fn )(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
+typedef int (*nf_user_actions_fn)(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs running advanced rings 
  * Deprecated, will be removed in the future advanced rings rework 
  */
-typedef void (*nf_adv_ring_handler_fn )(struct onvm_nf_local_ctx *nf_local_ctx);
+typedef void (*nf_adv_ring_handler_fn)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs that want extra initalization/setup before running */
-typedef void (*nf_setup_fn )(struct onvm_nf_local_ctx *nf_local_ctx);
+typedef void (*nf_setup_fn)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
-typedef void (*nf_msg_handler_fn )(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
+typedef void (*nf_msg_handler_fn)(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to signal handling */
 typedef void (*handle_signal_func)(int);
 
