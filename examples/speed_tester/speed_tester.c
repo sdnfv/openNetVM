@@ -260,7 +260,8 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -414,20 +415,18 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
 int
 main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
-        struct onvm_nf_function_table *nf_function_table; 
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
 
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
-        nf_function_table = onvm_nflib_init_nf_function_table();
 
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        nf_function_table->pkt_handler = &packet_handler;
-        nf_function_table->setup = &nf_setup;
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);

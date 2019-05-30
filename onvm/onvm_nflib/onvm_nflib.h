@@ -70,7 +70,7 @@ onvm_nflib_init_nf_local_ctx(void);
  * Initialize an empty NF functional table
  *
  * @return
- * Pointer to the created NF context
+ * Pointer to the created function table struct
  */
 struct onvm_nf_function_table *
 onvm_nflib_init_nf_function_table(void);
@@ -109,7 +109,7 @@ onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_s
  *   On success, the number of parsed arguments, which is greater or equal to
  *   zero. After the call to onvm_nf_init(), all arguments argv[x] with x < ret
  *   may be modified and should not be accessed by the application.,
- *   On error, a negative value .
+ *   On error, a negative value.
  */
 int
 onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx,
@@ -117,7 +117,6 @@ onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local
 
 /**
  * Runs the OpenNetVM container library.
- * The functions exectured are passed in the function table.
  *
  * @param nf_local_ctx
  *   Pointer to a context struct of this NF.

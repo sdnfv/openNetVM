@@ -541,7 +541,8 @@ onvm_nflib_thread_main_loop(void *arg) {
 
         start_time = rte_get_tsc_cycles();
         for (;rte_atomic16_read(&nf_local_ctx->keep_running) && rte_atomic16_read(&main_nf_local_ctx->keep_running);) {
-                nb_pkts_added = onvm_nflib_dequeue_packets((void **)pkts, nf_local_ctx, nf->function_table->pkt_handler);
+                nb_pkts_added =
+                        onvm_nflib_dequeue_packets((void **)pkts, nf_local_ctx, nf->function_table->pkt_handler);
 
                 if (likely(nb_pkts_added > 0)) {
                         onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pkts, nb_pkts_added, nf);
@@ -554,7 +555,8 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_nflib_dequeue_messages(nf_local_ctx);
                 if (nf->function_table->user_actions != ONVM_NO_CALLBACK) {
                         rte_atomic16_set(&nf_local_ctx->keep_running,
-                                         !(*nf->function_table->user_actions)(nf_local_ctx) && rte_atomic16_read(&nf_local_ctx->keep_running));
+                                         !(*nf->function_table->user_actions)(nf_local_ctx) &&
+                                         rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
                 if (nf->flags.time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *

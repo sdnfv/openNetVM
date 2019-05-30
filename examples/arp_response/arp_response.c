@@ -263,7 +263,8 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *n
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;
