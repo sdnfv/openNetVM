@@ -515,7 +515,7 @@ int
 main(int argc, char *argv[]) {
         struct onvm_configuration *onvm_config;
         struct onvm_nf_local_ctx *nf_local_ctx;
-        struct onvm_nf_function_table *nf_function_table; 
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset, i;
 
         const char *progname = argv[0];
