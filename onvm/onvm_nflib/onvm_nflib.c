@@ -464,7 +464,7 @@ onvm_nflib_thread_main_loop(void *arg) {
                 onvm_nflib_dequeue_messages(nf_local_ctx);
                 if (nf->function_table->user_actions != ONVM_NO_CALLBACK) {
                         rte_atomic16_set(&nf_local_ctx->keep_running,
-                                         !(*nf->function_table->user_actions)(nf_local_ctx) && 
+                                         !(*nf->function_table->user_actions)(nf_local_ctx) &&
                                          rte_atomic16_read(&nf_local_ctx->keep_running));
                 }
 
