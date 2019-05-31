@@ -60,7 +60,7 @@
 extern const char *NF_MSG[3];
 #define ONVM_STATS_MSG "\n"\
         "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
-        "--------------------------------------------------------------------------------------------------------------------\n"
+        "----------------------------------------------------------------------------------------------------------------------\n"
 #define ONVM_STATS_ADV_MSG "\n"\
         "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
         "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
