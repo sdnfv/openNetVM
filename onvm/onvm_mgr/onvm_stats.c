@@ -246,7 +246,7 @@ onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
 }
 
 void
-onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf) {
         struct onvm_event *event;
 
         event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
@@ -257,7 +257,7 @@ onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info) {
 
         event->type = ONVM_EVENT_NF_INFO;
         event->msg = msg;
-        event->data = nf_info;
+        event->data = nf;
 
         onvm_stats_add_event(event);
 }
@@ -272,7 +272,7 @@ onvm_stats_add_event(struct onvm_event *event_info) {
         char event_time_buf[20];
         uint8_t type;
         struct tm *ptr_time;
-        struct onvm_nf_info *nf_info;
+        struct onvm_nf *nf;
         time_t time_raw_format;
         time(&time_raw_format);
         type = event_info->type;
@@ -292,14 +292,14 @@ onvm_stats_add_event(struct onvm_event *event_info) {
         } else if (type == ONVM_EVENT_PORT_INFO) {
                 cJSON_AddStringToObject(source, "type", "MGR");
         } else if (type == ONVM_EVENT_NF_INFO) {
-                nf_info = (struct onvm_nf_info *)event_info->data;
-                if (nf_info->tag)
-                        cJSON_AddStringToObject(source, "type", (char *)nf_info->tag);
+                nf = (struct onvm_nf *)event_info->data;
+                if (nf->tag)
+                        cJSON_AddStringToObject(source, "type", (char *)nf->tag);
                 else
                         cJSON_AddStringToObject(source, "type", "NF");
-                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
-                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
-                cJSON_AddNumberToObject(source, "core", (int16_t)nf_info->core);
+                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf->instance_id);
+                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf->service_id);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf->thread_info.core);
         } else if (type == ONVM_EVENT_NF_STOP) {
                 cJSON_AddStringToObject(source, "type", "NF");
                 cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));
@@ -489,27 +489,27 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
 
                 /* Save stats for NFs with same service id */
                 if (print_total_stats) {
-                        rx_for_service[nfs[i].info->service_id] += rx;
-                        tx_for_service[nfs[i].info->service_id] += tx;
-                        rx_drop_for_service[nfs[i].info->service_id] += rx_drop;
-                        tx_drop_for_service[nfs[i].info->service_id] += tx_drop;
-                        rx_pps_for_service[nfs[i].info->service_id] += rx_pps;
-                        tx_pps_for_service[nfs[i].info->service_id] += tx_pps;
-                        rx_drop_rate_for_service[nfs[i].info->service_id] += rx_drop_rate;
-                        tx_drop_rate_for_service[nfs[i].info->service_id] += tx_drop_rate;
-                        act_out_for_service[nfs[i].info->service_id] += act_out;
-                        act_tonf_for_service[nfs[i].info->service_id] += act_tonf;
-                        act_drop_for_service[nfs[i].info->service_id] += act_drop;
-                        act_next_for_service[nfs[i].info->service_id] += act_next;
-                        act_buffer_for_service[nfs[i].info->service_id] += act_buffer;
-                        act_returned_for_service[nfs[i].info->service_id] += act_returned;
+                        rx_for_service[nfs[i].service_id] += rx;
+                        tx_for_service[nfs[i].service_id] += tx;
+                        rx_drop_for_service[nfs[i].service_id] += rx_drop;
+                        tx_drop_for_service[nfs[i].service_id] += tx_drop;
+                        rx_pps_for_service[nfs[i].service_id] += rx_pps;
+                        tx_pps_for_service[nfs[i].service_id] += tx_pps;
+                        rx_drop_rate_for_service[nfs[i].service_id] += rx_drop_rate;
+                        tx_drop_rate_for_service[nfs[i].service_id] += tx_drop_rate;
+                        act_out_for_service[nfs[i].service_id] += act_out;
+                        act_tonf_for_service[nfs[i].service_id] += act_tonf;
+                        act_drop_for_service[nfs[i].service_id] += act_drop;
+                        act_next_for_service[nfs[i].service_id] += act_next;
+                        act_buffer_for_service[nfs[i].service_id] += act_buffer;
+                        act_returned_for_service[nfs[i].service_id] += act_returned;
                 }
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, "%s,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
                                            ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
                                            ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ", %d\n",
-                                buffer, nfs[i].info->instance_id, nfs[i].info->service_id, rx, tx, rx_pps, tx_pps,
+                                buffer, nfs[i].instance_id, nfs[i].service_id, rx, tx, rx_pps, tx_pps,
                                 rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, act_next,
                                 act_buffer, act_returned, num_wakeups, wakeup_rate, active);
                 } else if (verbosity_level == 2) {
@@ -518,7 +518,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                            "\n"
                                            "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
-                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx, tx, act_out,
+                                nfs[i].instance_id, nfs[i].service_id, rx_pps, tx_pps, rx, tx, act_out,
                                 act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer,
                                 act_returned);
                         if (ONVM_ENABLE_SHARED_CPU)
@@ -528,7 +528,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 } else {
                         fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
                                            "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
-                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
+                                nfs[i].instance_id, nfs[i].service_id, rx_pps, tx_pps, rx_drop, tx_drop,
                                 act_out, act_tonf, act_drop);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
@@ -543,10 +543,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX", tx_pps);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX_Drop_Rate", tx_drop_rate);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "RX_Drop_Rate", rx_drop_rate);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].info->service_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].service_id);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "instance_id",
-                                                (int16_t)nfs[i].info->instance_id);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].info->core);
+                                                (int16_t)nfs[i].instance_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].thread_info.core);
 
                         free(nf_label);
                         nf_label = NULL;
