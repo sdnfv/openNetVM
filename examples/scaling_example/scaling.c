@@ -83,6 +83,12 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
+/* For advanced rings scaling */
+struct child_spawn_info {
+        struct onvm_nf_init_cfg *child_cfg;
+        struct onvm_nf *parent;
+};
+
 rte_atomic16_t signal_exit_flag;
 
 uint8_t ONVM_ENABLE_SHARED_CPU;
@@ -93,15 +99,8 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 void sig_handler(int sig);
 void *start_child(void *arg);
 int thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx);
-
-void sig_handler(int sig) {
-        if (sig != SIGINT && sig != SIGTERM)
-                return;
-
-
-        rte_atomic16_set(&signal_exit_flag, 1);
-}
-
+static void run_advanced_rings(int argc, char *argv[]);
+static void run_default_nflib_mode(int argc, char *argv[]);
 /*
  * Print a usage message
  */
@@ -210,41 +209,39 @@ packet_handler_with_scaling(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         return 0;
 }
 
-struct child_spawn_info {
-        struct onvm_nf_init_cfg *child_cfg;
-        struct onvm_nf *parent;
-};
-
 static void
-run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
-        struct onvm_nf *nf;
-        struct onvm_configuration *onvm_config;
-        pthread_t nf_thread[num_children];
-        int i;
+run_default_nflib_mode(int argc, char *argv[]) {
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
+        const char *progname = argv[0];
+        int arg_offset;
 
-        nf = nf_local_ctx->nf;
-        onvm_config = onvm_nflib_get_onvm_config();
-        ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler_with_scaling;
+        nf_function_table->setup = &nf_setup;
 
-        for (i = 0; i < num_children; i++) {
-                struct onvm_nf_init_cfg *child_cfg;
-                child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
-                /* Prepare init data for the child */
-                child_cfg->service_id = nf->service_id;
-                struct child_spawn_info *child_data = malloc(sizeof(struct child_spawn_info));
-                child_data->child_cfg = child_cfg;
-                child_data->parent = nf;
-                /* Increment the children count so that stats are displayed and NF does proper cleanup */
-                rte_atomic16_inc(&nf->thread_info.children_cnt);
-                pthread_create(&nf_thread[i], NULL, start_child, (void *)child_data);
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
         }
 
-        thread_main_loop(nf_local_ctx);
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        }
+
+        onvm_nflib_run(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);
-
-        for (i = 0; i < num_children; i++) {
-                pthread_join(nf_thread[i], NULL);
-        }
 }
 
 void *
@@ -388,43 +385,38 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 }
 
-int
-main(int argc, char *argv[]) {
-        int arg_offset;
-        const char *progname = argv[0];
+void sig_handler(int sig) {
+        if (sig != SIGINT && sig != SIGTERM)
+                return;
+
+        /* Will stop the processing for all spawned threads in advanced rings mode */
+        rte_atomic16_set(&signal_exit_flag, 1);
+}
+
+static void
+run_advanced_rings(int argc, char *argv[]) {
+        struct onvm_nf *nf;
+        struct onvm_configuration *onvm_config;
+        pthread_t nf_thread[num_children];
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
-        int i;
-
-        /* Hack to know if we're using advanced rings before running getopts */
-        for (i = argc - 1; i > 0; i--) {
-                if (strcmp(argv[i], "-a") == 0)
-                        use_advanced_rings = 1;
-                else if (strcmp(argv[i],"--") == 0)
-                        break;
-        }
+        const char *progname = argv[0];
+        int arg_offset, i;
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
-        if (use_advanced_rings) {
-                /* If we're using advanced rings also pass a custom cleanup function,
-                 * this can be used to handle NF specific (non onvm) cleanup logic */
-                rte_atomic16_init(&signal_exit_flag);
-                rte_atomic16_set(&signal_exit_flag, 0);
-                onvm_nflib_start_signal_handler(nf_local_ctx, sig_handler);
-                /* No need to define a function table as adv rings won't run onvm_nflib_run */
-                nf_function_table = NULL;
-        } else {
-                onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
-                nf_function_table = onvm_nflib_init_nf_function_table();
-                nf_function_table->pkt_handler = &packet_handler_with_scaling;
-                nf_function_table->setup = &nf_setup;
-        }
+        /* If we're using advanced rings also pass a custom cleanup function,
+         * this can be used to handle NF specific (non onvm) cleanup logic */
+        rte_atomic16_init(&signal_exit_flag);
+        rte_atomic16_set(&signal_exit_flag, 0);
+        onvm_nflib_start_signal_handler(nf_local_ctx, sig_handler);
+        /* No need to define a function table as adv rings won't run onvm_nflib_run */
+        nf_function_table = NULL;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
-                        return 0;
+                        return;
                 } else {
                         rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
                 }
@@ -438,14 +430,50 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
+        nf = nf_local_ctx->nf;
+        onvm_config = onvm_nflib_get_onvm_config();
+        ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+
+        for (i = 0; i < num_children; i++) {
+                struct onvm_nf_init_cfg *child_cfg;
+                child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
+                /* Prepare init data for the child */
+                child_cfg->service_id = nf->service_id;
+                struct child_spawn_info *child_data = malloc(sizeof(struct child_spawn_info));
+                child_data->child_cfg = child_cfg;
+                child_data->parent = nf;
+                /* Increment the children count so that stats are displayed and NF does proper cleanup */
+                rte_atomic16_inc(&nf->thread_info.children_cnt);
+                pthread_create(&nf_thread[i], NULL, start_child, (void *)child_data);
+        }
+
+        thread_main_loop(nf_local_ctx);
+        onvm_nflib_stop(nf_local_ctx);
+
+        for (i = 0; i < num_children; i++) {
+                pthread_join(nf_thread[i], NULL);
+        }
+}
+
+int
+main(int argc, char *argv[]) {
+        int i;
+
+        /* Hack to know if we're using advanced rings before running getopts */
+        for (i = argc - 1; i > 0; i--) {
+                if (strcmp(argv[i], "-a") == 0)
+                        use_advanced_rings = 1;
+                else if (strcmp(argv[i],"--") == 0)
+                        break;
+        }
+
         if (use_advanced_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
-                run_advanced_rings(nf_local_ctx);
+                run_advanced_rings(argc, argv);
         } else {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
-                onvm_nflib_run(nf_local_ctx);
+                run_default_nflib_mode(argc, argv);
         }
-        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
