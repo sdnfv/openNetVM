@@ -209,6 +209,6 @@ void
 onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data);
 
 void
-onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf_info *nf_info);
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf);
 
 #endif  // _ONVM_STATS_H_

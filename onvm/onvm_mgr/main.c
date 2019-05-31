@@ -137,7 +137,7 @@ master_thread_main(void) {
 
         /* Tell all NFs to stop */
         for (i = 0; i < MAX_NFS; i++) {
-                if (nfs[i].info == NULL)
+                if (nfs[i].status != NF_RUNNING)
                         continue;
 
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
@@ -321,7 +321,7 @@ main(int argc, char *argv[]) {
         onvm_stats_clear_all_nfs();
 
         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all
-         * remaining for Tx (subtract wakeup cores if shared cpu mode is enabled */
+         * remaining for Tx (subtract wakeup cores if shared cpu mode is enabled) */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
