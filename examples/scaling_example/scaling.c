@@ -84,23 +84,21 @@ static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 /* For advanced rings scaling */
+rte_atomic16_t signal_exit_flag;
+uint8_t ONVM_ENABLE_SHARED_CPU;
 struct child_spawn_info {
         struct onvm_nf_init_cfg *child_cfg;
         struct onvm_nf *parent;
 };
 
-rte_atomic16_t signal_exit_flag;
-
-uint8_t ONVM_ENABLE_SHARED_CPU;
-
-void
-nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
-
+void nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 void sig_handler(int sig);
 void *start_child(void *arg);
 int thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx);
+
 static void run_advanced_rings(int argc, char *argv[]);
 static void run_default_nflib_mode(int argc, char *argv[]);
+
 /*
  * Print a usage message
  */
@@ -158,6 +156,50 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
         return optind;
 }
+
+/*
+ * Generates fake packets and enqueues them into the tx ring
+ */
+void
+nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        uint32_t i;
+        struct rte_mempool *pktmbuf_pool;
+
+        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
+        if (pktmbuf_pool == NULL) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
+        }
+
+        for (i = 0; i < packet_number; ++i) {
+                struct onvm_pkt_meta *pmeta;
+                struct ether_hdr *ehdr;
+                int j;
+
+                struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
+                if (pkt == NULL)
+                        break;
+
+                /* set up ether header and set new packet size */
+                ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
+
+                /* Using manager mac addr for source*/
+                rte_eth_macaddr_get(0, &ehdr->s_addr);
+                for (j = 0; j < ETHER_ADDR_LEN; ++j) {
+                        ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                }
+                ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
+
+                pmeta = onvm_get_pkt_meta(pkt);
+                pmeta->destination = destination;
+                pmeta->action = ONVM_NF_ACTION_TONF;
+                pkt->hash.rss = i;
+                pkt->port = 0;
+
+                onvm_nflib_return_pkt(nf_local_ctx->nf, pkt);
+        }
+}
+
 
 /*
  * Basic packet handler, just forwards all packets to destination
@@ -342,49 +384,6 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         return 0;
 }
 
-/*
- * Generates fake packets and enqueues them into the tx ring
- */
-void
-nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
-        uint32_t i;
-        struct rte_mempool *pktmbuf_pool;
-
-        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
-        if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_local_ctx);
-                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
-        }
-
-        for (i = 0; i < packet_number; ++i) {
-                struct onvm_pkt_meta *pmeta;
-                struct ether_hdr *ehdr;
-                int j;
-
-                struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
-                if (pkt == NULL)
-                        break;
-
-                /* set up ether header and set new packet size */
-                ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
-
-                /* Using manager mac addr for source*/
-                rte_eth_macaddr_get(0, &ehdr->s_addr);
-                for (j = 0; j < ETHER_ADDR_LEN; ++j) {
-                        ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
-                }
-                ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
-
-                pmeta = onvm_get_pkt_meta(pkt);
-                pmeta->destination = destination;
-                pmeta->action = ONVM_NF_ACTION_TONF;
-                pkt->hash.rss = i;
-                pkt->port = 0;
-
-                onvm_nflib_return_pkt(nf_local_ctx->nf, pkt);
-        }
-}
-
 void sig_handler(int sig) {
         if (sig != SIGINT && sig != SIGTERM)
                 return;
@@ -395,11 +394,11 @@ void sig_handler(int sig) {
 
 static void
 run_advanced_rings(int argc, char *argv[]) {
-        struct onvm_nf *nf;
-        struct onvm_configuration *onvm_config;
         pthread_t nf_thread[num_children];
+        struct onvm_configuration *onvm_config;
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
+        struct onvm_nf *nf;
         const char *progname = argv[0];
         int arg_offset, i;
 
@@ -474,6 +473,7 @@ main(int argc, char *argv[]) {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
                 run_default_nflib_mode(argc, argv);
         }
+
         printf("If we reach here, program is ending\n");
         return 0;
 }
