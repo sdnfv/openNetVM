@@ -388,7 +388,6 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
                 printf("Could not set pthread sigmask\n");
                 return -1;
         }
-
         if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
                 return ONVM_SIGNAL_TERMINATION;
         }

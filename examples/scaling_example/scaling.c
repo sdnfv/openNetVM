@@ -504,6 +504,7 @@ main(int argc, char *argv[]) {
                 printf("\nRUNNING PACKET_HANDLER EXPERIMENT\n");
                 onvm_nflib_run(nf_local_ctx);
         }
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
