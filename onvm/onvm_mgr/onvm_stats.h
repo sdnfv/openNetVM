@@ -59,7 +59,7 @@
 
 extern const char *NF_MSG[3];
 #define ONVM_STATS_MSG "\n"\
-        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop         out   /    tonf     /   drop\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
         "--------------------------------------------------------------------------------------------------------------------\n"
 #define ONVM_STATS_ADV_MSG "\n"\
         "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
@@ -82,7 +82,7 @@ extern const char *NF_MSG[3];
 #define ONVM_STATS_SHARED_CPU_CONTENT \
         "                               %11" PRIu64 " / %-11" PRIu64"\n"
 #define ONVM_STATS_REG_CONTENT \
-        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64\
+        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
         "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n"
 #define ONVM_STATS_ADV_TOTALS \
         "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
