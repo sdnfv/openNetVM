@@ -58,7 +58,7 @@ struct onvm_configuration *onvm_config = NULL;
 struct nf_wakeup_info *nf_wakeup_infos = NULL;
 
 struct rte_mempool *pktmbuf_pool;
-struct rte_mempool *nf_info_pool;
+struct rte_mempool *nf_init_cfg_pool;
 struct rte_mempool *nf_msg_pool;
 struct rte_ring *incoming_msg_queue;
 uint16_t **services;
@@ -75,7 +75,7 @@ static int
 init_mbuf_pools(void);
 
 static int
-init_nf_info_pool(void);
+init_nf_init_cfg_pool(void);
 
 static int
 init_nf_msg_pool(void);
@@ -216,7 +216,7 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
 
         /* initialise nf info pool */
-        retval = init_nf_info_pool();
+        retval = init_nf_init_cfg_pool();
         if (retval != 0) {
                 rte_exit(EXIT_FAILURE, "Cannot create nf info mbuf pool: %s\n", rte_strerror(rte_errno));
         }
@@ -314,17 +314,17 @@ init_nf_msg_pool(void) {
 }
 
 /**
- * Set up a mempool to store nf_info structs
+ * Set up a mempool to store nf_init_cfg structs
  */
 static int
-init_nf_info_pool(void) {
+init_nf_init_cfg_pool(void) {
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
-        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS, NF_INFO_SIZE, 0, 0, NULL, NULL, NULL, NULL,
+        nf_init_cfg_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS, NF_INFO_SIZE, 0, 0, NULL, NULL, NULL, NULL,
                                           rte_socket_id(), NO_FLAGS);
 
-        return (nf_info_pool == NULL); /* 0 on success */
+        return (nf_init_cfg_pool == NULL); /* 0 on success */
 }
 
 /**
