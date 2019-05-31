@@ -59,6 +59,7 @@
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
 #include <rte_ring.h>
+#include <rte_atomic.h>
 
 #include "onvm_flow_table.h"
 #include "onvm_nflib.h"
@@ -82,6 +83,8 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
+rte_atomic16_t signal_exit_flag;
+
 uint8_t ONVM_ENABLE_SHARED_CPU;
 
 void
@@ -96,7 +99,7 @@ void sig_handler(int sig) {
                 return;
 
 
-        /* Specific signal handling logic can be implemented here */
+        rte_atomic16_set(&signal_exit_flag, 1);
 }
 
 /*
@@ -281,7 +284,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 struct child_spawn_info *child_data = malloc(sizeof(struct child_spawn_info));
                 child_data->child_cfg = child_cfg;
                 child_data->parent = nf;
-                /* Increment the children count because we want the ovnm_nflib to handle children termination */
+                /* Increment the children count so that stats are displayed and NF does proper cleanup */
                 rte_atomic16_inc(&nf->thread_info.children_cnt);
                 pthread_create(&nf_thread[i], NULL, start_child, (void *)child_data);
         }
@@ -354,7 +357,7 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
-        while (rte_atomic16_read(&nf_local_ctx->keep_running) && rx_ring && tx_ring && nf) {
+        while (!rte_atomic16_read(&signal_exit_flag)) {
                 /* Check for a stop message from the manager */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
                         msg = NULL;
@@ -463,6 +466,8 @@ main(int argc, char *argv[]) {
          * this can be used to handle NF specific (non onvm) cleanup logic
          */
         if (use_direct_rings) {
+                rte_atomic16_init(&signal_exit_flag);
+                rte_atomic16_set(&signal_exit_flag, 0);
                 onvm_nflib_start_signal_handler(nf_local_ctx, sig_handler);
         } else {
                 onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
