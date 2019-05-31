@@ -406,7 +406,7 @@ main(int argc, char *argv[]) {
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         if (use_advanced_rings) {
-                /* If we're using direct rings also pass a custom cleanup function,
+                /* If we're using advanced rings also pass a custom cleanup function,
                  * this can be used to handle NF specific (non onvm) cleanup logic */
                 rte_atomic16_init(&signal_exit_flag);
                 rte_atomic16_set(&signal_exit_flag, 0);
