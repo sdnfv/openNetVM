@@ -44,7 +44,7 @@
 
 #include <stdint.h>
 
-/* Std C library includes for shared cpu */
+/* Std C library includes for shared core */
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -67,14 +67,14 @@
 
 #define PACKET_READ_SIZE ((uint16_t)32)
 
-#define ONVM_ENABLE_SHARED_CPU_DEFAULT 0  // default value for shared cpu logic, if true NFs sleep while waiting for packets
+#define ONVM_NF_CORE_SHARING_DEFAULT 0  // default value for shared core logic, if true NFs sleep while waiting for packets
 
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
 #define ONVM_NF_ACTION_TONF 2  // send to the NF specified in the argument field (assume it is on the same host)
 #define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
-#define PKT_WAKEUP_THRESHOLD 1 // for shared cpu mode, how many packets are required to wake up the NF
+#define PKT_WAKEUP_THRESHOLD 1 // for shared core mode, how many packets are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
@@ -201,7 +201,7 @@ struct port_info {
 
 struct onvm_configuration {
         struct {
-                uint8_t ONVM_ENABLE_SHARED_CPU;
+                uint8_t ONVM_NF_CORE_SHARING;
         } flags;
 };
 

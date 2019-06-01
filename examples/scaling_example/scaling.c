@@ -82,7 +82,7 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
-uint8_t ONVM_ENABLE_SHARED_CPU;
+uint8_t ONVM_NF_CORE_SHARING;
 
 void
 nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
@@ -107,7 +107,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID, functionality depends on mode\n");
         printf(" - `-n NUM_CHILDREN`: Sets the number of children for the NF to spawn\n");
-        printf(" - `-c`: Set NF core allocation to shared cpu\n");
+        printf(" - `-c`: Set NF core allocation to shared core\n");
         printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
 }
 
@@ -326,7 +326,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
-                        if (ONVM_ENABLE_SHARED_CPU) {
+                        if (ONVM_NF_CORE_SHARING) {
                                 rte_atomic16_set(nf->shared_core.sleep_state, 1);
                                 sem_wait(nf->shared_core.nf_mutex);
                         }
@@ -452,7 +452,7 @@ main(int argc, char *argv[]) {
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_config = onvm_nflib_get_onvm_config();
-                ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+                ONVM_NF_CORE_SHARING = onvm_config->flags.ONVM_NF_CORE_SHARING;
                 onvm_nflib_nf_ready(nf);
                 nf_setup(nf_local_ctx);
                 run_advanced_rings(nf_local_ctx);

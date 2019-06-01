@@ -404,7 +404,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         NF_MSG[0] =
             "\nNF IID / SID     rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   drop\n"
             "\n-----------------------------------------------------------------------------------------------\n";
-        if (ONVM_ENABLE_SHARED_CPU) {
+        if (ONVM_NF_CORE_SHARING) {
                 NF_MSG[1] =
                     "\nNF IID / SID     rx_pps  /  tx_pps            rx  /  tx                out   /    tonf     /   drop\n"
                     "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   ret\n"
@@ -479,7 +479,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const char *state;
 
                 uint8_t active = 0;
-                if (ONVM_ENABLE_SHARED_CPU)
+                if (ONVM_NF_CORE_SHARING)
                         active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
                 if (!active) {
                         state = "working ";
@@ -521,7 +521,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 nfs[i].instance_id, nfs[i].service_id, rx_pps, tx_pps, rx, tx, act_out,
                                 act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer,
                                 act_returned);
-                        if (ONVM_ENABLE_SHARED_CPU)
+                        if (ONVM_NF_CORE_SHARING)
                                 fprintf(stats_out, "                      %s        %11" PRIu64 " / %-11" PRIu64"\n",
                                         state, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
@@ -592,7 +592,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 }
         }
 
-        if (ONVM_ENABLE_SHARED_CPU) {
+        if (ONVM_NF_CORE_SHARING) {
                 fprintf(stats_out, "\n\nShared CPU stats\n");
                 fprintf(stats_out, "----------------\n");
                 onvm_stats_display_client_wakeup_thread_context(difftime);

@@ -107,8 +107,8 @@ struct onvm_service_chain *default_chain;
 /* Shared data for onvm config */
 struct onvm_configuration *onvm_config;
 
-/* Flag to check if shared cpu mutex sleep/wakeup is enabled */
-uint8_t ONVM_ENABLE_SHARED_CPU;
+/* Flag to check if shared core mutex sleep/wakeup is enabled */
+uint8_t ONVM_NF_CORE_SHARING;
 
 /***********************Internal Functions Prototypes*************************/
 
@@ -243,7 +243,7 @@ void *
 onvm_nflib_thread_main_loop(void *arg);
 
 /*
- * Function to initalize the shared cpu support
+ * Function to initalize the shared core support
  *
  * Input  : Number of NF instances
  */
@@ -642,8 +642,8 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info) {
 
         rte_atomic16_inc(&nfs[scale_info->parent->instance_id].thread_info.children_cnt);
 
-        /* Careful, this is required for shared cpu scaling TODO: resolve */
-        if (ONVM_ENABLE_SHARED_CPU)
+        /* Careful, this is required for shared core scaling TODO: resolve */
+        if (ONVM_NF_CORE_SHARING)
                 sleep(1);
 
         ret = pthread_create(&app_thread, NULL, &onvm_nflib_start_child, scale_info);
@@ -777,7 +777,7 @@ onvm_nflib_lookup_shared_structs(void) {
 
 static void
 onvm_nflib_parse_config(struct onvm_configuration *config) {
-        ONVM_ENABLE_SHARED_CPU = config->flags.ONVM_ENABLE_SHARED_CPU;
+        ONVM_NF_CORE_SHARING = config->flags.ONVM_NF_CORE_SHARING;
 }
 
 static int
@@ -885,7 +885,7 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
         /* In case this instance_id is reused, clear all function pointers */
         nf->function_table = NULL;
 
-        if (ONVM_ENABLE_SHARED_CPU) {
+        if (ONVM_NF_CORE_SHARING) {
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
                 init_shared_cpu_info(nf->instance_id);
         }
@@ -901,10 +901,10 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 
         /*
          * Allow this for cases when there is not enough cores and using 
-         * the shared cpu mode is not an option
+         * the shared core mode is not an option
          */
-        if (ONVM_CHECK_BIT(nf->flags.init_options, SHARE_CORE_BIT) && !ONVM_ENABLE_SHARED_CPU)
-               RTE_LOG(WARNING, APP, "Requested shared cpu core allocation but shared cpu mode is NOT "
+        if (ONVM_CHECK_BIT(nf->flags.init_options, SHARE_CORE_BIT) && !ONVM_NF_CORE_SHARING)
+               RTE_LOG(WARNING, APP, "Requested shared core core allocation but shared core mode is NOT "
                                       "enabled, this will hurt performance, proceed with caution\n");
 
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
@@ -925,9 +925,9 @@ onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_local_ctx *nf_local_ctx, 
         /* Dequeue all packets in ring up to max possible. */
         nb_pkts = rte_ring_dequeue_burst(nf->rx_q, pkts, PACKET_READ_SIZE, NULL);
 
-        /* Possibly sleep if in shared cpu mode, otherwise return */
+        /* Possibly sleep if in shared core mode, otherwise return */
         if (unlikely(nb_pkts == 0)) {
-                if (ONVM_ENABLE_SHARED_CPU) {
+                if (ONVM_NF_CORE_SHARING) {
                         rte_atomic16_set(nf->shared_core.sleep_state, 1);
                         sem_wait(nf->shared_core.nf_mutex);
                 }
@@ -1044,7 +1044,7 @@ onvm_nflib_handle_signal(int sig) {
 
         /* If NF is asleep, wake it up */
         nf = main_nf_local_ctx->nf;
-        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nf->shared_core.sleep_state) == 1) {
+        if (ONVM_NF_CORE_SHARING && rte_atomic16_read(nf->shared_core.sleep_state) == 1) {
                 rte_atomic16_set(nf->shared_core.sleep_state, 0);
                 sem_post(nf->shared_core.nf_mutex);
         }
@@ -1210,7 +1210,7 @@ onvm_nflib_terminate_children(struct onvm_nf *nf) {
                                continue;
 
                         /* Wake up the child if its sleeping */
-                        if (ONVM_ENABLE_SHARED_CPU && rte_atomic16_read(nfs[i].shared_core.sleep_state) == 1) {
+                        if (ONVM_NF_CORE_SHARING && rte_atomic16_read(nfs[i].shared_core.sleep_state) == 1) {
                                 rte_atomic16_set(nfs[i].shared_core.sleep_state, 0);
                                 sem_post(nfs[i].shared_core.nf_mutex);
                         }
