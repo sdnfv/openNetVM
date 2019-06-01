@@ -97,30 +97,30 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
 free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
-Make Number of mbufs a Constant Value - Significant performance increase
-Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated
-Check if ONVM_HOME is Set Before Compiling ONVM 
-Update Broken Links in the Style Docs
-Add Core Information to Web Stats 
-Add NF Core Number to Web Stats
-Update Install Script Hugepage Setup & Kernel Driver Installation
-Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1
-Improve Installation Debugging Documentation
-Change onvm-pktgen Submodule to Upstream Pktgen
+Make Number of mbufs a Constant Value - Significant performance increase  
+Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated  
+Check if ONVM_HOME is Set Before Compiling ONVM   
+Update Broken Links in the Style Docs  
+Add Core Information to Web Stats  
+Add NF Core Number to Web Stats  
+Update Install Script Hugepage Setup & Kernel Driver Installation  
+Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1  
+Improve Installation Debugging Documentation  
+Change onvm-pktgen Submodule to Upstream Pktgen  
 
 ### Bug fixes:
-Free Memory on ONVM_MGR Shutdown 
-Launch Script to Handle Multi-word String Arguments
-NF Advanced Ring Thread Process NF Shutdown Messages
-Adds NF Ring Cleanup Logic On Shutdown
-Resolve Shutdown Memory Leaks
-Add NF Tag Memory Allocation
-Fix the Parse IP Helper Function
-Fix Speed Tester NF Generated Packets Counter
-Add Termination of Started but not yet Running NFs
-Add ONVM mgr web mode memory cleanup on shutdown
-Removes the Old Flow Tracker NF Launch Script
-Fix Deprecated DPDK Function in Speed Tester NF
+Free Memory on ONVM_MGR Shutdown  
+Launch Script to Handle Multi-word String Arguments  
+NF Advanced Ring Thread Process NF Shutdown Messages  
+Adds NF Ring Cleanup Logic On Shutdown  
+Resolve Shutdown Memory Leaks  
+Add NF Tag Memory Allocation  
+Fix the Parse IP Helper Function  
+Fix Speed Tester NF Generated Packets Counter  
+Add Termination of Started but not yet Running NFs  
+Add ONVM mgr web mode memory cleanup on shutdown  
+Removes the Old Flow Tracker NF Launch Script  
+Fix Deprecated DPDK Function in Speed Tester NF  
 
 **v19.05 API Changes:**
 FILL_IN
