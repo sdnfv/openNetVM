@@ -18,6 +18,8 @@ This release adds several new features and changes how the onvm_mgr and NFs star
 
 **This release features a lot of breaking API changes.**
 
+Performance: This release should fix the major performance issues that were present in the last release. 
+
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
 
@@ -36,16 +38,21 @@ Notes:
 ### Major Architectureal/API/Initialization/Signal Handling Changes:
 Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
 Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
-Instead of `onvm_nf_info` the NF will now pass the `onvm_nf_init_ctx` struct to onvm_mgr. This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool. 
+Instead of `onvm_nf_info` the NF will now pass the `onvm_nf_init_ctx` struct to onvm_mgr. This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
+Finally we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
 
 The new NF launch/shutdown sequence looks as follows:
 ```
-        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_local_ctx *nf_local_ctx;        
+        struct onvm_nf_function_table *nf_function_table;
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx)) < 0)
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0)
                 // error checks
 
         argc -= arg_offset;
@@ -54,7 +61,7 @@ The new NF launch/shutdown sequence looks as follows:
         if (parse_app_args(argc, argv, progname) < 0)
                 // error checks
 
-        onvm_nflib_run(nf_local_ctx, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);
 ```
 
@@ -66,19 +73,43 @@ CI currently performs these checks:
  - Run linter (only on files from the PR diff)
 
 ### LPM Firewall NF:
-FILL_IN
+The firewall NF drops or forwards packets based on rules provided in the json file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table.
 
 ### Payload Search NF:
-FILL_IN
+The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise.
 
 ### TTL Flags:
-FILL_IN
+Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets recieved. 
+
+### NF to NF Messaging:
+Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to
+free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
-FILL_IN
+Make Number of mbufs a Constant Value - Significant performance increase
+Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated
+Check if ONVM_HOME is Set Before Compiling ONVM 
+Update Broken Links in the Style Docs
+Add Core Information to Web Stats 
+Add NF Core Number to Web Stats
+Update Install Script Hugepage Setup & Kernel Driver Installation
+Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1
+Improve Installation Debugging Documentation
+Change onvm-pktgen Submodule to Upstream Pktgen
 
 ### Bug fixes:
-FILL_IN
+Free Memory on ONVM_MGR Shutdown 
+Launch Script to Handle Multi-word String Arguments
+NF Advanced Ring Thread Process NF Shutdown Messages
+Adds NF Ring Cleanup Logic On Shutdown
+Resolve Shutdown Memory Leaks
+Add NF Tag Memory Allocation
+Fix the Parse IP Helper Function
+Fix Speed Tester NF Generated Packets Counter
+Add Termination of Started but not yet Running NFs
+Add ONVM mgr web mode memory cleanup on shutdown
+Removes the Old Flow Tracker NF Launch Script
+Fix Deprecated DPDK Function in Speed Tester NF
 
 **v19.05 API Changes:**
 FILL_IN
