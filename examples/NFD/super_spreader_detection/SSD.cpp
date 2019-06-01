@@ -308,7 +308,7 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta, __attribute__((
         }
         ////////add NFD NF process here!////////////////
         _counter++;
-        u_char *pkt = (u_char *)buf->buf_addr;
+        u_char * pkt = rte_pktmbuf_mtod(buf, u_char*);
         int length = (int)buf->pkt_len;
         int ok;
 

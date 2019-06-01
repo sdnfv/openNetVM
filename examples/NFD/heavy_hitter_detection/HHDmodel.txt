@@ -30,8 +30,7 @@ program HHD{
     entry{
         match_flow{f[flag_syn]==1}
         match_state{hh[f[sip]]==1}
-        action_flow{pass;}
-        action_state{pass;}
+        action_flow{f[sip]=DROP;}
     }
     entry{
         match_flow{f[flag_syn]!=1}
