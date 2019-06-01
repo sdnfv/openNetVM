@@ -117,8 +117,8 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
 free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
- - Make Number of mbufs a Constant Value - Significant performance increase  
- - Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated  
+ - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This lead toi performance degradation as the requested number of mbufs was too high, changing this to a constatnt has significanly improved performance.  
+ - **Reuse NF Instance IDs** - Reuse instance IDs of old NFs that have terminated. The instance IDs are still continiously incremented up to the `MAX_NFS` constant, but when that number is reached the next NF instance ID will be wrapped back to the starting value and find the first unoccupied instance ID.    
  - Check if ONVM_HOME is Set Before Compiling ONVM   
  - Add Core Information to Web Stats
  - Update Install Script Hugepage Setup & Kernel Driver Installation  
