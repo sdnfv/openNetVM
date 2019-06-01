@@ -13,7 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 **This release features a lot of breaking API changes.**
@@ -65,6 +65,12 @@ The new NF launch/shutdown sequence looks as follows:
         onvm_nflib_stop(nf_local_ctx);
 ```  
 
+### Advanced Rings Changes:
+This release changes our approach to NFs using the advanced rings mode. Previously we were trying to provide APIs for advanced ring developers such as scaling, but this logic should be managed by the NFs themselves. Because of this we're reworking those APIs and letting the NF devs handle everything themselves.  
+ - Speed Tester NF advanced rings mode is removed  
+ - Scaling Example NF advanced rings mode has been reworked and cleaned up  
+ - Extra APIs have been removed  
+
 ### Stats Updates:
 New features provide new stats, thus we have updates onvm_mgr stats output. 
 Here is the default mode:
@@ -86,46 +92,64 @@ CI currently performs these checks:
 ### LPM Firewall NF:
 The firewall NF drops or forwards packets based on rules provided in the json file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table.
 
+The NF accepts a json config with these rules:
+```
+"ruleName": {
+		"ip": "127.1.1.0",
+		"depth": 32,
+		"action": 0
+}
+```
+
+
 ### Payload Search NF:
 The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise.
 
 ### TTL Flags:
 Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets recieved. 
 
+Usage:  
+ - `-t TTL` will stop the NF after the NF tx exceeds `PKT_LIMIT * PKT_TTL_MULTIPLIER`, measured in seconds. 
+ - `-l PACKET_LIMIT` will stop the NF after the NF was alive longer than TTL_TIME*TIME_TTL_MULTIPLIER, measured in millions of packets.
+
 ### NF to NF Messaging:
 Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to
 free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
-Make Number of mbufs a Constant Value - Significant performance increase  
-Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated  
-Check if ONVM_HOME is Set Before Compiling ONVM   
-Update Broken Links in the Style Docs  
-Add Core Information to Web Stats  
-Add NF Core Number to Web Stats  
-Update Install Script Hugepage Setup & Kernel Driver Installation  
-Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1  
-Improve Installation Debugging Documentation  
-Change onvm-pktgen Submodule to Upstream Pktgen  
+ - Make Number of mbufs a Constant Value - Significant performance increase  
+ - Reuse NF Instance IDs - Reuse instance IDs of old NFs that have terminated  
+ - Check if ONVM_HOME is Set Before Compiling ONVM   
+ - Add Core Information to Web Stats
+ - Update Install Script Hugepage Setup & Kernel Driver Installation  
+ - Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1  
+ - Various Documentation updates and fixes  
+ - Change onvm-pktgen Submodule to Upstream Pktgen  
 
 ### Bug fixes:
-Free Memory on ONVM_MGR Shutdown  
-Launch Script to Handle Multi-word String Arguments  
-NF Advanced Ring Thread Process NF Shutdown Messages  
-Adds NF Ring Cleanup Logic On Shutdown  
-Resolve Shutdown Memory Leaks  
-Add NF Tag Memory Allocation  
-Fix the Parse IP Helper Function  
-Fix Speed Tester NF Generated Packets Counter  
-Add Termination of Started but not yet Running NFs  
-Add ONVM mgr web mode memory cleanup on shutdown  
-Removes the Old Flow Tracker NF Launch Script  
-Fix Deprecated DPDK Function in Speed Tester NF  
+ - Free Memory on ONVM_MGR Shutdown  
+ - Launch Script to Handle Multi-word String Arguments  
+ - NF Advanced Ring Thread Process NF Shutdown Messages  
+ - Adds NF Ring Cleanup Logic On Shutdown  
+ - Resolve Shutdown Memory Leaks  
+ - Add NF Tag Memory Allocation  
+ - Fix the Parse IP Helper Function  
+ - Fix Speed Tester NF Generated Packets Counter  
+ - Add Termination of Started but not yet Running NFs  
+ - Add ONVM mgr web mode memory cleanup on shutdown  
+ - Removes the Old Flow Tracker NF Launch Script  
+ - Fix Deprecated DPDK Function in Speed Tester NF  
 
 **v19.05 API Changes:**
 FILL_IN
 
 **v19.05 API Additions:**
+FILL_IN
+
+**v19.05 API Additions:**
+FILL_IN
+
+**v19.05 Removed APIs:**
 FILL_IN
 
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
