@@ -18,16 +18,17 @@ This release adds several new features and changes how the onvm_mgr and NFs star
 
 **This release features a lot of breaking API changes.**
 
-Performance: This release should fix the major performance issues that were present in the last release. 
+**Performance**: This release should fix the major performance issues that were present in the last release. 
+
+**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now catalloged by tags.
 
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
 
 The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
 
-
 Usage:
-  - To enable shared core mode pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they can share cores with other NFs
+  - To enable shared core mode pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they can share cores with other NFs  
 
 Notes:
   - All code for sharing CPUs is within `if (ONVM_ENABLE_SHARED_CPU)` blocks
