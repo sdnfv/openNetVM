@@ -450,7 +450,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
