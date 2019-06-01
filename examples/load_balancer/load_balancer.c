@@ -113,9 +113,6 @@ struct flow_info {
         int is_active;
 };
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 struct loadbalance *lb;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
@@ -477,7 +474,7 @@ table_lookup_entry(struct rte_mbuf *pkt, struct flow_info **flow) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((lb->elapsed_cycles - lb->last_cycles) / rte_get_timer_hz() > lb->expire_time) {
@@ -488,7 +485,8 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         struct ipv4_hdr *ip;
         struct ether_hdr *ehdr;
@@ -566,17 +564,34 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int
 main(int argc, char *argv[]) {
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
         argc -= arg_offset;
         argv += arg_offset;
 
         lb = rte_calloc("state", 1, sizeof(struct loadbalance), 0);
         if (lb == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF lb struct");
         }
 
@@ -585,7 +600,7 @@ main(int argc, char *argv[]) {
 
         lb->ft = onvm_ft_create(TABLE_SIZE, sizeof(struct flow_info));
         if (lb->ft == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
@@ -595,8 +610,9 @@ main(int argc, char *argv[]) {
         lb->expire_time = 32;
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
-        printf("If we reach here, program is ending\n");
+        onvm_nflib_run(nf_local_ctx);
 
+        onvm_nflib_stop(nf_local_ctx);
+        printf("If we reach here, program is ending\n");
         return 0;
 }

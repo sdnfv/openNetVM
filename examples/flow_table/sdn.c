@@ -69,7 +69,7 @@
 #include "sdn_pkt_list.h"
 #include "setupconn.h"
 
-extern struct onvm_nf_info *nf_info;
+extern struct onvm_nf *nf;
 extern struct rte_ring *ring_to_sdn;
 extern struct rte_ring *ring_from_sdn;
 extern uint16_t def_destination;
@@ -235,7 +235,7 @@ datapath_handle_read(struct datapath *dp) {
                                 flow_entry->idle_timeout = OFP_FLOW_PERMANENT;
                                 flow_entry->hard_timeout = OFP_FLOW_PERMANENT;
                                 sdn_list = (struct sdn_pkt_list *)onvm_ft_get_data(pkt_buf_ft, buffer_id);
-                                sdn_pkt_list_flush(nf_info, sdn_list);
+                                sdn_pkt_list_flush(nf, sdn_list);
                                 break;
                         case OFPT_PORT_MOD:
                                 debug_msg(dp, "got port_mod");
