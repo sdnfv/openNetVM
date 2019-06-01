@@ -13,7 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, CI PR Review, Web Stats Updates, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 **This release features a lot of breaking API changes.**
@@ -63,7 +63,18 @@ The new NF launch/shutdown sequence looks as follows:
 
         onvm_nflib_run(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);
-```
+```  
+
+### Stats Updates:
+New features provide new stats, thus we have updates onvm_mgr stats output. 
+Here is the default mode:
+FILL_IN
+
+Here is the verbose mode:
+FILL_IN
+
+The shared core mode adds another line in the end of the verbose stats output to showcase wakeup statistics. 
+
 
 ### CI PR Review:
 CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purpoces. The new CI system is able to approve/reject pull requsts.
