@@ -90,8 +90,8 @@ extern const char *NF_MSG[3];
         "\n                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
         " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
 #define ONVM_STATS_REG_TOTALS \
-        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "     %9" PRIu64 " / %-9" PRIu64\
-        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n"
+        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
 #define ONVM_STATS_ADV_PORTS \
         "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 "%" PRIu64 "\n"
 #define ONVM_STATS_REG_PORTS \
