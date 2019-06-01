@@ -72,14 +72,62 @@ This release changes our approach to NFs using the advanced rings mode. Previous
  - Extra APIs have been removed  
 
 ### Stats Updates:
-New features provide new stats, thus we have updates onvm_mgr stats output. 
-Here is the default mode:
-FILL_IN
+This release updates both console and web stats. 
+The new default mode now displays NF tag and core ID:
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
 
-Here is the verbose mode:
-FILL_IN
+Port 0 - rx:         4  (        0 pps) tx:         0  (        0 pps)
 
-The shared core mode adds another line in the end of the verbose stats output to showcase wakeup statistics. 
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+----------------------------------------------------------------------------------------------------------------------
+speed_tester    1  /  1  /  4      1693920 / 1693920               0 / 0                      0 / 40346970    / 0
+```
+
+Verbose mode also adds PNT(Parent ID), S|W(NF state, sleeping or working), CHLD(Children count):
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
+
+Port 0 - rx:         4  (        0 pps) tx:         0  (        0 pps)
+
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
+----------------------------------------------------------------------------------------------------------------------
+speed_tester    1  /  1  /  4      9661664 / 9661664        94494528 / 94494528               0 / 94494487    / 0
+                0  /  W  /  0            0 / 0                     0 / 0                      0 / 0           / 128
+```
+
+The shared core mode adds wakeup information stats:
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
+
+Port 0 - rx:         5  (        0 pps) tx:         0  (        0 pps)
+
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
+                                  wakeups  /  wakeup_rt
+----------------------------------------------------------------------------------------------------------------------
+simple_forward  2  /  2  /  4        27719 / 27719            764439 / 764439                 0 / 764439      / 0
+                0  /  S  /  0            0 / 0                     0 / 0                      0 / 0           / 0
+                                    730557 / 25344
+
+speed_tester    3  /  1  /  5        27719 / 27719            764440 / 764439                 0 / 764440      / 0
+                0  /  W  /  0            0 / 0                     0 / 0                      0 / 0           / 1
+                                    730560 / 25347
+
+
+
+Shared CPU stats
+----------------
+Total wakeups = 1461122, Wakeup rate = 50696
+```
+
 
 
 ### CI PR Review:
