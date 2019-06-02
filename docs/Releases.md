@@ -20,10 +20,10 @@ This release adds several new features and changes how the onvm_mgr and NFs star
 
 **Performance**: This release should fix the major performance issues that were present in the last release. 
 
-**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now catalloged by tags.
+**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags.
 
 ### Shared Core Mode:
-This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores.  NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep.  Shared cpu variables for mgr are in the `nf_wakeup_info` structs, the NF shared cpu vars were moved to the `onvm_nf` struct.
+This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
 
 The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
 
@@ -50,7 +50,7 @@ Notes:
 
 - Reworking the `onvm_nf` struct 
 
-    Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
+    Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info`, which was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
 
     ```c
     struct onvm_nf {
@@ -140,7 +140,7 @@ Notes:
 	
  - Adding a function table struct `onvm_nf_function_table`  
 	
-    Finally we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
+    Finally, we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
 
     ```c
     struct onvm_nf_function_table {
@@ -183,6 +183,10 @@ This release changes our approach to NFs using the advanced rings mode. Previous
 
 ### Stats Updates:
 This release updates both console and web stats. 
+
+ - For web stats this adds the Core Mappings page with the information about core mappings for both onvm_mgr and NFs.
+ - For console stats this overhauls the displayed stats and adds new information, see more bellow.
+
 The new default mode now displays NF tag and core ID:
 ```
 PORTS
