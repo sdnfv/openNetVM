@@ -328,7 +328,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Set core affinity depending on what we got from mgr */
         /* TODO as this is advanced ring mode it should have access to the core info struct */
-        if (onvm_threading_core_affinitize(nf->thread_info.core) < 0){
+        if (onvm_threading_core_affinitize(nf->thread_info.core) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
         }
@@ -508,7 +508,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 #endif
         /* Exit if packets were unexpectedly not created */
-        if (pkts_generated == 0 && packet_number > 0){
+        if (pkts_generated == 0 && packet_number > 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Failed to create packets\n");
         }
