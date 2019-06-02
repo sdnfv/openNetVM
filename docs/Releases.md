@@ -37,13 +37,122 @@ Notes:
   - Note that the manager threads all still use polling
 
 ### Major Architectureal/API/Initialization/Signal Handling Changes:
-Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
-Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
-Instead of `onvm_nf_info` the NF will now pass the `onvm_nf_init_ctx` struct to onvm_mgr. This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
-Finally we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
+- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
 
-The new NF launch/shutdown sequence looks as follows:
-```
+    Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
+    ```c
+    struct onvm_nf_local_ctx {
+            struct onvm_nf *nf;
+            rte_atomic16_t nf_init_finished;
+            rte_atomic16_t keep_running;
+    };
+    ```
+
+- Reworking the `onvm_nf` struct 
+
+    Which leads us to the `onvm_nf` struct rework. Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info` struct and it was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
+
+    ```c
+    struct onvm_nf {
+            struct rte_ring *rx_q;
+            struct rte_ring *tx_q;
+            struct rte_ring *msg_q;
+            /* Struct for NF to NF communication (NF tx) */
+            struct queue_mgr *nf_tx_mgr;
+            uint16_t instance_id;
+            uint16_t service_id;
+            uint8_t status;
+            char *tag;
+            /* Pointer to NF defined state data */
+            void *data;
+
+            struct {
+                    uint16_t core;
+                    /* Instance ID of parent NF or 0 */
+                    uint16_t parent;
+                    rte_atomic16_t children_cnt;
+            } thread_info;
+
+            struct {
+                    uint16_t init_options;
+                    /* If set NF will stop after time reaches time_to_live */
+                    uint16_t time_to_live;
+                    /* If set NF will stop after pkts TX reach pkt_limit */
+                    uint16_t pkt_limit;
+            } flags;
+
+            /* NF specific functions */
+            struct onvm_nf_function_table *function_table;
+
+            /*
+             * Define a structure with stats from the NFs.
+             *
+             * These stats hold how many packets the NF will actually receive, send,
+             * and how many packets were dropped because the NF's queue was full.
+             * The port-info stats, in contrast, record how many packets were received
+             * or transmitted on an actual NIC port.
+             */
+            struct {
+                    volatile uint64_t rx;
+                    volatile uint64_t rx_drop;
+                    volatile uint64_t tx;
+                    volatile uint64_t tx_drop;
+                    volatile uint64_t tx_buffer;
+                    volatile uint64_t tx_returned;
+                    volatile uint64_t act_out;
+                    volatile uint64_t act_tonf;
+                    volatile uint64_t act_drop;
+                    volatile uint64_t act_next;
+                    volatile uint64_t act_buffer;
+            } stats;
+
+            struct {
+                     /* 
+                      * Sleep state (shared mem variable) to track state of NF and trigger wakeups 
+                      *     sleep_state = 1 => NF sleeping (waiting on semaphore)
+                      *     sleep_state = 0 => NF running (not waiting on semaphore)
+                      */
+                    rte_atomic16_t *sleep_state;
+                    /* Mutex for NF sem_wait */
+                    sem_t *nf_mutex;
+            } shared_core;
+    };
+    ```
+
+ - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for intializtion
+
+    This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
+
+    ```c
+    struct onvm_nf_init_cfg {
+            uint16_t instance_id;
+            uint16_t service_id;
+            uint16_t core;
+            uint16_t init_options;
+            uint8_t status;
+            char *tag;
+            /* If set NF will stop after time reaches time_to_live */
+            uint16_t time_to_live;
+            /* If set NF will stop after pkts TX reach pkt_limit */
+            uint16_t pkt_limit;
+    };
+    ```
+	
+ - Adding a function table struct `onvm_nf_function_table`  
+	
+    Finally we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
+
+    ```c
+    struct onvm_nf_function_table {
+            nf_setup_fn  setup;
+            nf_msg_handler_fn  msg_handler;
+            nf_user_actions_fn user_actions;
+            nf_pkt_handler_fn  pkt_handler;
+    };
+    ```
+
+**Overall, the new NF launch/shutdown sequence looks as follows:**
+```c
         struct onvm_nf_local_ctx *nf_local_ctx;        
         struct onvm_nf_function_table *nf_function_table;
 
@@ -142,7 +251,7 @@ CI currently performs these checks:
 The firewall NF drops or forwards packets based on rules provided in the json file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table.
 
 The NF accepts a json config with these rules:
-```
+```json
 "ruleName": {
 		"ip": "127.1.1.0",
 		"depth": 32,
