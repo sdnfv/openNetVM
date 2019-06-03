@@ -13,7 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.05 (5/19): Shared Core Mode, Major Architectureal/API/Initialization/Signal Handling Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+## v19.05 (5/19): Shared Core Mode, Major Architectural/API/Initialization/Signal Handling Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 **This release features a lot of breaking API changes.**
@@ -31,12 +31,12 @@ Usage:
   - To enable shared core mode pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they can share cores with other NFs  
 
 Notes:
-  - All code for sharing CPUs is within `if (ONVM_ENABLE_SHARED_CPU)` blocks
+  - All code for sharing CPUs is within `if (ONVM_NF_SHARE_CORE)` blocks
   - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets
   - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
   - Note that the manager threads all still use polling
 
-### Major Architectureal/API/Initialization/Signal Handling Changes:
+### Major Architectural/API/Initialization/Signal Handling Changes:
 - Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
 
     Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
@@ -119,7 +119,7 @@ Notes:
     };
     ```
 
- - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for intializtion
+ - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for initialization
 
     This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
 
@@ -237,15 +237,15 @@ speed_tester    3  /  1  /  5        27719 / 27719            764440 / 764439   
 
 
 
-Shared CPU stats
-----------------
+Shared core stats
+-----------------
 Total wakeups = 1461122, Wakeup rate = 50696
 ```
 
 
 
 ### CI PR Review:
-CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purpoces. The new CI system is able to approve/reject pull requsts.
+CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purposes. The new CI system is able to approve/reject pull requests.
 CI currently performs these checks:
  - Check the branch (for our discussed change of develop->master as main branch)
  - Run performance check (speed tester currently with 35mil benchmark)
@@ -268,7 +268,7 @@ The NF accepts a json config with these rules:
 The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise.
 
 ### TTL Flags:
-Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets recieved. 
+Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received. 
 
 Usage:  
  - `-t TTL` will stop the NF after the NF tx exceeds `PKT_LIMIT * PKT_TTL_MULTIPLIER`, measured in seconds. 
@@ -279,7 +279,7 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
 free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
- - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This lead toi performance degradation as the requested number of mbufs was too high, changing this to a constatnt has significanly improved performance.  
+ - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This lead to performance degradation as the requested number of mbufs was too high, changing this to a constant has significantly improved performance.  
  - **Reuse NF Instance IDs** - Reuse instance IDs of old NFs that have terminated. The instance IDs are still continiously incremented up to the `MAX_NFS` constant, but when that number is reached the next NF instance ID will be wrapped back to the starting value and find the first unoccupied instance ID.    
  - Check if ONVM_HOME is Set Before Compiling ONVM   
  - Add Core Information to Web Stats
