@@ -50,4 +50,8 @@ if '-dev' in REPO_NAME:
 
 child.interact()
 
+# Get the latest branches for upstream (used for proper linter check)
+pexpect.run("git remote add upstream https://github.com/sdnfv/openNetVM.git", cwd="./repository")
+pexpect.run("git fetch upstream", cwd="./repository")
+
 print(pexpect.run("git checkout " + branch_name, cwd="./repository"))

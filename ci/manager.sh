@@ -190,13 +190,13 @@ do
     worker_key_file="${tuple_arr[1]}"
     scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:stats ./$worker_ip.stats
     check_exit_code "ERROR: Failed to fetch results from $worker_ip"
-    echo "[Results from $worker_ip]" >> results_summary.stats
-    python3 speed-tester-analysis.py ./$worker_ip.stats >> results_summary.stats
+    # TODO: this will overwrite results if we have more  than 1 worker, investigate this case
+    python3 speed-tester-analysis.py ./$worker_ip.stats $worker_ip results_summary.stats
     check_exit_code "ERROR: Failed to analyze results from $worker_ip"
 done
 
 print_header "Posting Results in Comment on GitHub"
-python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1,\"results\": 1}" $REPO_OWNER $REPO_NAME "Run successful see results:"
+python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1,\"results\": 1,\"review\": 1}" $REPO_OWNER $REPO_NAME "Run successful see results:"
 check_exit_code "ERROR: Failed to post results to GitHub"
 
 print_header "Finished Executing"
