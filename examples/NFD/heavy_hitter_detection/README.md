@@ -11,7 +11,7 @@ Heavy Hitter Detection is translated from the `HHDmodel.txt` to C++ environment.
  
  <br>
  
-Heavy Hitter Detection keeps a counter for per flow and detects which flows consume most bandwidth by comparing the counters with a threshold.
+Heavy Hitter Detection keeps a counter for per flow and detects which flows consume most bandwidth by comparing the counters with a threshold. (threshold is set by user, in this program, we set it 100.) If the count reaches threshold, we will drop the following packets.
 
 
 Compilation and Execution

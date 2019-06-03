@@ -30,7 +30,7 @@ To run this NF, you should use either clang++ or g++ to compile this NF develope
 
 ```
 cd examples/firewall_NFD
-make CC=g++
+make
 
 ```
 

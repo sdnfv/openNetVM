@@ -9,7 +9,7 @@ the NF model file wiiten in NFD language, a table-form language, into standard r
 UDP Flood Mitigation is translated from the `UDPFloodMitigationModel.txt` to C++ environment.
  <br>
 
-UDP Flood Mitigation identifies source IPs that send an anomalously higher number of UDP packets and uses the statistics to categorize each packet as either attack or benign.
+UDP Flood Mitigation identifies source IPs that send an anomalously higher number of UDP packets and uses the statistics (compared to threshold set by user. In this program, we set threshold 100.) to categorize each packet as either attack or benign.
 <br>
  
 

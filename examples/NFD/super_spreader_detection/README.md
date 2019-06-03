@@ -10,7 +10,7 @@ the NF model file wiiten in NFD language, a table-form language, into standard r
 Super Spreader Detection is translated from the `SSDmodel.txt` to C++ environment. <br>
   
  <br>
- Super Spreader Detection detects and identifies super spreaders to preempt port scan attacks or DDoS attacks by increasing the counter on SYNs and decrease it on FINs.
+ Super Spreader Detection detects and identifies super spreaders to preempt port scan attacks or DDoS attacks by increasing the counter on SYNs and decrease it on FINs. The count will be compared to threshold set by user. In this program, we set threshold 100.
  <br>
  
 

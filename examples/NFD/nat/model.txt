@@ -22,15 +22,15 @@ program NAT{
 
     entry{
         match_flow{ f matches R }
-    match_state{ ~(f[sip] in mapping) && (f[sip] in mapping && ~(f[sport] in mapping[f[sip]])) }
+        match_state{ ~(f[sip] in mapping) && (f[sip] in mapping && ~(f[sport] in mapping[f[sip]])) }
         action_state  { mapping[f[sip]][f[sport]] = port; port_ip[port]= f[sip]; port_port[port]=f[port]; }
         action_flow{ f[sip]=base; f[sport]=port; port=port+1; }
 
     }
     entry{
-    match_flow{ f matches R }
-    match_state { f[sip] in mapping && ~(f[sport] in mapping[f[sip]]) }
-    action_flow { f[sip]=base; f[sport]=mapping[f[sip]][f[sport]]; }
+        match_flow{ f matches R }
+        match_state { f[sip] in mapping && ~(f[sport] in mapping[f[sip]]) }
+        action_flow { f[sip]=base; f[sport]=mapping[f[sip]][f[sport]]; }
     }
     entry{
         match_flow{f mismatches R && f[dip] == base}

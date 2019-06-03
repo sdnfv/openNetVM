@@ -23,7 +23,6 @@ program NAPT{
         match_flow{f matches R }
         action_state  { listIP[port]=f[sip]; listPORT[port]=f[sport];}
         action_flow{f[sip]=base; f[sport]=port; port=port+1;}
-
     }
 
     entry{

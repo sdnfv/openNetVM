@@ -10,7 +10,7 @@ the NF model file wiiten in NFD language, a table-form language, into standard r
 SYN Flood Detection is translated from the `SYNFloodDetectionModel.txt` to C++ environment. <br>
  
  <br>
- SYN Flood Detection counts the number of SYNs without any matching ACK from the sender side. If one sender exceeds a certain threshold, it should be blocked.
+ SYN Flood Detection counts the number of SYNs without any matching ACK from the sender side. If one sender exceeds a certain threshold X (set by user. In this program, we set threshold 100.), it should be blocked.
  
  <br>
  
