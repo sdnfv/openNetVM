@@ -148,7 +148,6 @@ Flow::clean() {
 
         *((int *)(ip_header + 12)) = htonl(*((int *)this->field_value["sip"]));
         *((int *)(ip_header + 16)) = htonl(*((int *)this->field_value["dip"]));
-        // this->field_value["iplen"] = new int(totallength);
 
         /*TCP layer*/
         TCPHdr *tcph = (TCPHdr *)(ip_header + ip_header_length);
@@ -190,8 +189,8 @@ process(Flow &f) {
                 udpcounter[f][(*(IP *)f["sip"])] = udpcounter[f][(*(IP *)f["sip"])] + _t4;
         } else if (((*(int *)f["UDP"]) == _t5) &&
                    (udpflood[f][(*(IP *)f["sip"])] != _t6 && udpcounter[f][(*(IP *)f["sip"])] == threshold[f])) {
-                return -1;
                 udpflood[f][(*(IP *)f["sip"])] = _t7;
+                return -1;
         } else if ((*(int *)f["UDP"]) != _t8) {
         }
 

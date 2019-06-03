@@ -26,8 +26,8 @@ program UDPFM{
     entry{
         match_flow{f[UDP]==1}
         match_state{udpflood[f[sip]]!=1 && udpcounter[f[sip]]==threshold}
-        action_flow{f[dip]=DROP;}
         action_state{udpflood[f[sip]]=1;}
+        action_flow{f[dip]=DROP;}
     }
     entry{
         match_flow{f[UDP]!=1}

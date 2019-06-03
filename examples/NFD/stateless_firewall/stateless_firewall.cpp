@@ -144,7 +144,6 @@ int
 process(Flow &f) {
         if (*((IP *)f.headers[Sip]) != ip1) {
         }
-        // to be fixed
         else if (*((IP *)f.headers[Sip]) <= ip1 && *((int *)f.headers[Tcp])) {
                 return -1;
         }
