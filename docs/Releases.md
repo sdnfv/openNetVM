@@ -170,9 +170,13 @@ Usage and implementation details can be found [here][shared_core_docs].
 
 ### Advanced Rings Changes:
 This release changes our approach to NFs using the advanced rings mode. Previously we were trying to provide APIs for advanced ring developers such as scaling, but this logic should be managed by the NFs themselves. Because of this we're reworking those APIs and letting the NF devs handle everything themselves.  
- - Speed Tester NF advanced rings mode is removed  
- - Scaling Example NF advanced rings mode has been reworked and cleaned up  
- - Extra APIs have been removed  
+ - Speed Tester NF advanced rings mode is removed 
+ - Extra APIs have been removed 
+ - Removes support for advanced rings scaling APIs 
+ - Scaling Example NF advanced rings mode has been reworked, the new implementation now does its own pthread creation instead of relying on the onvm scaling APIs. Also makes a clear separation between default and advanced ring mode.  
+ - Because of these changes some internal nflib APIs were exposed to the NF (`onvm_nflib_start_nf`, `onvm_nflib_init_nf_init_cfg`, `onvm_nflib_inherit_parent_init_cfg`)
+
+
 
 ### Stats Updates:
 This release updates both console and web stats. 
