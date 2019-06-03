@@ -333,7 +333,7 @@ main(int argc, char *argv[]) {
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
 
-        /* If shared CPU enabled adjust core numbers */
+        /* If shared core mode enabled adjust core numbers */
         if (ONVM_NF_SHARE_CORES) {
                 wakeup_lcores = ONVM_NUM_WAKEUP_THREADS;
                 tx_lcores -= wakeup_lcores;

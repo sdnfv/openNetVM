@@ -76,7 +76,7 @@
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_direct_rings = 0;
-static uint8_t use_shared_cpu_core_allocation = 0;
+static uint8_t use_shared_core_allocation = 0;
 
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
@@ -121,7 +121,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         while ((c = getopt(argc, argv, "d:n:p:ac")) != -1) {
                 switch (c) {
                         case 'c':
-                                use_shared_cpu_core_allocation = 1;
+                                use_shared_core_allocation = 1;
                                 break;
                         case 'a':
                                 use_direct_rings = 1;
@@ -196,7 +196,7 @@ packet_handler_child(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 scale_info->function_table->setup = &nf_setup;
                 /* Custom packet handler */
                 scale_info->function_table->pkt_handler = &packet_handler_fwd;
-                if (use_shared_cpu_core_allocation)
+                if (use_shared_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Insert state data, will be used to forward packets to itself */
                 scale_info->data = state_data;
@@ -238,7 +238,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 scale_info->function_table = onvm_nflib_init_nf_function_table();
                 /* Custom packet handler */
                 scale_info->function_table->pkt_handler = &packet_handler_child;
-                if (use_shared_cpu_core_allocation)
+                if (use_shared_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
                 /* Spawn the child */
                 if (onvm_nflib_scale(scale_info) == 0)
@@ -295,7 +295,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                         *(uint16_t *)data = destination;
                         /* Get the filled in scale struct by inheriting parent properties */
                         scale_info = onvm_nflib_inherit_parent_config(nf, data);
-                        if (use_shared_cpu_core_allocation)
+                        if (use_shared_core_allocation)
                                 scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                         RTE_LOG(INFO, APP, "NF %d trying to spawn child SID %u; running advanced_rings\n",
