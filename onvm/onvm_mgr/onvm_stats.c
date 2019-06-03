@@ -400,7 +400,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static const char *NF_MSG[3];
 
         NF_MSG[0] = ONVM_STATS_MSG;
-        if (ONVM_NF_CORE_SHARING) {
+        if (ONVM_NF_SHARE_CORES) {
                 NF_MSG[1] = ONVM_STATS_SHARED_CORE_MSG;
         } else {
                 NF_MSG[1] = ONVM_STATS_ADV_MSG;
@@ -466,7 +466,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 char state;
 
                 uint8_t active = 0;
-                if (ONVM_NF_CORE_SHARING)
+                if (ONVM_NF_SHARE_CORES)
                         active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
                 if (!active) {
                         state = 'W';
@@ -504,7 +504,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                                 rx_pps, tx_pps, rx, tx, act_out, act_tonf, act_drop,
                                 rte_atomic16_read(&nfs[i].thread_info.children_cnt), state, nfs[i].thread_info.parent,
                                 rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer, act_returned);
-                        if (ONVM_NF_CORE_SHARING)
+                        if (ONVM_NF_SHARE_CORES)
                                 fprintf(stats_out, ONVM_STATS_SHARED_CORE_CONTENT, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
                 } else {
@@ -566,9 +566,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 }
         }
 
-        if (ONVM_NF_CORE_SHARING) {
-                fprintf(stats_out, "\n\nShared CPU stats\n");
-                fprintf(stats_out, "----------------\n");
+        if (ONVM_NF_SHARE_CORES) {
+                fprintf(stats_out, "\n\nShared core stats\n");
+                fprintf(stats_out, "-----------------\n");
                 onvm_stats_display_client_wakeup_thread_context(difftime);
         }
 

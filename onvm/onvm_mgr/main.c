@@ -144,7 +144,7 @@ master_thread_main(void) {
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
 
                 /* If in shared core mode NFs might be sleeping */
-                if (ONVM_NF_CORE_SHARING && rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
+                if (ONVM_NF_SHARE_CORES && rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
                         nf_wakeup_infos[i].num_wakeups++;
                         rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
                         sem_post(nf_wakeup_infos[i].mutex);
@@ -164,7 +164,7 @@ master_thread_main(void) {
         }
 
         /* Clean up the shared memory */
-        if (ONVM_NF_CORE_SHARING) {
+        if (ONVM_NF_SHARE_CORES) {
                 for (i = 0; i < MAX_NFS; i++) {
                         sem_close(nf_wakeup_infos[i].mutex);
                         sem_unlink(nf_wakeup_infos[i].sem_name);
@@ -334,7 +334,7 @@ main(int argc, char *argv[]) {
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
 
         /* If shared CPU enabled adjust core numbers */
-        if (ONVM_NF_CORE_SHARING) {
+        if (ONVM_NF_SHARE_CORES) {
                 wakeup_lcores = ONVM_NUM_WAKEUP_THREADS;
                 tx_lcores -= wakeup_lcores;
                 if (tx_lcores < 1) {
@@ -351,7 +351,7 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
-        if (ONVM_NF_CORE_SHARING)
+        if (ONVM_NF_SHARE_CORES)
                 RTE_LOG(INFO, APP, "%d cores available for handling wakeup\n", wakeup_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
 
@@ -405,7 +405,7 @@ main(int argc, char *argv[]) {
                 }
         }
 
-        if (ONVM_NF_CORE_SHARING) {
+        if (ONVM_NF_SHARE_CORES) {
                 nfs_per_wakeup_thread = ceil((unsigned)MAX_NFS / wakeup_lcores);
                 for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
                         struct wakeup_thread_context *wakeup_ctx = calloc(1, sizeof(struct wakeup_thread_context));

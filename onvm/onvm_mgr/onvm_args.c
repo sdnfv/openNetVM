@@ -77,7 +77,7 @@ uint32_t global_pkt_limit = 0;
 uint8_t global_verbosity_level = 1;
 
 /* global flag for enabling shared core logic - extern in init.h */
-uint8_t ONVM_NF_CORE_SHARING = 0;
+uint8_t ONVM_NF_SHARE_CORES = 0;
 
 /* global var for program name */
 static const char *progname;
@@ -189,8 +189,8 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 }
                                 break;
                         case 'c':
-                                onvm_config->flags.ONVM_NF_CORE_SHARING = 1;
-                                ONVM_NF_CORE_SHARING = 1;
+                                onvm_config->flags.ONVM_NF_SHARE_CORES = 1;
+                                ONVM_NF_SHARE_CORES = 1;
                                 break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);

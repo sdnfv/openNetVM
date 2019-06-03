@@ -280,7 +280,7 @@ init(int argc, char *argv[]) {
  */
 static void
 set_default_config(struct onvm_configuration *config) {
-        config->flags.ONVM_NF_CORE_SHARING = ONVM_NF_CORE_SHARING_DEFAULT;
+        config->flags.ONVM_NF_SHARE_CORES = ONVM_NF_SHARE_CORES_DEFAULT;
 }
 
 /**
@@ -421,7 +421,7 @@ init_shared_sem(void) {
 
         nf_wakeup_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
 
-        if (!ONVM_NF_CORE_SHARING)
+        if (!ONVM_NF_SHARE_CORES)
                 return;
 
         for (i = 0; i < MAX_NFS; i++) {

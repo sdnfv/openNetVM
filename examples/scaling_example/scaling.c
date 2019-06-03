@@ -82,7 +82,7 @@ static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
-uint8_t ONVM_NF_CORE_SHARING;
+uint8_t ONVM_NF_SHARE_CORES;
 
 void
 nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
@@ -326,7 +326,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
-                        if (ONVM_NF_CORE_SHARING) {
+                        if (ONVM_NF_SHARE_CORES) {
                                 rte_atomic16_set(nf->shared_core.sleep_state, 1);
                                 sem_wait(nf->shared_core.nf_mutex);
                         }
@@ -452,7 +452,7 @@ main(int argc, char *argv[]) {
         if (use_direct_rings) {
                 printf("\nRUNNING ADVANCED RINGS EXPERIMENT\n");
                 onvm_config = onvm_nflib_get_onvm_config();
-                ONVM_NF_CORE_SHARING = onvm_config->flags.ONVM_NF_CORE_SHARING;
+                ONVM_NF_SHARE_CORES = onvm_config->flags.ONVM_NF_SHARE_CORES;
                 onvm_nflib_nf_ready(nf);
                 nf_setup(nf_local_ctx);
                 run_advanced_rings(nf_local_ctx);

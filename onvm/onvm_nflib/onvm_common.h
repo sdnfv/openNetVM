@@ -67,7 +67,7 @@
 
 #define PACKET_READ_SIZE ((uint16_t)32)
 
-#define ONVM_NF_CORE_SHARING_DEFAULT 0  // default value for shared core logic, if true NFs sleep while waiting for packets
+#define ONVM_NF_SHARE_CORES_DEFAULT 0  // default value for shared core logic, if true NFs sleep while waiting for packets
 
 #define ONVM_NF_ACTION_DROP 0  // drop packet
 #define ONVM_NF_ACTION_NEXT 1  // to whatever the next action is configured by the SDN controller in the flow table
@@ -201,7 +201,7 @@ struct port_info {
 
 struct onvm_configuration {
         struct {
-                uint8_t ONVM_NF_CORE_SHARING;
+                uint8_t ONVM_NF_SHARE_CORES;
         } flags;
 };
 

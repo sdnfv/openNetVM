@@ -125,7 +125,7 @@ extern uint8_t global_verbosity_level;
 
 /* Custom flags for onvm */
 extern struct onvm_configuration *onvm_config;
-extern uint8_t ONVM_NF_CORE_SHARING;
+extern uint8_t ONVM_NF_SHARE_CORES;
 
 /* For handling shared core logic */
 extern struct nf_wakeup_info *nf_wakeup_infos;
