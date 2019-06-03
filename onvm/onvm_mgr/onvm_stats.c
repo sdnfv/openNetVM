@@ -502,7 +502,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         fprintf(stats_out, ONVM_STATS_ADV_CONTENT,
                                 nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
                                 rx_pps, tx_pps, rx, tx, act_out, act_tonf, act_drop,
-                                rte_atomic16_read(&nfs[i].thread_info.children_cnt), state, nfs[i].thread_info.parent,
+                                nfs[i].thread_info.parent, state, rte_atomic16_read(&nfs[i].thread_info.children_cnt),
                                 rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer, act_returned);
                         if (ONVM_ENABLE_SHARED_CPU)
                                 fprintf(stats_out, ONVM_STATS_SHARED_CPU_CONTENT, num_wakeups, wakeup_rate);
