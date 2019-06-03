@@ -71,8 +71,6 @@ struct state_info {
         int print_flag;
 };
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
 struct state_info *state_info;
 
 /* shared data structure containing host port info */
@@ -213,7 +211,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * For RFC about ARP, see https://tools.ietf.org/html/rfc826
  * RETURNS 0 if success, -1 otherwise */
 static int
-send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
+send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *nf) {
         struct rte_mbuf *out_pkt = NULL;
         struct onvm_pkt_meta *pmeta = NULL;
         struct ether_hdr *eth_hdr = NULL;
@@ -261,11 +259,12 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip) {
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
-        return onvm_nflib_return_pkt(nf_info, out_pkt);
+        return onvm_nflib_return_pkt(nf, out_pkt);
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
         struct arp_hdr *in_arp_hdr = NULL;
         int result = -1;
@@ -281,9 +280,10 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                 switch (rte_cpu_to_be_16(in_arp_hdr->arp_op)) {
                         case ARP_OP_REQUEST:
-                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == state_info->source_ips[ports->id[pkt->port]]) {
-                                        result =
-                                            send_arp_reply(pkt->port, &eth_hdr->s_addr, in_arp_hdr->arp_data.arp_sip);
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) ==
+                                                state_info->source_ips[ports->id[pkt->port]]) {
+                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr,
+                                                                in_arp_hdr->arp_data.arp_sip, nf_local_ctx->nf);
                                         if (state_info->print_flag) {
                                                 printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,
                                                        ports->id[pkt->port], result);
@@ -311,14 +311,18 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -332,24 +336,24 @@ main(int argc, char *argv[]) {
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
         state_info->pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (state_info->pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
-        onvm_nflib_run(nf_context, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

@@ -86,9 +86,6 @@ struct rte_mempool *pktmbuf_pool;
 static uint16_t packet_size = ETHER_HDR_LEN;
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 /* number of seconds between each print */
 static double print_delay = 0.1;
 static double time_since_print = 0;
@@ -101,7 +98,7 @@ static struct ether_hdr *ehdr;
 
 /* Sets up variables for the load generator */
 void
-nf_setup(struct onvm_nf_context *nf_context);
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 
 /*
  * Print a usage message
@@ -233,7 +230,8 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint64_t *timestamp;
 
         if (!ONVM_CHECK_BIT(meta->flags, LOAD_GEN_BIT)) {
@@ -252,7 +250,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint32_t i;
         uint64_t cur_cycle = rte_get_tsc_cycles();
         double time_delta = (cur_cycle - last_cycle) / (double)rte_get_timer_hz();
@@ -295,7 +293,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
                         packets_sent_since_update++;
                         packets_to_send--;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, batch_size);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, batch_size);
         }
 
         time_since_print += time_delta;
@@ -311,7 +309,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
  * Sets up load generator values
  */
 void
-nf_setup(struct onvm_nf_context *nf_context) {
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         int j;
 
         start_cycle = rte_get_tsc_cycles();
@@ -320,7 +318,7 @@ nf_setup(struct onvm_nf_context *nf_context) {
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -339,14 +337,19 @@ nf_setup(struct onvm_nf_context *nf_context) {
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -359,17 +362,15 @@ main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        onvm_nflib_set_setup_function(nf_info, &nf_setup);
-
-        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         free(ehdr);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

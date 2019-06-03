@@ -42,7 +42,7 @@ Example use of Advanced Rings can be seen in the speed_tester NF or the scaling 
 NFs can scale by running multiple threads. For launching more threads the main NF had to be launched with more than 1 core. For running a new thread the NF should call `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)`. The `struct scale_info` has all the required information for starting a new child NF, service and instance ids, NF state data, and the packet handling functions. The struct can be obtained either by calling the `onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` and manually filling it in or by inheriting the parent behavior by using `onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)`. As the spawned NFs are threads they will share all the global variables with its parent, the `onvm_nf_info->data` is a void pointer that should be used for NF state data.
 Example use of Multithreading NF scaling functionality can be seen in the scaling_example NF.
 
-### Shared CPU mode
+### Shared core mode
 This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on a shared core.  In "normal" OpenNetVM, each NF will poll its RX queue for packets, monopolizing the CPU even if it has a low load.  This branch adds a semaphore-based communication system so that NFs will block when there are no packets available.  The NF Manger will then signal the semaphore once one or more packets arrive.
 
 This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, therefore if you encounter any bugs please create an issue or a pull request with a proposed fix.

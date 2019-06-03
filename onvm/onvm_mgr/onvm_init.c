@@ -58,7 +58,7 @@ struct onvm_configuration *onvm_config = NULL;
 struct nf_wakeup_info *nf_wakeup_infos = NULL;
 
 struct rte_mempool *pktmbuf_pool;
-struct rte_mempool *nf_info_pool;
+struct rte_mempool *nf_init_cfg_pool;
 struct rte_mempool *nf_msg_pool;
 struct rte_ring *incoming_msg_queue;
 uint16_t **services;
@@ -75,7 +75,7 @@ static int
 init_mbuf_pools(void);
 
 static int
-init_nf_info_pool(void);
+init_nf_init_cfg_pool(void);
 
 static int
 init_nf_msg_pool(void);
@@ -216,7 +216,7 @@ init(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Cannot create needed mbuf pools\n");
 
         /* initialise nf info pool */
-        retval = init_nf_info_pool();
+        retval = init_nf_init_cfg_pool();
         if (retval != 0) {
                 rte_exit(EXIT_FAILURE, "Cannot create nf info mbuf pool: %s\n", rte_strerror(rte_errno));
         }
@@ -247,7 +247,7 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
-        /* initialise the shared memory for shared cpu mode */
+        /* initialise the shared memory for shared core mode */
         init_shared_sem();
 
         /*initialize a default service chain*/
@@ -280,7 +280,7 @@ init(int argc, char *argv[]) {
  */
 static void
 set_default_config(struct onvm_configuration *config) {
-        config->flags.ONVM_ENABLE_SHARED_CPU = ONVM_ENABLE_SHARED_CPU_DEFAULT;
+        config->flags.ONVM_NF_SHARE_CORES = ONVM_NF_SHARE_CORES_DEFAULT;
 }
 
 /**
@@ -314,17 +314,17 @@ init_nf_msg_pool(void) {
 }
 
 /**
- * Set up a mempool to store nf_info structs
+ * Set up a mempool to store nf_init_cfg structs
  */
 static int
-init_nf_info_pool(void) {
+init_nf_init_cfg_pool(void) {
         /* don't pass single-producer/single-consumer flags to mbuf
          * create as it seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' ...\n", _NF_MEMPOOL_NAME);
-        nf_info_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS, NF_INFO_SIZE, 0, 0, NULL, NULL, NULL, NULL,
+        nf_init_cfg_pool = rte_mempool_create(_NF_MEMPOOL_NAME, MAX_NFS, NF_INFO_SIZE, 0, 0, NULL, NULL, NULL, NULL,
                                           rte_socket_id(), NO_FLAGS);
 
-        return (nf_info_pool == NULL); /* 0 on success */
+        return (nf_init_cfg_pool == NULL); /* 0 on success */
 }
 
 /**
@@ -408,7 +408,7 @@ init_port(uint8_t port_num) {
 }
 
 /**
- * Initialize shared cpu structs (mutex/semaphore)
+ * Initialize shared core structs (mutex/semaphore)
  */
 static void
 init_shared_sem(void) {
@@ -421,7 +421,7 @@ init_shared_sem(void) {
 
         nf_wakeup_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
 
-        if (!ONVM_ENABLE_SHARED_CPU)
+        if (!ONVM_NF_SHARE_CORES)
                 return;
 
         for (i = 0; i < MAX_NFS; i++) {

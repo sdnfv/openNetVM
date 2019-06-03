@@ -59,9 +59,6 @@
 
 #define NF_TAG "basic_monitor"
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
@@ -149,7 +146,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         cur_cycles = rte_get_tsc_cycles();
 
         if (((cur_cycles - last_cycle) / rte_get_timer_hz()) > 5) {
@@ -161,7 +158,8 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         total_packets++;
         if (++counter == print_delay) {
@@ -180,15 +178,20 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 
 int
 main(int argc, char *argv[]) {
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
         const char *progname = argv[0];
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -201,16 +204,16 @@ main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         cur_cycles = rte_get_tsc_cycles();
         last_cycle = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_context, &packet_handler, &callback_handler);
+        onvm_nflib_run(nf_local_ctx);
 
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
