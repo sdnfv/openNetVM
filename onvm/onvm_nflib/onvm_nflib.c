@@ -543,16 +543,16 @@ onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_loca
                         onvm_nflib_scale((struct onvm_nf_scale_info*)msg->msg_data);
                         break;
                 case MSG_FROM_NF:
-                        RTE_LOG(INFO, APP, "Recieved MSG from other NF");
+                        RTE_LOG(INFO, APP, "Received MSG from other NF");
                         if (nf_local_ctx->nf->function_table->msg_handler != NULL) {
                                 nf_local_ctx->nf->function_table->msg_handler(msg->msg_data, nf_local_ctx);
                         }
                         break;
                 case MSG_CHANGE_CORE:
-                        RTE_LOG(INFO, APP, "Recieved relocation message...\n"); 
-                        RTE_LOG(INFO, APP, "Moving NF to core %d\n", *(uint16_t *)msg->msg_data); 
-                        nf_context->nf->core = *(uint16_t *)msg->msg_data;
-                        onvm_threading_core_affinitize(nf_context->nf->core);
+                        RTE_LOG(INFO, APP, "Received relocation message...\n");
+                        RTE_LOG(INFO, APP, "Moving NF to core %d\n", *(uint16_t *)msg->msg_data);
+                        nf_local_ctx->nf->thread_info.core = *(uint16_t *)msg->msg_data;
+                        onvm_threading_core_affinitize(nf_local_ctx->nf->thread_info.core);
                         rte_free(msg->msg_data);
                         break;
                 case MSG_NOOP:

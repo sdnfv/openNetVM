@@ -313,7 +313,7 @@ onvm_nf_stop(struct onvm_nf *nf) {
         nf_id = nf->instance_id;
         service_id = nf->service_id;
         nf_status = nf->status;
-        candidate_core = nf->core;
+        candidate_core = nf->thread_info.core;
 
         /* Cleanup the allocated tag */
         if (nf->tag) {
@@ -425,14 +425,14 @@ onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
         msg_data = rte_malloc("Change core msg data", sizeof(uint16_t), 0);
         *msg_data = new_core;
 
-        cores[nfs[dest].info->core].nf_count--;
+        cores[nfs[dest].thread_info.core].nf_count--;
 
         onvm_nf_send_msg(dest, MSG_CHANGE_CORE, msg_data);
 
         /* We probably need logic that handles if everything is successful */
 
         /* TODO Add core number */
-        onvm_stats_gen_event_nf_info("Moved NF to new core", nfs[dest]);
+        onvm_stats_gen_event_nf_info("NF Ready", &nfs[dest]);
 
         cores[new_core].nf_count++;
         return 0;

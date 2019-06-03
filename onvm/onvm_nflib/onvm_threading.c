@@ -161,8 +161,8 @@ onvm_threading_find_nf_to_reassign_core(uint16_t candidate_core, struct core_sta
          * TODO (@Deep) if we do this based of NF load this would be impressive, we should 
          * maintain a variable in onvm_nf struct describing NF load and choose the candidate based on that */
         for (i = 0; i < MAX_NFS; i++) {
-                if (onvm_nf_is_valid(&nfs[i]) && nfs[i].info->core == most_used_core) {
-                        candidate_nf_id = nfs[i].info->instance_id;
+                if (onvm_nf_is_valid(&nfs[i]) && nfs[i].thread_info.core == most_used_core) {
+                        candidate_nf_id = nfs[i].instance_id;
                         break;
                 }
         }
