@@ -99,7 +99,7 @@ static uint8_t measure_latency = 0;
 static uint32_t latency_packets = 0;
 static uint64_t total_latency = 0;
 
-static uint8_t ONVM_ENABLE_SHARED_CPU = 0;
+static uint8_t ONVM_NF_SHARE_CORES = 0;
 
 /*
  * Variables needed to replay a pcap file
@@ -354,7 +354,7 @@ run_advanced_rings(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
-                        if (ONVM_ENABLE_SHARED_CPU) {
+                        if (ONVM_NF_SHARE_CORES) {
                                 rte_atomic16_set(nf->shared_core.sleep_state, 1);
                                 sem_wait(nf->shared_core.nf_mutex);
                         }
@@ -569,7 +569,7 @@ main(int argc, char *argv[]) {
 
         if (use_direct_rings) {
                 onvm_config = onvm_nflib_get_onvm_config();
-                ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+                ONVM_NF_SHARE_CORES = onvm_config->flags.ONVM_NF_SHARE_CORES;
                 nf_setup(nf_local_ctx);
                 onvm_nflib_nf_ready(nf_local_ctx->nf);
                 run_advanced_rings(nf_local_ctx);
