@@ -1087,6 +1087,8 @@ onvm_nflib_init_nf_init_cfg(const char *tag) {
         /* Allocate memory for the tag so that onvm_mgr can access it */
         nf_init_cfg->tag = rte_malloc("nf_tag", TAG_SIZE, 0);
         strncpy(nf_init_cfg->tag, tag, TAG_SIZE);
+        /* In case provided tag was longer than TAG_SIZE */
+        nf_init_cfg->tag[TAG_SIZE - 1] = '\0';
 
         /* TTL and packet limit disabled by default */
         nf_init_cfg->time_to_live = 0;
