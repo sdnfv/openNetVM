@@ -13,14 +13,14 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.05 (5/19): Shared Core Mode, Major Architectural/API/Initialization/Signal Handling Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
-This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+## v19.05 (5/19): Shared Core Mode, Major Architectural Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 **This release features a lot of breaking API changes.**
 
 **Performance**: This release should fix the major performance issues that were present in the last release. 
 
-**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags.
+**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch of the develop branch and submit PRs against the develop branch.
 
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
@@ -36,7 +36,7 @@ Notes:
   - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
   - Note that the manager threads all still use polling
 
-### Major Architectural/API/Initialization/Signal Handling Changes:
+### Major Architectural Changes:
 - Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
 
     Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
