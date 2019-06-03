@@ -347,7 +347,7 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                         msg = NULL;
                         rte_ring_dequeue(msg_q, (void **)(&msg));
                         if (msg->msg_type == MSG_STOP) {
-                                rte_atomic16_set(&nf_local_ctx->keep_running, 0);
+                                rte_atomic16_set(&signal_exit_flag, 1);
                         } else {
                                 printf("Received message %d, ignoring", msg->msg_type);
                         }
