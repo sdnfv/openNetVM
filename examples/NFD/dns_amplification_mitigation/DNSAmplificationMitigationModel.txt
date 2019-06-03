@@ -22,7 +22,7 @@ program DNSAM{
     }
     entry{
         match_flow{f[dport]!=53 && f[sport]==53 }
-        match_state{bq[f[sip]][f[dip]]!=1}
+        match_state{bq[f[dip]][f[sip]]!=1}
         action_flow{f[dip]=DROP;}
     }
     entry{
@@ -33,7 +33,7 @@ program DNSAM{
 
     entry{
         match_flow{f[dport]!=53 }
-        match_state{ bq[f[sip]][f[dip]]==1}
+        match_state{ bq[f[dip]][f[sip]]==1}
         action_flow{pass;}
         action_state{pass;}
     }

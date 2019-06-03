@@ -177,13 +177,13 @@ process(Flow &f) {
                 bq[f][(*(IP *)f["sip"])][(*(IP *)f["dip"])] = *(new int(1));
         }
         if (((*(int *)f["dport"]) != *(new int(53)) && (*(int *)f["sport"]) == *(new int(53))) &&
-            (bq[f][(*(IP *)f["sip"])][(*(IP *)f["dip"])] != *(new int(1)))) {
+            (bq[f][(*(IP *)f["dip"])][(*(IP *)f["sip"])] != *(new int(1)))) {
                 (*(IP *)f["dip"]) = *(new IP("0.0.0.0/0"));
         }
         if ((*(int *)f["dport"]) != *(new int(53)) && (*(int *)f["sport"]) != *(new int(53))) {
         }
         if (((*(int *)f["dport"]) != *(new int(53))) &&
-            (bq[f][(*(IP *)f["sip"])][(*(IP *)f["dip"])] == *(new int(1)))) {
+            (bq[f][(*(IP *)f["dip"])][(*(IP *)f["sip"])] == *(new int(1)))) {
         }
         if (*(IP *)f["dip"] == *(new IP("0.0.0.0/0"))) {
                 return -1;

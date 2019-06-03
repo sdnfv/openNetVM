@@ -11,10 +11,10 @@ DNS Amplification Mitigation is translated from the `DNSAmplificationMitigationM
  
  
  <br>
-An attacker uses a spoofed server IP to request many DNS queries that result in large answers to that DoS the server with the spoofed IP. Mitigation is by tracking if the server actually committed this request.
+An attacker uses a spoofed server IP to request many DNS queries that result in large answers to that DoS the server with the spoofed IP. Mitigation is by tracking if the server actually committed this request. In this program, we use a map to track all the real DNS requests from the server with the spoofed IP and pass the real DNS responses while block the responces due to attacker. 
 
 
-Compilation and Execution
+Compilation and Executionthe 
 --
 
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
