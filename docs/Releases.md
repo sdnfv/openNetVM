@@ -27,14 +27,7 @@ This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on
 
 The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
 
-Usage:
-  - To enable shared core mode pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they can share cores with other NFs  
-
-Notes:
-  - All code for sharing CPUs is within `if (ONVM_NF_SHARE_CORE)` blocks
-  - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets
-  - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
-  - Note that the manager threads all still use polling
+Usage and implementation details can be found [here][shared_core_docs].
 
 ### Major Architectural Changes:
 - Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
@@ -254,18 +247,13 @@ CI currently performs these checks:
 ### LPM Firewall NF:
 The firewall NF drops or forwards packets based on rules provided in the json file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table.
 
-The NF accepts a json config with these rules:
-```json
-"ruleName": {
-		"ip": "127.1.1.0",
-		"depth": 32,
-		"action": 0
-}
-```
+Documentation for this NF can be found [here][firewall_nf_readme].
 
 
 ### Payload Search NF:
 The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise.
+
+Documentation for this NF can be found [here][payload_scan_nf_readme].
 
 ### TTL Flags:
 Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received. 
@@ -618,3 +606,9 @@ Each module comes with a header file with commented prototypes. And each c and h
 
 ## 4/24/16: Initial Release
 Initial source code release.
+
+
+
+[firewall_nf_readme]: ../examples/firewall/README.md
+[payload_scan_nf_readme]: ../examples/payload_scan/README.md
+[shared_core_docs]: ./NF_Dev.md#shared-cpu-mode
