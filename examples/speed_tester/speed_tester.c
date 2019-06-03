@@ -317,6 +317,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 pcap = pcap_open_offline(pcap_filename, errbuf);
                 if (pcap == NULL) {
                         fprintf(stderr, "Error reading pcap file: %s\n", errbuf);
+                        onvm_nflib_stop(nf_local_ctx);
                         rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
 
@@ -351,7 +352,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         pkts[i++] = pkt;
                         pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf_info, pkts, pkts_generated);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
@@ -406,8 +407,10 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 #endif
         /* Exit if packets were unexpectedly not created */
-        if (pkts_generated == 0 && packet_number > 0)
+        if (pkts_generated == 0 && packet_number > 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Failed to create packets\n");
+        }
 
         packet_number = pkts_generated;
 }

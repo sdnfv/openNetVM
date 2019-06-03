@@ -77,7 +77,7 @@
 static uint16_t destination;
 static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_advanced_rings = 0;
-static uint8_t use_shared_cpu_core_allocation = 0;
+static uint8_t use_shared_core_allocation = 0;
 
 static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 static uint16_t packet_size = ETHER_HDR_LEN;
@@ -85,7 +85,7 @@ static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
-uint8_t ONVM_ENABLE_SHARED_CPU;
+uint8_t ONVM_NF_SHARE_CORES;
 struct child_spawn_info {
         struct onvm_nf_init_cfg *child_cfg;
         struct onvm_nf *parent;
@@ -110,7 +110,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID, functionality depends on mode\n");
         printf(" - `-n NUM_CHILDREN`: Sets the number of children for the NF to spawn\n");
-        printf(" - `-c`: Set NF core allocation to shared cpu\n");
+        printf(" - `-c`: Set NF core allocation to shared core\n");
         printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
 }
 
@@ -124,7 +124,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         while ((c = getopt(argc, argv, "d:n:p:ac")) != -1) {
                 switch (c) {
                         case 'c':
-                                use_shared_cpu_core_allocation = 1;
+                                use_shared_core_allocation = 1;
                                 break;
                         case 'a':
                                 use_advanced_rings = 1;
@@ -233,7 +233,7 @@ packet_handler_with_scaling(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 scale_info->function_table->setup = &nf_setup;
                 /* Custom packet handler */
                 scale_info->function_table->pkt_handler = &packet_handler_fwd;
-                if (use_shared_cpu_core_allocation)
+                if (use_shared_core_allocation)
                         scale_info->nf_init_cfg->init_options = ONVM_SET_BIT(0, SHARE_CORE_BIT);
 
                 /* Spawn the child */
@@ -359,7 +359,7 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 if (unlikely(nb_pkts == 0)) {
-                        if (ONVM_ENABLE_SHARED_CPU) {
+                        if (ONVM_NF_SHARE_CORES) {
                                 rte_atomic16_set(nf->shared_core.sleep_state, 1);
                                 sem_wait(nf->shared_core.nf_mutex);
                         }
@@ -431,7 +431,7 @@ run_advanced_rings(int argc, char *argv[]) {
 
         nf = nf_local_ctx->nf;
         onvm_config = onvm_nflib_get_onvm_config();
-        ONVM_ENABLE_SHARED_CPU = onvm_config->flags.ONVM_ENABLE_SHARED_CPU;
+        ONVM_NF_SHARE_CORES = onvm_config->flags.ONVM_NF_SHARE_CORES;
 
         for (i = 0; i < num_children; i++) {
                 struct onvm_nf_init_cfg *child_cfg;
