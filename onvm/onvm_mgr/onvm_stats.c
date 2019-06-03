@@ -57,6 +57,13 @@
 /************************Internal Functions Prototypes************************/
 
 /*
+ * Function to send json events to web view
+ *
+ */
+static void
+onvm_stats_add_event(struct onvm_event *event_info);
+
+/*
  * Function displaying statistics for all ports
  *
  * Input : time passed since last display (to compute packet rate)
@@ -121,8 +128,8 @@ char buffer[20];
 /****************************Interfaces***************************************/
 
 void
-onvm_stats_init(uint8_t verbocity_level) {
-        if (verbocity_level == ONVM_RAW_STATS_DUMP) {
+onvm_stats_init(uint8_t verbosity_level) {
+        if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                 printf("#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n");
                 printf(
                     "#YYYY-MM-DD "
@@ -222,35 +229,86 @@ onvm_stats_clear_nf(uint16_t id) {
 }
 
 void
-onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf_info) {
-        if (msg == NULL || stats_destination != ONVM_STATS_WEB) {
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
+                return;
+        }
+
+        event->type = type;
+        event->msg = msg;
+        event->data = data;
+
+        onvm_stats_add_event(event);
+}
+
+void
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf) {
+        struct onvm_event *event;
+
+        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        if (event == NULL) {
+                perror("Couldn't allocate event");
+                return;
+        }
+
+        event->type = ONVM_EVENT_NF_INFO;
+        event->msg = msg;
+        event->data = nf;
+
+        onvm_stats_add_event(event);
+}
+
+/****************************Internal functions*******************************/
+
+static void
+onvm_stats_add_event(struct onvm_event *event_info) {
+        if (event_info == NULL || stats_destination != ONVM_STATS_WEB) {
                 return;
         }
         char event_time_buf[20];
-        time_t time_raw_format;
+        uint8_t type;
         struct tm *ptr_time;
+        struct onvm_nf *nf;
+        time_t time_raw_format;
         time(&time_raw_format);
+        type = event_info->type;
+
         ptr_time = localtime(&time_raw_format);
         if (strftime(event_time_buf, 20, "%F %T", ptr_time) == 0) {
                 perror("Couldn't prepare formatted string");
         }
-        cJSON *new_event = cJSON_CreateObject();
-        cJSON *source = cJSON_CreateObject();
-        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
-        cJSON_AddStringToObject(new_event, "message", msg);
-        if (nf_info == NULL) {
-                cJSON_AddStringToObject(source, "type", "MGR");
-        } else {
-                cJSON_AddStringToObject(source, "type", "NF");
-                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf_info->instance_id);
-                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf_info->service_id);
-        }
-        cJSON_AddItemToObject(new_event, "source", source);
 
+        cJSON *source = cJSON_CreateObject();
+        cJSON *new_event = cJSON_CreateObject();
+        cJSON_AddStringToObject(new_event, "timestamp", event_time_buf);
+        cJSON_AddStringToObject(new_event, "message", event_info->msg);
+
+        if (type == ONVM_EVENT_WITH_CORE) {
+                cJSON_AddNumberToObject(source, "core", *(int *)(event_info->data));
+        } else if (type == ONVM_EVENT_PORT_INFO) {
+                cJSON_AddStringToObject(source, "type", "MGR");
+        } else if (type == ONVM_EVENT_NF_INFO) {
+                nf = (struct onvm_nf *)event_info->data;
+                if (nf->tag)
+                        cJSON_AddStringToObject(source, "type", (char *)nf->tag);
+                else
+                        cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", (int16_t)nf->instance_id);
+                cJSON_AddNumberToObject(source, "service_id", (int16_t)nf->service_id);
+                cJSON_AddNumberToObject(source, "core", (int16_t)nf->thread_info.core);
+        } else if (type == ONVM_EVENT_NF_STOP) {
+                cJSON_AddStringToObject(source, "type", "NF");
+                cJSON_AddNumberToObject(source, "instance_id", *(int16_t *)(event_info->data));
+        } else
+                rte_exit(-1, "Invalid stats event type\n");
+
+        cJSON_AddItemToObject(new_event, "source", source);
         cJSON_AddItemToArray(onvm_json_events_arr, new_event);
 }
-
-/****************************Internal functions*******************************/
 
 static void
 onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
@@ -283,13 +341,11 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 "%" PRIu64 "\n", buffer,
+                        fprintf(stats_out, ONVM_STATS_ADV_PORTS, buffer,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
-                        fprintf(stats_out, "Port %u - rx: %9" PRIu64 "  (%9" PRIu64
-                                           " pps)\t"
-                                           "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n",
+                        fprintf(stats_out, ONVM_STATS_REG_PORTS,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
                 }
 
@@ -313,6 +369,25 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
 }
 
 static void
+onvm_stats_display_client_wakeup_thread_context(int difftime) {
+        uint64_t num_wakeups = 0;
+        uint64_t prev_num_wakeups = 0;
+        uint64_t wakeup_rate;
+        unsigned i = 0;
+
+        for (i = 0; i < MAX_NFS; i++) {
+                if (!onvm_nf_is_valid(&nfs[i]))
+                        continue;
+                num_wakeups += nf_wakeup_infos[i].num_wakeups;
+                prev_num_wakeups += nf_wakeup_infos[i].prev_num_wakeups;
+                nf_wakeup_infos[i].prev_num_wakeups = nf_wakeup_infos[i].num_wakeups;
+        }
+
+        wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+        fprintf(stats_out, "Total wakeups = %"PRIu64", Wakeup rate = %"PRIu64"\n", num_wakeups, wakeup_rate);
+}
+
+static void
 onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         char *nf_label = NULL;
         unsigned i = 0;
@@ -324,14 +399,12 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static uint64_t nf_rx_drop_last[MAX_NFS];
         static const char *NF_MSG[3];
 
-        NF_MSG[0] =
-            "\nNF IID / SID     rx_pps  /  tx_pps     rx_drop  /  tx_drop         out   /    tonf     /   "
-            "drop\n-----------------------------------------------------------------------------------------------\n";
-        NF_MSG[1] =
-            "\nNF IID / SID     rx_pps  /  tx_pps            rx  /  tx                out   /    tonf     /   drop\n"
-            "               drop_pps  /  drop_pps     rx_drop  /  tx_drop           next  /    buf      /   "
-            "ret\n---------------------------------------------------------------------------------------------------"
-            "\n";
+        NF_MSG[0] = ONVM_STATS_MSG;
+        if (ONVM_NF_SHARE_CORES) {
+                NF_MSG[1] = ONVM_STATS_SHARED_CORE_MSG;
+        } else {
+                NF_MSG[1] = ONVM_STATS_ADV_MSG;
+        }
         NF_MSG[2] = "";
 
         /* For same service id TX/RX stats */
@@ -387,46 +460,57 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 const uint64_t tx_pps = (tx - nf_tx_last[i]) / difftime;
                 const uint64_t tx_drop_rate = (tx_drop - nf_tx_drop_last[i]) / difftime;
                 const uint64_t rx_drop_rate = (rx_drop - nf_rx_drop_last[i]) / difftime;
+                const uint64_t num_wakeups = nf_wakeup_infos[i].num_wakeups;
+                const uint64_t prev_num_wakeups = nf_wakeup_infos[i].prev_num_wakeups;
+                const uint64_t wakeup_rate = (num_wakeups - prev_num_wakeups) / difftime;
+                char state;
+
+                uint8_t active = 0;
+                if (ONVM_NF_SHARE_CORES)
+                        active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
+                if (!active) {
+                        state = 'W';
+                } else {
+                        state = 'S';
+                }
 
                 /* Save stats for NFs with same service id */
                 if (print_total_stats) {
-                        rx_for_service[nfs[i].info->service_id] += rx;
-                        tx_for_service[nfs[i].info->service_id] += tx;
-                        rx_drop_for_service[nfs[i].info->service_id] += rx_drop;
-                        tx_drop_for_service[nfs[i].info->service_id] += tx_drop;
-                        rx_pps_for_service[nfs[i].info->service_id] += rx_pps;
-                        tx_pps_for_service[nfs[i].info->service_id] += tx_pps;
-                        rx_drop_rate_for_service[nfs[i].info->service_id] += rx_drop_rate;
-                        tx_drop_rate_for_service[nfs[i].info->service_id] += tx_drop_rate;
-                        act_out_for_service[nfs[i].info->service_id] += act_out;
-                        act_tonf_for_service[nfs[i].info->service_id] += act_tonf;
-                        act_drop_for_service[nfs[i].info->service_id] += act_drop;
-                        act_next_for_service[nfs[i].info->service_id] += act_next;
-                        act_buffer_for_service[nfs[i].info->service_id] += act_buffer;
-                        act_returned_for_service[nfs[i].info->service_id] += act_returned;
+                        rx_for_service[nfs[i].service_id] += rx;
+                        tx_for_service[nfs[i].service_id] += tx;
+                        rx_drop_for_service[nfs[i].service_id] += rx_drop;
+                        tx_drop_for_service[nfs[i].service_id] += tx_drop;
+                        rx_pps_for_service[nfs[i].service_id] += rx_pps;
+                        tx_pps_for_service[nfs[i].service_id] += tx_pps;
+                        rx_drop_rate_for_service[nfs[i].service_id] += rx_drop_rate;
+                        tx_drop_rate_for_service[nfs[i].service_id] += tx_drop_rate;
+                        act_out_for_service[nfs[i].service_id] += act_out;
+                        act_tonf_for_service[nfs[i].service_id] += act_tonf;
+                        act_drop_for_service[nfs[i].service_id] += act_drop;
+                        act_next_for_service[nfs[i].service_id] += act_next;
+                        act_buffer_for_service[nfs[i].service_id] += act_buffer;
+                        act_returned_for_service[nfs[i].service_id] += act_returned;
                 }
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, "%s,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
-                                           ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
-                                buffer, nfs[i].info->instance_id, nfs[i].info->service_id, rx, tx, rx_pps, tx_pps,
-                                rx_drop, tx_drop, rx_drop_rate, tx_drop_rate, act_out, act_tonf, act_drop, act_next,
-                                act_buffer, act_returned);
+                        fprintf(stats_out, ONVM_STATS_RAW_DUMP_CONTENT,
+                                buffer, nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
+                                rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate,
+                                act_out, act_tonf, act_drop, act_next, act_buffer, act_returned,
+                                num_wakeups, wakeup_rate, active);
                 } else if (verbosity_level == 2) {
-                        fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
-                                           "\n"
-                                           "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64 " / %-11" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
-                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx, tx, act_out,
-                                act_tonf, act_drop, rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer,
-                                act_returned);
+                        fprintf(stats_out, ONVM_STATS_ADV_CONTENT,
+                                nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
+                                rx_pps, tx_pps, rx, tx, act_out, act_tonf, act_drop,
+                                nfs[i].thread_info.parent, state, rte_atomic16_read(&nfs[i].thread_info.children_cnt),
+                                rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer, act_returned);
+                        if (ONVM_NF_SHARE_CORES)
+                                fprintf(stats_out, ONVM_STATS_SHARED_CORE_CONTENT, num_wakeups, wakeup_rate);
+                        fprintf(stats_out, "\n");
                 } else {
-                        fprintf(stats_out, "NF  %2u / %-2u  - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
-                                           "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
-                                nfs[i].info->instance_id, nfs[i].info->service_id, rx_pps, tx_pps, rx_drop, tx_drop,
-                                act_out, act_tonf, act_drop);
+                        fprintf(stats_out, ONVM_STATS_REG_CONTENT,
+                                nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
+                                rx_pps, tx_pps, rx_drop, tx_drop, act_out, act_tonf, act_drop);
                 }
                 /* Only print this information out if we haven't already printed it to the console above */
                 if (stats_out != stdout && stats_out != stderr) {
@@ -440,9 +524,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX", tx_pps);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "TX_Drop_Rate", tx_drop_rate);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "RX_Drop_Rate", rx_drop_rate);
-                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].info->service_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "service_id", (int16_t)nfs[i].service_id);
                         cJSON_AddNumberToObject(onvm_json_nf_stats[i], "instance_id",
-                                                (int16_t)nfs[i].info->instance_id);
+                                                (int16_t)nfs[i].instance_id);
+                        cJSON_AddNumberToObject(onvm_json_nf_stats[i], "core", (int16_t)nfs[i].thread_info.core);
 
                         free(nf_label);
                         nf_label = NULL;
@@ -466,27 +551,27 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                         if (nfs_for_service == 0)
                                 continue;
                         if (verbosity_level == 2) {
-                                fprintf(
-                                    stats_out, "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
-                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64
-                                               "\n"
-                                               "               %9" PRIu64 " / %-9" PRIu64 "  %11" PRIu64
-                                               " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n",
+                                fprintf(stats_out, ONVM_STATS_ADV_TOTALS,
                                     i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                     rx_for_service[i], tx_for_service[i], act_out_for_service[i],
                                     act_tonf_for_service[i], act_drop_for_service[i], rx_drop_rate_for_service[i],
                                     tx_drop_rate_for_service[i], rx_drop_for_service[i], tx_drop_for_service[i],
                                     act_next_for_service[i], act_buffer_for_service[i], act_returned_for_service[i]);
                         } else {
-                                fprintf(stats_out,
-                                        "SID %-2u %2u%s - %9" PRIu64 " / %-9" PRIu64 "  %9" PRIu64 " / %-9" PRIu64
-                                        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n",
+                                fprintf(stats_out, ONVM_STATS_REG_TOTALS,
                                         i, nfs_for_service, nf_count, rx_pps_for_service[i], tx_pps_for_service[i],
                                         rx_drop_for_service[i], tx_drop_for_service[i], act_out_for_service[i],
                                         act_tonf_for_service[i], act_drop_for_service[i]);
                         }
                 }
         }
+
+        if (ONVM_NF_SHARE_CORES) {
+                fprintf(stats_out, "\n\nShared core stats\n");
+                fprintf(stats_out, "-----------------\n");
+                onvm_stats_display_client_wakeup_thread_context(difftime);
+        }
+
 }
 
 /***************************Helper functions**********************************/

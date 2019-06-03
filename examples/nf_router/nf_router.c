@@ -70,9 +70,6 @@ struct forward_nf {
         uint8_t dest;
 };
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
@@ -170,8 +167,8 @@ parse_router_config(void) {
         fclose(cfg);
         printf("\nDest config (%d):\n", nf_count);
         for (i = 0; i < nf_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", fwd_nf[i].ip & 0xFF, (fwd_nf[i].ip >> 8) & 0xFF,
-                       (fwd_nf[i].ip >> 16) & 0xFF, (fwd_nf[i].ip >> 24) & 0xFF);
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (fwd_nf[i].ip >> 24) & 0xFF, (fwd_nf[i].ip >> 16) & 0xFF,
+                       (fwd_nf[i].ip >> 8) & 0xFF, fwd_nf[i].ip & 0xFF);
                 printf(" %d\n", fwd_nf[i].dest);
         }
 
@@ -212,7 +209,8 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         struct ether_hdr *eth_hdr;
         struct arp_hdr *in_arp_hdr;
@@ -227,7 +225,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                 if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
                         in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                         for (i = 0; i < nf_count; i++) {
-                                if (in_arp_hdr->arp_data.arp_tip == fwd_nf[i].ip) {
+                                if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == fwd_nf[i].ip) {
                                         meta->destination = fwd_nf[i].dest;
                                         meta->action = ONVM_NF_ACTION_TONF;
                                         return 0;
@@ -245,7 +243,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         }
 
         for (i = 0; i < nf_count; i++) {
-                if (fwd_nf[i].ip == ip->dst_addr) {
+                if (fwd_nf[i].ip == rte_be_to_cpu_32(ip->dst_addr)) {
                         meta->destination = fwd_nf[i].dest;
                         meta->action = ONVM_NF_ACTION_TONF;
                         return 0;
@@ -261,21 +259,38 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
-
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
         parse_router_config();
 
-        onvm_nflib_run(nf_info, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
+
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

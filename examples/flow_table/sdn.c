@@ -69,7 +69,7 @@
 #include "sdn_pkt_list.h"
 #include "setupconn.h"
 
-extern struct onvm_nf_info *nf_info;
+extern struct onvm_nf *nf;
 extern struct rte_ring *ring_to_sdn;
 extern struct rte_ring *ring_from_sdn;
 extern uint16_t def_destination;
@@ -235,7 +235,7 @@ datapath_handle_read(struct datapath *dp) {
                                 flow_entry->idle_timeout = OFP_FLOW_PERMANENT;
                                 flow_entry->hard_timeout = OFP_FLOW_PERMANENT;
                                 sdn_list = (struct sdn_pkt_list *)onvm_ft_get_data(pkt_buf_ft, buffer_id);
-                                sdn_pkt_list_flush(nf_info, sdn_list);
+                                sdn_pkt_list_flush(nf, sdn_list);
                                 break;
                         case OFPT_PORT_MOD:
                                 debug_msg(dp, "got port_mod");
@@ -330,9 +330,7 @@ make_config_reply(int xid, char *buf, int buflen) {
 int
 make_features_reply(int id, int xid, char *buf, unsigned int buflen) {
         struct ofp_switch_features *features;
-        const char fake[] =  // stolen from wireshark
-            {
-
+        const char fake[] =  {
                 0x97, 0x06, 0x00, 0xe0, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x76, 0xa9, 0xd4, 0x0d, 0x25, 0x48,
                 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xff,
                 0x00, 0x01, 0x1a, 0xc1, 0x51, 0xff, 0xef, 0x8a, 0x76, 0x65, 0x74, 0x68, 0x31, 0x00, 0x00, 0x00,
@@ -346,7 +344,8 @@ make_features_reply(int id, int xid, char *buf, unsigned int buflen) {
                 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x04, 0xfa, 0xbc, 0x77, 0x8d, 0x7e, 0x0b, 0x76, 0x65, 0x74, 0x68, 0x37, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        };
 
         assert(buflen > sizeof(fake));
         memcpy(buf, fake, sizeof(fake));
@@ -362,7 +361,7 @@ int
 make_stats_desc_reply(struct ofp_stats_request *req, char *buf) {
         static struct ofp_desc_stats cbench_desc = {.mfr_desc = "Cbench - controller I/O benchmark",
                                                     .hw_desc = "this is actually software...",
-                                                    //.sw_desc  = "version " VERSION,
+                                                    // .sw_desc  = "version " VERSION,
                                                     .sw_desc = "version 1",
                                                     .serial_num = "none",
                                                     .dp_desc = "none"};

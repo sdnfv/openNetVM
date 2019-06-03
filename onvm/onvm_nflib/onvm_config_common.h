@@ -205,4 +205,4 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
 int
 onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_argv[]);
 
-#endif
+#endif  // _ONVM_CONFIG_COMMON_H_

@@ -57,11 +57,57 @@
 #define ONVM_STR_STATS_STDERR "stderr"
 #define ONVM_STR_STATS_WEB "web"
 
+extern const char *NF_MSG[3];
+#define ONVM_STATS_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_ADV_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_SHARED_CORE_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
+        "                                  wakeups  /  wakeup_rt\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_RAW_DUMP_CONTENT \
+        "%s,%s,%u,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
+        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
+        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%d\n"
+#define ONVM_STATS_ADV_CONTENT \
+        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64\
+        "\n            %5" PRId16 "  /  %c  /  %u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_SHARED_CORE_CONTENT \
+        "                               %11" PRIu64 " / %-11" PRIu64"\n"
+#define ONVM_STATS_REG_CONTENT \
+        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n"
+#define ONVM_STATS_ADV_TOTALS \
+        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64\
+        "\n                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_REG_TOTALS \
+        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_ADV_PORTS \
+        "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 "%" PRIu64 "\n"
+#define ONVM_STATS_REG_PORTS \
+        "Port %u - rx: %9" PRIu64 "  (%9" PRIu64 " pps)\t"\
+        "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n"
 #define ONVM_STATS_FOPEN_ARGS "w+"
 #define ONVM_STATS_PATH_BASE "../onvm_web/"
 #define ONVM_JSON_STATS_FILE ONVM_STATS_PATH_BASE "onvm_json_stats.json"
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
+
+/* Handle types of web stats events */
+#define ONVM_EVENT_WITH_CORE 0
+#define ONVM_EVENT_PORT_INFO 1
+#define ONVM_EVENT_NF_INFO 2
+#define ONVM_EVENT_NF_STOP 3
 
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
@@ -78,6 +124,12 @@
 #define ONVM_RAW_STATS_DUMP 3
 
 typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
+
+struct onvm_event {
+        uint8_t type;
+        const char *msg;
+        void *data;
+};
 
 cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_obj;
@@ -151,6 +203,9 @@ onvm_stats_clear_nf(uint16_t id);
  * Interface called by manager when a new event should be created.
  */
 void
-onvm_stats_add_event(const char* msg, struct onvm_nf_info* nf);
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data);
+
+void
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf);
 
 #endif  // _ONVM_STATS_H_

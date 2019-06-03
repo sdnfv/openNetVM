@@ -41,10 +41,17 @@ repo = gh.repository(branch_user, REPO_NAME)
 cmd = "git clone " + str(repo.clone_url) + " repository"
 
 child = pexpect.spawn(cmd)
-child.expect("Username.*")
-child.sendline(username + "\n")
-child.expect("Password.*")
-child.sendline(password + "\n")
+
+if '-dev' in REPO_NAME:
+    child.expect("Username.*")
+    child.sendline(username + "\n")
+    child.expect("Password.*")
+    child.sendline(password + "\n")
+
 child.interact()
+
+# Get the latest branches for upstream (used for proper linter check)
+pexpect.run("git remote add upstream https://github.com/sdnfv/openNetVM.git", cwd="./repository")
+pexpect.run("git fetch upstream", cwd="./repository")
 
 print(pexpect.run("git checkout " + branch_name, cwd="./repository"))

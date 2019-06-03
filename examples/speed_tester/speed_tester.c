@@ -67,7 +67,7 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
-#define NF_TAG "speed"
+#define NF_TAG "speed_tester"
 
 #define PKTMBUF_POOL_NAME "MProc_pktmbuf_pool"
 #define PKT_READ_SIZE ((uint16_t)32)
@@ -78,14 +78,9 @@
 #define DEFAULT_LAT_PKT_NUM 16
 #define MAX_PKT_NUM NF_QUEUE_RINGSIZE
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 /* number of package between each print */
 static uint32_t print_delay = 10000000;
 static uint16_t destination;
-static uint8_t use_direct_rings = 0;
-static uint8_t keep_running = 1;
 
 /*user defined packet size and destination mac address
 *size defaults to ethernet header length
@@ -109,7 +104,7 @@ static uint64_t total_latency = 0;
 char *pcap_filename = NULL;
 
 void
-nf_setup(struct onvm_nf_info *nf_info);
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
 
 /*
  * Print a usage message
@@ -119,13 +114,12 @@ usage(const char *progname) {
         printf("Usage:\n");
         printf(
             "%s [EAL args] -- [NF_LIB args] -- -d <destination> [-p <print_delay>] "
-            "[-a] [-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
+            "[-s <packet_length>] [-m <dest_mac_address>] [-o <pcap_filename>] "
             "[-c <packet_number>] [-l]\n",
             progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d DST`: Destination Service ID to foward to\n");
-        printf(" - `-a`: Use advanced rings interface instead of default `packet_handler`\n");
         printf(" - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(
             " - `-s PACKET_SIZE`: Size of packet, e.g. `-s 32` allocates 32 bytes for the data segment of "
@@ -150,11 +144,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
         int values[ETHER_ADDR_LEN];
 
-        while ((c = getopt(argc, argv, "d:p:as:m:o:c:l")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:s:m:o:c:l")) != -1) {
                 switch (c) {
-                        case 'a':
-                                use_direct_rings = 1;
-                                break;
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
                                 dst_flag = 1;
@@ -269,7 +260,8 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
@@ -296,90 +288,19 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-static void
-handle_signal(int sig) {
-        if (sig == SIGINT || sig == SIGTERM)
-                keep_running = 0;
-}
-
-static void
-run_advanced_rings(struct onvm_nf_info *nf_info) {
-        void *pkts[PKT_READ_SIZE];
-        struct onvm_pkt_meta *meta;
-        uint16_t i, j, nb_pkts;
-        void *pktsTX[PKT_READ_SIZE];
-        int tx_batch_size;
-        uint64_t start_time;
-        struct rte_ring *rx_ring;
-        struct rte_ring *tx_ring;
-        volatile struct onvm_nf *nf;
-
-        printf("Process %d handling packets using advanced rings\n", nf_info->instance_id);
-        printf("[Press Ctrl-C to quit ...]\n");
-
-        /* Set core affinity depending on what we got from mgr */
-        /* TODO as this is advanced ring mode it should have access to the core info struct */
-        onvm_threading_core_affinitize(nf_info->core);
-
-        /* Listen for ^C and docker stop so we can exit gracefully */
-        signal(SIGINT, handle_signal);
-        signal(SIGTERM, handle_signal);
-
-        /* Get rings from nflib */
-        nf = onvm_nflib_get_nf(nf_info->instance_id);
-        rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
-
-        start_time = rte_get_tsc_cycles();
-
-        while (keep_running && rx_ring && tx_ring && nf) {
-                tx_batch_size = 0;
-                /* Dequeue all packets in ring up to max possible. */
-                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
-
-                if (unlikely(nb_pkts == 0)) {
-                        continue;
-                }
-                /* Process all the packets */
-                for (i = 0; i < nb_pkts; i++) {
-                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        packet_handler((struct rte_mbuf *)pkts[i], meta, nf_info);
-                        pktsTX[tx_batch_size++] = pkts[i];
-                }
-
-                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL) == 0)) {
-                        nf->stats.tx_drop += tx_batch_size;
-                        for (j = 0; j < tx_batch_size; j++) {
-                                rte_pktmbuf_free(pktsTX[j]);
-                        }
-                } else {
-                        nf->stats.tx += tx_batch_size;
-                }
-
-                if (nf_info->time_to_live && unlikely((rte_get_tsc_cycles() - start_time) *
-                                             TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= nf_info->time_to_live)) {
-                        printf("Time to live exceeded, shutting down\n");
-                        keep_running = 0;
-                }
-                if (nf_info->pkt_limit && unlikely(nf->stats.rx >= (uint64_t) nf_info->pkt_limit * PKT_TTL_MULTIPLIER)) {
-                        printf("Packet limit exceeded, shutting down\n");
-                        keep_running = 0;
-                }
-        }
-        onvm_nflib_stop(nf_info);
-}
-
 /*
  * Generates fake packets or loads them from a pcap file
  */
 void
-nf_setup(struct onvm_nf_info *nf_info) {
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         uint32_t i;
+        uint32_t pkts_generated;
         struct rte_mempool *pktmbuf_pool;
 
+        pkts_generated = 0;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
@@ -396,13 +317,16 @@ nf_setup(struct onvm_nf_info *nf_info) {
                 pcap = pcap_open_offline(pcap_filename, errbuf);
                 if (pcap == NULL) {
                         fprintf(stderr, "Error reading pcap file: %s\n", errbuf);
+                        onvm_nflib_stop(nf_local_ctx);
                         rte_exit(EXIT_FAILURE, "Cannot open pcap file\n");
                 }
 
-                packet_number = (packet_number ? packet_number : MAX_PKT_NUM);
+                packet_number = (use_custom_pkt_count ? packet_number : MAX_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
+
                 i = 0;
 
-                while (((packet = pcap_next(pcap, &header)) != NULL) && (i++ < packet_number)) {
+                while (((packet = pcap_next(pcap, &header)) != NULL) && (i < packet_number)) {
                         struct onvm_pkt_meta *pmeta;
                         struct onvm_ft_ipv4_5tuple key;
 
@@ -424,16 +348,19 @@ nf_setup(struct onvm_nf_info *nf_info) {
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
-                        onvm_nflib_return_pkt(nf_info, pkt);
+                        /* Add packet to batch, and update counter */
+                        pkts[i++] = pkt;
+                        pkts_generated++;
                 }
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, pkts_generated);
         } else {
 #endif
                 /*  use default number of initial packets if -c has not been used */
                 packet_number = (use_custom_pkt_count ? packet_number : DEFAULT_PKT_NUM);
+                struct rte_mbuf *pkts[packet_number];
 
                 printf("Creating %u packets to send to %u\n", packet_number, destination);
 
-                struct rte_mbuf *pkts[packet_number];
                 for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta *pmeta;
                         struct ether_hdr *ehdr;
@@ -470,41 +397,61 @@ nf_setup(struct onvm_nf_info *nf_info) {
                                 uint64_t *ts = (uint64_t *)rte_pktmbuf_append(pkt, sizeof(uint64_t));
                                 *ts = 0;
                         }
+
+                        /* New packet generated successfully */
                         pkts[i] = pkt;
+                        pkts_generated++;
                 }
-                onvm_nflib_return_pkt_bulk(nf_info, pkts, packet_number);
+                onvm_nflib_return_pkt_bulk(nf_local_ctx->nf, pkts, pkts_generated);
 #ifdef LIBPCAP
         }
 #endif
+        /* Exit if packets were unexpectedly not created */
+        if (pkts_generated == 0 && packet_number > 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Failed to create packets\n");
+        }
+
+        packet_number = pkts_generated;
 }
 
 int
 main(int argc, char *argv[]) {
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
+
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
 
         argc -= arg_offset;
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        /* Set the function to execute before running the NF
-         * For advanced rings manually run the function */
-        onvm_nflib_set_setup_function(nf_info, &nf_setup);
+        onvm_nflib_run(nf_local_ctx);
 
-        if (use_direct_rings) {
-                nf_setup(nf_info);
-                onvm_nflib_nf_ready(nf_info);
-                run_advanced_rings(nf_info);
-        } else {
-                onvm_nflib_run(nf_info, &packet_handler);
-        }
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

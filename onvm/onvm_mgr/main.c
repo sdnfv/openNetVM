@@ -106,7 +106,8 @@ master_thread_main(void) {
                 if (stats_destination != ONVM_STATS_NONE)
                         onvm_stats_display_all(sleeptime, verbosity_level);
 
-                if (time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * TIME_TTL_MULTIPLIER / rte_get_timer_hz() >= time_to_live)) {
+                if (time_to_live && unlikely((rte_get_tsc_cycles() - start_time) * TIME_TTL_MULTIPLIER /
+                                             rte_get_timer_hz() >= time_to_live)) {
                         printf("Time to live exceeded, shutting down\n");
                         main_keep_running = 0;
                 }
@@ -136,11 +137,18 @@ master_thread_main(void) {
 
         /* Tell all NFs to stop */
         for (i = 0; i < MAX_NFS; i++) {
-                if (nfs[i].info == NULL) {
+                if (nfs[i].status != NF_RUNNING)
                         continue;
-                }
+
                 RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
+
+                /* If in shared core mode NFs might be sleeping */
+                if (ONVM_NF_SHARE_CORES && rte_atomic16_read(nf_wakeup_infos[i].shm_server) == 1) {
+                        nf_wakeup_infos[i].num_wakeups++;
+                        rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
+                        sem_post(nf_wakeup_infos[i].mutex);
+                }
         }
 
         /* Wait to process all exits */
@@ -155,6 +163,14 @@ master_thread_main(void) {
                         rte_lcore_id(), num_nfs);
         }
 
+        /* Clean up the shared memory */
+        if (ONVM_NF_SHARE_CORES) {
+                for (i = 0; i < MAX_NFS; i++) {
+                        sem_close(nf_wakeup_infos[i].mutex);
+                        sem_unlink(nf_wakeup_infos[i].sem_name);
+                }
+        }
+
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
 
@@ -164,11 +180,13 @@ master_thread_main(void) {
  */
 static int
 rx_thread_main(void *arg) {
-        uint16_t i, rx_count;
+        uint16_t i, rx_count, cur_lcore;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct queue_mgr *rx_mgr = (struct queue_mgr *)arg;
+        cur_lcore = rte_lcore_id();
 
-        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", rte_lcore_id(), rx_mgr->id);
+        onvm_stats_gen_event_info("Rx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
+        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", cur_lcore, rx_mgr->id);
 
         for (; worker_keep_running;) {
                 /* Read ports */
@@ -190,21 +208,25 @@ rx_thread_main(void *arg) {
 
         RTE_LOG(INFO, APP, "Core %d: RX thread done\n", rte_lcore_id());
 
+        free(rx_mgr->nf_rx_bufs);
+        free(rx_mgr);
         return 0;
 }
 
 static int
 tx_thread_main(void *arg) {
         struct onvm_nf *nf;
-        unsigned i, tx_count;
+        unsigned i, tx_count, cur_lcore;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
         struct queue_mgr *tx_mgr = (struct queue_mgr *)arg;
+        cur_lcore = rte_lcore_id();
 
+        onvm_stats_gen_event_info("Tx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", cur_lcore,
                         tx_mgr->tx_thread_info->first_nf);
         } else if (tx_mgr->tx_thread_info->first_nf < tx_mgr->tx_thread_info->last_nf) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", cur_lcore,
                         tx_mgr->tx_thread_info->first_nf, tx_mgr->tx_thread_info->last_nf - 1);
         }
 
@@ -233,6 +255,10 @@ tx_thread_main(void *arg) {
 
         RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
 
+        free(tx_mgr->tx_thread_info->port_tx_bufs);
+        free(tx_mgr->tx_thread_info);
+        free(tx_mgr->nf_rx_bufs);
+        free(tx_mgr);
         return 0;
 }
 
@@ -243,30 +269,81 @@ handle_signal(int sig) {
         }
 }
 
+static inline void
+wakeup_client(struct nf_wakeup_info *nf_wakeup_info) {
+        nf_wakeup_info->num_wakeups++;
+        rte_atomic16_set(nf_wakeup_info->shm_server, 0);
+        sem_post(nf_wakeup_info->mutex);
+}
+
+static int
+wakeup_thread_main(void *arg) {
+        unsigned i;
+        struct onvm_nf *nf;
+        struct nf_wakeup_info *nf_wakeup_info;
+        struct wakeup_thread_context *wakeup_ctx = (struct wakeup_thread_context *)arg;
+
+        if (wakeup_ctx->first_nf == wakeup_ctx->last_nf - 1) {
+                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NF %d\n", rte_lcore_id(),
+                        wakeup_ctx->first_nf);
+        } else if (wakeup_ctx->first_nf < wakeup_ctx->last_nf) {
+                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NFs %d to %d\n", rte_lcore_id(),
+                        wakeup_ctx->first_nf, wakeup_ctx->last_nf - 1);
+        }
+
+        for (; worker_keep_running;) {
+                for (i = wakeup_ctx->first_nf; i < wakeup_ctx->last_nf; i++) {
+                        nf = &nfs[i];
+                        nf_wakeup_info = &nf_wakeup_infos[i];
+                        if (!onvm_nf_is_valid(nf))
+                                continue;
+
+                        /* Check if NF is sleeping and has pkts on the rx queue  */
+                        if (!whether_wakeup_client(nf, nf_wakeup_info))
+                                continue;
+
+                        wakeup_client(nf_wakeup_info);
+                }
+        }
+
+        free(wakeup_ctx);
+        return 0;
+}
+
 /*******************************Main function*********************************/
 
 int
 main(int argc, char *argv[]) {
-        unsigned cur_lcore, rx_lcores, tx_lcores;
-        unsigned nfs_per_tx;
+        unsigned cur_lcore, rx_lcores, tx_lcores, wakeup_lcores;
+        unsigned nfs_per_tx, nfs_per_wakeup_thread;
         unsigned i;
 
         /* initialise the system */
-
-        /* Reserve ID 0 for internal manager things */
-        next_instance_id = 1;
         if (init(argc, argv) < 0)
                 return -1;
+
         RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
         /* clear statistics */
         onvm_stats_clear_all_nfs();
 
         /* Reserve n cores for: ONVM_NUM_MGR_AUX_THREADS for auxiliary(f.e. stats), ONVM_NUM_RX_THREADS for Rx, and all
-         * remaining for Tx */
+         * remaining for Tx (subtract wakeup cores if shared core mode is enabled) */
         cur_lcore = rte_lcore_id();
         rx_lcores = ONVM_NUM_RX_THREADS;
         tx_lcores = rte_lcore_count() - rx_lcores - ONVM_NUM_MGR_AUX_THREADS;
+
+        /* If shared core mode enabled adjust core numbers */
+        if (ONVM_NF_SHARE_CORES) {
+                wakeup_lcores = ONVM_NUM_WAKEUP_THREADS;
+                tx_lcores -= wakeup_lcores;
+                if (tx_lcores < 1) {
+                        RTE_LOG(INFO, APP, "Not enough cores to enabled shared core support\n");
+                        return -1;
+                }
+        }
+
+        onvm_stats_gen_event_info("MGR Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
 
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores - 1);
@@ -274,6 +351,8 @@ main(int argc, char *argv[]) {
         RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
+        if (ONVM_NF_SHARE_CORES)
+                RTE_LOG(INFO, APP, "%d cores available for handling wakeup\n", wakeup_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling stats\n", 1);
 
         /* Evenly assign NFs to TX threads */
@@ -326,6 +405,24 @@ main(int argc, char *argv[]) {
                 }
         }
 
+        if (ONVM_NF_SHARE_CORES) {
+                nfs_per_wakeup_thread = ceil((unsigned)MAX_NFS / wakeup_lcores);
+                for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
+                        struct wakeup_thread_context *wakeup_ctx = calloc(1, sizeof(struct wakeup_thread_context));
+                        if (wakeup_ctx == NULL) {
+                                RTE_LOG(ERR, APP, "Can't allocate wakeup info struct\n");
+                                return -1;
+                        }
+                        wakeup_ctx->first_nf = RTE_MIN(i * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
+                        wakeup_ctx->last_nf = RTE_MIN((i + 1) * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
+                        cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
+                        if (rte_eal_remote_launch(wakeup_thread_main, (void*)wakeup_ctx, cur_lcore) == -EBUSY) {
+                                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d wakeup thread\n",
+                                        cur_lcore, wakeup_ctx->first_nf);
+                                return -1;
+                        }
+                }
+        }
         /* Master thread handles statistics and NF management */
         master_thread_main();
         return 0;

@@ -23,19 +23,34 @@ class NFDashboardPage extends React.PureComponent<Props, State> {
   };
 
   eventHandler = (event: OnvmEvent): void => {
+    var nfLabel;
+    console.log(event);
     if (event.message === "NF Ready") {
-      const nfLabel = `NF ${event.source.instance_id}`;
+      nfLabel = ` - ${event.source.instance_id}`;
+      
+      if(event.source.type === "NF")
+        nfLabel = 'NF' + nfLabel;
+      else
+        nfLabel = event.source.type + nfLabel;
+      
       this.setState(prevState => {
         return { nfLabelList: [nfLabel, ...prevState.nfLabelList] };
       });
     }
     if (event.message === "NF Stopping") {
-      const nfLabel = `NF ${event.source.instance_id}`;
+      nfLabel = ` - ${event.source.instance_id}`;
 
+      if(event.source.type === "NF")
+        nfLabel = 'NF' + nfLabel;
+      else
+        nfLabel = event.source.type + nfLabel;
+      console.log(nfLabel);
       this.setState(prevState => {
+        console.log(prevState.nfLabelList);
         const arr = [
-          ...prevState.nfLabelList.filter(label => label !== nfLabel)
+          ...prevState.nfLabelList.filter(label => label.split(" - ")[1] !== nfLabel.split(" - ")[1])
         ];
+        console.log("end: " + prevState.nfLabelList);
         return { nfLabelList: arr };
       });
     }

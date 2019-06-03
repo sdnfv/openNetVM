@@ -3,12 +3,12 @@
 ### Setting up CI
 Run a Flask server that listens for new events from github, will get triggered when a new PR is created or when keyword `@onvm` is mentioned.  
 ```sh
-python3 webhook-receiver.py 0.0.0.0 8080 @onvm
+python3 webhook-receiver.py 0.0.0.0 8080 @onvm webhook-config.json
 ```
 
 To run CI tests manually, requires a config file, the github PR ID, request message and a response message.  
 ```sh
-./manager.sh <config file> <pr ID> <request msg>
+./manager.sh <config file> <pr ID> <repo name> <request msg>
 ```  
 
 ### Usage
@@ -34,7 +34,6 @@ The CI process can be broken into multiple steps:
     WORKER_LIST=("WORKER_1_IP WORKER_1_KEY", "WORKER_2_IP WORKER_2_KEY", ...)
     GITHUB_CREDS=path_to_creditential_file
     REPO_OWNER="OWNER_STRING"
-    REPO_NAME="NAME_STRING"
     ```
 
     Config file example:
@@ -42,7 +41,16 @@ The CI process can be broken into multiple steps:
     WORKER_LIST=("nimbnode42 nn42_key")
     GITHUB_CREDS=githubcreds
     REPO_OWNER="sdnfv"
-    REPO_NAME="openNetVM-dev"
+    ```
+
+    Webhook json config example
+    ```
+    {
+        "secret-file": "very_special_encrypted_secret_file.bin",
+        "private-key-file": "private_key.pem", 
+        "log-successful-attempts": true,
+        "authorized-users": ["puffin", "penguin", "pcoach"]
+    }
     ```
 
     GITHUB_CREDS file example:
