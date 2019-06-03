@@ -51,7 +51,7 @@ The code is based on the hybrid-polling model proposed in [_Flurries: Countless 
 
 Usage / Known Limitations:
   - To enable pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they want to share cores
-  - All code for sharing CPUs is within `if (ONVM_ENABLE_SHARED_CPU)` blocks
+  - All code for sharing CPUs is within `if (ONVM_NF_SHARE_CORES)` blocks
   - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets
   - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
   - Note that the manager threads all still use polling
