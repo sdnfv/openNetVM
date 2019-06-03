@@ -303,16 +303,43 @@ free the custom message data. If the message is sent to a NF that doesn't have a
  - Fix Deprecated DPDK Function in Speed Tester NF  
 
 **v19.05 API Changes:**
-FILL_IN
+ - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p)` -> `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_function_table *nf_function_table)`
+ - `int onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler)` -> `int onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)` -> `int onvm_nflib_return_pkt(struct onvm_nf *nf, struct rte_mbuf *pkt)`
+ - `int onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count)` -> `onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t count)`
+ - `int onvm_nflib_nf_ready(struct onvm_nf_info *info)` -> `int onvm_nflib_nf_ready(struct onvm_nf *nf)`
+ - `int onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info)` ->
+ `int onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `void onvm_nflib_stop(struct onvm_nf_info *nf_info)` -> `void onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `struct onvm_nf_scale_info *onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` ->   `struct onvm_nf_scale_info *onvm_nflib_get_empty_scaling_config(struct onvm_nf *nf)`
+ - `struct onvm_nf_scale_info *onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data)` ->
+`struct onvm_nf_scale_info *onvm_nflib_inherit_parent_config(struct onvm_nf *nf, void *data)`
+
+
 
 **v19.05 API Additions:**
-FILL_IN
-
-**v19.05 API Additions:**
-FILL_IN
+ - `struct onvm_nf_local_ctx *onvm_nflib_init_nf_local_ctx(void)`
+ - `struct onvm_nf_function_table *onvm_nflib_init_nf_function_table(void)`
+ - `int onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func signal_hanlder)`
+ - `int onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data)` 
+ - `int onvm_nflib_request_lpm(struct lpm_request *req)`
+ - `struct onvm_configuration *onvm_nflib_get_onvm_config(void)`
 
 **v19.05 Removed APIs:**
-FILL_IN
+ - `int onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler, callback_handler_func callback_handler)`
+ - `struct rte_ring *onvm_nflib_get_tx_ring(struct onvm_nf_info* info)`
+ - `struct rte_ring *onvm_nflib_get_rx_ring(struct onvm_nf_info* info)`
+ - `struct onvm_nf *onvm_nflib_get_nf(uint16_t id)`
+ - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)`
+ 
+ 
+ 
+ //TODO find a place for these?
+ exposed apis-> 
+ `int onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg)`
+ `struct onvm_nf_init_cfg *onvm_nflib_init_nf_init_cfg(const char *tag)`
+ `struct onvm_nf_init_cfg *onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent)`
+
 
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
