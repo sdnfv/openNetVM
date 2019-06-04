@@ -22,6 +22,8 @@ A CloudLab template is available with the latest release here: https://www.cloud
 
 **Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch off the develop branch and submit PRs against the develop branch.
 
+**Note**: If the NFs crash with this error - `Cannot mmap memory for rte_config at [0x7ffff7ff3000], got [0x7ffff7ff2000]`, simply use the `-a 0x7f000000000` flag for the onvm_mgr, this will resolve the issue.
+
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
 
