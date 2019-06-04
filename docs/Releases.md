@@ -20,7 +20,7 @@ A CloudLab template is available with the latest release here: https://www.cloud
 
 **Performance**: This release increases Pktgen benchmark performance from 7Mpps to 13.1 Mpps (measured by Pktgen sending packets to the ONVM Basic Monitor), thus fixing the major performance issue that was present in the last release.
 
-**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch of the develop branch and submit PRs against the develop branch.
+**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch off the develop branch and submit PRs against the develop branch.
 
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
@@ -30,23 +30,22 @@ The code is based on the hybrid-polling model proposed in [_Flurries: Countless 
 Usage and implementation details can be found [here][shared_core_docs].
 
 ### Major Architectural Changes:
-- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
+- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm. 
 
-    Previously the initialization sequence for NFs wasn't able to properly cleanup if a signal was recieved. Because of this we have introduced a new NF context struct(`onvm_nf_local_ctx`) which would be malloced before intilization begins and would help handle cleanup. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
+    Previously the initialization sequence for NFs wasn't able to properly cleanup if a signal was received. Because of this we have introduced a new NF context struct(`onvm_nf_local_ctx`) which would be malloced before initialization begins and would help handle cleanup. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
 
-- Reworking the `onvm_nf` struct 
+- Reworking the `onvm_nf` struct. 
 
     Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info`, which was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
 
- - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for initialization
+ - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for initialization.
 
     This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
 
 	
- - Adding a function table struct `onvm_nf_function_table`  
+ - Adding a function table struct `onvm_nf_function_table`.  
 	
     Finally, we introduced the `onvm_nf_function_table` struct that groups all NF callback functions that can be set by developers.   
-
 
 **Overall, the new NF launch/shutdown sequence looks as follows:**
 ```c
@@ -84,7 +83,7 @@ This release changes our approach to NFs using the advanced rings mode. Previous
 This release updates both console and web stats. 
 
  - For web stats this adds the Core Mappings page with the information about core mappings for both onvm_mgr and NFs.
- - For console stats this overhauls the displayed stats and adds new information, see more bellow.
+ - For console stats this overhauls the displayed stats and adds new information, see more below.
 
 The new default mode now displays NF tag and core ID:
 ```
@@ -154,34 +153,28 @@ The super verbose stats output dumps all stats in a coma separated list for easy
 2019-06-04 08:54:55,speed_tester,2,1,5,0,W,0,101844,101843,72785,72785,0,0,0,0,0,101844,0,0,0,1,101660,101660
 ```
 
-
 ### CI PR Review:
-CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI due to security purposes. The new CI system is able to approve/reject pull requests.
+CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI for security purposes. The new CI system is able to approve/reject pull requests.
 CI currently performs these checks:
  - Check the branch (for our discussed change of develop->master as main branch)
  - Run performance check (speed tester currently with 35mil benchmark)
  - Run linter (only on the PR diff)
 
 ### LPM Firewall NF:
-The firewall NF drops or forwards packets based on rules provided in the json file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table.
-
-Documentation for this NF can be found [here][firewall_nf_readme].
+The firewall NF drops or forwards packets based on rules provided in a JSON config file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table. Documentation for this NF can be found [here][firewall_nf_readme].
 
 
 ### Payload Search NF:
-The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise.
-
-Documentation for this NF can be found [here][payload_scan_nf_readme].
+The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise. The NF also has an inverse mode to drop on match and forward otherwise. Documentation for this NF can be found [here][payload_scan_nf_readme].
 
 ### TTL Flags:
 Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received. 
 
 ### NF to NF Messaging:
-Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to
-free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
+Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
 
 ### Minor improvements
- - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This lead to performance degradation as the requested number of mbufs was too high, changing this to a constant has significantly improved performance.  
+ - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This led to performance degradation as the requested number of mbufs was too high, changing this to a constant has significantly improved performance.  
  - **Reuse NF Instance IDs** - Reuse instance IDs of old NFs that have terminated. The instance IDs are still continiously incremented up to the `MAX_NFS` constant, but when that number is reached the next NF instance ID will be wrapped back to the starting value and find the first unoccupied instance ID.    
  - Check if ONVM_HOME is Set Before Compiling ONVM   
  - Add Core Information to Web Stats
@@ -206,7 +199,7 @@ free the custom message data. If the message is sent to a NF that doesn't have a
 
 **v19.05 API Struct changes:**
 
-* Adding `onvm_nf_local_ctx` which is malloced and passed into `onvm_nflib_init`
+* Adding `onvm_nf_local_ctx` which is malloced and passed into `onvm_nflib_init`:
     ```c
     struct onvm_nf_local_ctx {
             struct onvm_nf *nf;
@@ -214,7 +207,7 @@ free the custom message data. If the message is sent to a NF that doesn't have a
             rte_atomic16_t keep_running;
     };
     ```
-* Adding a function table for eaiser callback managing
+* Adding a function table for eaiser callback managing:
     ```c
     struct onvm_nf_function_table {
             nf_setup_fn  setup;
@@ -224,7 +217,7 @@ free the custom message data. If the message is sent to a NF that doesn't have a
     };
     ```
     
-* Renaming the old `onvm_nf_info` -> `onvm_nf_init_cfg`
+* Renaming the old `onvm_nf_info` -> `onvm_nf_init_cfg`:
     ```c
     struct onvm_nf_init_cfg {
             uint16_t instance_id;
@@ -240,7 +233,7 @@ free the custom message data. If the message is sent to a NF that doesn't have a
     };
     ```
     
-* Consolidating previous `onvm_nf_info` and `onvm_nf` into a singular `onvm_nf` struct  
+* Consolidating previous `onvm_nf_info` and `onvm_nf` into a singular `onvm_nf` struct:  
     ```c
     struct onvm_nf {
             struct rte_ring *rx_q;
