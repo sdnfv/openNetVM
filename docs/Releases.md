@@ -49,26 +49,26 @@ Usage and implementation details can be found [here][shared_core_docs].
 
 **Overall, the new NF launch/shutdown sequence looks as follows:**
 ```c
-        struct onvm_nf_local_ctx *nf_local_ctx;        
-        struct onvm_nf_function_table *nf_function_table;
+struct onvm_nf_local_ctx *nf_local_ctx;        
+struct onvm_nf_function_table *nf_function_table;
 
-        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
-        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        nf_function_table = onvm_nflib_init_nf_function_table();
-        nf_function_table->pkt_handler = &packet_handler;
+nf_function_table = onvm_nflib_init_nf_function_table();
+nf_function_table->pkt_handler = &packet_handler;
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0)
-                // error checks
+if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0)
+        // error checks
+		
+argc -= arg_offset;
+argv += arg_offset;
 
-        argc -= arg_offset;
-        argv += arg_offset;
+if (parse_app_args(argc, argv, progname) < 0)
+        // error checks
 
-        if (parse_app_args(argc, argv, progname) < 0)
-                // error checks
-
-        onvm_nflib_run(nf_local_ctx);
-        onvm_nflib_stop(nf_local_ctx);
+onvm_nflib_run(nf_local_ctx);
+onvm_nflib_stop(nf_local_ctx);
 ```  
 
 ### Advanced Rings Changes:
@@ -140,7 +140,7 @@ Shared core stats
 Total wakeups = 1461122, Wakeup rate = 50696
 ```
 
-The super verbose stats output dumps all stats in a coma separated list for easy script parsing:
+The super verbose stats mode has also been updated to include new stats:
 ```
 #YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps
 #YYYY-MM-DD HH:MM:SS,nf_tag,instance_id,service_id,core,parent,state,children_cnt,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_out,act_tonf,act_drop,act_next,act_buffer,act_returned,num_wakeups,wakeup_rate
@@ -206,6 +206,7 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
             rte_atomic16_t keep_running;
     };
     ```
+
 * Adding a function table for eaiser callback managing:
     ```c
     struct onvm_nf_function_table {
@@ -331,7 +332,6 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
  - `struct rte_ring *onvm_nflib_get_rx_ring(struct onvm_nf_info* info)`
  - `struct onvm_nf *onvm_nflib_get_nf(uint16_t id)`
  - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)`
-
 
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
