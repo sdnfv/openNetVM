@@ -130,8 +130,8 @@ char buffer[20];
 void
 onvm_stats_init(uint8_t verbosity_level) {
         if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                printf(ONVM_STATS_RAW_DUMP_PORT_MSG);
-                printf(ONVM_STATS_RAW_DUMP_NF_MSG);
+                printf("%s", ONVM_STATS_RAW_DUMP_PORT_MSG);
+                printf("%s", ONVM_STATS_RAW_DUMP_NF_MSG);
         }
 }
 
@@ -338,7 +338,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, ONVM_STATS_ADV_PORTS, buffer,
+                        fprintf(stats_out, ONVM_STATS_RAW_DUMP_PORTS_CONTENT, buffer,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
