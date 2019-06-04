@@ -415,8 +415,15 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
                 sleep(1);
                 if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
                         /* Wait because we sent a message to the onvm_mgr */
-                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++)
+                        for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++) {
                                 sleep(NF_TERM_WAIT_TIME);
+                                printf("Waiting for onvm_mgr to recieve the message before shutting down\n");
+                        }
+                        /* Mark init as finished, even though we're exiting onvm_nflib_stop will do proper cleanup */
+                        if (nf_init_cfg->status == NF_STARTING) {
+                                nf_local_ctx->nf = &nfs[nf_init_cfg->instance_id];
+                                rte_atomic16_set(&nf_local_ctx->nf_init_finished, 1);
+                        }
                         return ONVM_SIGNAL_TERMINATION;
                 }
         }
@@ -424,34 +431,40 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
         /* This NF is trying to declare an ID already in use. */
         if (nf_init_cfg->status == NF_ID_CONFLICT) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_ID_CONFLICT, "Selected ID already in use. Exiting...\n");
+                printf("%s", "Selected ID already in use. Exiting...\n");
+                return -NF_ID_CONFLICT;
         } else if (nf_init_cfg->status == NF_SERVICE_MAX) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_SERVICE_MAX, "Service ID must be less than %d\n", MAX_SERVICES);
+                printf("Service ID must be less than %d\n", MAX_SERVICES);
+                return -NF_SERVICE_MAX;
         } else if (nf_init_cfg->status == NF_SERVICE_COUNT_MAX) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_SERVICE_COUNT_MAX, "Maximum amount of NF's per service spawned, must be less than %d",
-                         MAX_NFS_PER_SERVICE);
+                printf("Maximum amount of NF's per service spawned, must be less than %d", MAX_NFS_PER_SERVICE);
+                return -NF_SERVICE_COUNT_MAX;
         } else if (nf_init_cfg->status == NF_NO_IDS) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "There are no ids available for this NF\n");
+                printf("There are no ids available for this NF\n");
+                return -NF_NO_IDS;
         } else if (nf_init_cfg->status == NF_NO_CORES) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "There are no cores available for this NF\n");
+                printf("There are no cores available for this NF\n");
+                return -NF_NO_CORES;
         } else if (nf_init_cfg->status == NF_NO_DEDICATED_CORES) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS,
-                         "There is no space to assign a dedicated core, "
-                         "or manually selected core has NFs running\n");
+                printf("There is no space to assign a dedicated core, or the selected core has NFs running\n");
+                return -NF_NO_DEDICATED_CORES;
         } else if (nf_init_cfg->status == NF_CORE_OUT_OF_RANGE) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "Requested core is not enabled or not in range\n");
+                printf("Requested core is not enabled or not in range\n");
+                return -NF_CORE_OUT_OF_RANGE;
         } else if (nf_init_cfg->status == NF_CORE_BUSY) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(NF_NO_IDS, "Requested core is busy\n");
+                printf("Requested core is busy\n");
+                return -NF_CORE_BUSY;
         } else if (nf_init_cfg->status != NF_STARTING) {
                 rte_mempool_put(nf_init_cfg_mp, nf_init_cfg);
-                rte_exit(EXIT_FAILURE, "Error occurred during manager initialization\n");
+                printf("Error occurred during manager initialization\n");
+                return -1;
         }
 
         nf = &nfs[nf_init_cfg->instance_id];

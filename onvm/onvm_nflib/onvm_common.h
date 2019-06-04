@@ -80,7 +80,7 @@
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-#define ONVM_SIGNAL_TERMINATION -2
+#define ONVM_SIGNAL_TERMINATION -999
 
 /* Maximum length of NF_TAG including the \0 */
 #define TAG_SIZE 15
