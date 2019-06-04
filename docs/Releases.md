@@ -82,7 +82,7 @@ This release changes our approach to NFs using the advanced rings mode. Previous
 ### Stats Updates:
 This release updates both console and web stats. 
 
- - For web stats this adds the Core Mappings page with the information about core mappings for both onvm_mgr and NFs.
+ - For web stats this adds the Core Mappings page with the core layout for both onvm_mgr and NFs.
  - For console stats this overhauls the displayed stats and adds new information, see more below.
 
 The new default mode now displays NF tag and core ID:
