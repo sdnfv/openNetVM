@@ -245,6 +245,7 @@ struct onvm_nf_local_ctx {
         struct onvm_nf *nf;
         rte_atomic16_t nf_init_finished;
         rte_atomic16_t keep_running;
+        rte_atomic16_t nf_stopped;
 };
 
 /*

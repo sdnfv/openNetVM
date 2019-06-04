@@ -244,6 +244,8 @@ onvm_nflib_init_nf_local_ctx(void) {
         rte_atomic16_set(&nf_local_ctx->keep_running, 1);
         rte_atomic16_init(&nf_local_ctx->nf_init_finished);
         rte_atomic16_set(&nf_local_ctx->nf_init_finished, 0);
+        rte_atomic16_init(&nf_local_ctx->nf_stopped);
+        rte_atomic16_set(&nf_local_ctx->nf_stopped, 0);
 
         return nf_local_ctx;
 }
@@ -665,6 +667,13 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
 
 void
 onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
+        if (nf_local_ctx == NULL || nf_local_ctx->nf == NULL || rte_atomic16_read(&nf_local_ctx->nf_stopped) != 0) {
+                return;
+        }
+
+        /* Ensure we only call nflib_stop once */
+        rte_atomic16_set(&nf_local_ctx->nf_stopped, 1);
+
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
         /* Stop and free */
