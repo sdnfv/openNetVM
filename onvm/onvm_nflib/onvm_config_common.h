@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
- *            2016 Hewlett Packard Enterprise Development LP
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2016-2019 Hewlett Packard Enterprise Development LP
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,6 @@
 #define FLAG_DASH "--"
 
 /*****************************API************************************/
-
 
 /**
  * Parses a config file into a cJSON struct.
@@ -206,4 +205,4 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
 int
 onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_argv[]);
 
-#endif
+#endif  // _ONVM_CONFIG_COMMON_H_

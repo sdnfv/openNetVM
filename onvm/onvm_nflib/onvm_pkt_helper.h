@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #define _ONVM_PKT_HELPER_H_
 
 #include <inttypes.h>
+#include <rte_ether.h>
 #include <rte_mempool.h>
 
 struct port_info;
@@ -53,20 +54,29 @@ struct ipv4_hdr;
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
 
-#define SUPPORTS_IPV4_CHECKSUM_OFFLOAD (1<<0)
-#define SUPPORTS_TCP_CHECKSUM_OFFLOAD (1<<1)
-#define SUPPORTS_UDP_CHECKSUM_OFFLOAD (1<<2)
+#define SUPPORTS_IPV4_CHECKSUM_OFFLOAD (1 << 0)
+#define SUPPORTS_TCP_CHECKSUM_OFFLOAD (1 << 1)
+#define SUPPORTS_UDP_CHECKSUM_OFFLOAD (1 << 2)
+
+#define PROTO_UDP 0x11
+#define IPV4_VERSION_IHL 69
+#define IPV4_TTL 64
+#define UDP_SAMPLE_SRC_PORT 12345
+#define UDP_SAMPLE_DST_PORT 54321
+#define IPV4_SAMPLE_SRC (uint32_t) IPv4(10, 0, 0, 1)
+#define IPV4_SAMPLE_DST (uint32_t) IPv4(10, 0, 0, 2)
+#define SAMPLE_NIC_PORT 0
 
 /* Returns the bitflags in the tcp header */
-#define ONVM_PKT_GET_FLAGS(tcp, flags) \
-        do { \
+#define ONVM_PKT_GET_FLAGS(tcp, flags)                                               \
+        do {                                                                         \
                 (flags) = (((tcp)->data_off << 8) | (tcp)->tcp_flags) & 0b111111111; \
         } while (0)
 
 /* Sets the bitflags in the tcp header */
-#define ONVM_PKT_SET_FLAGS(tcp, flags) \
-        do { \
-                (tcp)->tcp_flags = (flags) & 0xFF; \
+#define ONVM_PKT_SET_FLAGS(tcp, flags)                   \
+        do {                                             \
+                (tcp)->tcp_flags = (flags)&0xFF;         \
                 (tcp)->data_off |= ((flags) >> 8) & 0x1; \
         } while (0)
 
@@ -75,19 +85,19 @@ struct ipv4_hdr;
  * source and destination port ID.
  */
 int
-onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info *ports);
+onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_port_id, struct port_info* ports);
 
 /**
  * Swap the source MAC address of a packet with a specified destination port's MAC address.
  */
 int
-onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info *ports);
+onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct port_info* ports);
 
 /**
  * Swap the destination MAC address of a packet with a specified source port's MAC address.
  */
 int
-onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info *ports);
+onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct port_info* ports);
 
 /**
  * Return a pointer to the tcp/udp/ip header in the packet, or NULL if not a TCP packet
@@ -138,22 +148,87 @@ onvm_pkt_print_ether(struct ether_hdr* hdr);
  * Parsing ip addr of form X.X.X.X into decimal form
  */
 int
-onvm_pkt_parse_ip(char * ip_str, uint32_t* dest);
+onvm_pkt_parse_ip(char* ip_str, uint32_t* dest);
+
+/**
+ * Parse uint32 IP into a string
+ */
+void
+onvm_pkt_parse_char_ip(char* ip_dest, uint32_t ip_src);
 
 /**
  * Parsing mac addr of form xx:xx:xx:xx:xx:xx into dest array
  */
 int
-onvm_pkt_parse_mac(char * mac_str, uint8_t* dest);
+onvm_pkt_parse_mac(char* mac_str, uint8_t* dest);
 
 /**
  * Packet checksum calculation routines
  */
-
 uint32_t
 onvm_pkt_get_checksum_offload_flags(uint8_t port_id);
 
+/**
+ * Set the packet checksums for the passed in pkt
+ */
 void
 onvm_pkt_set_checksums(struct rte_mbuf* pkt);
+
+/**
+ * Fill the packet UDP header
+ */
+int
+onvm_pkt_fill_udp(struct udp_hdr* udp_hdr, uint16_t src_port, uint16_t dst_port, uint16_t payload_len);
+
+/**
+ * Fill the packet IP header
+ */
+int
+onvm_pkt_fill_ipv4(struct ipv4_hdr* iph, uint32_t src, uint32_t dst, uint8_t l4_proto);
+
+/**
+ * Fill the ether header
+ */
+int
+onvm_pkt_fill_ether(struct ether_hdr* eth_hdr, int port, struct ether_addr* dst_mac_addr, struct port_info* ports);
+
+/**
+ * Swap the ether header values
+ */
+int
+onvm_pkt_swap_ether_hdr(struct ether_hdr* ether_hdr);
+
+/**
+ * Generates a UDP packet with the provided values
+ */
+int
+onvm_pkt_swap_ip_hdr(struct ipv4_hdr* ip_hdr);
+
+/**
+ * Generates a TCP packet with the provided values
+ */
+int
+onvm_pkt_swap_tcp_hdr(struct tcp_hdr* tcp_hdr);
+
+/**
+ * Generates a UDP packet with the provided values
+ */
+struct rte_mbuf*
+onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct tcp_hdr* tcp_hdr, struct ipv4_hdr* iph,
+                      struct ether_hdr* eth_hdr, uint8_t* options, size_t option_len, uint8_t* payload,
+                      size_t payload_len);
+
+/**
+ * Generates a UDP packet with the provided values
+ */
+struct rte_mbuf*
+onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr, struct ipv4_hdr* iph,
+                      struct ether_hdr* eth_hdr, uint8_t* payload, size_t payload_len);
+
+/**
+ * Generates a sample UDP packet
+ */
+struct rte_mbuf*
+onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool);
 
 #endif  // _ONVM_PKT_HELPER_H_"

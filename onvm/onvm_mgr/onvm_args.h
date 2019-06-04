@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                  onvm_args.h
@@ -47,7 +46,6 @@
 
 
 ******************************************************************************/
-
 
 #ifndef _ONVM_ARGS_H_
 #define _ONVM_ARGS_H_
@@ -59,6 +57,7 @@
 
 #define DEFAULT_SERVICE_ID 1
 
-int parse_app_args(uint8_t max_ports, int argc, char *argv[]);
+int
+parse_app_args(uint8_t max_ports, int argc, char *argv[]);
 
 #endif  // _ONVM_ARGS_H_

@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                                  onvm_pkt.c
 
@@ -47,13 +46,12 @@
 
 ******************************************************************************/
 
-
 #include "onvm_mgr.h"
-#include "onvm_pkt.h"
+
 #include "onvm_nf.h"
+#include "onvm_pkt.h"
 
 /**********************************Interfaces*********************************/
-
 
 void
 onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uint16_t rx_count) {
@@ -67,7 +65,7 @@ onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uin
                 return;
 
         for (i = 0; i < rx_count; i++) {
-                meta = (struct onvm_pkt_meta*) &(((struct rte_mbuf*)pkts[i])->udata64);
+                meta = (struct onvm_pkt_meta *)&(((struct rte_mbuf *)pkts[i])->udata64);
                 meta->src = 0;
                 meta->chain_index = 0;
                 ret = onvm_flow_dir_get_pkt(pkts[i], &flow_entry);
@@ -92,10 +90,9 @@ onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uin
         onvm_pkt_flush_all_nfs(rx_mgr, NULL);
 }
 
-
 void
 onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr) {
-	uint16_t i;
+        uint16_t i;
 
         if (tx_mgr == NULL)
                 return;
@@ -103,7 +100,6 @@ onvm_pkt_flush_all_ports(struct queue_mgr *tx_mgr) {
         for (i = 0; i < ports->num_ports; i++)
                 onvm_pkt_flush_port_queue(tx_mgr, ports->id[i]);
 }
-
 
 void
 onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size) {
@@ -115,4 +111,3 @@ onvm_pkt_drop_batch(struct rte_mbuf **pkts, uint16_t size) {
         for (i = 0; i < size; i++)
                 rte_pktmbuf_free(pkts[i]);
 }
-

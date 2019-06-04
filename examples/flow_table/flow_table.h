@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -55,9 +55,9 @@ usage(const char *progname) {
 }
 
 struct flow_table_entry {
-        uint32_t count; /* Number of packets in flow */
-        uint8_t action; /* Action to be performed */
+        uint32_t count;       /* Number of packets in flow */
+        uint8_t action;       /* Action to be performed */
         uint16_t destination; /* where to go next */
 };
 
-#endif
+#endif // _FLOW_TABLE_H_

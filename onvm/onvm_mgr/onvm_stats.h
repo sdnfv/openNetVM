@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
                                  onvm_stats.h
 
@@ -47,17 +46,63 @@
 
 ******************************************************************************/
 
-
 #ifndef _ONVM_STATS_H_
 #define _ONVM_STATS_H_
 
-#include "cJSON.h"
-#include <time.h>
 #include <locale.h>
+#include <time.h>
+#include "cJSON.h"
 
 #define ONVM_STR_STATS_STDOUT "stdout"
 #define ONVM_STR_STATS_STDERR "stderr"
 #define ONVM_STR_STATS_WEB "web"
+
+extern const char *NF_MSG[3];
+#define ONVM_STATS_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_ADV_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_SHARED_CORE_MSG "\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
+        "                                  wakeups  /  wakeup_rt\n"\
+        "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_RAW_DUMP_PORT_MSG \
+        "#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n"
+#define ONVM_STATS_RAW_DUMP_NF_MSG \
+        "#YYYY-MM-DD HH:MM:SS,nf_tag,instance_id,service_id,core,parent,state,children_cnt,"\
+        "rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,"\
+        "act_out,act_tonf,act_drop,act_next,act_buffer,act_returned,num_wakeups,wakeup_rate\n"
+#define ONVM_STATS_REG_CONTENT \
+        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 " \n"
+#define ONVM_STATS_REG_TOTALS \
+        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_REG_PORTS \
+        "Port %u - rx: %9" PRIu64 "  (%9" PRIu64 " pps)\t"\
+        "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n"
+#define ONVM_STATS_ADV_CONTENT \
+        "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64\
+        "\n            %5" PRId16 "  /  %c  /  %u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
+        "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_SHARED_CORE_CONTENT \
+        "                               %11" PRIu64 " / %-11" PRIu64"\n"
+#define ONVM_STATS_ADV_TOTALS \
+        "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64\
+        "\n                                 %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
+        " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
+#define ONVM_STATS_RAW_DUMP_CONTENT \
+        "%s,%s,%u,%u,%u,%u,%c,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
+        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
+        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n"
+#define ONVM_STATS_RAW_DUMP_PORTS_CONTENT \
+        "%s,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n"
 
 #define ONVM_STATS_FOPEN_ARGS "w+"
 #define ONVM_STATS_PATH_BASE "../onvm_web/"
@@ -65,27 +110,33 @@
 #define ONVM_JSON_EVENTS_FILE ONVM_STATS_PATH_BASE "onvm_json_events.json"
 #define ONVM_STATS_FILE ONVM_STATS_PATH_BASE "onvm_stats.txt"
 
+/* Handle types of web stats events */
+#define ONVM_EVENT_WITH_CORE 0
+#define ONVM_EVENT_PORT_INFO 1
+#define ONVM_EVENT_NF_INFO 2
+#define ONVM_EVENT_NF_STOP 3
+
 #define ONVM_JSON_PORT_STATS_KEY "onvm_port_stats"
 #define ONVM_JSON_NF_STATS_KEY "onvm_nf_stats"
 #define ONVM_JSON_TIMESTAMP_KEY "last_updated"
 
-#define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                     \
-        do {                                                                    \
-                (str_) = (char *)malloc(sizeof(char) * (sz_));                  \
-                if (!(str_))                                                    \
-                        rte_exit(-1, "ERROR! [%s,%d]: unable to malloc str.\n", \
-                                 __FUNCTION__, __LINE__);                       \
-                snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                   \
+#define ONVM_SNPRINTF(str_, sz_, fmt_, ...)                                                              \
+        do {                                                                                             \
+                (str_) = (char*)malloc(sizeof(char) * (sz_));                                            \
+                if (!(str_))                                                                             \
+                        rte_exit(-1, "ERROR! [%s,%d]: unable to malloc str.\n", __FUNCTION__, __LINE__); \
+                snprintf((str_), (sz_), (fmt_), __VA_ARGS__);                                            \
         } while (0)
 
 #define ONVM_RAW_STATS_DUMP 3
 
-typedef enum {
-        ONVM_STATS_NONE = 0,
-        ONVM_STATS_STDOUT,
-        ONVM_STATS_STDERR,
-        ONVM_STATS_WEB
-} ONVM_STATS_OUTPUT;
+typedef enum { ONVM_STATS_NONE = 0, ONVM_STATS_STDOUT, ONVM_STATS_STDERR, ONVM_STATS_WEB } ONVM_STATS_OUTPUT;
+
+struct onvm_event {
+        uint8_t type;
+        const char *msg;
+        void *data;
+};
 
 cJSON* onvm_json_root;
 cJSON* onvm_json_port_stats_obj;
@@ -96,7 +147,6 @@ cJSON* onvm_json_events_arr;
 
 /*********************************Interfaces**********************************/
 
-
 /*
  * Function for initializing stats
  *
@@ -105,7 +155,6 @@ cJSON* onvm_json_events_arr;
  */
 void
 onvm_stats_init(uint8_t verbosity_level);
-
 
 /*
  * Interface called by the manager to tell the stats module where to print
@@ -116,13 +165,15 @@ onvm_stats_init(uint8_t verbosity_level);
  * browser.  If STATS_STDOUT or STATS_STDOUT is specified, then stats will be
  * output the respective stream.
  */
-void onvm_stats_set_output(ONVM_STATS_OUTPUT output);
+void
+onvm_stats_set_output(ONVM_STATS_OUTPUT output);
 
 /*
  * Interface to close out file descriptions and clean up memory
  * To be called when the stats loop is done
  */
-void onvm_stats_cleanup(void);
+void
+onvm_stats_cleanup(void);
 
 /*
  * Interface called by the ONVM Manager to display all statistics
@@ -131,8 +182,8 @@ void onvm_stats_cleanup(void);
  * Input : time passed since last display (to compute packet rate)
  *
  */
-void onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
-
+void
+onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
 
 /*
  * Interface called by the ONVM Manager to clear all NFs statistics
@@ -143,8 +194,8 @@ void onvm_stats_display_all(unsigned difftime, uint8_t verbosity_level);
  * incur a visible slowdown.
  *
  */
-void onvm_stats_clear_all_nfs(void);
-
+void
+onvm_stats_clear_all_nfs(void);
 
 /*
  * Interface called by the ONVM Manager to clear one NF's statistics.
@@ -152,12 +203,16 @@ void onvm_stats_clear_all_nfs(void);
  * Input : the NF id
  *
  */
-void onvm_stats_clear_nf(uint16_t id);
+void
+onvm_stats_clear_nf(uint16_t id);
 
 /*
  * Interface called by manager when a new event should be created.
  */
- void onvm_stats_add_event(const char *msg, struct onvm_nf_info *nf);
+void
+onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data);
 
+void
+onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf);
 
 #endif  // _ONVM_STATS_H_

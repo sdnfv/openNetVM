@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,40 +38,42 @@
  * onvm_sc_mgr.h - service chain functions for manager
  ********************************************************************/
 
-#ifndef _SC_MGR_H_
-#define _SC_MGR_H_
+#ifndef _ONVM_SC_MGR_H_
+#define _ONVM_SC_MGR_H_
 
 #include <rte_mbuf.h>
 #include "onvm_common.h"
 
 static inline uint8_t
 onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
-	if (unlikely(cur_nf >= chain->chain_length)) {
-		return ONVM_NF_ACTION_DROP;
-	}
-	return chain->sc[cur_nf+1].action;
+        if (unlikely(cur_nf >= chain->chain_length)) {
+                return ONVM_NF_ACTION_DROP;
+        }
+        return chain->sc[cur_nf + 1].action;
 }
 
 static inline uint8_t
 onvm_sc_next_action(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-	return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt));
+        return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt));
 }
 
 static inline uint16_t
 onvm_next_destination(struct onvm_service_chain* chain, uint16_t cur_nf) {
-	if (unlikely(cur_nf >= chain->chain_length)) {
-		return 0;
-	}
-	return chain->sc[cur_nf+1].destination;
+        if (unlikely(cur_nf >= chain->chain_length)) {
+                return 0;
+        }
+        return chain->sc[cur_nf + 1].destination;
 }
 
 static inline uint16_t
 onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-	return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
+        return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
 }
 
 /*get service chain*/
-struct onvm_service_chain* onvm_sc_get(void);
+struct onvm_service_chain*
+onvm_sc_get(void);
 /*create service chain*/
-struct onvm_service_chain* onvm_sc_create(void);
-#endif  // _SC_MGR_H_
+struct onvm_service_chain*
+onvm_sc_create(void);
+#endif  // _ONVM_SC_MGR_H_

@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,17 @@
  * onvm_sc_common.c - service functions for manager and NFs
  ********************************************************************/
 
-#include <inttypes.h>
-#include <errno.h>
-#include "onvm_common.h"
 #include "onvm_sc_common.h"
+#include <errno.h>
+#include <inttypes.h>
+#include "onvm_common.h"
 
 /*********************************Interfaces**********************************/
 
 uint16_t
 onvm_sc_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
         if (!nf_per_service_count || !services) {
-            rte_exit(EXIT_FAILURE, "Failed to retrieve service information\n");
+                rte_exit(EXIT_FAILURE, "Failed to retrieve service information\n");
         }
         uint16_t num_nfs_available = nf_per_service_count[service_id];
 
@@ -65,37 +65,37 @@ onvm_sc_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
 
 int
 onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination) {
-	int chain_length = chain->chain_length;
+        int chain_length = chain->chain_length;
 
-	if (unlikely(chain_length > ONVM_MAX_CHAIN_LENGTH)) {
-		return ENOSPC;
-	}
-	/*the first entry is reserved*/
-	chain_length++;
-	(chain->chain_length)++;
-	chain->sc[chain_length].action = action;
-	chain->sc[chain_length].destination = destination;
+        if (unlikely(chain_length > ONVM_MAX_CHAIN_LENGTH)) {
+                return ENOSPC;
+        }
+        /*the first entry is reserved*/
+        chain_length++;
+        (chain->chain_length)++;
+        chain->sc[chain_length].action = action;
+        chain->sc[chain_length].destination = destination;
 
-	return 0;
+        return 0;
 }
 
 int
 onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination) {
-	if (unlikely(entry > chain->chain_length)) {
-		return -1;
-	}
+        if (unlikely(entry > chain->chain_length)) {
+                return -1;
+        }
 
-	chain->sc[entry].action = action;
-	chain->sc[entry].destination = destination;
-	return 0;
+        chain->sc[entry].action = action;
+        chain->sc[entry].destination = destination;
+        return 0;
 }
 
 void
 onvm_sc_print(struct onvm_service_chain *chain) {
-	int i;
-	for (i = 1; i <= chain->chain_length; i++) {
-		printf("cur_index:%d, action:%"PRIu8", destination:%"PRIu16"\n",
-			i, chain->sc[i].action, chain->sc[i].destination);
-	}
-	printf("\n");
+        int i;
+        for (i = 1; i <= chain->chain_length; i++) {
+                printf("cur_index:%d, action:%" PRIu8 ", destination:%" PRIu16 "\n", i, chain->sc[i].action,
+                       chain->sc[i].destination);
+        }
+        printf("\n");
 }

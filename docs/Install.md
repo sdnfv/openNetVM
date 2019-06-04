@@ -21,13 +21,17 @@ Check System
     ```sh
     sudo apt-get install build-essential linux-headers-$(uname -r) git
     ```
-4. Assure your kernel suppors uio
+4. Assure your kernel supports uio
     ```sh
     locate uio
     ```
 5. Install libnuma
    ```sh
    sudo apt-get install libnuma-dev
+   ```
+   If installing libnuma-dev fails, your system may not be up to date. To fix this, run:
+   ```sh
+   sudo apt-get update
    ```
 
 Setup Repositories
@@ -178,8 +182,27 @@ Also, please double check if the environment variables from [step 3](#3-set-up-e
 
 Troubleshooting
 --
+1. **Setting up DPDK manually**
 
-1. **Huge Page Configuration**
+    Our install script helps configure DPDK by using its setup script. Sometimes, it's helpful to troubleshoot a problem by running DPDK's script directly to fix things like misconfigured igb_uio drivers or hugepage regions. 
+    
+    Here are the steps used to install the DPDK components needed by ONVM.
+    
+    Run `dpdk/usertools/dpdk-setup.sh` then:
+    
+    - Press [15] to compile x86_64-native-linuxapp-gcc version
+
+    - Press [18] to install igb_uio driver for Intel NICs
+
+    - Press [22] to setup 1024 2MB hugepages
+
+    - Press [24] to register the Ethernet ports
+
+    - Press [35] to quit the tool
+    
+    After these steps, it should be possible to compile and run onvm. 
+
+2. **Huge Page Configuration**
 
     You can get information about the hugepage configuration with:
 
@@ -191,14 +214,15 @@ Troubleshooting
          - In this case, either kill them manually by hitting Ctrl+C or run `sudo pkill NF_NAME` for every NF that you have ran.
      - The manager and NFs are not running, but something crashed without freeing hugepages.
          - To fix this, please run `sudo rm -rf /mnt/huge/*` to remove all files that contain hugepage data.
+
      - The above two cases are not met, something weird is happening:
          - A reboot might fix this problem and free memory
 
-2. **Binding the NIC to the DPDK Driver**
+3. **Binding the NIC to the DPDK Driver**
 
     You can check the current status of NIC port bindings with
 
-    `sudo ./tools/dpdk_nic_bind.py  --status`
+    `sudo ./usertools/dpdk-devbind.py  --status`
 
     Output similar to below will show what driver each NIC port is bound to.
 
@@ -221,11 +245,11 @@ Troubleshooting
 
     `sudo ifconfig eth2 down`
 
-    Rerun the status command, `./tools/dpdk_nic_bind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
+    Rerun the status command, `./usertools/dpdk-devbind.py --status`, to see that it is not active anymore.  Once that is done, proceed to bind the NIC port to the DPDK Kenrel module:
 
-    `sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0`
+    `sudo ./usertools/dpdk-devbind.py -b igb_uio 07:00.0`
 
-    Check the status again, `./tools/dpdk_nic_bind.py --status`, and assure the output is similar to our example below:
+    Check the status again, `./usertools/dpdk-devbind.py --status`, and assure the output is similar to our example below:
 
     ```
     Network devices using DPDK-compatible driver
@@ -238,13 +262,13 @@ Troubleshooting
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
     ```
-3. **Exporting $ONVM_HOME**
+4. **Exporting $ONVM_HOME**
 
     If the setup_environment.sh script fails because the environment variable ONVM_HOME is not set, please run this command: `export ONVM_HOME=$ONVM_HOME:CHANGEME_TO_THE_PATH_TO_ONVM_DIR`
 
-4. **Poor Performance**
+5. **Poor Performance**
 
-If you are not getting the expected level of performance, try these:
+    If you are not getting the expected level of performance, try these:
 
- - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
- - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.
+	 - Ensure the manager and NFs are all given different core numbers. Use cores on the same sockets for best results.
+	 - If running a long chain of NFs, ensure that there are sufficient packets to keep the chain busy. If using locally generated packets (i.e., the Speed Tester NFs) then use the `-c` flag to increase the number of packets created. For best results, run multiple Speed Tester NFs, or use an external generator like pktgen.

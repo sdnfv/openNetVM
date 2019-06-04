@@ -13,8 +13,9 @@ NFs are run with different arguments in three different tiers--DPDK configuratio
     + Flags to configure how DPDK is initialized and run.  NFs typically use these arguments:
       - `-l CPU_CORE_LIST -n 3 --proc-type=secondary`
   - openNetVM configuration flags:
-    + Flags to configure how the NF is managed by openNetVM.  NFs can configure their service ID and, for debugging, their instance ID (the manager automatically assigns instance IDs, but sometimes it is useful to manually assign them). NFs can also select to share cores with other NFs and enable manual core selection that overrides the onvm_mgr core selection (if core is available):
-      - `-r SERVICE_ID [-n INSTANCE_ID] [-s SHARE_CORE] [-m MANUAL_CORE_SELECTION]`
+    + Flags to configure how the NF is managed by openNetVM.  NFs can configure their service ID and, for debugging, their instance ID (the manager automatically assigns instance IDs, but sometimes it is useful to manually assign them). NFs can also select to share cores with other NFs and enable manual core selection that overrides the onvm_mgr core selection (if core is available), their time to live and their packet limit (which is a packet based ttl):
+
+      - `-r SERVICE_ID [-n INSTANCE_ID] [-s SHARE_CORE] [-m MANUAL_CORE_SELECTION] [-t TIME_TO_LIVE] [-l PACKET_LIMIT]`
   - NF configuration flags:
     + User defined flags to configure NF parameters.  Some of our example NFs use a flag to throttle how often packet info is printed, or to specify a destination NF to send packets to.  See the [simple_forward][forward] NF for an example of them both.
 
@@ -40,6 +41,20 @@ Example use of Advanced Rings can be seen in the speed_tester NF or the scaling 
 ### Multithreaded NFs, scaling
 NFs can scale by running multiple threads. For launching more threads the main NF had to be launched with more than 1 core. For running a new thread the NF should call `onvm_nflib_scale(struct onvm_nf_scale_info *scale_info)`. The `struct scale_info` has all the required information for starting a new child NF, service and instance ids, NF state data, and the packet handling functions. The struct can be obtained either by calling the `onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` and manually filling it in or by inheriting the parent behavior by using `onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info)`. As the spawned NFs are threads they will share all the global variables with its parent, the `onvm_nf_info->data` is a void pointer that should be used for NF state data.
 Example use of Multithreading NF scaling functionality can be seen in the scaling_example NF.
+
+### Shared core mode
+This is an **EXPERIMENTAL** mode for OpenNetVM. It allows multiple NFs to run on a shared core.  In "normal" OpenNetVM, each NF will poll its RX queue for packets, monopolizing the CPU even if it has a low load.  This branch adds a semaphore-based communication system so that NFs will block when there are no packets available.  The NF Manger will then signal the semaphore once one or more packets arrive.
+
+This code allows you to evaluate resource management techniques for NFs that share cores, however it has not been fully tested with complex NFs, therefore if you encounter any bugs please create an issue or a pull request with a proposed fix.
+
+The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-Core NFs. However, we have recently released a full version of the NFVNice system as an experimental branch, which can be found [here][nfvnice_branch].
+
+Usage / Known Limitations:
+  - To enable pass a `-c` flag to the onvm_mgr, and use a `-s` flag when starting a NF to specify that they want to share cores
+  - All code for sharing CPUs is within `if (ONVM_NF_SHARE_CORES)` blocks
+  - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets
+  - This code does not provide any particular intelligence for how NFs are scheduled or when they wakeup/sleep
+  - Note that the manager threads all still use polling
 
 Packet Helper Library
 --
@@ -102,4 +117,6 @@ values.
 [flow_director]: ../onvm/onvm_nflib/onvm_flow_dir.h
 [srvc_chains]: ../onvm/onvm_nflib/onvm_sc_common.h
 [msg_passing]: ../onvm/onvm_nflib/onvm_msg_common.h
-
+[flurries_paper]: https://dl.acm.org/citation.cfm?id=2999602
+[nfvnice_paper]: https://dl.acm.org/citation.cfm?id=3098828
+[nfvnice_branch]: https://github.com/sdnfv/openNetVM/tree/experimental/nfvnice-reinforce

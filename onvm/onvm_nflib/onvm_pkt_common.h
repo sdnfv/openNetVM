@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
  *
  ********************************************************************/
 
-
 /******************************************************************************
 
                                  onvm_pkt_common.h
@@ -49,14 +48,13 @@
 
 ******************************************************************************/
 
-
 #ifndef _ONVM_PKT_COMMON_H_
 #define _ONVM_PKT_COMMON_H_
 
 #include "onvm_common.h"
-#include "onvm_sc_common.h"
-#include "onvm_includes.h"
 #include "onvm_flow_dir.h"
+#include "onvm_includes.h"
+#include "onvm_sc_common.h"
 #include "onvm_sc_mgr.h"
 
 extern struct port_info *ports;
@@ -64,11 +62,10 @@ extern struct onvm_service_chain *default_chain;
 
 /*********************************Interfaces**********************************/
 
-
 /*
  * Interface to process packets in a given TX queue.
  *
- * Inputs : a pointer to the tx queue 
+ * Inputs : a pointer to the tx queue
  *          an array of packets
  *          the size of the array
  *          a pointer to the NF possessing the TX queue.
@@ -80,7 +77,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
 /*
  * Interface to send packets to all NFs after processing them.
  *
- * Input : a pointer to the tx queue 
+ * Input : a pointer to the tx queue
  *         a pointer to the NF possessing the TX queue.
  *
  */
@@ -126,8 +123,7 @@ onvm_pkt_flush_port_queue(struct queue_mgr *tx_mgr, uint16_t port);
  *          a pointer to the NF
  *
  */
-void 
+void
 onvm_pkt_enqueue_tx_thread(struct packet_buf *pkt_buf, struct onvm_nf *nf);
-
 
 #endif  // _ONVM_PKT_COMMON_H_

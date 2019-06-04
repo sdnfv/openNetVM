@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -38,37 +38,37 @@
  *  load_balancer.c - an example Layer 3 round-robin load balancer.
  ********************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <assert.h>
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <errno.h>
-#include <sys/queue.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
-#include <assert.h>
+#include <sys/queue.h>
+#include <unistd.h>
 
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <net/if.h>
 #include <arpa/inet.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 
 #include <rte_common.h>
-#include <rte_mbuf.h>
+#include <rte_cycles.h>
+#include <rte_ethdev.h>
+#include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_malloc.h>
-#include <rte_memzone.h>
+#include <rte_mbuf.h>
 #include <rte_memory.h>
-#include <rte_ether.h>
-#include <rte_ethdev.h>
-#include <rte_cycles.h>
+#include <rte_memzone.h>
 
+#include "onvm_flow_table.h"
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
-#include "onvm_flow_table.h"
 
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
@@ -93,10 +93,10 @@ struct loadbalance {
         uint8_t server_port;
         uint8_t client_port;
 
-        /* config file, interface names */ 
-        char * cfg_filename;
-        char * client_iface_name;
-        char * server_iface_name;
+        /* config file, interface names */
+        char *cfg_filename;
+        char *client_iface_name;
+        char *server_iface_name;
 };
 
 /* Struct for backend servers */
@@ -113,9 +113,6 @@ struct flow_info {
         int is_active;
 };
 
-/* Struct that contains information about this NF */
-struct onvm_nf_info *nf_info;
-
 struct loadbalance *lb;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
@@ -129,7 +126,10 @@ extern struct port_info *ports;
 static void
 usage(const char *progname) {
         printf("Usage:\n");
-        printf("%s [EAL args] -- [NF_LIB args] -- [ -c client_iface] [-s server_iface] [-f server_config] -p <print_delay>\n", progname);
+        printf(
+            "%s [EAL args] -- [NF_LIB args] -- [ -c client_iface] [-s server_iface] [-f server_config] -p "
+            "<print_delay>\n",
+            progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-c CLIENT_IFACE` : name of the client interface\n");
@@ -144,61 +144,63 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
-        
+
         lb->cfg_filename = NULL;
         lb->client_iface_name = NULL;
         lb->server_iface_name = NULL;
 
         while ((c = getopt(argc, argv, "c:s:f:p:")) != -1) {
                 switch (c) {
-                case 'c':
-                        lb->client_iface_name = strdup(optarg);
-                        break;
-                case 's':
-                        lb->server_iface_name = strdup(optarg);
-                        break;
-                case 'f':
-                        lb->cfg_filename = strdup(optarg);
-                        break;
-                case 'p':
-                        print_delay = strtoul(optarg, NULL, 10);
-                        break;
-                case '?':
-                        usage(progname);
-                        if (optopt == 'd')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (optopt == 'p')
-                                RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                        else if (isprint(optopt))
-                                RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
-                        else
-                                RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
-                        return -1;
-                default:
-                        usage(progname);
-                        return -1;
+                        case 'c':
+                                lb->client_iface_name = strdup(optarg);
+                                break;
+                        case 's':
+                                lb->server_iface_name = strdup(optarg);
+                                break;
+                        case 'f':
+                                lb->cfg_filename = strdup(optarg);
+                                break;
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'd')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
                 }
         }
 
         if (!lb->cfg_filename) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a backend server config file.\n");
                 return -1;
- 
+        }
+
         if (!lb->client_iface_name) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a client interface name.\n");
                 return -1;
         }
+
         if (!lb->server_iface_name) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a backend server interface name.\n");
                 return -1;
-        }       }
+        }
 
         return optind;
 }
 
 /*
- * This function parses the backend config. It takes the filename 
- * and fills up the backend_server array. This includes the mac and ip 
+ * This function parses the backend config. It takes the filename
+ * and fills up the backend_server array. This includes the mac and ip
  * address of the backend servers
  */
 static int
@@ -206,9 +208,9 @@ parse_backend_config(void) {
         int ret, temp, i;
         char ip[32];
         char mac[32];
-        FILE * cfg;
+        FILE *cfg;
 
-        cfg  = fopen(lb->cfg_filename, "r");
+        cfg = fopen(lb->cfg_filename, "r");
         if (cfg == NULL) {
                 rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", lb->cfg_filename);
         }
@@ -218,7 +220,8 @@ parse_backend_config(void) {
         }
         lb->server_count = temp;
 
-        lb->server = (struct backend_server *)rte_malloc("backend server info", sizeof(struct backend_server) * lb->server_count, 0);
+        lb->server = (struct backend_server *)rte_malloc("backend server info",
+                                                         sizeof(struct backend_server) * lb->server_count, 0);
         if (lb->server == NULL) {
                 rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
         }
@@ -234,7 +237,7 @@ parse_backend_config(void) {
                         rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
                 }
 
-                ret =onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
+                ret = onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
                 if (ret < 0) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
@@ -243,12 +246,12 @@ parse_backend_config(void) {
         fclose(cfg);
         printf("\nARP config:\n");
         for (i = 0; i < lb->server_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", 
-                        lb->server[i].d_ip & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF, (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 24) & 0xFF);
-                printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
-                        lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
-                        lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3],
-                        lb->server[i].d_addr_bytes[4], lb->server[i].d_addr_bytes[5]);
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
+                       (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF,
+                       lb->server[i].d_ip & 0xFF);
+                printf("%02x:%02x:%02x:%02x:%02x:%02x\n", lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
+                       lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3], lb->server[i].d_addr_bytes[4],
+                       lb->server[i].d_addr_bytes[5]);
         }
 
         return ret;
@@ -261,11 +264,11 @@ parse_backend_config(void) {
  * than one lcore enabled.
  */
 static void
-do_stats_display(struct rte_mbuf* pkt) {
-        const char clr[] = { 27, '[', '2', 'J', '\0' };
-        const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+do_stats_display(struct rte_mbuf *pkt) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -276,7 +279,7 @@ do_stats_display(struct rte_mbuf* pkt) {
         printf("-----\n");
         printf("Port : %d\n", pkt->port);
         printf("Size : %d\n", pkt->pkt_len);
-        printf("N°   : %"PRIu64"\n", pkt_process);
+        printf("N°   : %" PRIu64 "\n", pkt_process);
         printf("\n\n");
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -291,14 +294,12 @@ do_stats_display(struct rte_mbuf* pkt) {
  * Print flow information
  */
 static void
-print_flow_info(struct flow_info* f) {
+print_flow_info(struct flow_info *f) {
         printf("Flow INFO\n");
         printf("Destination server: %d\n", f->dest);
-        printf("Source mac %02x:%02x:%02x:%02x:%02x:%02x\n",
-                f->s_addr_bytes[0], f->s_addr_bytes[1],
-                f->s_addr_bytes[2], f->s_addr_bytes[3],
-                f->s_addr_bytes[4], f->s_addr_bytes[5]);
-} 
+        printf("Source mac %02x:%02x:%02x:%02x:%02x:%02x\n", f->s_addr_bytes[0], f->s_addr_bytes[1], f->s_addr_bytes[2],
+               f->s_addr_bytes[3], f->s_addr_bytes[4], f->s_addr_bytes[5]);
+}
 
 /*
  * Parse and assign load balancer server/client interface information
@@ -314,20 +315,20 @@ get_iface_inf(void) {
         ifr.ifr_addr.sa_family = AF_INET;
 
         /* Parse server interface */
-        strncpy(ifr.ifr_name, lb->server_iface_name, IFNAMSIZ-1);
+        strncpy(ifr.ifr_name, lb->server_iface_name, IFNAMSIZ - 1);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_server  = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
         ioctl(fd, SIOCGIFHWADDR, &ifr);
         for (i = 0; i < ETHER_ADDR_LEN; i++)
                 server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
 
         /* Parse client interface */
-        strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ-1);
+        strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ - 1);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_client  = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
         ioctl(fd, SIOCGIFHWADDR, &ifr);
         for (i = 0; i < ETHER_ADDR_LEN; i++)
@@ -346,19 +347,15 @@ get_iface_inf(void) {
 
         printf("\nLoad balancer interfaces:\n");
         printf("Client iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-                lb->client_iface_name, lb->client_port, lb->ip_lb_client,
-                lb->ip_lb_client & 0xFF, (lb->ip_lb_client >> 8) & 0xFF, (lb->ip_lb_client >> 16) & 0xFF, (lb->ip_lb_client >> 24) & 0xFF);
-        printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                        client_addr_bytes[0], client_addr_bytes[1],
-                        client_addr_bytes[2], client_addr_bytes[3],
-                        client_addr_bytes[4], client_addr_bytes[5]);
+               lb->client_iface_name, lb->client_port, lb->ip_lb_client, lb->ip_lb_client & 0xFF,
+               (lb->ip_lb_client >> 8) & 0xFF, (lb->ip_lb_client >> 16) & 0xFF, (lb->ip_lb_client >> 24) & 0xFF);
+        printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", client_addr_bytes[0], client_addr_bytes[1], client_addr_bytes[2],
+               client_addr_bytes[3], client_addr_bytes[4], client_addr_bytes[5]);
         printf("Server iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-                lb->server_iface_name, lb->server_port, lb->ip_lb_server,
-                lb->ip_lb_server & 0xFF, (lb->ip_lb_server >> 8) & 0xFF, (lb->ip_lb_server >> 16) & 0xFF, (lb->ip_lb_server >> 24) & 0xFF);
-        printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                        server_addr_bytes[0], server_addr_bytes[1],
-                        server_addr_bytes[2], server_addr_bytes[3],
-                        server_addr_bytes[4], server_addr_bytes[5]);
+               lb->server_iface_name, lb->server_port, lb->ip_lb_server, lb->ip_lb_server & 0xFF,
+               (lb->ip_lb_server >> 8) & 0xFF, (lb->ip_lb_server >> 16) & 0xFF, (lb->ip_lb_server >> 24) & 0xFF);
+        printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", server_addr_bytes[0], server_addr_bytes[1], server_addr_bytes[2],
+               server_addr_bytes[3], server_addr_bytes[4], server_addr_bytes[5]);
 }
 
 /*
@@ -416,7 +413,7 @@ clear_entries(void) {
  * if so, it calls clear_entries() to free up space.
  */
 static int
-table_add_entry(struct onvm_ft_ipv4_5tuple* key, struct flow_info **flow) {
+table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         struct flow_info *data = NULL;
 
         if (unlikely(key == NULL || lb == NULL)) {
@@ -439,7 +436,7 @@ table_add_entry(struct onvm_ft_ipv4_5tuple* key, struct flow_info **flow) {
         data->dest = lb->num_stored % lb->server_count;
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
-        
+
         *flow = data;
 
         return 0;
@@ -451,14 +448,14 @@ table_add_entry(struct onvm_ft_ipv4_5tuple* key, struct flow_info **flow) {
  * and if it doesn't, it calls table_add_entry() to add it to the table.
  */
 static int
-table_lookup_entry(struct rte_mbuf* pkt, struct flow_info **flow) {
+table_lookup_entry(struct rte_mbuf *pkt, struct flow_info **flow) {
         struct flow_info *data = NULL;
         struct onvm_ft_ipv4_5tuple key;
 
         if (unlikely(pkt == NULL || lb == NULL || flow == NULL)) {
                 return -1;
         }
- 
+
         int ret = onvm_ft_fill_key_symmetric(&key, pkt);
         if (ret < 0)
                 return -1;
@@ -477,7 +474,7 @@ table_lookup_entry(struct rte_mbuf* pkt, struct flow_info **flow) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((lb->elapsed_cycles - lb->last_cycles) / rte_get_timer_hz() > lb->expire_time) {
@@ -488,9 +485,10 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct ipv4_hdr* ip;
+        struct ipv4_hdr *ip;
         struct ether_hdr *ehdr;
         struct flow_info *flow_info;
         int i, ret;
@@ -546,7 +544,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
                         ehdr->d_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
                 }
 
-                ip->dst_addr = lb->server[flow_info->dest].d_ip;
+                ip->dst_addr = rte_cpu_to_be_32(lb->server[flow_info->dest].d_ip);
                 meta->destination = lb->server_port;
         }
 
@@ -564,18 +562,36 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
         return 0;
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
         const char *progname = argv[0];
-        
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
         argc -= arg_offset;
         argv += arg_offset;
 
         lb = rte_calloc("state", 1, sizeof(struct loadbalance), 0);
         if (lb == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF lb struct");
         }
 
@@ -584,7 +600,7 @@ int main(int argc, char *argv[]) {
 
         lb->ft = onvm_ft_create(TABLE_SIZE, sizeof(struct flow_info));
         if (lb->ft == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
@@ -594,8 +610,9 @@ int main(int argc, char *argv[]) {
         lb->expire_time = 32;
         lb->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
-        printf("If we reach here, program is ending\n");
+        onvm_nflib_run(nf_local_ctx);
 
+        onvm_nflib_stop(nf_local_ctx);
+        printf("If we reach here, program is ending\n");
         return 0;
 }
