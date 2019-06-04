@@ -56,6 +56,10 @@ Options:
                         Millions of pkts 
 ```
 
+Usage
+--
+If the NFs crash with an error similar to `Cannot mmap memory for rte_config at [0x7ffff7ff3000], got [0x7ffff7ff2000] - please use '--base-virtaddr' option`, please use the `-a 0x7f000000000` flag for the onvm_mgr, this will resolve the issue.
+
 NF Library
 --
 The NF Library is responsible for providing an interface for NFs to communicate with the manager.  It provides functions to initialize and send/receive packets to and from the manager.  This library provides the manager with a function pointer to the NF's `packet_handler`.
