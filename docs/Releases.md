@@ -25,7 +25,7 @@ A CloudLab template is available with the latest release here: https://www.cloud
 ### Shared Core Mode:
 This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
 
-The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-CPU NFs.
+The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-Core NFs. However, we have recently released a full version of the NFVNice system as an experimental branch, which can be found [here][nfvnice_branch].
 
 Usage and implementation details can be found [here][shared_core_docs].
 
@@ -617,3 +617,4 @@ Initial source code release.
 [firewall_nf_readme]: ../examples/firewall/README.md
 [payload_scan_nf_readme]: ../examples/payload_scan/README.md
 [shared_core_docs]: ./NF_Dev.md#shared-cpu-mode
+[nfvnice_branch]: https://github.com/sdnfv/openNetVM/tree/experimental/nfvnice-reinforce
