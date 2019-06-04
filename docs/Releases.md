@@ -99,7 +99,7 @@ NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop 
 speed_tester    1  /  1  /  4      1693920 / 1693920               0 / 0                      0 / 40346970    / 0
 ```
 
-Verbose mode also adds PNT(Parent ID), S|W(NF state, sleeping or working), CHLD(Children count):
+Verbose mode also adds `PNT`(Parent ID), `S|W`(NF state, sleeping or working), `CHLD`(Children count):
 ```
 PORTS
 -----
@@ -141,6 +141,18 @@ Shared core stats
 Total wakeups = 1461122, Wakeup rate = 50696
 ```
 
+The super verbose stats output dumps all stats in a coma separated list for easy script parsing:
+```
+#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps
+#YYYY-MM-DD HH:MM:SS,nf_tag,instance_id,service_id,core,parent,state,children_cnt,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_out,act_tonf,act_drop,act_next,act_buffer,act_returned,num_wakeups,wakeup_rate
+2019-06-04 08:54:52,0,4,4,0,0
+2019-06-04 08:54:53,0,4,0,0,0
+2019-06-04 08:54:54,simple_forward,1,2,4,0,W,0,29058,29058,29058,29058,0,0,0,0,0,29058,0,0,0,0,28951,28951
+2019-06-04 08:54:54,speed_tester,2,1,5,0,S,0,29058,29058,29058,29058,0,0,0,0,0,29059,0,0,0,1,28952,28952
+2019-06-04 08:54:55,0,4,0,0,0
+2019-06-04 08:54:55,simple_forward,1,2,4,0,W,0,101844,101843,72785,72785,0,0,0,0,0,101843,0,0,0,0,101660,101660
+2019-06-04 08:54:55,speed_tester,2,1,5,0,W,0,101844,101843,72785,72785,0,0,0,0,0,101844,0,0,0,1,101660,101660
+```
 
 
 ### CI PR Review:
