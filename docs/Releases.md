@@ -163,7 +163,6 @@ CI currently performs these checks:
 ### LPM Firewall NF:
 The firewall NF drops or forwards packets based on rules provided in a JSON config file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table. Documentation for this NF can be found [here][firewall_nf_readme].
 
-
 ### Payload Search NF:
 The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise. The NF also has an inverse mode to drop on match and forward otherwise. Documentation for this NF can be found [here][payload_scan_nf_readme].
 
@@ -320,7 +319,11 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
  - `int onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func signal_hanlder)`
  - `int onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data)` 
  - `int onvm_nflib_request_lpm(struct lpm_request *req)`
- - `struct onvm_configuration *onvm_nflib_get_onvm_config(void)`
+ - `struct onvm_configuration *onvm_nflib_get_onvm_config(void)`  
+    These APIs were previously internal but are now exposed for advanced ring NFs:
+ - `int onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg)`
+ - `struct onvm_nf_init_cfg *onvm_nflib_init_nf_init_cfg(const char *tag)`
+ - `struct onvm_nf_init_cfg *onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent)`
 
 **v19.05 Removed APIs:**
  - `int onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler, callback_handler_func callback_handler)`
@@ -328,14 +331,6 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
  - `struct rte_ring *onvm_nflib_get_rx_ring(struct onvm_nf_info* info)`
  - `struct onvm_nf *onvm_nflib_get_nf(uint16_t id)`
  - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)`
- 
- 
- 
- //TODO find a place for these?
- exposed apis-> 
- `int onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg)`
- `struct onvm_nf_init_cfg *onvm_nflib_init_nf_init_cfg(const char *tag)`
- `struct onvm_nf_init_cfg *onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent)`
 
 
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
