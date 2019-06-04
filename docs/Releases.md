@@ -618,3 +618,5 @@ Initial source code release.
 [payload_scan_nf_readme]: ../examples/payload_scan/README.md
 [shared_core_docs]: ./NF_Dev.md#shared-cpu-mode
 [nfvnice_branch]: https://github.com/sdnfv/openNetVM/tree/experimental/nfvnice-reinforce
+[flurries_paper]: https://dl.acm.org/citation.cfm?id=2999602
+[nfvnice_paper]: https://dl.acm.org/citation.cfm?id=3098828
