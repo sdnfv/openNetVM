@@ -130,11 +130,8 @@ char buffer[20];
 void
 onvm_stats_init(uint8_t verbosity_level) {
         if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                printf("#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n");
-                printf(
-                    "#YYYY-MM-DD "
-                    "HH:MM:SS,instance_id,service_id,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_"
-                    "out,act_tonf,act_drop,act_next,act_buffer,act_returned\n");
+                printf(ONVM_STATS_RAW_DUMP_PORT_MSG);
+                printf(ONVM_STATS_RAW_DUMP_NF_MSG);
         }
 }
 
@@ -495,9 +492,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, ONVM_STATS_RAW_DUMP_CONTENT,
                                 buffer, nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
+                                nfs[i].thread_info.parent, state, rte_atomic16_read(&nfs[i].thread_info.children_cnt),
                                 rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate,
                                 act_out, act_tonf, act_drop, act_next, act_buffer, act_returned,
-                                num_wakeups, wakeup_rate, active);
+                                num_wakeups, wakeup_rate);
                 } else if (verbosity_level == 2) {
                         fprintf(stats_out, ONVM_STATS_ADV_CONTENT,
                                 nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,

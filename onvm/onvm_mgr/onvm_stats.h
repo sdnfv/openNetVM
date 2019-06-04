@@ -70,10 +70,14 @@ extern const char *NF_MSG[3];
         "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
         "                                  wakeups  /  wakeup_rt\n"\
         "----------------------------------------------------------------------------------------------------------------------\n"
+#define ONVM_STATS_RAW_DUMP_PORT_MSG \
+        "#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n"
+#define ONVM_STATS_RAW_DUMP_NF_MSG \
+        "#YYYY-MM-DD HH:MM:SS,nf_tag,instance_id,service_id,core,parent,state,children_cnt,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_out,act_tonf,act_drop,act_next,act_buffer,act_returned,num_wakeups,wakeup_rate\n"
 #define ONVM_STATS_RAW_DUMP_CONTENT \
-        "%s,%s,%u,%u,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
+        "%s,%s,%u,%u,%u,%u,%c,%u,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
         ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64\
-        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%d\n"
+        ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n"
 #define ONVM_STATS_ADV_CONTENT \
         "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
         "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64\
