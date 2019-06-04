@@ -416,8 +416,8 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
                 if (!rte_atomic16_read(&nf_local_ctx->keep_running)) {
                         /* Wait because we sent a message to the onvm_mgr */
                         for (i = 0; i < NF_TERM_INIT_ITER_TIMES && nf_init_cfg->status != NF_STARTING; i++) {
-                                sleep(NF_TERM_WAIT_TIME);
                                 printf("Waiting for onvm_mgr to recieve the message before shutting down\n");
+                                sleep(NF_TERM_WAIT_TIME);
                         }
                         /* Mark init as finished, even though we're exiting onvm_nflib_stop will do proper cleanup */
                         if (nf_init_cfg->status == NF_STARTING) {
