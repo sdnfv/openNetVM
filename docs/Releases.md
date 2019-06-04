@@ -18,7 +18,7 @@ A CloudLab template is available with the latest release here: https://www.cloud
 
 **This release features a lot of breaking API changes.**
 
-**Performance**: This release should fix the major performance issues that were present in the last release. 
+**Performance**: This release increases Pktgen benchmark performance from 7Mpps to 13.1 Mpps (measured by Pktgen sending packets to the ONVM Basic Monitor), thus fixing the major performance issue that was present in the last release.
 
 **Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch of the develop branch and submit PRs against the develop branch.
 
@@ -32,7 +32,7 @@ Usage and implementation details can be found [here][shared_core_docs].
 ### Major Architectural Changes:
 - Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm 
 
-    Previously the initialization sequence for NFs was tied to the `onvm_nf_info` struct which was used to initialize with the onvm_mgr. This was fine until we encountered the issue with Signal Handling, using the initialization sequence, the signal handling only started when initialization (dpdk init + onvm nflib init) has completely finished. This is not a good practice as proper cleanup might need to occur when handling signals during the initialization sequence. Therefore a decision was made to introduce a new NF context struct(`onvm_nf_local_ctx`) which would be malloced in the heap instead of being rte_malloced like the `onvm_nf_info`. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
+    Previously the initialization sequence for NFs wasn't able to properly cleanup if a signal was recieved. Because of this we have introduced a new NF context struct(`onvm_nf_local_ctx`) which would be malloced before intilization begins and would help handle cleanup. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
 
 - Reworking the `onvm_nf` struct 
 
@@ -45,7 +45,7 @@ Usage and implementation details can be found [here][shared_core_docs].
 	
  - Adding a function table struct `onvm_nf_function_table`  
 	
-    Finally, we introduced the `onvm_nf_function_table` struct that allows NF developers to fill in specific callback functions for their NFs.   
+    Finally, we introduced the `onvm_nf_function_table` struct that groups all NF callback functions that can be set by developers.   
 
 
 **Overall, the new NF launch/shutdown sequence looks as follows:**
@@ -79,8 +79,6 @@ This release changes our approach to NFs using the advanced rings mode. Previous
  - Removes support for advanced rings scaling APIs 
  - Scaling Example NF advanced rings mode has been reworked, the new implementation now does its own pthread creation instead of relying on the onvm scaling APIs. Also makes a clear separation between default and advanced ring mode.  
  - Because of these changes some internal nflib APIs were exposed to the NF (`onvm_nflib_start_nf`, `onvm_nflib_init_nf_init_cfg`, `onvm_nflib_inherit_parent_init_cfg`)
-
-
 
 ### Stats Updates:
 This release updates both console and web stats. 
