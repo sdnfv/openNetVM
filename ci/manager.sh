@@ -45,6 +45,13 @@ else
     REQUEST=$4
 fi
 
+if [[ -z "$5" ]]
+then
+    AUTHORIZED=true
+else
+    AUTHORIZED=false
+fi
+
 . $1 # source the variables from config file
 
 print_header "ONVM Performance Testing"
@@ -131,6 +138,15 @@ cd repository
 rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
+
+if ! $AUTHORIZED ;
+then
+    # only run linter and develop checks if unauthorized
+    print_header "Posting Results in Comment on GitHub"
+    python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1,\"review\": 1}" $REPO_OWNER $REPO_NAME "Run successful see results:"
+    check_exit_code "ERROR: Failed to post results to GitHub"
+    exit 0
+fi
 
 print_header "Preparing Workers"
 

@@ -179,12 +179,11 @@ def init_ci_pipeline():
         log_access_denied(request_ctx, "Incoming webhook has an invalid secret")
         return jsonify({"success": True})
 
+    unauthorized_run=""
     if (request_ctx['repo'] == 'openNetVM' and request_ctx['user'] not in authorized_users):
+        unauthorized_run="True"
+        # not an authorized user, tell manager to only run linter
         print("Incoming request is from an unathorized user")
-        log_access_denied(request_ctx, "Incoming request is from an unathorized user")
-        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
-                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
-        return jsonify({"success": True})
 
     print("Request matches filter, we should RUN CI. {}".format(get_request_info(request_ctx)))
 
@@ -202,7 +201,7 @@ def init_ci_pipeline():
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
     else:
         log_access_granted(request_ctx, "Running CI")
-        os.system("./manager.sh config {} \"{}\" \"{}\"".format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
+        os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], unauthorized_run))
 
     return jsonify({"status": "ONLINE"})
 
