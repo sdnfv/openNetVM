@@ -13,6 +13,7 @@ import pprint
 import os
 import subprocess
 import logging
+from queue import Queue
 
 # Global vars
 EVENT_URL = "/github-webhook"
@@ -23,6 +24,7 @@ authorized_users = None
 secret_file_name = None
 private_key_file = None
 secret = None
+ci_queue = None
 
 app = Flask(__name__)
 
@@ -197,7 +199,7 @@ def init_ci_pipeline():
 
     if (out):
         print("Can't run CI, another CI run in progress")
-        log_access_granted(request_ctx, "CI busy, posting busy msg")
+        log_access_granted(request_ctx, "CI busy, placing request in queue")
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"Another CI run in progress, please try again in 15 minutes\""
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
     else:
@@ -253,6 +255,8 @@ if __name__ == "__main__":
     parse_config(cfg_name)
     
     secret = decrypt_secret()
+
+    ci_queue = Queue()
 
     logging.info("Starting the CI service")
     app.run(host=host, port=port)

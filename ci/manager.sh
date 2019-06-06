@@ -133,7 +133,7 @@ run_linter ../linter-output.txt
 cd ..
 
 print_header "Preparing Workers"
-
+exit 1
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
