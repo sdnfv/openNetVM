@@ -14,7 +14,6 @@ import os
 import subprocess
 import logging
 import threading
-from queue import Queue
 
 # Global vars
 EVENT_URL = "/github-webhook"
@@ -25,7 +24,7 @@ authorized_users = None
 secret_file_name = None
 private_key_file = None
 secret = None
-lock = None
+queue_lock = None
 ci_list = None
 
 app = Flask(__name__)
@@ -277,9 +276,7 @@ if __name__ == "__main__":
     cfg_name = sys.argv[4]
     
     parse_config(cfg_name)
-    
     secret = decrypt_secret()
-
     queue_lock = threading.Lock()
     ci_list = []
 
