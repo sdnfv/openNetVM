@@ -150,7 +150,7 @@ then
 fi
 
 print_header "Preparing Workers"
-exit 0
+
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
