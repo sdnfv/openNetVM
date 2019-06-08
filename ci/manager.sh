@@ -47,9 +47,10 @@ fi
 
 if [[ -z "$5" ]]
 then
-    AUTHORIZED=true
+    echo "ERROR: Missing fifth argument, Run mode type!"
+    exit 1 
 else
-    AUTHORIZED=false
+    RUN_MODE=$5
 fi
 
 . $1 # source the variables from config file
@@ -139,7 +140,7 @@ rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
 
-if ! $AUTHORIZED ;
+if [[ "$RUN_MODE" -eq "1" ]]
 then
     # only run linter and develop checks if unauthorized
     print_header "Posting Results in Comment on GitHub"
@@ -149,7 +150,7 @@ then
 fi
 
 print_header "Preparing Workers"
-
+exit 0
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
