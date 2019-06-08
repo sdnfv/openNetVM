@@ -25,8 +25,8 @@ authorized_users = None
 secret_file_name = None
 private_key_file = None
 secret = None
-queue_lock = None
-ci_queue = None
+lock = None
+ci_list = None
 
 app = Flask(__name__)
 
@@ -208,25 +208,27 @@ def init_ci_pipeline():
         print("Can't run CI, another CI run in progress, placing in the queue")
         log_access_granted(request_ctx, "CI busy, placing request in queue")
         duplicate_req = False
+        busy_msg = "Duplicate request already waiting, ignoring message"
         with queue_lock:
             # make sure we don't bypass thread safety
-            for req in list(ci_queue):
-                if req['id'] == req['repo'] and req['repo'] == request_ctx['repo']:
+            for req in ci_list:
+                if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
+                    # make sure this is the same PR
                     duplicate_req = True
                     break
             if not duplicate_req:
                 # don't have this request yet, put in queue
-                ci_queue.push(request_ctx)
+                ci_list.append(request_ctx)
+                busy_msg = "Another CI run in progress, adding request to the end of the list"
         # ending frees the lock
-        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"Another CI run in progress, placing request in the queue\""
-                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
+        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"{}\""
+                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], busy_msg))
     else:
         # no manager running yet, run with current request
         run_manager(request_ctx)
-        while not queue.empty():
+        while len(ci_list) > 0:
             # new requests were made since our last call, run them in order
-            print("Running next request in queue")
-            run_manager(ci_queue.get())
+            run_manager(ci_list.pop(0))
 
     return jsonify({"status": "ONLINE"})
 
@@ -279,7 +281,7 @@ if __name__ == "__main__":
     secret = decrypt_secret()
 
     queue_lock = threading.Lock()
-    ci_queue = Queue()
+    ci_list = []
 
     logging.info("Starting the CI service")
     app.run(host=host, port=port)

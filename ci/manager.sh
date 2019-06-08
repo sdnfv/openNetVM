@@ -8,6 +8,8 @@ set -e
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Config File and Sourcing Variables"
+sleep 5
+print_header "DONE SLEEPING"
 
 if [[ -z "$1" ]]
 then
@@ -133,7 +135,7 @@ run_linter ../linter-output.txt
 cd ..
 
 print_header "Preparing Workers"
-exit 1
+exit 0
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
