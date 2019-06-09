@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -76,8 +76,8 @@ uint32_t global_pkt_limit = 0;
 /* global var for how verbose the stats output to console is - extern in init.h */
 uint8_t global_verbosity_level = 1;
 
-/* global flag for enabling shared cpu logic - extern in init.h */
-uint8_t ONVM_ENABLE_SHARED_CPU = 0;
+/* global flag for enabling shared core logic - extern in init.h */
+uint8_t ONVM_NF_SHARE_CORES = 0;
 
 /* global var for program name */
 static const char *progname;
@@ -189,8 +189,8 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 }
                                 break;
                         case 'c':
-                                onvm_config->flags.ONVM_ENABLE_SHARED_CPU = 1;
-                                ONVM_ENABLE_SHARED_CPU = 1;
+                                onvm_config->flags.ONVM_NF_SHARE_CORES = 1;
+                                ONVM_NF_SHARE_CORES = 1;
                                 break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
@@ -216,7 +216,7 @@ usage(void) {
             "\t-t TTL: time to live, how many seconds to wait until exiting (optional)\n"
             "\t-l PACKET_LIMIT: how many millions of packets to recieve before exiting (optional)\n"
             "\t-v VERBOCITY_LEVEL: verbocity level of the stats output (optional)\n"
-            "\t-c ENABLE_SHARED_CPU: allow the NFs to share a core based on mutex sleep/wakeups (optional)\n",
+            "\t-c ENABLE_SHARED_CORE: allow the NFs to share a core based on mutex sleep/wakeups (optional)\n",
             progname);
 }
 

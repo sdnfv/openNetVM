@@ -6,8 +6,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -73,8 +73,7 @@ static uint16_t destination;
 static int debug = 0;
 char *rule_file = NULL;
 
-/* Structs that contain information about this NF/set up LPM rules */
-struct onvm_nf_info *nf_info;
+/* Structs that contain information to setup LPM and its rules */
 struct lpm_request *firewall_req;
 static struct firewall_pkt_stats stats;
 struct rte_lpm *lpm_tbl;
@@ -196,7 +195,8 @@ do_stats_display(void) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct ipv4_hdr *ipv4_hdr;
         static uint32_t counter = 0;
         int ret;
@@ -353,7 +353,8 @@ struct onvm_fw_rule
 }
 
 int main(int argc, char *argv[]) {
-        struct onvm_nf_context *nf_context;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         struct onvm_fw_rule **rules;
         int arg_offset, num_rules;
 
@@ -361,11 +362,14 @@ int main(int argc, char *argv[]) {
         stats.pkt_drop = 0;
         stats.pkt_accept = 0;
 
-        nf_context = onvm_nflib_init_nf_context();
-        onvm_nflib_start_signal_handler(nf_context, NULL);
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_context)) < 0) {
-                onvm_nflib_stop(nf_context);
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
                 if (arg_offset == ONVM_SIGNAL_TERMINATION) {
                         printf("Exiting due to user termination\n");
                         return 0;
@@ -378,16 +382,16 @@ int main(int argc, char *argv[]) {
         argv += arg_offset;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_context);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
         rules = setup_rules(&num_rules, rule_file);
         lpm_setup(rules, num_rules);
-        onvm_nflib_run(nf_context, &packet_handler);
+        onvm_nflib_run(nf_local_ctx);
 
         lpm_teardown(rules, num_rules);
-        onvm_nflib_stop(nf_context);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }

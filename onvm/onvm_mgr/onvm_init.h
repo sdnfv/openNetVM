@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,7 @@
 #define RX_MBUF_DATA_SIZE 2048
 #define MBUF_SIZE (RX_MBUF_DATA_SIZE + MBUF_OVERHEAD)
 
-#define NF_INFO_SIZE sizeof(struct onvm_nf_info)
+#define NF_INFO_SIZE sizeof(struct onvm_nf_init_cfg)
 
 #define NF_MSG_SIZE sizeof(struct onvm_nf_msg)
 #define NF_MSG_CACHE_SIZE 8
@@ -96,7 +96,7 @@
 #define ONVM_NUM_RX_THREADS 1
 /* Number of auxiliary threads in manager, 1 reserved for stats */
 #define ONVM_NUM_MGR_AUX_THREADS 1
-#define ONVM_NUM_WAKEUP_THREADS 1  // Enabled when using shared cpu mode
+#define ONVM_NUM_WAKEUP_THREADS 1  // Enabled when using shared core mode
 
 /*************************External global variables***************************/
 
@@ -125,9 +125,9 @@ extern uint8_t global_verbosity_level;
 
 /* Custom flags for onvm */
 extern struct onvm_configuration *onvm_config;
-extern uint8_t ONVM_ENABLE_SHARED_CPU;
+extern uint8_t ONVM_NF_SHARE_CORES;
 
-/* For handling shared cpu logic */
+/* For handling shared core logic */
 extern struct nf_wakeup_info *nf_wakeup_infos;
 
 /**********************************Functions**********************************/

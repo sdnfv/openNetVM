@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ uint16_t starting_instance_id = 1;
  *
  */
 inline static int
-onvm_nf_start(struct onvm_nf_info *nf_info);
+onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg);
 
 /*
  * Function to mark a NF as ready.
@@ -75,7 +75,7 @@ onvm_nf_start(struct onvm_nf_info *nf_info);
  *
  */
 inline static int
-onvm_nf_ready(struct onvm_nf_info *nf_info);
+onvm_nf_ready(struct onvm_nf *nf);
 
 /*
  * Function stopping a NF.
@@ -85,7 +85,7 @@ onvm_nf_ready(struct onvm_nf_info *nf_info);
  *
  */
 inline static int
-onvm_nf_stop(struct onvm_nf_info *nf_info);
+onvm_nf_stop(struct onvm_nf *nf);
 
 /*
  * Function that initializes an LPM object
@@ -137,11 +137,12 @@ void
 onvm_nf_check_status(void) {
         int i;
         void *msgs[MAX_NFS];
+        struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
-        struct onvm_nf_info *nf;
+        struct onvm_nf_init_cfg *nf_init_cfg;
         struct lpm_request *req_lpm;
-        int num_msgs = rte_ring_count(incoming_msg_queue);
         uint16_t stop_nf_id;
+        int num_msgs = rte_ring_count(incoming_msg_queue);
 
         if (num_msgs == 0)
                 return;
@@ -159,19 +160,19 @@ onvm_nf_check_status(void) {
                                 onvm_nf_init_lpm_region(req_lpm);
                                 break;
                         case MSG_NF_STARTING:
-                                nf = (struct onvm_nf_info *)msg->msg_data;
-                                if (onvm_nf_start(nf) == 0) {
-                                        onvm_stats_gen_event_nf_info("NF Starting", nf);
+                                nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
+                                if (onvm_nf_start(nf_init_cfg) == 0) {
+                                        onvm_stats_gen_event_nf_info("NF Starting", &nfs[nf_init_cfg->instance_id]);
                                 }
                                 break;
                         case MSG_NF_READY:
-                                nf = (struct onvm_nf_info *)msg->msg_data;
+                                nf = (struct onvm_nf *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
                                         onvm_stats_gen_event_nf_info("NF Ready", nf);
                                 }
                                 break;
                         case MSG_NF_STOPPING:
-                                nf = (struct onvm_nf_info *)msg->msg_data;
+                                nf = (struct onvm_nf *)msg->msg_data;
                                 if (nf == NULL)
                                         break;
 
@@ -207,77 +208,84 @@ onvm_nf_send_msg(uint16_t dest, uint8_t msg_type, void *msg_data) {
 /******************************Internal functions*****************************/
 
 inline static int
-onvm_nf_start(struct onvm_nf_info *nf_info) {
+onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
+        struct onvm_nf *spawned_nf;
+        uint16_t nf_id;
         int ret;
         // TODO dynamically allocate memory here - make rx/tx ring
         // take code from init_shm_rings in init.c
         // flush rx/tx queue at the this index to start clean?
 
-        if (nf_info == NULL || nf_info->status != NF_WAITING_FOR_ID)
+        if (nf_init_cfg == NULL || nf_init_cfg->status != NF_WAITING_FOR_ID)
                 return 1;
 
         // if NF passed its own id on the command line, don't assign here
         // assume user is smart enough to avoid duplicates
-        uint16_t nf_id = nf_info->instance_id == (uint16_t)NF_NO_ID ? onvm_nf_next_instance_id() : nf_info->instance_id;
+        nf_id = nf_init_cfg->instance_id == (uint16_t)NF_NO_ID ? onvm_nf_next_instance_id() : nf_init_cfg->instance_id;
+        spawned_nf = &nfs[nf_id];
 
         if (nf_id >= MAX_NFS) {
                 // There are no more available IDs for this NF
-                nf_info->status = NF_NO_IDS;
+                nf_init_cfg->status = NF_NO_IDS;
                 return 1;
         }
 
-        if (nf_info->service_id >= MAX_SERVICES) {
+        if (nf_init_cfg->service_id >= MAX_SERVICES) {
                 // Service ID must be less than MAX_SERVICES and greater than 0
-                nf_info->status = NF_SERVICE_MAX;
+                nf_init_cfg->status = NF_SERVICE_MAX;
                 return 1;
         }
 
-        if (nf_per_service_count[nf_info->service_id] >= MAX_NFS_PER_SERVICE) {
+        if (nf_per_service_count[nf_init_cfg->service_id] >= MAX_NFS_PER_SERVICE) {
                 // Maximum amount of NF's per service spawned
-                nf_info->status = NF_SERVICE_COUNT_MAX;
+                nf_init_cfg->status = NF_SERVICE_COUNT_MAX;
                 return 1;
         }
 
-        if (onvm_nf_is_valid(&nfs[nf_id])) {
+        if (onvm_nf_is_valid(spawned_nf)) {
                 // This NF is trying to declare an ID already in use
-                nf_info->status = NF_ID_CONFLICT;
+                nf_init_cfg->status = NF_ID_CONFLICT;
                 return 1;
         }
 
         // Keep reference to this NF in the manager
-        nf_info->instance_id = nf_id;
+        nf_init_cfg->instance_id = nf_id;
 
         /* If not successful return will contain the error code */
-        ret = onvm_threading_get_core(&nf_info->core, nf_info->flags, cores);
+        ret = onvm_threading_get_core(&nf_init_cfg->core, nf_init_cfg->init_options, cores);
         if (ret != 0) {
-                nf_info->status = ret;
+                nf_init_cfg->status = ret;
                 return 1;
         }
 
-        nfs[nf_id].info = nf_info;
-        nfs[nf_id].instance_id = nf_id;
-
+        spawned_nf->instance_id = nf_id;
+        spawned_nf->service_id = nf_init_cfg->service_id;
+        spawned_nf->status = NF_STARTING;
+        spawned_nf->tag = nf_init_cfg->tag;
+        spawned_nf->thread_info.core = nf_init_cfg->core;
+        spawned_nf->flags.time_to_live = nf_init_cfg->time_to_live;
+        spawned_nf->flags.pkt_limit = nf_init_cfg->pkt_limit;
         // Let the NF continue its init process
-        nf_info->status = NF_STARTING;
+        nf_init_cfg->status = NF_STARTING;
         return 0;
 }
 
 inline static int
-onvm_nf_ready(struct onvm_nf_info *info) {
+onvm_nf_ready(struct onvm_nf *nf) {
         // Ensure we've already called nf_start for this NF
-        if (info->status != NF_STARTING)
+        if (nf->status != NF_STARTING)
                 return -1;
 
-        uint16_t service_count = nf_per_service_count[info->service_id]++;
-        services[info->service_id][service_count] = info->instance_id;
+        uint16_t service_count = nf_per_service_count[nf->service_id]++;
+        services[nf->service_id][service_count] = nf->instance_id;
         num_nfs++;
         // Register this NF running within its service
-        info->status = NF_RUNNING;
+        nf->status = NF_RUNNING;
         return 0;
 }
 
 inline static int
-onvm_nf_stop(struct onvm_nf_info *nf_info) {
+onvm_nf_stop(struct onvm_nf *nf) {
         uint16_t nf_id;
         uint16_t nf_status;
         uint16_t service_id;
@@ -287,32 +295,33 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
         struct rte_mempool *nf_info_mp;
         struct rte_mbuf *pkts[PACKET_READ_SIZE];
 
-        if (nf_info == NULL)
+        if (nf == NULL)
                 return 1;
 
-        nf_id = nf_info->instance_id;
-        service_id = nf_info->service_id;
-        nf_status = nf_info->status;
+        nf_id = nf->instance_id;
+        service_id = nf->service_id;
+        nf_status = nf->status;
 
         /* Cleanup the allocated tag */
-        if (nf_info->tag) {
-                rte_free(nf_info->tag);
-                nf_info->tag = NULL;
+        if (nf->tag) {
+                rte_free(nf->tag);
+                nf->tag = NULL;
         }
 
         /* Cleanup should only happen if NF was starting or running */
         if (nf_status != NF_STARTING && nf_status != NF_RUNNING && nf_status != NF_PAUSED)
                 return 1;
 
-        nf_info->status = NF_STOPPED;
+        nf->status = NF_STOPPED;
+        nfs[nf->instance_id].status = NF_STOPPED;
 
         /* Tell parent we stopped running */
-        if (nfs[nf_id].parent != 0)
-                rte_atomic16_dec(&nfs[nfs[nf_id].parent].children_cnt);
+        if (nfs[nf_id].thread_info.parent != 0)
+                rte_atomic16_dec(&nfs[nfs[nf_id].thread_info.parent].thread_info.children_cnt);
 
         /* Remove the NF from the core it was running on */
-        cores[nf_info->core].nf_count--;
-        cores[nf_info->core].is_dedicated_core = 0;
+        cores[nf->thread_info.core].nf_count--;
+        cores[nf->thread_info.core].is_dedicated_core = 0;
 
         /* Clean up possible left over objects in rings */
         while ((nb_pkts = rte_ring_dequeue_burst(nfs[nf_id].rx_q, (void **)pkts, PACKET_READ_SIZE, NULL)) > 0) {
@@ -328,16 +337,13 @@ onvm_nf_stop(struct onvm_nf_info *nf_info) {
                 rte_mempool_put(nf_msg_pool, (void*)msg);
         }
 
-        /* Clean up dangling pointers to info struct */
-        nfs[nf_id].info = NULL;
-
         /* Free info struct */
-        /* Lookup mempool for nf_info struct */
+        /* Lookup mempool for nf struct */
         nf_info_mp = rte_mempool_lookup(_NF_MEMPOOL_NAME);
         if (nf_info_mp == NULL)
                 return 1;
 
-        rte_mempool_put(nf_info_mp, (void*)nf_info);
+        rte_mempool_put(nf_info_mp, (void*)nf);
 
         /* Further cleanup is only required if NF was succesfully started */
         if (nf_status != NF_RUNNING && nf_status != NF_PAUSED)
