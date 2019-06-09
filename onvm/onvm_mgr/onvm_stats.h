@@ -62,11 +62,11 @@ extern const char *NF_MSG[3];
         "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
         "----------------------------------------------------------------------------------------------------------------------\n"
 #define ONVM_STATS_ADV_MSG "\n"\
-        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop\n"\
         "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
         "----------------------------------------------------------------------------------------------------------------------\n"
 #define ONVM_STATS_SHARED_CORE_MSG "\n"\
-        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop\n"\
+        "NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop\n"\
         "               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret\n"\
         "                                  wakeups  /  wakeup_rt\n"\
         "----------------------------------------------------------------------------------------------------------------------\n"
