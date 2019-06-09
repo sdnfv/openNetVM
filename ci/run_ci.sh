@@ -1,9 +1,54 @@
 #!/bin/bash
-# install all dependencies only once
+
+# exit on error
 set -e
+
+# source helper functions file
 . helper-functions.sh
 SCRIPT_LOC=$(pwd)
 
+print_header "Validating Input Variables"
+
+if [[ -z "$1" ]]
+then
+    echo "ERROR: Missing first argument, Host!"
+    exit 1
+else
+    HOST=$1
+fi
+
+if [[ -z "$2" ]]
+then
+    echo "ERROR: Missing second argument, Flask server port!"
+    exit 1
+else
+    PORT=$2
+fi
+
+if [[ -z "$3" ]]
+then
+    echo "ERROR: Missing third argument, Request Keyword!"
+    exit 1
+else
+    KEYWORD=$3
+fi
+
+
+if [[ -z "$4" ]]
+then
+    echo "ERROR: Missing fourth argument, path to config file!"
+    exit 1
+else
+    if [[ ! -f $4 ]]
+    then
+        echo "ERROR: Fourth argument, Config file, is not a file!"
+        exit 1
+    else
+        CFG_NAME=$4
+    fi
+fi
+
+# install all dependencies only once at beginning of CI
 print_header "Installing dependencies"
 
 sudo apt update
@@ -33,5 +78,6 @@ sudo -H pip3 install pexpect
 check_exit_code "ERROR: Pexpect not installed or failed to install"
 
 print_header "Done Installing, running CI"
+
 # run the web server with the input arguments
-python3 webhook-receiver.py $1 $2 $3 $4
+python3 webhook-receiver.py $HOST $PORT $KEYWORD $CFG_NAME
