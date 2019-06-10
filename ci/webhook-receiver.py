@@ -13,6 +13,7 @@ import pprint
 import os
 import subprocess
 import logging
+import time
 import threading
 
 # Global vars
@@ -25,7 +26,7 @@ secret_file_name = None
 private_key_file = None
 secret = None
 queue_lock = None
-ci_list = None
+ci_request_list = None
 
 app = Flask(__name__)
 
@@ -166,6 +167,15 @@ def run_manager(request_ctx):
     log_access_granted(request_ctx, "Running CI")
     os.system("./manager.sh config {} \"{}\" \"{}\"".format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
 
+def poll_request_list():
+    while True:
+        # continuously check for waiting requests
+        if len(ci_request_list) > 0:
+            run_manager(ci_request_list.pop(0))
+        else:
+            # no requests, sleep
+            time.sleep(1)
+
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
     request_ctx = filter_to_prs_and_pr_comments(request.json)
@@ -208,26 +218,24 @@ def init_ci_pipeline():
         log_access_granted(request_ctx, "CI busy, placing request in queue")
         duplicate_req = False
         busy_msg = "Duplicate request already waiting, ignoring message"
+        # make sure we don't bypass thread safety
         with queue_lock:
-            # make sure we don't bypass thread safety
-            for req in ci_list:
+            for req in ci_request_list:
+                # make sure this is the same PR
                 if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
-                    # make sure this is the same PR
                     duplicate_req = True
                     break
             if not duplicate_req:
                 # don't have this request yet, put in queue
-                ci_list.append(request_ctx)
+                ci_request_list.append(request_ctx)
                 busy_msg = "Another CI run in progress, adding request to the end of the list"
         # ending frees the lock
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"{}\""
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], busy_msg))
     else:
-        # no manager running yet, run with current request
-        run_manager(request_ctx)
-        while len(ci_list) > 0:
-            # new requests were made since our last call, run them in order
-            run_manager(ci_list.pop(0))
+        # no manager running yet, put in the list (presumably the top)
+        with queue_lock:
+            ci_request_list.append(request_ctx)
 
     return jsonify({"status": "ONLINE"})
 
@@ -278,7 +286,13 @@ if __name__ == "__main__":
     parse_config(cfg_name)
     secret = decrypt_secret()
     queue_lock = threading.Lock()
-    ci_list = []
+    ci_request_list = []
+
+    # dedicate thread to check for and run new requests
+    poll_request = threading.Thread(target=poll_request_list, args=[])
+    # run as daemon to catch ^C termination
+    poll_request.daemon = True
+    poll_request.start()
 
     logging.info("Starting the CI service")
     app.run(host=host, port=port)
