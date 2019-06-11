@@ -33,7 +33,6 @@ else
     KEYWORD=$3
 fi
 
-
 if [[ -z "$4" ]]
 then
     echo "ERROR: Missing fourth argument, path to config file!"
