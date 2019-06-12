@@ -224,7 +224,7 @@ def init_ci_pipeline():
         with queue_lock:
             for req in ci_request_list:
                 # make sure this is the same PR
-                if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
+                if req[0]['id'] == request_ctx['id'] and req[0]['repo'] == request_ctx['repo']:
                     duplicate_req = True
                     break
             if not duplicate_req:
