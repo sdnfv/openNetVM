@@ -3,7 +3,7 @@
 ### Setting up CI
 Run a Flask server that listens for new events from github, will get triggered when a new PR is created or when keyword `@onvm` is mentioned.  
 ```sh
-python3 webhook-receiver.py 0.0.0.0 8080 @onvm webhook-config.json
+./run_ci.sh 0.0.0.0 8080 @onvm webhook-config.json
 ```
 
 To run CI tests manually, requires a config file, the github PR ID, request message and a response message.  
