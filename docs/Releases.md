@@ -108,7 +108,7 @@ Port 0: '90:e2:ba:b3:bc:6c'
 
 Port 0 - rx:         4  (        0 pps) tx:         0  (        0 pps)
 
-NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop
                PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
 ----------------------------------------------------------------------------------------------------------------------
 speed_tester    1  /  1  /  4      9661664 / 9661664        94494528 / 94494528               0 / 94494487    / 0
@@ -123,7 +123,7 @@ Port 0: '90:e2:ba:b3:bc:6c'
 
 Port 0 - rx:         5  (        0 pps) tx:         0  (        0 pps)
 
-NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop
                PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
                                   wakeups  /  wakeup_rt
 ----------------------------------------------------------------------------------------------------------------------
