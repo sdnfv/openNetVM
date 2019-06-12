@@ -47,7 +47,6 @@ fi
 
 . $1 # source the variables from config file
 
-print_header "ONVM Performance Testing"
 print_header "Checking Required Variables"
 
 if [[ -z "$WORKER_LIST" ]]
@@ -99,28 +98,6 @@ done
 
 # turn off error checking
 set +e
-
-print_header "Ensuring Dependencies are Installed"
-
-sudo apt install -y python3
-sudo apt install -y python3-pip
-
-python3 -V
-check_exit_code "ERROR: Python not installed"
-
-pip3 -V
-check_exit_code "ERROR: Pip not installed"
-
-sudo -H pip3 install virtualenv --upgrade
-
-sudo -H pip3 install paramiko
-check_exit_code "ERROR: Paramiko not installed or failed to install"
-
-sudo -H pip3 install --pre github3.py
-check_exit_code "ERROR: GitHub3.py not installed or failed to install"
-
-sudo -H pip3 install pexpect
-check_exit_code "ERROR: Pexpect not installed or failed to install"
 
 print_header "Fetching and Checking Out Pull Request"
 python3 clone-and-checkout-pr.py $GITHUB_CREDS "{\"id\": $PR_ID}" $REPO_OWNER $REPO_NAME
