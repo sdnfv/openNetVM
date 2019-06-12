@@ -163,9 +163,12 @@ def filter_to_prs_and_pr_comments(json):
     return None
 
 # run the manager, and rest of CI process
-def run_manager(request_ctx):
+def run_manager(request):
+    # requests are tuples of (context, run mode)
+    request_ctx = request[0]
+    mode = request[1]
     log_access_granted(request_ctx, "Running CI")
-    os.system("./manager.sh config {} \"{}\" \"{}\"".format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
+    os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], mode))
 
 def poll_request_list():
     while True:
@@ -178,6 +181,7 @@ def poll_request_list():
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
+    run_mode = 0
     request_ctx = filter_to_prs_and_pr_comments(request.json)
     if request_ctx is None:
         logging.debug("Request filter doesn't match request")
@@ -227,7 +231,7 @@ def init_ci_pipeline():
                     break
             if not duplicate_req:
                 # don't have this request yet, put in queue
-                ci_request_list.append(request_ctx)
+                ci_request_list.append((request_ctx, run_mode))
                 busy_msg = "Another CI run in progress, adding request to the end of the list"
         # ending frees the lock
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"{}\""
@@ -235,7 +239,7 @@ def init_ci_pipeline():
     else:
         # no manager running yet, put in the list (presumably the top)
         with queue_lock:
-            ci_request_list.append(request_ctx)
+            ci_request_list.append((request_ctx, run_mode))
 
     return jsonify({"status": "ONLINE"})
 
