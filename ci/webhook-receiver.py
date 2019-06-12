@@ -163,12 +163,10 @@ def filter_to_prs_and_pr_comments(json):
     return None
 
 # run the manager, and rest of CI process
-def run_manager(request):
+def run_manager(request_ctx):
     # requests are tuples of (context, run mode)
-    request_ctx = request[0]
-    mode = request[1]
     log_access_granted(request_ctx, "Running CI")
-    os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], mode))
+    os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], request_ctx['mode']))
 
 def poll_request_list():
     while True:
@@ -208,6 +206,8 @@ def init_ci_pipeline():
 
     print("Request matches filter, we should RUN CI. {}".format(get_request_info(request_ctx)))
 
+    request_ctx['mode'] = run_mode
+
     # Check if there is another CI run in progress
     proc1 = subprocess.Popen(['ps', 'cax'], stdout=subprocess.PIPE)
     proc2 = subprocess.Popen(['grep', 'manager.sh'], stdin=proc1.stdout,
@@ -224,12 +224,12 @@ def init_ci_pipeline():
         with queue_lock:
             for req in ci_request_list:
                 # make sure this is the same PR
-                if req[0]['id'] == request_ctx['id'] and req[0]['repo'] == request_ctx['repo']:
+                if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
                     duplicate_req = True
                     break
             if not duplicate_req:
                 # don't have this request yet, put in queue
-                ci_request_list.append((request_ctx, run_mode))
+                ci_request_list.append(request_ctx)
                 busy_msg = "Another CI run in progress, adding request to the end of the list"
         # ending frees the lock
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"{}\""
@@ -237,7 +237,7 @@ def init_ci_pipeline():
     else:
         # no manager running yet, put in the list (presumably the top)
         with queue_lock:
-            ci_request_list.append((request_ctx, run_mode))
+            ci_request_list.append(request_ctx)
 
     return jsonify({"status": "ONLINE"})
 
