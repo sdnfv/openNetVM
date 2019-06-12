@@ -61,13 +61,14 @@ if POST_REVIEW:
         ACTION = 'REQUEST_CHANGES'
 
     # PR must not affect performance
-    with open('./results_summary.stats') as f:
-        results = json.load(f)
-    if (results['pass_performance_check']):
-        comment_body += " :heavy_check_mark: Speed tester performance check passed\n"
-    else:
-        comment_body += " :x: PR drops speed tester perforamce bellow minimum requirement\n"
-        ACTION = 'REQUEST_CHANGES'
+    if POST_RESULTS:
+        with open('./results_summary.stats') as f:
+            results = json.load(f)
+        if (results['pass_performance_check']):
+            comment_body += " :heavy_check_mark: Speed tester performance check passed\n"
+        else:
+            comment_body += " :x: PR drops speed tester perforamce below minimum requirement\n"
+            ACTION = 'REQUEST_CHANGES'
 
     # PR must pass linter check
     linter_output = None
