@@ -26,7 +26,9 @@ secret_file_name = None
 private_key_file = None
 secret = None
 queue_lock = None
+request_event = None
 ci_request_list = None
+manager_running = False
 
 app = Flask(__name__)
 
@@ -168,14 +170,26 @@ def run_manager(request_ctx):
     log_access_granted(request_ctx, "Running CI")
     os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], request_ctx['mode']))
 
-def poll_request_list():
+def request_handler():
+    global manager_running
     while True:
-        # continuously check for waiting requests
-        if len(ci_request_list) > 0:
+        if ci_request_list:
+            # we have a request
+            manager_running = True
             run_manager(ci_request_list.pop(0))
-        else:
-            # no requests, sleep
-            time.sleep(1)
+            # remove flag for other threads
+            manager_running = False
+        if not ci_request_list:
+            # list empty, go to sleep until signaled
+            request_event.wait()
+
+def add_request(request_ctx):
+    ci_request_list.append(request_ctx)
+    if not request_event.isSet():
+        # wake up event listener, if it was asleep
+        request_event.set()
+        # remove the flag, so we don't get stuck in loop
+        request_event.clear()
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
@@ -208,36 +222,29 @@ def init_ci_pipeline():
 
     request_ctx['mode'] = run_mode
 
-    # Check if there is another CI run in progress
-    proc1 = subprocess.Popen(['ps', 'cax'], stdout=subprocess.PIPE)
-    proc2 = subprocess.Popen(['grep', 'manager.sh'], stdin=proc1.stdout,
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc1.stdout.close()
-    out, err = proc2.communicate()
+    duplicate_req = False
 
-    if (out):
-        print("Can't run CI, another CI run in progress, placing in the queue")
+    if (manager_running or ci_request_list):
+        busy_msg = "Another CI run in progress, adding request to the end of the list"
         log_access_granted(request_ctx, "CI busy, placing request in queue")
-        duplicate_req = False
-        busy_msg = "Duplicate request already waiting, ignoring message"
-        # make sure we don't bypass thread safety
-        with queue_lock:
-            for req in ci_request_list:
-                # make sure this is the same PR
-                if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
-                    duplicate_req = True
-                    break
-            if not duplicate_req:
-                # don't have this request yet, put in queue
-                ci_request_list.append(request_ctx)
-                busy_msg = "Another CI run in progress, adding request to the end of the list"
-        # ending frees the lock
+        if ci_request_list:
+            # only check for duplicates if list isn't empty
+            with queue_lock:
+                for req in ci_request_list:
+                    # make sure this is the same PR
+                    if req['id'] == request_ctx['id'] and req['repo'] == request_ctx['repo']:
+                        duplicate_req = True
+                        break
+            # ending frees the lock
+            if duplicate_req:
+                # let user know we're not running this request, it's a duplicate
+                busy_msg = "Duplicate request already waiting, ignoring message"
         os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"{}\""
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], busy_msg))
-    else:
-        # no manager running yet, put in the list (presumably the top)
-        with queue_lock:
-            ci_request_list.append(request_ctx)
+
+    if not duplicate_req:
+        # we are not a duplicate, add to list
+        add_request(request_ctx)
 
     return jsonify({"status": "ONLINE"})
 
@@ -290,8 +297,10 @@ if __name__ == "__main__":
     queue_lock = threading.Lock()
     ci_request_list = []
 
+    # create an event handler for requests
+    request_event = threading.Event()
     # dedicate thread to check for and run new requests
-    poll_request = threading.Thread(target=poll_request_list, args=[])
+    poll_request = threading.Thread(target=request_handler, args=[])
     # run as daemon to catch ^C termination
     poll_request.daemon = True
     poll_request.start()
