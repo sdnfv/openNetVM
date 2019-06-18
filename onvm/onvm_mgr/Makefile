@@ -35,7 +35,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# set this to 1 if onvm is using flow table lookup for incoming packets
+# set this to 0 to disable flow table lookup for incoming packets
 ENABLE_FLOW_LOOKUP=1
 
 ifeq ($(RTE_SDK),)
