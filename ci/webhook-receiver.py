@@ -182,14 +182,14 @@ def request_handler():
         if not ci_request_list:
             # list empty, go to sleep until signaled
             request_event.wait()
+            # remove the flag, so we don't get stuck in loop
+            request_event.clear()
 
 def add_request(request_ctx):
     ci_request_list.append(request_ctx)
     if not request_event.isSet():
         # wake up event listener, if it was asleep
         request_event.set()
-        # remove the flag, so we don't get stuck in loop
-        request_event.clear()
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
