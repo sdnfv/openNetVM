@@ -62,8 +62,13 @@ install_env() {
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 
     cd ../
-    pwd
-    . ./scripts/install.sh
+    # check if we need to bind an interface
+    if [[ -z $1 || ! $1 ]]
+    then
+        . ./scripts/install.sh
+    else
+		python3 ~/install.py
+    fi
 }
 
 # makes all onvm code
