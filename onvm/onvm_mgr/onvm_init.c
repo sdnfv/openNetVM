@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -247,7 +247,7 @@ init(int argc, char *argv[]) {
         /* initialise a queue for newly created NFs */
         init_info_queue();
 
-        /* initialise the shared memory for shared cpu mode */
+        /* initialise the shared memory for shared core mode */
         init_shared_sem();
 
         /*initialize a default service chain*/
@@ -280,7 +280,7 @@ init(int argc, char *argv[]) {
  */
 static void
 set_default_config(struct onvm_configuration *config) {
-        config->flags.ONVM_ENABLE_SHARED_CPU = ONVM_ENABLE_SHARED_CPU_DEFAULT;
+        config->flags.ONVM_NF_SHARE_CORES = ONVM_NF_SHARE_CORES_DEFAULT;
 }
 
 /**
@@ -408,7 +408,7 @@ init_port(uint8_t port_num) {
 }
 
 /**
- * Initialize shared cpu structs (mutex/semaphore)
+ * Initialize shared core structs (mutex/semaphore)
  */
 static void
 init_shared_sem(void) {
@@ -421,7 +421,7 @@ init_shared_sem(void) {
 
         nf_wakeup_infos = rte_calloc("MGR_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
 
-        if (!ONVM_ENABLE_SHARED_CPU)
+        if (!ONVM_NF_SHARE_CORES)
                 return;
 
         for (i = 0; i < MAX_NFS; i++) {

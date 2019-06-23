@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation. All rights reserved.
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -130,11 +130,8 @@ char buffer[20];
 void
 onvm_stats_init(uint8_t verbosity_level) {
         if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                printf("#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps\n");
-                printf(
-                    "#YYYY-MM-DD "
-                    "HH:MM:SS,instance_id,service_id,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_"
-                    "out,act_tonf,act_drop,act_next,act_buffer,act_returned\n");
+                printf("%s", ONVM_STATS_RAW_DUMP_PORT_MSG);
+                printf("%s", ONVM_STATS_RAW_DUMP_NF_MSG);
         }
 }
 
@@ -341,7 +338,7 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
-                        fprintf(stats_out, ONVM_STATS_ADV_PORTS, buffer,
+                        fprintf(stats_out, ONVM_STATS_RAW_DUMP_PORTS_CONTENT, buffer,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
@@ -400,8 +397,8 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         static const char *NF_MSG[3];
 
         NF_MSG[0] = ONVM_STATS_MSG;
-        if (ONVM_ENABLE_SHARED_CPU) {
-                NF_MSG[1] = ONVM_STATS_SHARED_CPU_MSG;
+        if (ONVM_NF_SHARE_CORES) {
+                NF_MSG[1] = ONVM_STATS_SHARED_CORE_MSG;
         } else {
                 NF_MSG[1] = ONVM_STATS_ADV_MSG;
         }
@@ -466,7 +463,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 char state;
 
                 uint8_t active = 0;
-                if (ONVM_ENABLE_SHARED_CPU)
+                if (ONVM_NF_SHARE_CORES)
                         active = rte_atomic16_read(nf_wakeup_infos[i].shm_server);
                 if (!active) {
                         state = 'W';
@@ -495,17 +492,18 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, ONVM_STATS_RAW_DUMP_CONTENT,
                                 buffer, nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
+                                nfs[i].thread_info.parent, state, rte_atomic16_read(&nfs[i].thread_info.children_cnt),
                                 rx, tx, rx_pps, tx_pps, rx_drop, tx_drop, rx_drop_rate, tx_drop_rate,
                                 act_out, act_tonf, act_drop, act_next, act_buffer, act_returned,
-                                num_wakeups, wakeup_rate, active);
+                                num_wakeups, wakeup_rate);
                 } else if (verbosity_level == 2) {
                         fprintf(stats_out, ONVM_STATS_ADV_CONTENT,
                                 nfs[i].tag, nfs[i].instance_id, nfs[i].service_id, nfs[i].thread_info.core,
                                 rx_pps, tx_pps, rx, tx, act_out, act_tonf, act_drop,
-                                rte_atomic16_read(&nfs[i].thread_info.children_cnt), state, nfs[i].thread_info.parent,
+                                nfs[i].thread_info.parent, state, rte_atomic16_read(&nfs[i].thread_info.children_cnt),
                                 rx_drop_rate, tx_drop_rate, rx_drop, tx_drop, act_next, act_buffer, act_returned);
-                        if (ONVM_ENABLE_SHARED_CPU)
-                                fprintf(stats_out, ONVM_STATS_SHARED_CPU_CONTENT, num_wakeups, wakeup_rate);
+                        if (ONVM_NF_SHARE_CORES)
+                                fprintf(stats_out, ONVM_STATS_SHARED_CORE_CONTENT, num_wakeups, wakeup_rate);
                         fprintf(stats_out, "\n");
                 } else {
                         fprintf(stats_out, ONVM_STATS_REG_CONTENT,
@@ -566,9 +564,9 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 }
         }
 
-        if (ONVM_ENABLE_SHARED_CPU) {
-                fprintf(stats_out, "\n\nShared CPU stats\n");
-                fprintf(stats_out, "----------------\n");
+        if (ONVM_NF_SHARE_CORES) {
+                fprintf(stats_out, "\n\nShared core stats\n");
+                fprintf(stats_out, "-----------------\n");
                 onvm_stats_display_client_wakeup_thread_context(difftime);
         }
 

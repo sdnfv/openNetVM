@@ -160,6 +160,7 @@ def filter_to_prs_and_pr_comments(json):
 
 @app.route(EVENT_URL, methods=['POST'])
 def init_ci_pipeline():
+    run_mode = 0
     request_ctx = filter_to_prs_and_pr_comments(request.json)
     if request_ctx is None:
         logging.debug("Request filter doesn't match request")
@@ -180,11 +181,9 @@ def init_ci_pipeline():
         return jsonify({"success": True})
 
     if (request_ctx['repo'] == 'openNetVM' and request_ctx['user'] not in authorized_users):
+        run_mode = 1 
+        # not an authorized user, tell manager to only run linter
         print("Incoming request is from an unathorized user")
-        log_access_denied(request_ctx, "Incoming request is from an unathorized user")
-        os.system("./ci_busy.sh config {} \"{}\" \"{}\" \"User not authorized to run CI, please contact one of the repo maintainers\""
-                  .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
-        return jsonify({"success": True})
 
     print("Request matches filter, we should RUN CI. {}".format(get_request_info(request_ctx)))
 
@@ -202,7 +201,7 @@ def init_ci_pipeline():
                   .format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
     else:
         log_access_granted(request_ctx, "Running CI")
-        os.system("./manager.sh config {} \"{}\" \"{}\"".format(request_ctx['id'], request_ctx['repo'], request_ctx['body']))
+        os.system("./manager.sh config {} \"{}\" \"{}\" {}".format(request_ctx['id'], request_ctx['repo'], request_ctx['body'], run_mode))
 
     return jsonify({"status": "ONLINE"})
 
