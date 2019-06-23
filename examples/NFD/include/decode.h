@@ -45,8 +45,8 @@ typedef struct _IPHdr {
 typedef struct _TCPHdr {
         u_short th_sport; /* source port */
         u_short th_dport; /* destination port */
-        u_long th_seq;    /* sequence number */
-        u_long th_ack;    /* acknowledgement number */
+        uint32_t th_seq;    /* sequence number */
+        uint32_t th_ack;    /* acknowledgement number */
 #ifdef WORDS_BIGENDIAN
         u_char th_off : 4, /* data offset */
             th_x2 : 4;     /* (unused) */

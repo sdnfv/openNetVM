@@ -126,9 +126,9 @@ Flow::Flow(u_char *packet, int totallength) {
         this->field_value["sport"] = new int(ntohs(tcph->th_sport));
         this->field_value["dport"] = new int(ntohs(tcph->th_dport));
         /*URG ACK PSH RST SYN FIN*/
-        this->field_value["flag_fin"] = new int(ntohs(tcph->th_flags) & TH_FIN);
-        this->field_value["flag_syn"] = new int(ntohs(tcph->th_flags) & TH_SYN);
-        this->field_value["flag_ack"] = new int(ntohs(tcph->th_flags) & TH_ACK);
+        this->field_value["flag_fin"] = new int(tcph->th_flags        & 0x1);
+        this->field_value["flag_syn"] = new int((tcph->th_flags >> 1) & 0x1);
+        this->field_value["flag_ack"] = new int((tcph->th_flags >> 4) & 0x1);
 }
 void
 Flow::clean() {

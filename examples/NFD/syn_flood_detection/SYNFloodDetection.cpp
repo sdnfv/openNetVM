@@ -126,9 +126,9 @@ Flow::Flow(u_char *packet, int totallength) {
         this->field_value["sport"] = new int(ntohs(tcph->th_sport));
         this->field_value["dport"] = new int(ntohs(tcph->th_dport));
         /*URG ACK PSH RST SYN FIN*/
-        this->field_value["flag_fin"] = new int(ntohs(tcph->th_flags) & TH_FIN);
-        this->field_value["flag_syn"] = new int(ntohs(tcph->th_flags) & TH_SYN);
-        this->field_value["flag_ack"] = new int(ntohs(tcph->th_flags) & TH_ACK);
+        this->field_value["flag_fin"] = new int(tcph->th_flags        & 0x1);
+        this->field_value["flag_syn"] = new int((tcph->th_flags >> 1) & 0x1);
+        this->field_value["flag_ack"] = new int((tcph->th_flags >> 4) & 0x1);
 }
 void
 Flow::clean() {
@@ -157,6 +157,7 @@ int
 process(Flow &f);
 Flow f_glb;
 long int _counter = 0;
+long int _drop = 0;
 unordered_map<string, int> F_Type::MAP = unordered_map<string, int>();
 unordered_map<string, int> F_Type::MAP2 = unordered_map<string, int>();
 
@@ -319,8 +320,14 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta,
 
         ok = SYNFD(pkt, length);
 
-        meta->action = ONVM_NF_ACTION_TONF;
-        meta->destination = destination;
+        if (ok == -1) {
+                _drop++;
+                meta->action = ONVM_NF_ACTION_DROP;
+        } else {
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
+        }
+        
         ////////////////////////////////////////////////
         return 0;
 }
