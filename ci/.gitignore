@@ -1,4 +1,3 @@
-access_log
 config
 webhook-config.json
 encrypted_secret.bin
@@ -11,3 +10,5 @@ linter-output.txt
 *key
 *.pub
 *.stats
+*out*
+*log*
