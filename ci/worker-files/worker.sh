@@ -35,12 +35,12 @@ fi
 # source helper functions file
 . helper-functions.sh
 
-# sudo apt-get update
-# sudo apt-get upgrade -y
+sudo apt-get update
+sudo apt-get upgrade -y
 
-# sudo apt-get install -y build-essential linux-headers-$(uname -r) git
-# sudo apt-get install -y libnuma1
-# sudo apt-get install -y libnuma-dev
+sudo apt-get install -y build-essential linux-headers-$(uname -r) git
+sudo apt-get install -y libnuma1
+sudo apt-get install -y libnuma-dev
 
 # clear lingering stats
 rm -rf *stats*

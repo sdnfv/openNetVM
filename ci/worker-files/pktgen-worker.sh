@@ -29,9 +29,9 @@ fi
 
 # run pktgen
 print_header "Collecting Pktgen Statistics"
-python3 ~/run-pktgen.py $PKT_WORKER_IP $PKT_WORKER_KEY_FILE
+python3 ~/run-pktgen.py $PKT_WORKER_IP $PKT_WORKER_KEY_FILE $WORKER_USER
 # get Pktgen stats from server
-scp -i $PKT_WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $PKT_WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/port_stats
+scp -i $PKT_WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$PKT_WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/stats
 
 print_header "Killing Basic Monitor"
 sudo pkill -f /basic_monitor

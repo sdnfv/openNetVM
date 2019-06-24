@@ -30,9 +30,6 @@ client.set_missing_host_key_policy(AutoAddPolicy())
 
 client.connect(ip, timeout = 30, pkey = key)
 
-(stdin, stdout, stderr) = client.exec_command("sudo ./worker.sh")
-
-for l in line_buffered(stdout):
-    print(l.strip("\n"))
+(stdin, stdout, stderr) = client.exec_command("sudo ./worker.sh worker-config", get_pty=True)
 
 print(str(stderr.read()))
