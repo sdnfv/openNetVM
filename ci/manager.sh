@@ -177,21 +177,28 @@ done
 
 print_header "Obtaining Performance Results from all workers"
 
-rm -f results_summary.stats
+rm -f *summary.stats
 
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:stats ./$worker_ip.stats
-    check_exit_code "ERROR: Failed to fetch results from $worker_ip"
-    # TODO: this will overwrite results if we have more  than 1 worker, investigate this case
+    # TODO: this will overwrite results if we have more than 1 worker, investigate this case
     if [[ "$RUN_MODE" -eq "0" ]]
     then
-        python3 pktgen-analysis.py ./$worker_ip.stats $worker_ip results_summary.stats
+        # fetch pktgen stats 
+        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:pktgen_stats ./$worker_ip.pktgen_stats
+        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats
+        # fetch speed_tester stats
+        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:speed_stats ./$worker_ip.speed_stats
+        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
     else
-        python3 speed-tester-analysis.py ./$worker_ip.stats $worker_ip results_summary.stats
+        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:speed_stats ./$worker_ip.speed_stats
+        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
     fi
     check_exit_code "ERROR: Failed to analyze results from $worker_ip"
 done

@@ -23,7 +23,7 @@ client.connect(worker_ip, timeout = 30, pkey = key)
 (stdin, stdout, stderr) = client.exec_command("sudo rm -rf *.py")
 (stdin, stdout, stderr) = client.exec_command("sudo rm -rf *config")
 (stdin, stdout, stderr) = client.exec_command("sudo rm -rf *.sh")
-(stdin, stdout, stderr) = client.exec_command("sudo reboot")
+# (stdin, stdout, stderr) = client.exec_command("sudo reboot")
 print("Successfully sent {} to reboot".format(worker_ip))
 
 client.close()

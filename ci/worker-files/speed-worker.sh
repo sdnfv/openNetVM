@@ -4,7 +4,7 @@
 
 print_header "Running Speed Tester NF"
 cd ~/repository/examples/speed_tester
-./go.sh 1 -d 1 &>~/spd_stats &
+./go.sh 1 -d 1 &>~/speed_stats &
 spd_tstr_pid=$?
 if [ $spd_tstr_pid -ne 0 ]
 then

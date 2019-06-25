@@ -35,9 +35,6 @@ fi
 # source helper functions file
 . helper-functions.sh
 
-sudo apt-get update
-sudo apt-get upgrade -y
-
 sudo apt-get install -y build-essential linux-headers-$(uname -r) git
 sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
@@ -76,10 +73,11 @@ do
     # run functionality for each mode
     case "$mode" in
     "0")
-        ~/pktgen-worker.sh $PKT_CONFIG
+        sudo ~/pktgen-worker.sh $PKT_CONFIG
+        sudo ~/speed-worker.sh
         ;;
-    "1")
-        ~/speed-worker.sh
+    "2")
+        sudo ~/speed-worker.sh
         ;;
     *)
         echo "Mode $MODE has not been implemented"

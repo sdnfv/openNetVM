@@ -9,6 +9,6 @@ repository
 linter-output.txt
 *key
 *.pub
-*.stats
+*stats
 *out*
 *log*
