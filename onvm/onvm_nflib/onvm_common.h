@@ -469,7 +469,7 @@ get_sem_name(unsigned id) {
 
 static inline int
 whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
-        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD && rte_ring_count(nf->msg_q) == 0)
                 return 0;
 
         /* Check if its already woken up */
