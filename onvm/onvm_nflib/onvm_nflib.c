@@ -953,7 +953,6 @@ onvm_nflib_dequeue_messages(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
                 return;
         }
-
         msg = NULL;
         rte_ring_dequeue(msg_q, (void **)(&msg));
         onvm_nflib_handle_msg(msg, nf_local_ctx);
