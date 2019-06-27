@@ -948,8 +948,8 @@ onvm_nflib_dequeue_messages(struct onvm_nf_local_ctx *nf_local_ctx) {
         // Check and see if this NF has any messages from the manager
         if (likely(rte_ring_count(msg_q) == 0)) {
                 if (ONVM_NF_SHARE_CORES) {
-                        rte_atomic16_set(nf->shared_core.sleep_state, 1);
-                        sem_wait(nf->shared_core.nf_mutex);
+                        rte_atomic16_set(nf_local_ctx->nf->shared_core.sleep_state, 1);
+                        sem_wait(nf_local_ctx->nf->shared_core.nf_mutex);
                 }
                 return;
         }
