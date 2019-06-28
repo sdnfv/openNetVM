@@ -57,9 +57,11 @@ void
 onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uint16_t rx_count) {
         uint16_t i;
         struct onvm_pkt_meta *meta;
+#ifdef FLOW_LOOKUP
         struct onvm_flow_entry *flow_entry;
         struct onvm_service_chain *sc;
         int ret;
+#endif
 
         if (rx_mgr == NULL || pkts == NULL)
                 return;
@@ -68,15 +70,19 @@ onvm_pkt_process_rx_batch(struct queue_mgr *rx_mgr, struct rte_mbuf *pkts[], uin
                 meta = (struct onvm_pkt_meta *)&(((struct rte_mbuf *)pkts[i])->udata64);
                 meta->src = 0;
                 meta->chain_index = 0;
+#ifdef FLOW_LOOKUP
                 ret = onvm_flow_dir_get_pkt(pkts[i], &flow_entry);
                 if (ret >= 0) {
                         sc = flow_entry->sc;
                         meta->action = onvm_sc_next_action(sc, pkts[i]);
                         meta->destination = onvm_sc_next_destination(sc, pkts[i]);
                 } else {
+#endif
                         meta->action = onvm_sc_next_action(default_chain, pkts[i]);
                         meta->destination = onvm_sc_next_destination(default_chain, pkts[i]);
+#ifdef FLOW_LOOKUP
                 }
+#endif
                 /* PERF: this might hurt performance since it will cause cache
                  * invalidations. Ideally the data modified by the NF manager
                  * would be a different line than that modified/read by NFs.
