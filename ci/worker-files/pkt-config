@@ -1,3 +1,0 @@
-PKT_WORKER_IP="nimbnode18"
-PKT_WORKER_KEY_FILE=~/ci18key
-WORKER_USER="kdeems"

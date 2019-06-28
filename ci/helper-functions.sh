@@ -145,3 +145,8 @@ run_linter() {
         fi
     done
 }
+
+fetch_files() {
+    scp -i $1 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $2:$3 ./$2.$3
+    check_exit_code "ERROR: Failed to fetch results from $2"
+}

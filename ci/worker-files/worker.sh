@@ -39,9 +39,6 @@ sudo apt-get install -y build-essential linux-headers-$(uname -r) git
 sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
 
-# clear lingering stats
-rm -rf *stats*
-
 cd repository
 
 print_header "Beginning Execution of Workload"

@@ -78,7 +78,7 @@ fi
 print_header "Cleaning up Old Results"
 
 sudo rm -f *.txt
-sudo rm -rf stats
+sudo rm -rf *stats
 sudo rm -rf repository
 
 print_header "Checking Worker and GitHub Creds Exist"
@@ -127,7 +127,6 @@ then
 fi
 
 print_header "Preparing Workers"
-
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
@@ -157,12 +156,16 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./repository $worker_ip:
-    check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
     # make sure the config file is updated with the correct run mode
     sed -i "/MODES*/c\\MODES=\"${RUN_MODE}\"" worker-files/worker-config
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./worker-files/* $worker_ip:
+    # put all files in one temporary folder for one scp
+    cp -r ./$worker_ip temp
+    cp -r ./repository temp/
+    cp -r ./worker-files/* temp/
+    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* $worker_ip: 
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
+    # get rid of the temp folder now for next worker
+    sudo rm -rf temp
 done
 
 print_header "Running Workloads on Workers"
@@ -176,9 +179,6 @@ do
 done
 
 print_header "Obtaining Performance Results from all workers"
-
-rm -f *summary.stats
-
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
@@ -188,17 +188,19 @@ do
     if [[ "$RUN_MODE" -eq "0" ]]
     then
         # fetch pktgen stats 
-        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:pktgen_stats ./$worker_ip.pktgen_stats
-        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        fetch_files $worker_key_file $worker_ip pktgen_stats
+        print_header "getting here"
         python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats
+        check_exit_code "Failed to parse Pktgen stats"
         # fetch speed_tester stats
-        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:speed_stats ./$worker_ip.speed_stats
-        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        fetch_files $worker_key_file $worker_ip speed_stats
         python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
+        check_exit_code "Failed to parse Speed Tester stats"
     else
-        scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:speed_stats ./$worker_ip.speed_stats
-        check_exit_code "ERROR: Failed to fetch results from $worker_ip"
+        # only fetch speed tester stats if mode is not 0
+        fetch_files $worker_key_file $worker_ip speed_stats
         python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
+        check_exit_code "Failed to parse Speed Tester stats"
     fi
     check_exit_code "ERROR: Failed to analyze results from $worker_ip"
 done

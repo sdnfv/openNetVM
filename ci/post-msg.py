@@ -124,13 +124,11 @@ if POST_LINTER_OUTPUT:
 
 if POST_REVIEW:
     # Actual review is required
-    # pull_request.create_review(
-     #   body=comment_body,
-     #   event=ACTION
-    # )
-    print("comment body", comment_body)
+    pull_request.create_review(
+        body=comment_body,
+        event=ACTION
+    )
 else:
     # Just a general info comment
-    # pull_request.create_comment(comment_body)
-    print("COMMENT BODY", comment_body)
+    pull_request.create_comment(comment_body)
 
