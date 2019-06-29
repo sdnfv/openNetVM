@@ -67,7 +67,10 @@ install_env() {
     then
         . ./scripts/install.sh
     else
+        # means we're running Pktgen
 		python3 ~/install.py
+        # disable flow table lookup for faster results
+        sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
     fi
 }
 

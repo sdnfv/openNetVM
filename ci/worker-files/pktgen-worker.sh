@@ -27,6 +27,9 @@ then
     return 1
 fi
 
+# make sure basic monitor initializes
+sleep 5
+
 # run pktgen
 print_header "Collecting Pktgen Statistics"
 python3 ~/run-pktgen.py $PKT_WORKER_IP $PKT_WORKER_KEY_FILE $WORKER_USER

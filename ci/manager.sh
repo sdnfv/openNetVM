@@ -113,6 +113,8 @@ check_exit_code "ERROR: Failed to fetch and checkout pull request"
 
 print_header "Running Linter"
 cd repository
+# ensure we can copy correct files
+chmod -R +rw .git
 rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
@@ -189,7 +191,6 @@ do
     then
         # fetch pktgen stats 
         fetch_files $worker_key_file $worker_ip pktgen_stats
-        print_header "getting here"
         python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats
         check_exit_code "Failed to parse Pktgen stats"
         # fetch speed_tester stats

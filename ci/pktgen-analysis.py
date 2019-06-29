@@ -2,7 +2,7 @@ import sys
 import os
 import json
 
-AVG_SPEED = 6000000 
+AVG_SPEED = 10000000
 
 """
 get median value of tx pps
