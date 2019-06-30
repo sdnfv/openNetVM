@@ -186,16 +186,18 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
+    # get the benchmarks for each node (some servers are faster)
+    . ./$worker_ip/benchmarks
     # TODO: this will overwrite results if we have more than 1 worker, investigate this case
     if [[ "$RUN_MODE" -eq "0" ]]
     then
         # fetch pktgen stats 
         fetch_files $worker_key_file $worker_ip pktgen_stats
-        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats
+        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats $PKTGEN
         check_exit_code "Failed to parse Pktgen stats"
         # fetch speed_tester stats
         fetch_files $worker_key_file $worker_ip speed_stats
-        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $SPEED
         check_exit_code "Failed to parse Speed Tester stats"
     else
         # only fetch speed tester stats if mode is not 0

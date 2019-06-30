@@ -3,8 +3,6 @@ import os
 import json
 import re
 
-AVG_SPEED = 37500000
-
 """
 get median value of tx pps
 """
@@ -16,13 +14,14 @@ def median(array):
     else:
         return (array[half - 1] + array[half]) / 2.0
 
-if(len(sys.argv) != 4):
+if(len(sys.argv) != 5):
     print("ERROR: Invalid arguments.")
     sys.exit(1)
 
 STATS_FILE = sys.argv[1]
 STATS_NODE_NAME = sys.argv[2]
 OUT_FILE = sys.argv[3]
+AVG_SPEED = int(sys.argv[4])
 
 with open(STATS_FILE, "r") as f:
     contents = f.read()

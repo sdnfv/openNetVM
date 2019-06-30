@@ -60,15 +60,18 @@ install_env() {
     echo $RTE_SDK
 
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
-
+    
     cd ../
     # check if we need to bind an interface
     if [[ -z $1 || ! $1 ]]
     then
         . ./scripts/install.sh
     else
-        # means we're running Pktgen
-		python3 ~/install.py
+        # make sure interfaces are accesible by dpdk
+        sudo ifconfig p2p1 down
+        sudo ifconfig p2p2 down
+        # we're running Pktgen
+        python3 ~/install.py
         # disable flow table lookup for faster results
         sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
     fi
