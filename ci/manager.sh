@@ -193,11 +193,11 @@ do
     then
         # fetch pktgen stats 
         fetch_files $worker_key_file $worker_ip pktgen_stats
-        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats $PKTGEN
+        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats $AVG_PKTGEN_SPEED
         check_exit_code "Failed to parse Pktgen stats"
         # fetch speed_tester stats
         fetch_files $worker_key_file $worker_ip speed_stats
-        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $SPEED
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $AVG_SPEED_TESTER_SPEED
         check_exit_code "Failed to parse Speed Tester stats"
     else
         # only fetch speed tester stats if mode is not 0
