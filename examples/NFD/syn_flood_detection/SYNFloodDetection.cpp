@@ -190,7 +190,8 @@ process(Flow &f) {
         if ((*(int *)f["flag_syn"]) == _t2 && (*(int *)f["tag"]) != _t3) {
                 blist[f][(*(IP *)f["sip"])] = blist[f][(*(IP *)f["sip"])] + _t4;
                 (*(int *)f["tag"]) = _t5;
-        } else if (((*(int *)f["tag"]) == _t6) && (blist[f][(*(IP *)f["sip"])] == threshold[f])) {
+                return process(f);
+        } else if (((*(int *)f["tag"]) == _t6) && (blist[f][(*(IP *)f["sip"])] >= threshold[f])) {
                 return -1;
         } else if (((*(int *)f["tag"]) == _t7) && (blist[f][(*(IP *)f["sip"])] != threshold[f])) {
         } else if ((*(int *)f["tag"]) != _t8 && (*(int *)f["flag_syn"]) != _t9 && (*(int *)f["flag_ack"]) == _t10) {

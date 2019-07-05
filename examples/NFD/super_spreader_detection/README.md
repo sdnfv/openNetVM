@@ -14,6 +14,25 @@ Super Spreader Detection is translated from the `SSDmodel.txt` to C++ environmen
  <br>
  
 
+Testing
+--
+
+The Super Spreader Detection NF will drop the flow packets(denoted by source IP) whose accumulated SYN num (SYN packets from a source packet will be accumulated the number while the FIN packets from same source will decrease the number) reaches to threshold. To verify the dropping process, you should filter all SYN packets out without its corresponding FIN packets. Then you can trigger the dropping process. Run these 2 NFs:
+
+Run the Super Spreader Detection NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/SYNWithoutFIN.pcap 
+
+```
+
 
 
 Compilation and Execution

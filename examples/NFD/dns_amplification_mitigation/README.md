@@ -11,7 +11,36 @@ DNS Amplification Mitigation is translated from the `DNSAmplificationMitigationM
  
  
  <br>
-An attacker uses a spoofed server IP to request many DNS queries that result in large answers to that DoS the server with the spoofed IP. Mitigation is by tracking if the server actually committed this request. In this program, we use a map to track all the real DNS requests from the server with the spoofed IP and pass the real DNS responses while block the responces due to attacker. 
+This NF is designed to be deployed in the user's end. An attacker uses a spoofed server IP to request many DNS queries that result in large answers to that DoS the server with the spoofed IP. Mitigation is by tracking if the server actually committed this request. In this program, we use a map to track all the real DNS requests from the server with the spoofed IP and pass the real DNS responses while block the responces due to attacker. 
+
+
+Testing
+--
+
+The DNS Amplification mitigation NF will drop all DNS response packets(TCP source port is 53) whose source IP is the user never send a DNS request to. To verify this run these 2 NFs:
+
+Run the DNS Amplification mitigation NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/pktgen_large.pcap 
+
+```
+Above command will not trigger the dropping process.
+
+In order to trigger the dropping process, we need to filter the packets whose source port is 53 only(in wireshark apply `dns and dns and udp.srcport==53` filter the packets) from pktgen_large.pcap.
+
+And run:
+```
+./go.sh 2 -d 1  -o pcap/udpResponseOnly.pcap 
+
+```
 
 
 Compilation and Executionthe 

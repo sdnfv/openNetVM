@@ -13,6 +13,27 @@ SYN Flood Detection is translated from the `SYNFloodDetectionModel.txt` to C++ e
  SYN Flood Detection counts the number of SYNs without any matching ACK from the sender side. If one sender exceeds a certain threshold X (set by user. In this program, we set threshold 100.), it should be blocked.
  
  <br>
+
+
+
+Testing
+--
+
+The SYN Flood Detection NF counts the number of SYNs without any matching ACK from the sender side. If one sender(denoted by IP) exceeds a certain threshold X (set by user. In this program, we set threshold 100.), it should be blocked. To trigger the dropping process, you need to just send the SYN packets without ACK (from sender to server) and accumulate it to the threshold. You can filter from the `pktgen_large.pcap` by `tcp.flags.syn==1 and tcp.flags.ack!=1` to get the test trace. Run these 2 NFs:
+
+Run the SYN Flood Detection NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/SYNWithoutACK.pcap 
+
+```
  
 
 

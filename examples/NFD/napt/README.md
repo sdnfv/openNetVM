@@ -15,6 +15,26 @@ NAPT is short for Network Address Port Translation. It enables mappings from tup
 <br>
  
 
+Testing
+--
+
+The NAPT NF will do the simple network address translation jobs. To verify it, first you need to generate two kinds of packets:1) srcIP is in the range(192.168.0.0/16 in the program); 2)dstIP is the NAT's IP (219.168.135.100 in program).
+
+Run these 2 NFs:
+
+Run the UDP Flood Mitigation NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/trace.pcap 
+
+```
 
 
 Compilation and Execution

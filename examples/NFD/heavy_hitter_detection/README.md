@@ -14,6 +14,26 @@ Heavy Hitter Detection is translated from the `HHDmodel.txt` to C++ environment.
 Heavy Hitter Detection keeps a counter for per flow and detects which flows consume most bandwidth by comparing the counters with a threshold. (threshold is set by user, in this program, we set it 100.) If the count reaches threshold, we will drop the following packets.
 
 
+Testing
+--
+
+The Heavy Hitter Detection NF will start dropping SYN packets(from the same source IP address) after a certain threshold is reached, to verify this run these 2 NFs:
+
+Run the Heavy Hitter Detection NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/64B_download.pcap  
+
+```
+
+
 Compilation and Execution
 --
 

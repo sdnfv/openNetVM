@@ -14,6 +14,25 @@ UDP Flood Mitigation identifies source IPs that send an anomalously higher numbe
  
 
 
+Testing
+--
+
+The UDP Flood Mitigation NF will record the count of UDP flows from same IPs. If the count reaches to threshold and the sequent UDP packet will be dropped. To trigger dropping process, you just need to send the UDP packets with the same IP over and over and over again. Run these 2 NFs:
+
+Run the UDP Flood Mitigation NF with:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1  -o pcap/UDPPackets.pcap 
+
+```
+
 
 Compilation and Execution
 --
