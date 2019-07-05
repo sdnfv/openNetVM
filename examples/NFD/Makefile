@@ -40,7 +40,7 @@ $(error "Please define RTE_SDK environment variable")
 endif
 
 # To add new examples, append the directory name to this variable
-examples = dns_amplification_mitigation heavy_hitter_detection napt nat stateful_firewall stateless_firewall super_spreader_detection syn_flood_detection udp_flood_mitigation
+examples = dns_amplification_mitigation heavy_hitter_detection napt stateful_firewall stateless_firewall super_spreader_detection syn_flood_detection udp_flood_mitigation
 
 clean_examples=$(addprefix clean_,$(examples))
 
