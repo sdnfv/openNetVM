@@ -82,12 +82,6 @@ build_onvm() {
     cd ../
 }
 
-# obtains core config in cores.out file
-obtain_core_config() {
-    cd scripts
-    ./corehelper.py > cores.out
-}
-
 # checks if a command has failed (exited with code != 0)
 # if it does, print the error message, exit the build, and post to github
 check_exit_code() {

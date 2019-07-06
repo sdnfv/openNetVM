@@ -51,41 +51,21 @@ print_header "Building ONVM"
 build_onvm
 check_exit_code "ERROR: Building ONVM failed"
 
-print_header "Running ONVM Manager"
-cd onvm
-./go.sh 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout &>~/onvm_stats &
-mgr_pid=$?
-if [ $mgr_pid -ne 0 ]
-then
-    echo "ERROR: Starting manager failed"
-    exit 1
-fi
-
-# wait for the manager to come online
-sleep 15
-print_header "Manager is live"
-
 for mode in $MODES
 do
     # run functionality for each mode
     case "$mode" in
     "0")
-        sudo ~/pktgen-worker.sh $PKT_CONFIG
-        sudo ~/speed-worker.sh
-        ;;
+        . ~/pktgen-worker.sh $PKT_CONFIG
+        . ~/speed-worker.sh
+        ;;  
     "2")
-        sudo ~/speed-worker.sh
-        ;;
-    *)
+        . ~/speed-worker.sh
+        ;;  
+    *)  
         echo "Mode $MODE has not been implemented"
-        ;;
+        ;;  
     esac
 done
-
-print_header "Exiting ONVM"
-
-echo "Manager pid: ${mgr_pid}"
-sudo kill $mgr_pid
-check_exit_code "ERROR: Killing manager failed"
 
 print_header "Performance Tests Completed Successfully"

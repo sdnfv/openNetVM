@@ -1,8 +1,5 @@
 #!/bin/bash
 
-cd ~
-. helper-functions.sh
-
 if [[ -z $1 ]]
 then
     echo "ERROR: Missing first argument, path to pktgen config file"
@@ -17,11 +14,25 @@ fi
 
 . $1 # source the variables from pktgen config file
 
+print_header "Running ONVM Manager"
+cd ~/repository/onvm
+./go.sh 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout &>~/onvm_stats &
+mgr_pid=0
+if [ $mgr_pid -ne 0 ] 
+then
+    echo "ERROR: Starting manager failed"
+    return 1
+fi
+
+# wait for the manager to come online
+sleep 15
+print_header "Manager is live"
+
 print_header "Running Basic Monitor NF"
-cd repository/examples/basic_monitor
+cd ~/repository/examples/basic_monitor
 ./go.sh 1 &>~/bsc_stats &
-bsc_mntr_pid=$?
-if [ $bsc_mntr_pid -ne 0 ]
+bsc_mntr_pid=0
+if [ $bsc_mntr_pid -ne 0 ] 
 then
     echo "ERROR: Starting basic monitor failed"
     return 1
@@ -38,3 +49,9 @@ scp -i $PKT_WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev
 
 print_header "Killing Basic Monitor"
 sudo pkill -f /basic_monitor
+
+print_header "Exiting ONVM"
+
+echo "Manager pid: ${mgr_pid}"
+sudo pkill -f onvm_mgr
+check_exit_code "ERROR: Killing manager failed"
