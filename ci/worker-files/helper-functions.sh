@@ -1,42 +1,29 @@
 #!/bin/bash
 
-# simple print function that takes a single argument
-# prints the argument as a header wrapped in dashes and pipes
-print_header() {
+LOGFILE=worker.log
+# remove previous log if it's over 300 lines
+RETAIN_NUM_LINES=300
+
+# print to stdout and the logfile
+logsetup() {
+    TMP=$(tail -n $RETAIN_NUM_LINES $LOGFILE 2>/dev/null) && echo "${TMP}" > $LOGFILE
+    exec > >(tee -a $LOGFILE)
+    exec 2>&1
+}
+
+log() {
     # check that the argument exists
     if [ -z "$1" ]
     then
-        echo "No argument supplied to print_header!"
+        echo "No argument supplied to log!"
         return 1
     fi
-
-    # get the string length for formatting
-    strlen=${#1}
-
-    echo ""
-
-    # echo first line of dashes
-    echo -n "--"
-    for i in `eval echo {1..$strlen}`
-    do
-        echo -n "-"
-    done
-    echo "--"
-
-     # echo the argument
-    echo -n "| "
-    echo -n $1
-    echo " |"
-
-    # echo the second line of dashes
-    echo -n "--"
-    for i in `eval echo {1..$strlen}`
-    do
-        echo -n "-"
-    done
-    echo "--"
-    echo ""
+ 
+    echo "[$(date --rfc-3339=seconds)]: $*"
 }
+
+# set up our log file
+logsetup
 
  # sets up dpdk, sets env variables, and runs the install script
 install_env() {

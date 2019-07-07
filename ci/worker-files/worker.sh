@@ -40,14 +40,13 @@ sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
 
 cd repository
+log "Beginning Execution of Workload"
 
-print_header "Beginning Execution of Workload"
-
-print_header "Installing Environment"
+log "Installing Environment"
 install_env $RUN_PKT
 check_exit_code "ERROR: Installing environment failed"
 
-print_header "Building ONVM"
+log "Building ONVM"
 build_onvm
 check_exit_code "ERROR: Building ONVM failed"
 
@@ -68,4 +67,4 @@ do
     esac
 done
 
-print_header "Performance Tests Completed Successfully"
+log "Performance Tests Completed Successfully"

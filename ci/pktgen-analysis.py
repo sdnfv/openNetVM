@@ -38,7 +38,7 @@ else:
     results['pass_performance_check'] = True
 results['performance_rating'] = performance_rating
 results['results_from'] = "[Results from %s]" % (STATS_NODE_NAME)
-results['summary'] = "\n - Median TX pps for Pktgen: %d\n - Performance rating - %.2f%% (compared to %d average)" % (median_speed, performance_rating, AVG_SPEED)
+results['summary'] = "\n - Median TX pps for Pktgen: %d\n  Performance rating - %.2f%% (compared to %d average)" % (median_speed, performance_rating, AVG_SPEED)
 
 with open(OUT_FILE, 'w') as outfile:
     json.dump(results, outfile)

@@ -33,9 +33,9 @@ def push_results(file):
     with open(file) as f:
         results = json.load(f)
     if previous_results_from != results['results_from']:
-        comment_body += "\n " + results['results_from']
+        comment_body += "\n" + results['results_from']
         previous_results_from = results['results_from'] 
-    comment_body += "\n " + results['summary']
+    comment_body += "\n" + results['summary']
 
 with open(sys.argv[1], "r") as credsfile:
     creds = [x.strip() for x in credsfile.readlines()]
