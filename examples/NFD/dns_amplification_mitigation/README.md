@@ -49,7 +49,7 @@ Compilation and Executionthe
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd heavy_hitter_detection
+cd dns_amplification_mitigation
 make
 
 ```
@@ -65,7 +65,7 @@ OR
 
 OR
 
-sudo ./build/stateful_firewall -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
+sudo ./build/dns_amplification_mitigation -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

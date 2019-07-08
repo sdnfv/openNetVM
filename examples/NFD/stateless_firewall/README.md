@@ -22,6 +22,22 @@ Stateless firewall is translated from the `model.txt` to C++ environment and des
 <br>
  
 
+Testing
+--
+
+To test stateless firewall NF functionality, we need some traces which have packets with source IP of `192.168.22.0/24` or just modify the ALLOW(`line 133: IP _t1()` in source code) into your ALLOW nwetwork. It wiil drop all packets not belong to ALLOW. Run the stateless firewall NF:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1 -o pcap/trace.pcap 
+
+```
 
 
 Compilation and Execution
@@ -30,8 +46,8 @@ Compilation and Execution
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd examples/firewall_NFD
-make CC=g++
+cd stateless_firewall
+make
 
 ```
 
@@ -46,7 +62,7 @@ OR
 
 OR
 
-sudo ./build/stateful_firewall -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
+sudo ./build/stateless_firewall -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

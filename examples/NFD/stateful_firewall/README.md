@@ -21,6 +21,22 @@ Stateful firewall is translated from the `model.txt` to C++ environment and desc
 All outgoing flows are allowed and recorded, all incoming flows initiated by an outgoing flow are also allowed, all incoming flows without initiation are dropped. <br>
  
 
+Testing
+--
+
+To test stateful firewall NF functionality, we need some traces which have packets with source IP of `192.168.22.0/24` or just modify the ALLOW(`line 40: IP _t1()` in source code) into your ALLOW nwetwork. Run the stateful firewall NF:
+
+```
+./go.sh 1 -d 2
+
+```
+
+Run Speed Tester NF(to replay pcap file) with:
+
+```
+./go.sh 2 -d 1 -o pcap/trace.pcap 
+
+```
 
 
 Compilation and Execution
@@ -29,7 +45,7 @@ Compilation and Execution
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd examples/firewall_NFD
+cd stateful_firewall
 make
 
 ```

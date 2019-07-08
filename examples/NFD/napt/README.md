@@ -22,7 +22,7 @@ The NAPT NF will do the simple network address translation jobs. To verify it, f
 
 Run these 2 NFs:
 
-Run the UDP Flood Mitigation NF with:
+Run the NAPT NF with:
 
 ```
 ./go.sh 1 -d 2
@@ -43,8 +43,8 @@ Compilation and Execution
 To run this NF, you should use either clang++ or g++ to compile this NF developed by C++.
 
 ```
-cd examples/firewall_NFD
-make CC=g++
+cd examples/NFD/napt
+make
 
 ```
 
@@ -59,7 +59,7 @@ OR
 
 OR
 
-sudo ./build/stateful_firewall -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
+sudo ./build/napt -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

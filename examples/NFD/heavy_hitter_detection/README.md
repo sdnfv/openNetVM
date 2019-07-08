@@ -56,7 +56,7 @@ OR
 
 OR
 
-sudo ./build/stateful_firewall -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
+sudo ./build/heavy_hitter_detection -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

@@ -130,7 +130,7 @@ Flow f_glb;
 struct timeval begin_time;
 struct timeval end_time;
 
-IP ip1("41.177.117.184/32");
+IP ip1("192.168.22.0/24");
 
 void
 _init_() {
@@ -140,9 +140,9 @@ _init_() {
 int
 process(Flow &f) {
         if (*((IP *)f.headers[Sip]) != ip1) {
+            return -1;
         }
         else if (*((IP *)f.headers[Sip]) <= ip1 && *((int *)f.headers[Tcp])) {
-                return -1;
         }
         f.clean();
         return 0;
