@@ -56,10 +56,10 @@ do
     case "$mode" in
     "0")
         . ~/pktgen-worker.sh $PKT_CONFIG
-        . ~/speed-worker.sh
+        . ~/speed-test-worker.sh
         ;;  
     "2")
-        . ~/speed-worker.sh
+        . ~/speed-test-worker.sh
         ;;  
     *)  
         echo "Mode $MODE has not been implemented"
