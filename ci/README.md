@@ -83,11 +83,14 @@ The CI process can be broken into multiple steps:
 
     Use paramiko to ssh and run `run-workload.py`
 
-9. Acquire results from the worker nodes
+9. Run modes are supplied to tell the worker which applications to test
+    `worker-files/worker.sh` handles installation, builds, and setting up manager for performance tests
+
+10. Acquire results from the worker nodes
 
     Use scp to copy the result stat file from worker
 
-10. Submit results as a comment on github
+11. Submit results as a comment on github
 
     Uses the `post-msg.py` script
 
@@ -105,6 +108,9 @@ ProxyPassReverse /onvm-ci/ http://nimbnode44:8080/
 </Location>
 ```  
 (Also need to setup github webhook to post to **http://nimbus.seas.gwu.edu/onvm-ci/github-webhook**)
+
+### Public and Private CI Runs
+CI is now able to accept requests from unauthenticated users. There is a list of Github users in the public project allowed to create a full run. Anyone who is able to view the private `-dev` repository is able to run CI there as well. In `openNetVM`, if a user is not in our list, the linter and branch checks will be executed, ignoring statistics calculations from the worker nodes.
 
 ### Checking if Online
 
