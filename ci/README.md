@@ -122,7 +122,8 @@ Connecting two nodes is useful for measuring statistics with tools like Pktgen a
 - Do this on both machines, to find the name of the interfaces that are linked
 - Run `sudo ifconfig <interface name> 11.0.0.1/24 up` on the first machine and `sudo ifconfig <interface name> 11.0.0.2/24 up`
   - This will ensure `ping` understands what IP address it is supposed to talk to
-- If `ping -I <interface> 11.0.0.2>` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`  
+- If `ping -I <interface> 11.0.0.2>` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`
+
 Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install-pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
 
 ### Checking if Online
