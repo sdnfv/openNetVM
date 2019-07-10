@@ -83,11 +83,15 @@ The CI process can be broken into multiple steps:
 
     Use paramiko to ssh and run `run-workload.py`
 
-9. Acquire results from the worker nodes
+9. Run modes are supplied to tell the worker which applications to test
+
+     Handle installation with `worker-files/worker.sh` for builds, and setting up manager for performance tests
+
+10. Acquire results from the worker nodes
 
     Use scp to copy the result stat file from worker
 
-10. Submit results as a comment on github
+11. Submit results as a comment on github
 
     Uses the `post-msg.py` script
 
@@ -105,6 +109,21 @@ ProxyPassReverse /onvm-ci/ http://nimbnode44:8080/
 </Location>
 ```  
 (Also need to setup github webhook to post to **http://nimbus.seas.gwu.edu/onvm-ci/github-webhook**)
+
+### Public and Private CI Runs
+
+CI is now able to accept requests from unauthenticated users. There is a list of Github users in the public project allowed to create a full run. Anyone who is able to view the private `-dev` repository is able to run CI there as well. In `openNetVM`, if a user is not in our list, the linter and branch checks will be executed, ignoring statistics calculations from the worker nodes.
+
+### Setting Up a Connected Worker
+
+Connecting two nodes is useful for measuring statistics with tools like Pktgen and the MTCP stack. There is a bit of setup required to get working connection working. Firstly, an SFP+ 10Gb Intel cable will be required to connect the Network Interface Cards in the two machines. Once this is done, attempt to bring up the correct interfaces for a stable connection. Some debugging might be required:  
+- If you don't know which `ifconfig -a` interface is correct, use `ethtool -p <interface name> 120`  
+  - This will blink a light on the interface (you have to be next to the machine for this to help)
+- Do this on both machines, to find the name of the interfaces that are linked
+- Run `sudo ifconfig <interface name> 11.0.0.1/24 up` on the first machine and `sudo ifconfig <interface name> 11.0.0.2/24 up`
+  - This will ensure `ping` understands what IP address it is supposed to talk to
+- If `ping -I <interface> 11.0.0.2>` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`  
+Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install-pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
 
 ### Checking if Online
 
