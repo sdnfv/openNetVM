@@ -118,7 +118,7 @@ Flow::Flow(u_char *packet, int totallength) {
         this->field_value["dip"] = new IP(des_addr, 32);
         this->field_value["tag"] = new int(0);
         this->field_value["iplen"] = new int(totallength);
-        short protocol = ntohs(*(short *)(ip_header + 9));
+        uint8_t protocol = (*(uint8_t *)(ip_header + 9));
         this->field_value["UDP"] = new int((protocol == IPPROTO_UDP) ? 1 : 0);
 
         /*TCP layer*/
@@ -132,24 +132,6 @@ Flow::Flow(u_char *packet, int totallength) {
 }
 void
 Flow::clean() {
-        /*Encoding*/
-        struct ether_header *eth_header;
-        eth_header = (struct ether_header *)this->pkt;
-        int ethernet_header_length = 14; /* Doesn't change */
-        int ip_header_length;
-        int tcp_header_length;
-        u_char *ip_header;
-        ip_header = (u_char *)eth_header + ethernet_header_length;
-        ip_header_length = ((*ip_header) & 0x0F);
-        ip_header_length = ip_header_length * 4;
-
-        *((int *)(ip_header + 12)) = htonl(*((int *)this->field_value["sip"]));
-        *((int *)(ip_header + 16)) = htonl(*((int *)this->field_value["dip"]));
-
-        /*TCP layer*/
-        TCPHdr *tcph = (TCPHdr *)(ip_header + ip_header_length);
-        tcph->th_sport = u_short(*((int *)this->field_value["sport"]));
-        tcph->th_dport = u_short(*((int *)this->field_value["dport"]));
 }
 
 int
@@ -181,7 +163,10 @@ State<int> threshold(_t1);
 
 int
 process(Flow &f) {
-        if (((*(int *)f["UDP"]) == _t2) &&
+        if (((*(int *)f["UDP"]) == 1) &&
+            udpflood[f][(*(IP *)f["sip"])] == 1){
+                return -1;
+        } else if (((*(int *)f["UDP"]) == _t2) &&
             (udpflood[f][(*(IP *)f["sip"])] != _t3 && udpcounter[f][(*(IP *)f["sip"])] != threshold[f])) {
                 udpcounter[f][(*(IP *)f["sip"])] = udpcounter[f][(*(IP *)f["sip"])] + _t4;
         } else if (((*(int *)f["UDP"]) == _t5) &&
