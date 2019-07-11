@@ -183,12 +183,20 @@ State<int> threshold(_t1);
 
 int
 process(Flow &f) {
-        if (((*(int *)f["flag_syn"]) == _t2) &&
+        if (((*(int *)f["flag_syn"]) == 1) && 
+             tlist[f][(*(IP *)f["sip"])] == 1){
+                return -1;
+        } else if (((*(int *)f["flag_syn"]) == _t2) &&
             (tlist[f][(*(IP *)f["sip"])] != _t3 && list[f][(*(IP *)f["sip"])] != threshold[f])) {
                 list[f][(*(IP *)f["sip"])] = list[f][(*(IP *)f["sip"])] + _t4;
+                printf("%d\n", list[f][(*(IP *)f["sip"])]);
         } else if (((*(int *)f["flag_syn"]) == _t5) &&
-                   (~tlist[f][(*(IP *)f["sip"])] != _t6 && list[f][(*(IP *)f["sip"])] == threshold[f])) {
+                   (tlist[f][(*(IP *)f["sip"])] != _t6 && list[f][(*(IP *)f["sip"])] == threshold[f])) {
                 tlist[f][(*(IP *)f["sip"])] = _t7;
+        } else if ((*(int *)f["flag_fin"]) == _t8 && 
+                  tlist[f][(*(IP *)f["sip"])] == 1){
+                list[f][(*(IP *)f["sip"])] = list[f][(*(IP *)f["sip"])] - 1;
+                tlist[f][(*(IP *)f["sip"])] = 0;
         } else if ((*(int *)f["flag_fin"]) == _t8) {
                 list[f][(*(IP *)f["sip"])] = list[f][(*(IP *)f["sip"])] - _t9;
         } else if ((*(int *)f["flag_syn"]) != _t10 && (*(int *)f["flag_fin"]) == _t11) {
@@ -314,6 +322,13 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta,
         int ok;
 
         ok = SSD(pkt, length);
+
+        if (ok == -1) {
+                meta->action = ONVM_NF_ACTION_DROP;
+        } else {
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
+        }
 
         meta->action = ONVM_NF_ACTION_TONF;
         meta->destination = destination;

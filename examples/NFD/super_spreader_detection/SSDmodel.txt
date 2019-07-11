@@ -19,14 +19,26 @@ program SSD{
     int threshold=100;
 
     entry{
+        match_flow{f[flag_syn]==1}
+        match_state{tlist[f[sip]]==1}
+        action_flow{f[dip]==DROP;}
+    }
+    entry{
         match_flow{f[flag_syn]==1 }
         match_state{tlist[f[sip]]!=1 && list[f[sip]]!= threshold}
         action_state{list[f[sip]]=list[f[sip]]+1;}
     }
     entry{
         match_flow{f[flag_syn]==1}
-        match_state{~tlist[f[sip]]!=1 && list[f[sip]]== threshold}
+        match_state{tlist[f[sip]]!=1 && list[f[sip]]== threshold}
         action_state{tlist[f[sip]]=1;}
+        action_flow{f[dip]=DROP;}
+    }
+    entry{
+        match_flow{f[flag_fin]==1}
+        match_state{tlist[f[sip]]==1}
+        action_state{list[f[sip]]=list[f[sip]]-1;}
+        action_state{tlist[f[sip]]=0;}
     }
     entry{
         match_flow{f[flag_fin]==1}
