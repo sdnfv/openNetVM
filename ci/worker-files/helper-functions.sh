@@ -54,11 +54,28 @@ install_env() {
     then
         . ./scripts/install.sh
     else
+        # we're running Pktgen, so dpdk interfaces are necessary
         # make sure interfaces are accesible by dpdk
-        sudo ifconfig p2p1 down
-        sudo ifconfig p2p2 down
-        # we're running Pktgen
-        python3 ~/install.py
+        pci_addresses=""
+        interfaces=$(python3 $RTE_SDK/usertools/dpdk-devbind.py --status | grep -P "10[-G](igabit)?")
+        # bring down correct interfaces and set them for binding
+        for id in $interfaces 
+        do
+            if [[ $id =~ 0000* ]];
+            then
+                # setup_environment (line 108) uses this to bind interfaces without user input 
+                pci_addresses="$pci_addresses $id "
+            elif [[ $id =~ if=* ]];
+                then
+                # name of interface to bring down (dpdk needs it inactive)
+                sudo ifconfig $(echo $id | cut -f 2 -d "=") down
+            fi
+        done
+ 
+        echo export ONVM_NIC_PCI="\"$pci_addresses\"" >> ~/.bashrc
+        export ONVM_NIC_PCI="\"$pci_addresses\""
+
+        . ./scripts/install.sh
         # disable flow table lookup for faster results
         sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
     fi

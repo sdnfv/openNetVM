@@ -113,8 +113,6 @@ check_exit_code "ERROR: Failed to fetch and checkout pull request"
 
 print_header "Running Linter"
 cd repository
-# ensure we can copy correct files
-chmod -R +rw .git
 rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
