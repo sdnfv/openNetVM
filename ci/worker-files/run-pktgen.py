@@ -23,7 +23,7 @@ client.connect(worker_ip, timeout = 30, username=worker_user, pkey = key)
 exit_status = stdout.channel.recv_exit_status()
 
 # write to file for debugging 
-with open('paramiko_pktgen_out.log', 'a+') as paramiko_out:
+with open('/home/' + worker_user + 'paramiko_pktgen_out.log', 'a+') as paramiko_out:
     paramiko_out.write(datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") + "\n")
     paramiko_out.write(stdout.read().decode('ascii') + "\n")
 

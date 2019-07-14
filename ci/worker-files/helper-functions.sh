@@ -72,8 +72,8 @@ install_env() {
             fi
         done
  
-        echo export ONVM_NIC_PCI="\"$pci_addresses\"" >> ~/.bashrc
-        export ONVM_NIC_PCI="\"$pci_addresses\""
+        echo export ONVM_NIC_PCI=\"$pci_addresses\" >> ~/.bashrc
+        export ONVM_NIC_PCI="$pci_addresses"
 
         . ./scripts/install.sh
         # disable flow table lookup for faster results
