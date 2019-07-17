@@ -23,6 +23,7 @@ program NAPT{
         match_flow{f matches R }
         action_state  { listIP[port]=f[sip]; listPORT[port]=f[sport];}
         action_flow{f[sip]=base; f[sport]=port; port=port+1;}
+
     }
 
     entry{
@@ -32,15 +33,14 @@ program NAPT{
 
     }
     entry{
-        match_flow{f mismatches R }
+        match_flow{f mismatches R && f[dip] == base}
         match_state{ ~(f[dport] in listIP) }
-        action_flow{pass; }
-        action_state{pass; }
+        action_flow{f[dip]=DROP; }
     }
 
     entry{
         match_flow{f mismatches R && f[dip] != base}
-        action_flow{pass; }
-        action_state{pass; }
+        action_flow{f[dip]=DROP; }
     }
 }
+

@@ -112,7 +112,8 @@ Flow::Flow(u_char *packet, int totallength) {
         int des_addr = ntohl(ip_hdr->ip_dst.s_addr);
         this->headers[Dip] = new IP(des_addr, 32);
 
-        int ip_header_length = ntohs(ip_hdr->ip_hlen);
+        int ip_header_length = ((*(packet + ethernet_header_length)) & 0x0F);
+        ip_header_length = ip_header_length * 4;
         TCPHdr *tcph = (TCPHdr *)(packet + ethernet_header_length + ip_header_length);
         this->headers[Sport] = new int(ntohs(tcph->th_sport));
         this->headers[Dport] = new int(ntohs(tcph->th_dport));
@@ -132,8 +133,8 @@ Flow::clean() {
         ip_hdr->ip_src.s_addr = htonl(((IP *)this->headers[Sip])->ip);
         ip_hdr->ip_dst.s_addr = htonl(((IP *)this->headers[Dip])->ip);
 
-        int ip_header_length;
-        ip_header_length = int(ip_hdr->ip_hlen) * 4;
+        int ip_header_length = ((*(packet + ethernet_header_length)) & 0x0F);
+        ip_header_length = ip_header_length * 4;
         TCPHdr *tcph = (TCPHdr *)(packet + ethernet_header_length + ip_header_length);
         tcph->th_sport = htons(u_short(*((int *)this->headers[Sport])));
         tcph->th_dport = htons(u_short(*((int *)this->headers[Dport])));
@@ -156,13 +157,13 @@ _init_() {
 }
 
 IP _t1("192.168.0.0/16");
-int _t2 = 219;
-int _t3 = 8;
-int _t4 = 1;
-State<IP> base(_t1);
+IP _t2("219.168.135.100/32");
+int _t3=8;
+int _t4=1;
+State<IP> base(_t2);
 State<int> port(_t3);
-State<unordered_map<int, IP>> listIP(*(new unordered_map<int, IP>()));
-State<unordered_map<int, int>> listPORT(*(new unordered_map<int, int>()));
+State<unordered_map<int,IP>> listIP(*(new unordered_map<int,IP>()));
+State<unordered_map<int,int>> listPORT(*(new unordered_map<int,int>()));
 
 int
 process(Flow &f) {
@@ -176,9 +177,11 @@ process(Flow &f) {
                    (listIP[f].find((*(int *)f.headers[Dport])) != listIP[f].end())) {
                 (*(IP *)f.headers[Dip]) = listIP[f][(*(int *)f.headers[Dport])];
                 (*(int *)f.headers[Dport]) = listPORT[f][(*(int *)f.headers[Dport])];
-        } else if ((*((IP *)f.headers[Sip]) != _t1) &&
+        } else if (((*((IP *)f.headers[Sip]) != _t1) && (*(IP *)f.headers[Dip]) == base[f]) &&
                    (~(listIP[f].find((*(int *)f.headers[Dport])) != listIP[f].end()))) {
+                return -1;
         } else if (*((IP *)f.headers[Sip]) != _t1 && (*(IP *)f.headers[Dip]) != base[f]) {
+                return -1;
         }
         f.clean();
         return 0;
@@ -302,8 +305,12 @@ packet_handler(struct rte_mbuf *buf, struct onvm_pkt_meta *meta,
 
         ok = NAPT(pkt, length);
 
-        meta->action = ONVM_NF_ACTION_TONF;
-        meta->destination = destination;
+        if (ok == -1) {
+                meta->action = ONVM_NF_ACTION_DROP;
+        } else {
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
+        }
         ////////////////////////////////////////////////
         return 0;
 }
