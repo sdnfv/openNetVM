@@ -75,6 +75,7 @@
 #define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
 #define PKT_WAKEUP_THRESHOLD 1 // for shared core mode, how many packets are required to wake up the NF
+#define MSG_WAKEUP_THRESHOLD 1 // for shared core mode, how many messages on an NF's ring are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
@@ -469,7 +470,7 @@ get_sem_name(unsigned id) {
 
 static inline int
 whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
-        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD && rte_ring_count(nf->msg_q) == 0)
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD && rte_ring_count(nf->msg_q) < MSG_WAKEUP_THRESHOLD)
                 return 0;
 
         /* Check if its already woken up */
