@@ -157,7 +157,7 @@ do
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
     # make sure the config file is updated with the correct run mode
-    sed -i "/MODES*/c\\MODES=\"${RUN_MODE}\"" worker-files/worker-config
+    sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker-files/worker-config
     # put all files in one temporary folder for one scp
     cp -r ./$worker_ip temp
     cp -r ./repository temp/
@@ -187,7 +187,7 @@ do
     # get the benchmarks for each node (some servers are faster)
     . ./$worker_ip/benchmarks
     # TODO: this will overwrite results if we have more than 1 worker, investigate this case
-    if [[ "$RUN_MODE" -eq "0" ]]
+    if [[ "$RUN_MODE" -eq "3" ]]
     then
         # fetch pktgen stats 
         fetch_files $worker_key_file $worker_ip pktgen_stats
@@ -200,7 +200,7 @@ do
     else
         # only fetch speed tester stats if mode is not 0
         fetch_files $worker_key_file $worker_ip speed_stats
-        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $AVG_SPEED_TESTER_SPEED
         check_exit_code "Failed to parse Speed Tester stats"
     fi
     check_exit_code "ERROR: Failed to analyze results from $worker_ip"

@@ -4,6 +4,7 @@ from paramiko import RSAKey
 from paramiko import SSHClient
 from paramiko import AutoAddPolicy
 import sys
+import datetime
 
 """
 get buffered stream of input from the client channel while the worker.sh script executes

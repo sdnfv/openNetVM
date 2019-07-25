@@ -1,18 +1,10 @@
 #!/bin/bash
 
-if [[ -z $1 ]]
-then
-    echo "ERROR: Missing first argument, path to pktgen config file"
-    exit 1
-fi
-
-if [[ ! -f $1 ]]
-then
-    echo "ERROR: Could not find config file at given path!"
-    exit 1
-fi
-
-. $1 # source the variables from pktgen config file
+run_pktgen() {
+    python3 ~/run-pktgen.py $WORKER_IP $WORKER_KEY_FILE $WORKER_USER
+    # get Pktgen stats from server
+    scp -i $WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/pktgen_stats
+}
 
 log "Running ONVM Manager"
 cd ~/repository/onvm
@@ -43,15 +35,18 @@ sleep 10
 
 # run pktgen
 log "Collecting Pktgen Statistics"
-python3 ~/run-pktgen.py $PKT_WORKER_IP $PKT_WORKER_KEY_FILE $WORKER_USER
-# get Pktgen stats from server
-scp -i $PKT_WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$PKT_WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/pktgen_stats
+run_pktgen
+# check if pktgen returned results (non-zero)
+grep -v "^0$" ~/pktgen_stats
+if [ $? -eq 1 ]
+then
+    log "Running Pktgen again"
+    run_pktgen
+fi
 
 log "Killing Basic Monitor"
 sudo pkill -f /basic_monitor
 
 log "Exiting ONVM"
-
-echo "Manager pid: ${mgr_pid}"
 sudo pkill -f onvm_mgr
 check_exit_code "ERROR: Killing manager failed"

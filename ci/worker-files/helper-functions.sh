@@ -3,6 +3,7 @@
 LOGFILE=worker.log
 # remove previous log if it's over 300 lines
 RETAIN_NUM_LINES=300
+DPDK_DEVBIND=$RTE_SDK/usertools/dpdk-devbind.py
 
 # print to stdout and the logfile
 logsetup() {
@@ -25,6 +26,13 @@ log() {
 # set up our log file
 logsetup
 
+# given a 10G NIC interface, bring down and bind to dpdk
+bind_nic_from_iface() {
+    sudo ifconfig $1 down
+    id=$($DPDK_DEVBIND --status | grep -e "if=$1" | cut -f 1 -d " ")
+    sudo $DPDK_DEVBIND -b igb_uio $id
+}
+
  # sets up dpdk, sets env variables, and runs the install script
 install_env() {
     git submodule sync 
@@ -44,38 +52,30 @@ install_env() {
     echo export ONVM_NUM_HUGEPAGES=1024 >> ~/.bashrc
     export ONVM_NUM_HUGEPAGES=1024
 
-    echo $RTE_SDK
-
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
-    
-    cd ../
-    # check if we need to bind an interface
-    if [[ -z $1 || ! $1 ]]
-    then
-        . ./scripts/install.sh
-    else
-        # we're running Pktgen, so dpdk interfaces are necessary
-        # make sure interfaces are accesible by dpdk
-        pci_addresses=""
-        interfaces=$(python3 $RTE_SDK/usertools/dpdk-devbind.py --status | grep -P "10[-G](igabit)?")
-        # bring down correct interfaces and set them for binding
-        for id in $interfaces 
-        do
-            if [[ $id =~ 0000* ]];
-            then
-                # setup_environment (line 108) uses this to bind interfaces without user input 
-                pci_addresses="$pci_addresses $id "
-            elif [[ $id =~ if=* ]];
-                then
-                # name of interface to bring down (dpdk needs it inactive)
-                sudo ifconfig $(echo $id | cut -f 2 -d "=") down
-            fi
-        done
- 
-        echo export ONVM_NIC_PCI=\"$pci_addresses\" >> ~/.bashrc
-        export ONVM_NIC_PCI="$pci_addresses"
 
-        . ./scripts/install.sh
+    if [[ ! -z $MTCP_IFACE ]]
+    then
+        # bring iface up so onvm install can't bind it
+        sudo ifconfig $MTCP_IFACE 11.0.0.17 up
+    fi
+
+    if [[ ! -z $PKT_IFACE ]]
+    then
+        # dummy so setup_environment binds nothing to dpdk
+        sudo ifconfig $PKT_IFACE 11.0.0.17 up
+    fi
+
+    cd ../ 
+    . ./scripts/install.sh
+ 
+    # helper for binding interfaces 
+    export DPDK_DEVBIND=$RTE_SDK/usertools/dpdk-devbind.py
+
+    if [[ ! -z $PKT_IFACE ]]
+    then
+        # bring pktgen interface down, and set it up
+        bind_nic_from_iface $PKT_IFACE
         # disable flow table lookup for faster results
         sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
     fi
