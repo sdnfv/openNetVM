@@ -14,7 +14,7 @@ Your project is likely to include multiple files, so you need to think about how
 
 **File Names** should be short but specific to the module residing within them. Reading a list of file names should give someone a quick idea of the main components in a project.
 
-**A Header (.h) File** should generally be included for each .c file.  The header should be self-contained and include a `#ifdef` guard to prevent compiler errors. The `ifdef` should use the form `_FILENAME_H`. [More Details.](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Header_Files)
+**A Header (.h) File** should generally be included for each .c file.  The header should be self-contained and include a `#ifdef` guard to prevent compiler errors. The `ifdef` should use the form `_FILENAME_H`. [More Details.](https://google.github.io/styleguide/cppguide.html#Header_Files)
 
 **Folders** should be used to separate out major components in large projects. For smaller projects this is not necessary.
 
@@ -71,7 +71,7 @@ Your project is likely to include multiple files, so you need to think about how
 ````
 
 ## Variable and Function Naming
-How you name your variables, data structures, and functions can be the dominant factor on whether your code is readable. In general, we follow the [Composite](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true) and [Google](http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Naming) naming conventions, although Google's recommendations are for C++ and thus use more capital letters than you are likely to use in a C program.
+How you name your variables, data structures, and functions can be the dominant factor on whether your code is readable. In general, we follow the [Composite](https://github.com/gparmer/Composite/blob/master/doc/style_guide/composite_coding_style.pdf?raw=true) and [Google](https://google.github.io/styleguide/cppguide.html#Naming) naming conventions, although Google's recommendations are for C++ and thus use more capital letters than you are likely to use in a C program.
 
 **Understandable, Lower Case with Underscores.**
 Variable names should be meaningful and help users understand what they are for. Do not use CamelCase unless you are writing Java programs. In C, we prefer all lowercase function and variable names, with underscores between words where necessary. Avoid abbreviations except for very obvious cases.
