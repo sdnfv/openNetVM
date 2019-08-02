@@ -62,12 +62,10 @@ if [ -z "$RTE_SDK" ]; then
 fi
 
 # Grab scripts parent directory location
-start_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../ >/dev/null 2>&1 && pwd )"
-# Ensure we're working relative to the onvm root directory
-cd $start_dir
+onvm_home_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../ >/dev/null 2>&1 && pwd )"
 
 if [ -z "$ONVM_HOME" ]; then
-    echo "Please export \$ONVM_HOME and set it to $start_dir"
+    echo "Please export \$ONVM_HOME and set it to $onvm_home_dir"
     exit 1
 fi
 
