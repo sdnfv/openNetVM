@@ -14,55 +14,51 @@ fi
 
 . $1 # source config file
 
-if [[ -z $MODES ]]
+if [[ -z $WORKER_MODE ]]
 then
     echo "ERROR: Missing mode argument of config!"
     exit 1
 fi
 
-RUN_PKT=false
-if [[ $MODES == *0* ]]
-then
-    # will be running pktgen
-    if [[ ! -f $PKT_CONFIG ]]
-    then
-        echo "ERROR: Mode 0 (Pktgen) must have a config file"
-        exit 1
-    fi
-    RUN_PKT=true 
-fi
-
 # source helper functions file
-. helper-functions.sh
+. helper-worker-functions.sh
 
 sudo apt-get install -y build-essential linux-headers-$(uname -r) git
 sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
+sudo apt-get install -y python3
 
 cd repository
 log "Beginning Execution of Workload"
 
 log "Installing Environment"
-install_env $RUN_PKT
+install_env
 check_exit_code "ERROR: Installing environment failed"
 
 log "Building ONVM"
 build_onvm
 check_exit_code "ERROR: Building ONVM failed"
 
-for mode in $MODES
+for mode in $WORKER_MODE
 do
     # run functionality for each mode
     case "$mode" in
     "0")
-        . ~/pktgen-worker.sh $PKT_CONFIG
-        . ~/speed-test-worker.sh
+        . ~/speed-tester-worker.sh
+        . ~/pktgen-worker.sh
+        . ~/mtcp-worker.sh
+        ;;
+    "1")
+        . ~/speed-tester-worker.sh
         ;;  
     "2")
-        . ~/speed-test-worker.sh
+        . ~/pktgen-worker.sh
+        ;;
+    "3")
+        . ~/mtcp-worker.sh
         ;;  
     *)  
-        echo "Mode $MODE has not been implemented"
+        echo "Worker mode $mode has not been implemented"
         ;;  
     esac
 done

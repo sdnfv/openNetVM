@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. helper-functions.sh
+. helper-install-functions.sh
 
 set -e
 

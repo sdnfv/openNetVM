@@ -4,7 +4,7 @@
 set -e
 
 # source helper functions file
-. helper-functions.sh
+. helper-manager-functions.sh
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Config File and Sourcing Variables"
@@ -157,11 +157,11 @@ do
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
     # make sure the config file is updated with the correct run mode
-    sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker-files/worker-config
+    sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker_files/worker-config
     # put all files in one temporary folder for one scp
     cp -r ./$worker_ip temp
     cp -r ./repository temp/
-    cp -r ./worker-files/* temp/
+    cp -r ./worker_files/* temp/
     scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* $worker_ip: 
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
     # get rid of the temp folder now for next worker
@@ -187,7 +187,7 @@ do
     # get the benchmarks for each node (some servers are faster)
     . ./$worker_ip/benchmarks
     # TODO: this will overwrite results if we have more than 1 worker, investigate this case
-    if [[ "$RUN_MODE" -eq "3" ]]
+    if [[ "$RUN_MODE" -eq "0" ]]
     then
         # fetch pktgen stats 
         fetch_files $worker_key_file $worker_ip pktgen_stats

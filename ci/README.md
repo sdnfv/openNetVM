@@ -69,7 +69,7 @@ The CI process can be broken into multiple steps:
 
 5. Run linter on the checked out code
 
-    Runs the `run_linter` function in `helper-functions.sh`
+    Runs the `run_linter` function in `helper-manager-functions.sh`
 
 6. Clean up and restart all worker nodes
 
@@ -85,7 +85,7 @@ The CI process can be broken into multiple steps:
 
 9. Run modes are supplied to tell the worker which applications to test
 
-     Handle installation with `worker-files/worker.sh` for builds, and setting up manager for performance tests
+     Handle installation with `worker_files/worker.sh` for builds, and setting up manager for performance tests
 
 10. Acquire results from the worker nodes
 
@@ -124,7 +124,7 @@ Connecting two nodes is useful for measuring statistics with tools like Pktgen a
   - This will ensure `ping` understands what IP address it is supposed to talk to
 - If `ping -I <interface> 11.0.0.2>` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`
 
-Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install-pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
+Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install_pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
 
 ### Checking if Online
 
