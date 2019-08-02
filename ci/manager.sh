@@ -45,9 +45,16 @@ else
     REQUEST=$4
 fi
 
+if [[ -z "$5" ]]
+then
+    echo "ERROR: Missing fifth argument, Run mode type!"
+    exit 1 
+else
+    RUN_MODE=$5
+fi
+
 . $1 # source the variables from config file
 
-print_header "ONVM Performance Testing"
 print_header "Checking Required Variables"
 
 if [[ -z "$WORKER_LIST" ]]
@@ -100,28 +107,6 @@ done
 # turn off error checking
 set +e
 
-print_header "Ensuring Dependencies are Installed"
-
-sudo apt install -y python3
-sudo apt install -y python3-pip
-
-python3 -V
-check_exit_code "ERROR: Python not installed"
-
-pip3 -V
-check_exit_code "ERROR: Pip not installed"
-
-sudo -H pip3 install virtualenv --upgrade
-
-sudo -H pip3 install paramiko
-check_exit_code "ERROR: Paramiko not installed or failed to install"
-
-sudo -H pip3 install --pre github3.py
-check_exit_code "ERROR: GitHub3.py not installed or failed to install"
-
-sudo -H pip3 install pexpect
-check_exit_code "ERROR: Pexpect not installed or failed to install"
-
 print_header "Fetching and Checking Out Pull Request"
 python3 clone-and-checkout-pr.py $GITHUB_CREDS "{\"id\": $PR_ID}" $REPO_OWNER $REPO_NAME
 check_exit_code "ERROR: Failed to fetch and checkout pull request"
@@ -131,6 +116,15 @@ cd repository
 rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
+
+if [[ "$RUN_MODE" -eq "1" ]]
+then
+    # only run linter and develop checks if unauthorized
+    print_header "Posting Results in Comment on GitHub"
+    python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1,\"review\": 1}" $REPO_OWNER $REPO_NAME "Run successful see results:"
+    check_exit_code "ERROR: Failed to post results to GitHub"
+    exit 0
+fi
 
 print_header "Preparing Workers"
 

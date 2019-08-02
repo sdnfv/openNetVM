@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -191,11 +191,13 @@ onvm_ft_fill_key_symmetric(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt
 /* Hash a flow key to get an int. From L3 fwd example */
 static inline uint32_t
 onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len, uint32_t init_val) {
-        const union ipv4_5tuple_host *k;
+        union ipv4_5tuple_host *k;
         uint32_t t;
         const uint32_t *p;
 
-        k = data;
+        k = (union ipv4_5tuple_host*) malloc(sizeof(union ipv4_5tuple_host));
+        memcpy(k, data, sizeof(union ipv4_5tuple_host));  
+
         t = k->proto;
         p = (const uint32_t *)&k->port_src;
 

@@ -1,0 +1,40 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   HHDmodel.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+program HHD{
+    map<IP, int> hh;
+    map<IP,int> hh_counter;
+    int threshold=100;
+
+    entry{
+        match_flow{f[flag_syn]==1 }
+        match_state{hh[f[sip]]!=1 && hh_counter[f[sip]]!=threshold}
+        action_state{hh_counter[f[sip]]=hh_counter[f[sip]]+1;}
+    }
+    entry{
+        match_flow{f[flag_syn]==1}
+        match_state{hh[f[sip]]!=1 && hh_counter[f[sip]]==threshold}
+        action_state{hh[f[sip]]=1;}
+    }
+    entry{
+        match_flow{f[flag_syn]==1}
+        match_state{hh[f[sip]]==1}
+        action_flow{f[sip]=DROP;}
+    }
+    entry{
+        match_flow{f[flag_syn]!=1}
+        action_flow{pass;}
+        action_state{pass;}
+    }
+}

@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without

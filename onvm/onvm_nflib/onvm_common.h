@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -78,12 +78,13 @@
 #define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
 #define PKT_WAKEUP_THRESHOLD 1 // for shared core mode, how many packets are required to wake up the NF
+#define MSG_WAKEUP_THRESHOLD 1 // for shared core mode, how many messages on an NF's ring are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
 #define SHARE_CORE_BIT 1
 
-#define ONVM_SIGNAL_TERMINATION -2
+#define ONVM_SIGNAL_TERMINATION -999
 
 /* Maximum length of NF_TAG including the \0 */
 #define TAG_SIZE 15
@@ -221,10 +222,6 @@ typedef int (*nf_pkt_handler_fn)(struct rte_mbuf *pkt, struct onvm_pkt_meta *met
                                  __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NF the callback */
 typedef int (*nf_user_actions_fn)(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx);
-/* Function prototype for NFs running advanced rings 
- * Deprecated, will be removed in the future advanced rings rework 
- */
-typedef void (*nf_adv_ring_handler_fn)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs that want extra initalization/setup before running */
 typedef void (*nf_setup_fn)(struct onvm_nf_local_ctx *nf_local_ctx);
 /* Function prototype for NFs to handle custom messages */
@@ -238,8 +235,6 @@ struct onvm_nf_function_table {
         nf_msg_handler_fn  msg_handler;
         nf_user_actions_fn user_actions;
         nf_pkt_handler_fn  pkt_handler;
-        /* Deprecated, will be removed in the future advanced rings rework */
-        nf_adv_ring_handler_fn  adv_ring_handler;
 };
 
 /* Information needed to initialize a new NF child thread */
@@ -254,6 +249,7 @@ struct onvm_nf_local_ctx {
         struct onvm_nf *nf;
         rte_atomic16_t nf_init_finished;
         rte_atomic16_t keep_running;
+        rte_atomic16_t nf_stopped;
 };
 
 /*
@@ -271,8 +267,6 @@ struct onvm_nf {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
-        /* Deprecated, will be removed in the future advanced rings rework */
-        uint8_t nf_mode;
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
@@ -478,7 +472,7 @@ get_sem_name(unsigned id) {
 
 static inline int
 whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
-        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD && rte_ring_count(nf->msg_q) < MSG_WAKEUP_THRESHOLD)
                 return 0;
 
         /* Check if its already woken up */

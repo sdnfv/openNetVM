@@ -36,8 +36,6 @@ print_header() {
     done
     echo "--"
     echo ""
-
-    sleep 1
 }
 
  # sets up dpdk, sets env variables, and runs the install script
