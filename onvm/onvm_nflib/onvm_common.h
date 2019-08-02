@@ -58,7 +58,7 @@
 #include "onvm_msg_common.h"
 
 #define ONVM_NF_HANDLE_TX 1                   // should be true if NFs primarily pass packets to each other
-#define ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT 1  // should be true if on NF shutdown onvm_mgr tries to reallocate cores
+#define ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT 0  // should be true if on NF shutdown onvm_mgr tries to reallocate cores
 
 #define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
 #define MAX_NFS 128              // total number of concurrent NFs allowed (-1 because ID 0 is reserved)
