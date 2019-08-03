@@ -122,9 +122,20 @@ Connecting two nodes is useful for measuring statistics with tools like Pktgen a
 - Do this on both machines, to find the name of the interfaces that are linked
 - Run `sudo ifconfig <interface name> 11.0.0.1/24 up` on the first machine and `sudo ifconfig <interface name> 11.0.0.2/24 up`
   - This will ensure `ping` understands what IP address it is supposed to talk to
-- If `ping -I <interface> 11.0.0.2>` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`
+- If `ping -I <interface> 11.0.0.2` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`
 
-Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install_pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
+Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install_pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Store these public keys in a folder with the server name, see the next section on statistics for more information. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
+
+### Advanced Statistics
+
+As CI continued to improve, with more programs to test with, benchmarks were made to track the average performance of a worker. In the future, CI will be able to handle multiple workers running many different tests. Since server configurations are not all the same, some with different hardware (Intel x710 vs. x520 NIC for example), performance of the nodes will not be the same. All that matters with CI is that the result of a run is the same or better, not globally across all nodes, but based on the specific server it ran on. For each worker, create a folder in the ci directory with the name of the worker IP. For example if `nimbnode17` is the current worker, a folder with path `/ci/nimbnode17/` should exist. In this folder, 3 files should be there at least. Firstly, a `benchmarks` file (used by the manager) should look similar to this: 
+
+```
+AVG_SPEED_TESTER_SPEED=40000000
+AVG_PKTGEN_SPEED=10000000
+AVG_MTCP_SPEED=.230
+```
+This is a configuration file, sourced by the manager to keep track of `nimbnode17`'s average performance for each test (currently Speed Tester, Pktgen, and mTCP). The other two files in the folder should be the two public keys, one for the worker, and the second for the worker's client server. Check the previous section on setting up a connection for more information.
 
 ### Checking if Online
 
