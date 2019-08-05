@@ -13,6 +13,28 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.07 (7/19): NFD library and example NFs, minor improvements and bug fixes.
+A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+**Performance**: This release increases Pktgen benchmark performance from 7Mpps to 13.1 Mpps (measured by Pktgen sending packets to the ONVM Basic Monitor), thus fixing the major performance issue that was present in the last release.
+
+### NFD library with example NFS
+Add NFD, a C++-based NF developing compiler designed by Wenfei's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China.
+
+### CI updates: TODO writeup
+Ci busy no more
+Ci performance update CI
+Allow CI Lint and Branch Checks for Unauthorized Users
+
+### Minor improvements
+ - Shared core functionality for messages
+ - NF core reassignment on termination
+ - Fix Style guide links
+
+### Bug fixes:
+ - Fix Typo in Stats Header bug fix
+ - Fix Stats Header in Release Notes (twice)
+
 ## v19.05 (5/19): Shared Core Mode, Major Architectural Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
