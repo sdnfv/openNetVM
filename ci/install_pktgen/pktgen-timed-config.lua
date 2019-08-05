@@ -59,8 +59,7 @@ local function doWait(port, waitTime)
     -- Try to wait for the total number of packets to be sent.
     local idx = 0;
     while( idx < waitTime ) do
-
-	-- Write port stats to output file separated by line
+	    -- Write port stats to output file separated by line
         pkt_rate_file:write(pktgen.portStats("all", "rate")[0]["pkts_rx"] .. "\n");
         idx = idx + 1;
 

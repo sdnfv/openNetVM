@@ -7,7 +7,7 @@ set -e
 sudo rm -rf repository
 
 git clone https://github.com/sdnfv/openNetVM.git repository
-check_exit_code "ERROR: Failed installing onvm"
+check_exit_code "ERROR: Failed cloning"
 
 print_header "Installing Dependencies"
 sudo apt-get update
@@ -26,8 +26,6 @@ sudo make linux test
 sudo make install
 
 cd repository
-
-print_header "Beginning Execution of Workload"
 
 print_header "Installing Environment"
 install_env $RUN_PKT
