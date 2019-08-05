@@ -1,0 +1,24 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   model.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+program IDS{
+    rule ALLOW = sip:192.168.22.0/24;
+    entry {
+        match_flow { f matches ALLOW }
+    }
+    entry {
+        match_flow { f mismatches ALLOW }
+        action_flow { f[dip]= DROP; }
+    }
+}
