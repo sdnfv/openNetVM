@@ -158,10 +158,10 @@ do
     worker_key_file="${tuple_arr[1]}"
     # make sure the config file is updated with the correct run mode
     sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker_files/worker-config
+    # create directory for scp
+    mkdir temp
     # put all files in one temporary folder for one scp
-    cp -r ./$worker_ip temp
-    cp -r ./repository temp/
-    cp -r ./worker_files/* temp/
+    sudo cp -r ./nimbnode17/* ./repository ./worker_files/* temp
     scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* $worker_ip: 
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
     # get rid of the temp folder now for next worker

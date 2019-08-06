@@ -1,6 +1,6 @@
 #!/bin/bash
 
-run_pktgen() {
+run_and_fetch_pktgen_stats() {
     python3 ~/run-pktgen.py $WORKER_IP $WORKER_KEY_FILE $WORKER_USER
     # get Pktgen stats from server
     scp -i $WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/pktgen_stats
@@ -35,12 +35,17 @@ sleep 10
 
 # run pktgen
 log "Collecting Pktgen Statistics"
-run_pktgen
+python3 ~/run-pktgen.py $WORKER_IP $WORKER_KEY_FILE $WORKER_USER
+# get Pktgen stats from server
+scp -i $WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/pktgen_stats
+
 # check if pktgen returned results (non-zero)
 if [ -z "$(grep -v "^0$" ~/pktgen_stats | cat)" ]
 then
     log "Running Pktgen again"
-    run_pktgen
+    python3 ~/run-pktgen.py $WORKER_IP $WORKER_KEY_FILE $WORKER_USER
+    # get Pktgen stats from server
+    scp -i $WORKER_KEY_FILE -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $WORKER_USER@$WORKER_IP:~/repository/tools/Pktgen/pktgen-dpdk/port_stats ~/pktgen_stats
 fi
 
 log "Killing Basic Monitor"

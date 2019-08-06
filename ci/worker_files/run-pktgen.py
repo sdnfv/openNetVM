@@ -18,6 +18,7 @@ client = SSHClient()
 client.set_missing_host_key_policy(AutoAddPolicy())
 client.connect(worker_ip, timeout = 30, username=worker_user, pkey = key)
 
+# Pktgen requires a pseudoterminal, created by get_pty
 (stdin, stdout, stderr) = client.exec_command("sudo ~/repository/tools/Pktgen/openNetVM-Scripts/run-pktgen.sh 1", get_pty=True)
 # block until script finishes
 exit_status = stdout.channel.recv_exit_status()
