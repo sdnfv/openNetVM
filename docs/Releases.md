@@ -13,7 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v19.07 (7/19): NFD library and example NFs, minor improvements and bug fixes.
+## v19.07 (7/19): NFD library and example NFs, Continuous Integration updates, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 **Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
@@ -35,16 +35,17 @@ A list of provided NFs using NFD library:
 
 ### Continuous Integration updates:
 CI got a few major updates this release:
- - CI will do basic lint checks and branch checks(all PRs should be submitted against the **develop** branch) for unathorized users
+ - CI will do basic lint checks and branch checks(all PRs should be submitted against the *develop* branch) for unathorized users
  - If CI is working on a request and recives another request it will append it to the queue instead of dropping it
  - CI will now run Pktgen as an additional test metric.
 
 ### Minor improvements
- - Shared core functionality for messages
- - NF core reassignment on termination
- - Fix Style guide links
+**Shared core functionality for messages** - adds functionality for NFs using shared core mode to work with NF messages. This means the NF will now sleep when no messages and no packets are enqueued onto a NF's message ring and wakeup if either one is received.  
+
+**NF core rebalancing** - adds functionality for onvm_mgr to remap a NF to a different core, if such occurs(when another NF shuts down). This is disabled by default and can be enabled using the `ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT` macro.
 
 ### Bug fixes:
+ - Fix Style guide links
  - Fix Typo in Stats Header bug fix
  - Fix Stats Header in Release Notes (twice)
 
