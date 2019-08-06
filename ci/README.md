@@ -69,7 +69,7 @@ The CI process can be broken into multiple steps:
 
 5. Run linter on the checked out code
 
-    Runs the `run_linter` function in `helper-functions.sh`
+    Runs the `run_linter` function in `helper-manager-functions.sh`
 
 6. Clean up and restart all worker nodes
 
@@ -83,11 +83,15 @@ The CI process can be broken into multiple steps:
 
     Use paramiko to ssh and run `run-workload.py`
 
-9. Acquire results from the worker nodes
+9. Run modes are supplied to tell the worker which applications to test
+
+     Handle installation with `worker_files/worker.sh` for builds, and setting up manager for performance tests
+
+10. Acquire results from the worker nodes
 
     Use scp to copy the result stat file from worker
 
-10. Submit results as a comment on github
+11. Submit results as a comment on github
 
     Uses the `post-msg.py` script
 
@@ -105,6 +109,33 @@ ProxyPassReverse /onvm-ci/ http://nimbnode44:8080/
 </Location>
 ```  
 (Also need to setup github webhook to post to **http://nimbus.seas.gwu.edu/onvm-ci/github-webhook**)
+
+### Public and Private CI Runs
+
+CI is now able to accept requests from unauthenticated users. There is a list of Github users in the public project allowed to create a full run. Anyone who is able to view the private `-dev` repository is able to run CI there as well. In `openNetVM`, if a user is not in our list, the linter and branch checks will be executed, ignoring statistics calculations from the worker nodes.
+
+### Setting Up a Connected Worker
+
+Connecting two nodes is useful for measuring statistics with tools like Pktgen and the MTCP stack. There is a bit of setup required to get working connection working. Firstly, an SFP+ 10Gb Intel cable will be required to connect the Network Interface Cards in the two machines. Once this is done, attempt to bring up the correct interfaces for a stable connection. Some debugging might be required:  
+- If you don't know which `ifconfig -a` interface is correct, use `ethtool -p <interface name> 120`  
+  - This will blink a light on the interface (you have to be next to the machine for this to help)
+- Do this on both machines, to find the name of the interfaces that are linked
+- Run `sudo ifconfig <interface name> 11.0.0.1/24 up` on the first machine and `sudo ifconfig <interface name> 11.0.0.2/24 up`
+  - This will ensure `ping` understands what IP address it is supposed to talk to
+- If `ping -I <interface> 11.0.0.2` on the first machine works, great, if not, try changing the IP addresses or viewing `dmesg`
+
+Now that the interfaces are connected, choose which machine will be the CI worker, and which is a helper (Pktgen for example). Install Pktgen on this node by sending the `ci/install_pktgen` files to that machines' home folder. *Remember public keys must be created for all new machines*. Store these public keys in a folder with the server name, see the next section on statistics for more information. Run `chmod +x install-pktgen.sh` if it's not already an executable and run `./install-pktgen.sh` to install everything. If there are dependency errors, the machine might be a different version, so try to install the necessary packages. Once everything is installed, test ONVM->Pktgen between the machines, and if a connection is established, CI should work just fine with no more setup!
+
+### Advanced Statistics
+
+As CI continued to improve, with more programs to test with, benchmarks were made to track the average performance of a worker. In the future, CI will be able to handle multiple workers running many different tests. Since server configurations are not all the same, some with different hardware (Intel x710 vs. x520 NIC for example), performance of the nodes will not be the same. All that matters with CI is that the result of a run is the same or better, not globally across all nodes, but based on the specific server it ran on. For each worker, create a folder in the ci directory with the name of the worker IP. For example if `nimbnode17` is the current worker, a folder with path `/ci/nimbnode17/` should exist. In this folder, 3 files should be there at least. Firstly, a `benchmarks` file (used by the manager) should look similar to this: 
+
+```
+AVG_SPEED_TESTER_SPEED=40000000
+AVG_PKTGEN_SPEED=10000000
+AVG_MTCP_SPEED=.230
+```
+This is a configuration file, sourced by the manager to keep track of `nimbnode17`'s average performance for each test (currently Speed Tester, Pktgen, and mTCP). The other two files in the folder should be the two public keys, one for the worker, and the second for the worker's client server. Check the previous section on setting up a connection for more information.
 
 ### Checking if Online
 

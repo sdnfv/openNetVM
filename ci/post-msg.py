@@ -4,6 +4,7 @@ from github3 import login
 
 import json
 import sys
+from os import path
 
 REPO_OWNER = None
 REPO_NAME = None
@@ -13,6 +14,30 @@ ACTION = 'APPROVE'
 if len(sys.argv) != 6:
     print("ERROR!  Incorrect number of arguments")
     sys.exit(1)
+
+# add results of statistics file to Github comments
+def process_results_from_worker(file, name):
+    global comment_body
+    global ACTION
+    if path.exists(file):
+        with open(file) as f:
+            results = json.load(f)
+        if (results['pass_performance_check']):
+            comment_body += " :heavy_check_mark: {} performance check passed\n".format(name)
+        else:
+            comment_body += " :x: PR drops {} performance below minimum requirement\n".format(name)
+            ACTION = 'REQUEST_CHANGES'
+
+# workers have many stats files, make sure its name only displays once
+def add_results_from_worker(file):
+    global comment_body
+    global previous_results_from
+    with open(file) as f:
+        results = json.load(f)
+    if previous_results_from != results['results_from']:
+        comment_body += "\n" + results['results_from']
+        previous_results_from = results['results_from'] 
+    comment_body += "\n" + results['summary']
 
 with open(sys.argv[1], "r") as credsfile:
     creds = [x.strip() for x in credsfile.readlines()]
@@ -45,6 +70,7 @@ if pull_request is None or str(pull_request) is "":
     print("ERROR: Could not get PR information from GitHub for PR %d" % int(sys.argv[2]))
     sys.exit(1)
 
+previous_results_from = ""
 comment_body=""
 for line in REQUEST.split('\n'):
     comment_body += "> " + line + "\n"
@@ -62,13 +88,10 @@ if POST_REVIEW:
 
     # PR must not affect performance
     if POST_RESULTS:
-        with open('./results_summary.stats') as f:
-            results = json.load(f)
-        if (results['pass_performance_check']):
-            comment_body += " :heavy_check_mark: Speed tester performance check passed\n"
-        else:
-            comment_body += " :x: PR drops speed tester perforamce below minimum requirement\n"
-            ACTION = 'REQUEST_CHANGES'
+        file = './pktgen_summary.stats'
+        process_results_from_worker(file, "Pktgen")
+        file = './speed_summary.stats'
+        process_results_from_worker(file, "Speed Test")
 
     # PR must pass linter check
     linter_output = None
@@ -85,9 +108,10 @@ if POST_REVIEW:
         comment_body += " :heavy_check_mark: Linter passed\n"
 
 if POST_RESULTS:
-    with open('./results_summary.stats') as f:
-        results = json.load(f)
-    comment_body += "\n " + results['summary']
+    file = './pktgen_summary.stats'
+    add_results_from_worker(file)
+    file = './speed_summary.stats'
+    add_results_from_worker(file)
 
 if POST_LINTER_OUTPUT:
     linter_output = None

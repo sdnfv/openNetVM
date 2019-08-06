@@ -4,7 +4,7 @@
 set -e
 
 # source helper functions file
-. helper-functions.sh
+. helper-manager-functions.sh
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Input Variables"
