@@ -16,7 +16,7 @@ is the month.
 ## v19.07 (7/19): NFD library and example NFs, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
-**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which will disable an expensive flow lookup for every incoming packet and forwards packets to the default service ID. This improves performance but flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
+**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which will disable an expensive flow lookup for every incoming packet(instead packets are forwarded to the default service ID). This improves performance but flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
 
 ### NFD library with example NFS
 Add NFD, a C++-based NF developing compiler designed by Wenfei's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China.
