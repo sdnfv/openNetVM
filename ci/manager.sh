@@ -90,7 +90,7 @@ then
 fi
 
 print_header "Posting on Github that CI is starting"
-python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\"}" $REPO_OWNER $REPO_NAME "Your results will arrive shortly"
+#python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\"}" $REPO_OWNER $REPO_NAME "Your results will arrive shortly"
 check_exit_code "ERROR: Failed to post initial message to GitHub"
 
 for worker_tuple in "${WORKER_LIST[@]}"
@@ -132,7 +132,7 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    python3 prepare-worker.py $worker_ip $worker_key_file
+    #python3 prepare-worker.py $worker_ip $worker_key_file
 done
 
 sleep 10 # wait 10 seconds for reboot to take effect
@@ -161,7 +161,7 @@ do
     # create directory for scp
     mkdir temp
     # put all files in one temporary folder for one scp
-    sudo cp -r ./nimbnode17/* ./repository ./worker_files/* temp
+    cp -r ./$worker_ip/* ./repository ./worker_files/* temp
     scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* $worker_ip: 
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
     # get rid of the temp folder now for next worker

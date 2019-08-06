@@ -29,7 +29,7 @@ logsetup
 # given a 10G NIC interface, bring down and bind to dpdk
 bind_nic_from_iface() {
     sudo ifconfig $1 down
-    id=$($DPDK_DEVBIND --status | grep -e "if=$1" | cut -f 1 -d " ")
+    id=$($DPDK_DEVBIND --status | grep -e "if=$1 drv=ixgbe" | cut -f 1 -d " ")
     sudo $DPDK_DEVBIND -b igb_uio $id
 }
 
@@ -54,31 +54,22 @@ install_env() {
 
     sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 
-    if [[ ! -z $MTCP_IFACE ]]
-    then
-        # bring iface up so onvm install can't bind it
-        sudo ifconfig $MTCP_IFACE 11.0.0.17 up
-    fi
+    # helper for binding interfaces
+    export DPDK_DEVBIND=$RTE_SDK/usertools/dpdk-devbind.py
 
-    if [[ ! -z $PKT_IFACE ]]
-    then
-        # dummy so setup_environment binds nothing to dpdk
-        sudo ifconfig $PKT_IFACE 11.0.0.17 up
-    fi
+    for iface in $($DPDK_DEVBIND --status | grep -oP "if=\K(\w+)\sdrv=ixgbe" | cut -f 1 -d " ")
+    do
+        # bring all ixgbe interfaces up so install script can't bind
+        sudo ifconfig $iface 11.0.0.1 up
+    done
 
     cd ../ 
     . ./scripts/install.sh
- 
-    # helper for binding interfaces 
-    export DPDK_DEVBIND=$RTE_SDK/usertools/dpdk-devbind.py
 
-    if [[ ! -z $PKT_IFACE ]]
-    then
-        # bring pktgen interface down, and set it up
-        bind_nic_from_iface $PKT_IFACE
-        # disable flow table lookup for faster results
-        sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
-    fi
+    # bring client facing interface down for dpdk
+    bind_nic_from_iface $CLIENT_IFACE
+    # disable flow table lookup for faster results
+    sed -i "/ENABLE_FLOW_LOOKUP\=1/c\\ENABLE_FLOW_LOOKUP=0" ~/repository/onvm/onvm_mgr/Makefile
 }
 
 # makes all onvm code
