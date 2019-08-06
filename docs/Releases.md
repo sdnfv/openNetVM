@@ -16,10 +16,10 @@ is the month.
 ## v19.07 (7/19): NFD library and example NFs, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
-**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which will disable an expensive flow lookup for every incoming packet(instead packets are forwarded to the default service ID). This improves performance but flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
+**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
 
 ### NFD library with example NFS
-Add NFD, a C++-based NF developing compiler designed by Wenfei's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China.
+Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China.
 
 NFD compiles the NF logic into common C++ program by using table-form language to model NFs' behavior . With NFD's help, NF developer, free from the problems that porting NFs into specific network environment or deploying platforms, can easily concentrate on designing NF's core logic. 
 
@@ -33,7 +33,7 @@ A list of provided NFs using NFD library:
  - Stateful Firewall
  - NAPT
 
-### CI updates:
+### Continuous Integration updates:
 CI got a few major updates this release:
  - CI will do basic lint checks and branch checks(all PRs should be submitted against the **develop** branch) for unathorized users
  - If CI is working on a request and recives another request it will append it to the queue instead of dropping it
