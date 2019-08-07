@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2018 George Washington University
- *            2015-2018 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,12 @@
 #define _ONVM_THREADING_H_
 
 #include "onvm_common.h"
+
+/********************************Global variables*****************************/
+
+extern struct onvm_nf *nfs;
+
+/********************************Interfaces***********************************/
 
 /**
  * Gets the total number of cores.
@@ -84,4 +90,18 @@ onvm_threading_get_core(uint16_t *core_value, uint8_t flags, struct core_status 
 int
 onvm_threading_core_affinitize(int core);
 
-#endif  // _ONVM_THREADING_H_"
+/**
+ * Based on current core usage decides if any NF should be moved to passed candidate core.
+ *
+ * @param candidate_core
+ *    An integer core value to possibly move a NF to
+ * @param cores
+ *    A pointer to the core_status map containing core information
+ *
+ * @return
+ *    An instance ID of a candidate NF that should be moved to candidate_core
+ */
+int
+onvm_threading_find_nf_to_reassign_core(uint16_t candidate_core, struct core_status *cores);
+
+#endif  // _ONVM_THREADING_H_

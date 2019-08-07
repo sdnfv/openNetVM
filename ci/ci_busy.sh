@@ -2,7 +2,7 @@
 
 set -e
 
-. helper-functions.sh
+. helper-manager-functions.sh
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Config File and Sourcing Variables"

@@ -13,6 +13,365 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.07 (7/19): NFD library and example NFs, Continuous Integration updates, minor improvements and bug fixes.
+A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
+
+### NFD library with example NFS
+Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China. NFD compiles the NF logic into a common C++ program by using table-form language to model NFs' behavior. 
+
+**The NFD compiler itself isn't included, only the NFs that were created with it.**
+
+A list of provided NFs using NFD library:
+ - DNS Amplification Mitigation
+ - Super Spread Detection
+ - Heavy Hitter Detection
+ - SYN Flood Detection
+ - UDP Flood Detection
+ - Stateless Firewall
+ - Stateful Firewall
+ - NAPT
+
+### Continuous Integration updates:
+CI got a few major updates this release:
+ - CI will do basic lint checks and branch checks(all PRs should be submitted against the *develop* branch) for unauthorized users
+ - If CI is working on a request and receives another request it will append it to the queue instead of dropping it
+ - CI will now run Pktgen as an additional test metric.
+
+### Minor improvements
+**Shared core functionality for messages** - adds functionality for NFs using shared core mode to work with NF messages. This means the NF will now sleep when no messages and no packets are enqueued onto a NF's message ring and wakeup if either one is received.  
+
+**NF core rebalancing** - adds functionality for onvm_mgr to remap a NF to a different core, if such occurs(when another NF shuts down). This is disabled by default and can be enabled using the `ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT` macro.
+
+### Bug fixes:
+ - Fix Style guide links
+ - Fix Typo in Stats Header bug fix
+ - Fix Stats Header in Release Notes (twice)
+
+## v19.05 (5/19): Shared Core Mode, Major Architectural Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
+A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+**This release features a lot of breaking API changes.**
+
+**Performance**: This release increases Pktgen benchmark performance from 7Mpps to 13.1 Mpps (measured by Pktgen sending packets to the ONVM Basic Monitor), thus fixing the major performance issue that was present in the last release.
+
+**Repo changes**: Default branch has been changed to `master`, active development can still be seen in `develop`. Most of the development is now done on the public repo to improve visibility, planned projects and improvements can be seen in this [pinned issue](https://github.com/sdnfv/openNetVM/issues/91), additionally pull requests and issues are now cataloged by tags. We're also starting to merge releases into master by pull requests, thus developers should branch off the develop branch and submit PRs against the develop branch.
+
+**Note**: If the NFs crash with this error - `Cannot mmap memory for rte_config at [0x7ffff7ff3000], got [0x7ffff7ff2000]`, simply use the `-a 0x7f000000000` flag for the onvm_mgr, this will resolve the issue.
+
+### Shared Core Mode:
+This code introduces **EXPERIMENTAL** support to allow NFs to efficiently run on **shared** CPU cores. NFs wait on semaphores when idle and are signaled by the manager when new packets arrive. Once the NF is in wake state, no additional notifications will be sent until it goes back to sleep. Shared core variables for mgr are in the `nf_wakeup_info` structs, the NF shared core vars were moved to the `onvm_nf` struct.
+
+The code is based on the hybrid-polling model proposed in [_Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization_ by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at _Co-NEXT 16_][flurries_paper] and extended in [_NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains_ by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at _SIGCOMM '17_][nfvnice_paper]. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-Core NFs. However, we have recently released a full version of the NFVNice system as an experimental branch, which can be found [here][nfvnice_branch].
+
+Usage and implementation details can be found [here][shared_core_docs].
+
+### Major Architectural Changes:
+- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm. 
+
+    Previously the initialization sequence for NFs wasn't able to properly cleanup if a signal was received. Because of this we have introduced a new NF context struct(`onvm_nf_local_ctx`) which would be malloced before initialization begins and would help handle cleanup. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
+
+- Reworking the `onvm_nf` struct. 
+
+    Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info`, which was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
+
+ - Replace the old `onvm_nf_info` with a new `onvm_nf_init_ctx` struct that is passed to onvm_mgr for initialization.
+
+    This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
+
+	
+ - Adding a function table struct `onvm_nf_function_table`.  
+	
+    Finally, we introduced the `onvm_nf_function_table` struct that groups all NF callback functions that can be set by developers.   
+
+**Overall, the new NF launch/shutdown sequence looks as follows:**
+```c
+struct onvm_nf_local_ctx *nf_local_ctx;        
+struct onvm_nf_function_table *nf_function_table;
+
+nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+nf_function_table = onvm_nflib_init_nf_function_table();
+nf_function_table->pkt_handler = &packet_handler;
+
+if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0)
+        // error checks
+		
+argc -= arg_offset;
+argv += arg_offset;
+
+if (parse_app_args(argc, argv, progname) < 0)
+        // error checks
+
+onvm_nflib_run(nf_local_ctx);
+onvm_nflib_stop(nf_local_ctx);
+```  
+
+### Advanced Rings Changes:
+This release changes our approach to NFs using the advanced rings mode. Previously we were trying to provide APIs for advanced ring developers such as scaling, but this logic should be managed by the NFs themselves. Because of this we're reworking those APIs and letting the NF devs handle everything themselves.  
+ - Speed Tester NF advanced rings mode is removed 
+ - Extra APIs have been removed 
+ - Removes support for advanced rings scaling APIs 
+ - Scaling Example NF advanced rings mode has been reworked, the new implementation now does its own pthread creation instead of relying on the onvm scaling APIs. Also makes a clear separation between default and advanced ring mode.  
+ - Because of these changes some internal nflib APIs were exposed to the NF (`onvm_nflib_start_nf`, `onvm_nflib_init_nf_init_cfg`, `onvm_nflib_inherit_parent_init_cfg`)
+
+### Stats Updates:
+This release updates both console and web stats. 
+
+ - For web stats this adds the Core Mappings page with the core layout for both onvm_mgr and NFs.
+ - For console stats this overhauls the displayed stats and adds new information, see more below.
+
+The new default mode now displays NF tag and core ID:
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
+
+Port 0 - rx:         4  (        0 pps) tx:         0  (        0 pps)
+
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps        rx_drop  /  tx_drop           out   /    tonf     /   drop
+----------------------------------------------------------------------------------------------------------------------
+speed_tester    1  /  1  /  4      1693920 / 1693920               0 / 0                      0 / 40346970    / 0
+```
+
+Verbose mode also adds `PNT`(Parent ID), `S|W`(NF state, sleeping or working), `CHLD`(Children count):
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
+
+Port 0 - rx:         4  (        0 pps) tx:         0  (        0 pps)
+
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop
+               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
+----------------------------------------------------------------------------------------------------------------------
+speed_tester    1  /  1  /  4      9661664 / 9661664        94494528 / 94494528               0 / 94494487    / 0
+                0  /  W  /  0            0 / 0                     0 / 0                      0 / 0           / 128
+```
+
+The shared core mode adds wakeup information stats:
+```
+PORTS
+-----
+Port 0: '90:e2:ba:b3:bc:6c'
+
+Port 0 - rx:         5  (        0 pps) tx:         0  (        0 pps)
+
+NF TAG         IID / SID / CORE    rx_pps  /  tx_pps             rx  /  tx                out   /    tonf     /   drop
+               PNT / S|W / CHLD  drop_pps  /  drop_pps      rx_drop  /  tx_drop           next  /    buf      /   ret
+                                  wakeups  /  wakeup_rt
+----------------------------------------------------------------------------------------------------------------------
+simple_forward  2  /  2  /  4        27719 / 27719            764439 / 764439                 0 / 764439      / 0
+                0  /  S  /  0            0 / 0                     0 / 0                      0 / 0           / 0
+                                    730557 / 25344
+
+speed_tester    3  /  1  /  5        27719 / 27719            764440 / 764439                 0 / 764440      / 0
+                0  /  W  /  0            0 / 0                     0 / 0                      0 / 0           / 1
+                                    730560 / 25347
+
+
+
+Shared core stats
+-----------------
+Total wakeups = 1461122, Wakeup rate = 50696
+```
+
+The super verbose stats mode has also been updated to include new stats:
+```
+#YYYY-MM-DD HH:MM:SS,nic_rx_pkts,nic_rx_pps,nic_tx_pkts,nic_tx_pps
+#YYYY-MM-DD HH:MM:SS,nf_tag,instance_id,service_id,core,parent,state,children_cnt,rx,tx,rx_pps,tx_pps,rx_drop,tx_drop,rx_drop_rate,tx_drop_rate,act_out,act_tonf,act_drop,act_next,act_buffer,act_returned,num_wakeups,wakeup_rate
+2019-06-04 08:54:52,0,4,4,0,0
+2019-06-04 08:54:53,0,4,0,0,0
+2019-06-04 08:54:54,simple_forward,1,2,4,0,W,0,29058,29058,29058,29058,0,0,0,0,0,29058,0,0,0,0,28951,28951
+2019-06-04 08:54:54,speed_tester,2,1,5,0,S,0,29058,29058,29058,29058,0,0,0,0,0,29059,0,0,0,1,28952,28952
+2019-06-04 08:54:55,0,4,0,0,0
+2019-06-04 08:54:55,simple_forward,1,2,4,0,W,0,101844,101843,72785,72785,0,0,0,0,0,101843,0,0,0,0,101660,101660
+2019-06-04 08:54:55,speed_tester,2,1,5,0,W,0,101844,101843,72785,72785,0,0,0,0,0,101844,0,0,0,1,101660,101660
+```
+
+### CI PR Review:
+CI is now available on the public branch. Only a specific list of whitelisted users can currently run CI for security purposes. The new CI system is able to approve/reject pull requests.
+CI currently performs these checks:
+ - Check the branch (for our discussed change of develop->master as main branch)
+ - Run performance check (speed tester currently with 35mil benchmark)
+ - Run linter (only on the PR diff)
+
+### LPM Firewall NF:
+The firewall NF drops or forwards packets based on rules provided in a JSON config file. This is achieved using DPDK's LPM (longest prefix matching) library. Default behavior is to drop a packet unless the packet matches a rule. The NF also has a debug mode to print decisions for every packet and an inverse match mode where default behavior is to forward a packet if it is not found in the table. Documentation for this NF can be found [here][firewall_nf_readme].
+
+### Payload Search NF:
+The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise. The NF also has an inverse mode to drop on match and forward otherwise. Documentation for this NF can be found [here][payload_scan_nf_readme].
+
+### TTL Flags:
+Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received. 
+
+### NF to NF Messaging:
+Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
+
+### Minor improvements
+ - **Make Number of mbufs a Constant Value** - Previously the number of mbufs was calculated based on the `MAX_NFS` constant. This led to performance degradation as the requested number of mbufs was too high, changing this to a constant has significantly improved performance.  
+ - **Reuse NF Instance IDs** - Reuse instance IDs of old NFs that have terminated. The instance IDs are still continiously incremented up to the `MAX_NFS` constant, but when that number is reached the next NF instance ID will be wrapped back to the starting value and find the first unoccupied instance ID.   
+ - Fix all major style errors
+ - Check if ONVM_HOME is Set Before Compiling ONVM   
+ - Add Core Information to Web Stats
+ - Update Install Script Hugepage Setup & Kernel Driver Installation  
+ - Add Compatibility Changes to Run ONVM on Ubuntu 18.04.1  
+ - Various Documentation updates and fixes  
+ - Change onvm-pktgen Submodule to Upstream Pktgen  
+
+### Bug fixes:
+ - Free Memory on ONVM_MGR Shutdown  
+ - Launch Script to Handle Multi-word String Arguments  
+ - NF Advanced Ring Thread Process NF Shutdown Messages  
+ - Adds NF Ring Cleanup Logic On Shutdown  
+ - Resolve Shutdown Memory Leaks  
+ - Add NF Tag Memory Allocation  
+ - Fix the Parse IP Helper Function  
+ - Fix Speed Tester NF Generated Packets Counter  
+ - Add Termination of Started but not yet Running NFs  
+ - Add ONVM mgr web mode memory cleanup on shutdown  
+ - Removes the Old Flow Tracker NF Launch Script  
+ - Fix Deprecated DPDK Function in Speed Tester NF  
+
+**v19.05 API Struct changes:**
+
+* Adding `onvm_nf_local_ctx` which is malloced and passed into `onvm_nflib_init`:
+    ```c
+    struct onvm_nf_local_ctx {
+            struct onvm_nf *nf;
+            rte_atomic16_t nf_init_finished;
+            rte_atomic16_t keep_running;
+    };
+    ```
+
+* Adding a function table for eaiser callback managing:
+    ```c
+    struct onvm_nf_function_table {
+            nf_setup_fn  setup;
+            nf_msg_handler_fn  msg_handler;
+            nf_user_actions_fn user_actions;
+            nf_pkt_handler_fn  pkt_handler;
+    };
+    ```
+    
+* Renaming the old `onvm_nf_info` -> `onvm_nf_init_cfg`:
+    ```c
+    struct onvm_nf_init_cfg {
+            uint16_t instance_id;
+            uint16_t service_id;
+            uint16_t core;
+            uint16_t init_options;
+            uint8_t status;
+            char *tag;
+            /* If set NF will stop after time reaches time_to_live */
+            uint16_t time_to_live;
+            /* If set NF will stop after pkts TX reach pkt_limit */
+            uint16_t pkt_limit;
+    };
+    ```
+    
+* Consolidating previous `onvm_nf_info` and `onvm_nf` into a singular `onvm_nf` struct:  
+    ```c
+    struct onvm_nf {
+            struct rte_ring *rx_q;
+            struct rte_ring *tx_q;
+            struct rte_ring *msg_q;
+            /* Struct for NF to NF communication (NF tx) */
+            struct queue_mgr *nf_tx_mgr;
+            uint16_t instance_id;
+            uint16_t service_id;
+            uint8_t status;
+            char *tag;
+            /* Pointer to NF defined state data */
+            void *data;
+
+            struct {
+                    uint16_t core;
+                    /* Instance ID of parent NF or 0 */
+                    uint16_t parent;
+                    rte_atomic16_t children_cnt;
+            } thread_info;
+
+            struct {
+                    uint16_t init_options;
+                    /* If set NF will stop after time reaches time_to_live */
+                    uint16_t time_to_live;
+                    /* If set NF will stop after pkts TX reach pkt_limit */
+                    uint16_t pkt_limit;
+            } flags;
+
+            /* NF specific functions */
+            struct onvm_nf_function_table *function_table;
+
+            /*
+             * Define a structure with stats from the NFs.
+             *
+             * These stats hold how many packets the NF will actually receive, send,
+             * and how many packets were dropped because the NF's queue was full.
+             * The port-info stats, in contrast, record how many packets were received
+             * or transmitted on an actual NIC port.
+             */
+            struct {
+                    volatile uint64_t rx;
+                    volatile uint64_t rx_drop;
+                    volatile uint64_t tx;
+                    volatile uint64_t tx_drop;
+                    volatile uint64_t tx_buffer;
+                    volatile uint64_t tx_returned;
+                    volatile uint64_t act_out;
+                    volatile uint64_t act_tonf;
+                    volatile uint64_t act_drop;
+                    volatile uint64_t act_next;
+                    volatile uint64_t act_buffer;
+            } stats;
+
+            struct {
+                     /* 
+                      * Sleep state (shared mem variable) to track state of NF and trigger wakeups 
+                      *     sleep_state = 1 => NF sleeping (waiting on semaphore)
+                      *     sleep_state = 0 => NF running (not waiting on semaphore)
+                      */
+                    rte_atomic16_t *sleep_state;
+                    /* Mutex for NF sem_wait */
+                    sem_t *nf_mutex;
+            } shared_core;
+    };
+    ```
+
+**v19.05 API Changes:**
+ - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p)` -> `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_function_table *nf_function_table)`
+ - `int onvm_nflib_run(struct onvm_nf_info* info, pkt_handler_func pkt_handler)` -> `int onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)` -> `int onvm_nflib_return_pkt(struct onvm_nf *nf, struct rte_mbuf *pkt)`
+ - `int onvm_nflib_return_pkt_bulk(struct onvm_nf_info *nf_info, struct rte_mbuf** pkts, uint16_t count)` -> `onvm_nflib_return_pkt_bulk(struct onvm_nf *nf, struct rte_mbuf **pkts, uint16_t count)`
+ - `int onvm_nflib_nf_ready(struct onvm_nf_info *info)` -> `int onvm_nflib_nf_ready(struct onvm_nf *nf)`
+ - `int onvm_nflib_handle_msg(struct onvm_nf_msg *msg, __attribute__((unused)) struct onvm_nf_info *nf_info)` ->
+ `int onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `void onvm_nflib_stop(struct onvm_nf_info *nf_info)` -> `void onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx)`
+ - `struct onvm_nf_scale_info *onvm_nflib_get_empty_scaling_config(struct onvm_nf_info *parent_info)` ->   `struct onvm_nf_scale_info *onvm_nflib_get_empty_scaling_config(struct onvm_nf *nf)`
+ - `struct onvm_nf_scale_info *onvm_nflib_inherit_parent_config(struct onvm_nf_info *parent_info, void *data)` ->
+`struct onvm_nf_scale_info *onvm_nflib_inherit_parent_config(struct onvm_nf *nf, void *data)`
+
+**v19.05 API Additions:**
+ - `struct onvm_nf_local_ctx *onvm_nflib_init_nf_local_ctx(void)`
+ - `struct onvm_nf_function_table *onvm_nflib_init_nf_function_table(void)`
+ - `int onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func signal_hanlder)`
+ - `int onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data)` 
+ - `int onvm_nflib_request_lpm(struct lpm_request *req)`
+ - `struct onvm_configuration *onvm_nflib_get_onvm_config(void)`  
+    These APIs were previously internal but are now exposed for advanced ring NFs:
+ - `int onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_cfg *nf_init_cfg)`
+ - `struct onvm_nf_init_cfg *onvm_nflib_init_nf_init_cfg(const char *tag)`
+ - `struct onvm_nf_init_cfg *onvm_nflib_inherit_parent_init_cfg(struct onvm_nf *parent)`
+
+**v19.05 Removed APIs:**
+ - `int onvm_nflib_run_callback(struct onvm_nf_info* info, pkt_handler_func pkt_handler, callback_handler_func callback_handler)`
+ - `struct rte_ring *onvm_nflib_get_tx_ring(struct onvm_nf_info* info)`
+ - `struct rte_ring *onvm_nflib_get_rx_ring(struct onvm_nf_info* info)`
+ - `struct onvm_nf *onvm_nflib_get_nf(uint16_t id)`
+ - `void onvm_nflib_set_setup_function(struct onvm_nf_info* info, setup_func setup)`
+
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
@@ -290,3 +649,12 @@ Each module comes with a header file with commented prototypes. And each c and h
 
 ## 4/24/16: Initial Release
 Initial source code release.
+
+
+
+[firewall_nf_readme]: ../examples/firewall/README.md
+[payload_scan_nf_readme]: ../examples/payload_scan/README.md
+[shared_core_docs]: ./NF_Dev.md#shared-cpu-mode
+[nfvnice_branch]: https://github.com/sdnfv/openNetVM/tree/experimental/nfvnice-reinforce
+[flurries_paper]: https://dl.acm.org/citation.cfm?id=2999602
+[nfvnice_paper]: https://dl.acm.org/citation.cfm?id=3098828

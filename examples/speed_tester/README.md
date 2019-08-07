@@ -26,17 +26,16 @@ cd speed_tester
 
 OR
 
-./go.sh -F CONFIG_FILE -- -- -d DST_ID [-p PRINT_DELAY] [-a ADVANCED_RINGS] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILE] [-l MEASURE_LATENCY]
+./go.sh -F CONFIG_FILE -- -- -d DST_ID [-p PRINT_DELAY] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILE] [-l MEASURE_LATENCY]
 
 OR
 
-sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-a] [-p PRINT_DELAY] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILENAME] [-l]
+sudo ./build/speed_tester -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -d DST [-p PRINT_DELAY] [-s PACKET_SIZE] [-m DEST_MAC] [-o PCAP_FILENAME] [-l]
 ```
 
 App Specific Arguments
 --
   - `-d DST`: Destination Service ID to foward to
-  - `-a`: Use advanced rings interface instead of default `packet_handler`
   - `-p PRINT_DELAY`: Number of packets between each print, e.g. `-p 1` prints every packets.
   - `-s PACKET_SIZE`: Size of packet, e.g. `-s 32` allocates 32 bytes for the data segment of `rte_mbuf`.
   - `-m DEST_MAC`: User specified destination MAC address, e.g. `-m aa:bb:cc:dd:ee:ff` sets the destination address within the ethernet header that is located at the start of the packet data.

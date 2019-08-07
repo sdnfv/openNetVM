@@ -5,9 +5,9 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2017 George Washington University
- *            2015-2017 University of California Riverside
- *            2010-2014 Intel Corporation
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
+ *            2010-2019 Intel Corporation
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,8 @@
 #define MSG_NF_READY 4
 #define MSG_SCALE 5
 #define MSG_FROM_NF 6
+#define MSG_REQUEST_LPM_REGION 7
+#define MSG_CHANGE_CORE 8
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */

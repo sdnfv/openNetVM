@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2016 George Washington University
- *            2015-2016 University of California Riverside
+ *            2015-2019 George Washington University
+ *            2015-2019 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -80,8 +80,6 @@ struct flow_stats {
         int is_active;
 };
 
-/*Struct that holds nf meta info */
-struct onvm_nf_info *nf_info;
 struct state_info *state_info;
 
 /*
@@ -279,7 +277,7 @@ table_lookup_entry(struct rte_mbuf *pkt, struct state_info *state_info) {
 }
 
 static int
-callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
+callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
         if ((state_info->elapsed_cycles - state_info->last_cycles) / rte_get_timer_hz() > state_info->print_delay) {
@@ -291,7 +289,8 @@ callback_handler(__attribute__((unused)) struct onvm_nf_info *nf_info) {
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((unused)) struct onvm_nf_info *nf_info) {
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         if (!onvm_pkt_is_ipv4(pkt)) {
                 meta->destination = state_info->destination;
                 meta->action = ONVM_NF_ACTION_TONF;
@@ -311,17 +310,33 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__((
 int
 main(int argc, char *argv[]) {
         int arg_offset;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
 
-        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, &nf_info)) < 0)
-                return -1;
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->user_actions = &callback_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
 
         argc -= arg_offset;
         argv += arg_offset;
 
         state_info = rte_calloc("state", 1, sizeof(struct state_info), 0);
         if (state_info == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF state");
         }
 
@@ -329,21 +344,22 @@ main(int argc, char *argv[]) {
         state_info->num_stored = 0;
 
         if (parse_app_args(argc, argv, progname) < 0) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments");
         }
 
         state_info->ft = onvm_ft_create(TBL_SIZE, sizeof(struct flow_stats));
         if (state_info->ft == NULL) {
-                onvm_nflib_stop(nf_info);
+                onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
         /*Initialize NF timer */
         state_info->elapsed_cycles = rte_get_tsc_cycles();
 
-        onvm_nflib_run_callback(nf_info, &packet_handler, &callback_handler);
+        onvm_nflib_run(nf_local_ctx);
 
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending!\n");
         return 0;
 }
