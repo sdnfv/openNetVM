@@ -19,9 +19,9 @@ A CloudLab template is available with the latest release here: https://www.cloud
 **Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
 
 ### NFD library with example NFS
-Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China.
+Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China. NFD compiles the NF logic into a common C++ program by using table-form language to model NFs' behavior. 
 
-NFD compiles the NF logic into common C++ program by using table-form language to model NFs' behavior . With NFD's help, NF developer, free from the problems that porting NFs into specific network environment or deploying platforms, can easily concentrate on designing NF's core logic. 
+**The NFD compiler itself isn't included, only the NFs that were created with it.**
 
 A list of provided NFs using NFD library:
  - DNS Amplification Mitigation
@@ -35,8 +35,8 @@ A list of provided NFs using NFD library:
 
 ### Continuous Integration updates:
 CI got a few major updates this release:
- - CI will do basic lint checks and branch checks(all PRs should be submitted against the *develop* branch) for unathorized users
- - If CI is working on a request and recives another request it will append it to the queue instead of dropping it
+ - CI will do basic lint checks and branch checks(all PRs should be submitted against the *develop* branch) for unauthorized users
+ - If CI is working on a request and receives another request it will append it to the queue instead of dropping it
  - CI will now run Pktgen as an additional test metric.
 
 ### Minor improvements
