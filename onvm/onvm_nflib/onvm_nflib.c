@@ -288,6 +288,43 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 }
 
 int
+onvm_nflib_request_ft(struct ft_request *ft_req) {
+        RTE_LOG(INFO, APP, "Debug at beginning of request\n");
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        RTE_LOG(INFO, APP, "Debug before rte_mepool_get\n");
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) {
+                RTE_LOG(INFO, APP, "Couldnt get mempool\n");
+                return ret;
+        }
+
+        RTE_LOG(INFO, APP, "Debug before vals are set\n");
+
+        request_message->msg_type = MSG_REQUEST_FT;
+        request_message->msg_data = ft_req;
+        RTE_LOG(INFO, APP, "Debug after vals are set\n");
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        RTE_LOG(INFO, APP, "Debug at enqueue of message\n");
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        ft_req->status = NF_WAITING_FOR_FT;
+        for (; ft_req->status == (uint16_t) NF_WAITING_FOR_FT;) {
+                sleep(1);
+        }
+        RTE_LOG(INFO, APP, "Debug at end of request\n");
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return ft_req->status;
+}
+
+int
 onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func nf_signal_handler) {
         /* Signal handling is global thus save global context */
         main_nf_local_ctx = nf_local_ctx;

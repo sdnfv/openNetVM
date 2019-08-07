@@ -108,6 +108,9 @@ onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
+static void
+onvm_nf_init_ft(struct ft_request *ft);
+
 /********************************Interfaces***********************************/
 
 uint16_t
@@ -152,6 +155,7 @@ onvm_nf_check_status(void) {
         struct onvm_nf_msg *msg;
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct lpm_request *req_lpm;
+        struct ft_request *ft;
         uint16_t stop_nf_id;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
@@ -169,6 +173,11 @@ onvm_nf_check_status(void) {
                                 // TODO: Add stats event handler here
                                 req_lpm = (struct lpm_request *)msg->msg_data;
                                 onvm_nf_init_lpm_region(req_lpm);
+                                break;
+                        case MSG_REQUEST_FT:
+                                RTE_LOG(INFO, APP, "Debug at message dequeue\n");
+                                ft = (struct ft_request *) msg->msg_data;
+                                onvm_nf_init_ft(ft);
                                 break;
                         case MSG_NF_STARTING:
                                 nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
@@ -415,6 +424,26 @@ onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
                 req_lpm->status = 0;
         } else {
                 req_lpm->status = -1;
+        }
+}
+
+static void
+onvm_nf_init_ft(struct ft_request *ft) {
+        RTE_LOG(INFO, APP, "Debug in init\n");
+        struct rte_hash *hash;
+        struct rte_hash_parameters ipv4_hash_parameters = {
+                .name = ft->name,
+                .entries = ft->entries,
+                .key_len = ft->key_len,
+                .hash_func = ft->hash_func,
+                .hash_func_init_val = ft->hash_func_init_val,
+        };
+
+        hash = rte_hash_create(&ipv4_hash_parameters);
+        if (hash) {
+                ft->status = 0;
+        } else {
+                ft->status = -1;
         }
 }
 

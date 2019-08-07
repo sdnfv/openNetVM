@@ -270,6 +270,9 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 int
 onvm_nflib_request_lpm(struct lpm_request *req);
 
+int
+onvm_nflib_request_ft(struct ft_request *req);
+
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 
