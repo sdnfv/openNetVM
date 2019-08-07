@@ -13,6 +13,42 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v19.07 (7/19): NFD library and example NFs, Continuous Integration updates, minor improvements and bug fixes.
+A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
+
+**Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
+
+### NFD library with example NFS
+Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China. NFD compiles the NF logic into a common C++ program by using table-form language to model NFs' behavior. 
+
+**The NFD compiler itself isn't included, only the NFs that were created with it.**
+
+A list of provided NFs using NFD library:
+ - DNS Amplification Mitigation
+ - Super Spread Detection
+ - Heavy Hitter Detection
+ - SYN Flood Detection
+ - UDP Flood Detection
+ - Stateless Firewall
+ - Stateful Firewall
+ - NAPT
+
+### Continuous Integration updates:
+CI got a few major updates this release:
+ - CI will do basic lint checks and branch checks(all PRs should be submitted against the *develop* branch) for unauthorized users
+ - If CI is working on a request and receives another request it will append it to the queue instead of dropping it
+ - CI will now run Pktgen as an additional test metric.
+
+### Minor improvements
+**Shared core functionality for messages** - adds functionality for NFs using shared core mode to work with NF messages. This means the NF will now sleep when no messages and no packets are enqueued onto a NF's message ring and wakeup if either one is received.  
+
+**NF core rebalancing** - adds functionality for onvm_mgr to remap a NF to a different core, if such occurs(when another NF shuts down). This is disabled by default and can be enabled using the `ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT` macro.
+
+### Bug fixes:
+ - Fix Style guide links
+ - Fix Typo in Stats Header bug fix
+ - Fix Stats Header in Release Notes (twice)
+
 ## v19.05 (5/19): Shared Core Mode, Major Architectural Changes, Advanced Rings Changes, Stats Updates, CI PR Review, LPM Firewall NF, Payload Search NF, TTL Flags, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 

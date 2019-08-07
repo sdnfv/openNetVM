@@ -4,7 +4,7 @@
 set -e
 
 # source helper functions file
-. helper-functions.sh
+. helper-manager-functions.sh
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Config File and Sourcing Variables"
@@ -45,9 +45,16 @@ else
     REQUEST=$4
 fi
 
+if [[ -z "$5" ]]
+then
+    echo "ERROR: Missing fifth argument, Run mode type!"
+    exit 1 
+else
+    RUN_MODE=$5
+fi
+
 . $1 # source the variables from config file
 
-print_header "ONVM Performance Testing"
 print_header "Checking Required Variables"
 
 if [[ -z "$WORKER_LIST" ]]
@@ -71,7 +78,7 @@ fi
 print_header "Cleaning up Old Results"
 
 sudo rm -f *.txt
-sudo rm -rf stats
+sudo rm -rf *stats
 sudo rm -rf repository
 
 print_header "Checking Worker and GitHub Creds Exist"
@@ -100,28 +107,6 @@ done
 # turn off error checking
 set +e
 
-print_header "Ensuring Dependencies are Installed"
-
-sudo apt install -y python3
-sudo apt install -y python3-pip
-
-python3 -V
-check_exit_code "ERROR: Python not installed"
-
-pip3 -V
-check_exit_code "ERROR: Pip not installed"
-
-sudo -H pip3 install virtualenv --upgrade
-
-sudo -H pip3 install paramiko
-check_exit_code "ERROR: Paramiko not installed or failed to install"
-
-sudo -H pip3 install --pre github3.py
-check_exit_code "ERROR: GitHub3.py not installed or failed to install"
-
-sudo -H pip3 install pexpect
-check_exit_code "ERROR: Pexpect not installed or failed to install"
-
 print_header "Fetching and Checking Out Pull Request"
 python3 clone-and-checkout-pr.py $GITHUB_CREDS "{\"id\": $PR_ID}" $REPO_OWNER $REPO_NAME
 check_exit_code "ERROR: Failed to fetch and checkout pull request"
@@ -132,8 +117,16 @@ rm -f ../linter-output.txt
 run_linter ../linter-output.txt
 cd ..
 
-print_header "Preparing Workers"
+if [[ "$RUN_MODE" -eq "1" ]]
+then
+    # only run linter and develop checks if unauthorized
+    print_header "Posting Results in Comment on GitHub"
+    python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1,\"review\": 1}" $REPO_OWNER $REPO_NAME "Run successful see results:"
+    check_exit_code "ERROR: Failed to post results to GitHub"
+    exit 0
+fi
 
+print_header "Preparing Workers"
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
@@ -163,10 +156,16 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./repository $worker_ip:
+    # make sure the config file is updated with the correct run mode
+    sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker_files/worker-config
+    # create directory for scp
+    mkdir temp
+    # put all files in one temporary folder for one scp
+    cp -r ./$worker_ip/* ./repository ./worker_files/* temp
+    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* $worker_ip: 
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null helper-functions.sh worker.sh $worker_ip:
-    check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
+    # get rid of the temp folder now for next worker
+    sudo rm -rf temp
 done
 
 print_header "Running Workloads on Workers"
@@ -180,18 +179,30 @@ do
 done
 
 print_header "Obtaining Performance Results from all workers"
-
-rm -f results_summary.stats
-
 for worker_tuple in "${WORKER_LIST[@]}"
 do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    scp -i $worker_key_file -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $worker_ip:stats ./$worker_ip.stats
-    check_exit_code "ERROR: Failed to fetch results from $worker_ip"
-    # TODO: this will overwrite results if we have more  than 1 worker, investigate this case
-    python3 speed-tester-analysis.py ./$worker_ip.stats $worker_ip results_summary.stats
+    # get the benchmarks for each node (some servers are faster)
+    . ./$worker_ip/benchmarks
+    # TODO: this will overwrite results if we have more than 1 worker, investigate this case
+    if [[ "$RUN_MODE" -eq "0" ]]
+    then
+        # fetch pktgen stats 
+        fetch_files $worker_key_file $worker_ip pktgen_stats
+        python3 pktgen-analysis.py ./$worker_ip.pktgen_stats $worker_ip pktgen_summary.stats $AVG_PKTGEN_SPEED
+        check_exit_code "Failed to parse Pktgen stats"
+        # fetch speed_tester stats
+        fetch_files $worker_key_file $worker_ip speed_stats
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $AVG_SPEED_TESTER_SPEED
+        check_exit_code "Failed to parse Speed Tester stats"
+    else
+        # only fetch speed tester stats if mode is not 0
+        fetch_files $worker_key_file $worker_ip speed_stats
+        python3 speed-tester-analysis.py ./$worker_ip.speed_stats $worker_ip speed_summary.stats $AVG_SPEED_TESTER_SPEED
+        check_exit_code "Failed to parse Speed Tester stats"
+    fi
     check_exit_code "ERROR: Failed to analyze results from $worker_ip"
 done
 

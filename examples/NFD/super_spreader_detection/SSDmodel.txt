@@ -1,0 +1,53 @@
+/**********************************************************************************
+                         NFD project
+   A C++ based NF developing framework designed by Wenfei's group 
+   from IIIS, Tsinghua University, China.
+******************************************************************************/
+
+/************************************************************************************
+* Filename:   SSDmodel.txt
+* Author:     Hongyi Huang(hhy17 AT mails.tsinghua.edu.cn), Bangwen Deng, Wenfei Wu
+* Copyright:
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    This file is a model file for NFD project, used to be compiled into NFD-NF
+*************************************************************************************/
+
+
+program SSD{
+    map<IP,int> list;
+    map<IP,int> tlist;
+    int threshold=100;
+
+    entry{
+        match_flow{f[flag_syn]==1}
+        match_state{tlist[f[sip]]==1}
+        action_flow{f[dip]==DROP;}
+    }
+    entry{
+        match_flow{f[flag_syn]==1 }
+        match_state{tlist[f[sip]]!=1 && list[f[sip]]!= threshold}
+        action_state{list[f[sip]]=list[f[sip]]+1;}
+    }
+    entry{
+        match_flow{f[flag_syn]==1}
+        match_state{tlist[f[sip]]!=1 && list[f[sip]]== threshold}
+        action_state{tlist[f[sip]]=1;}
+        action_flow{f[dip]=DROP;}
+    }
+    entry{
+        match_flow{f[flag_fin]==1}
+        match_state{tlist[f[sip]]==1}
+        action_state{list[f[sip]]=list[f[sip]]-1;}
+        action_state{tlist[f[sip]]=0;}
+    }
+    entry{
+        match_flow{f[flag_fin]==1}
+        action_state{list[f[sip]]=list[f[sip]]-1;}
+    }
+    entry{
+        match_flow{f[flag_syn]!=1 && f[flag_fin]==1}
+        action_flow{pass;}
+        action_state{pass;}
+    }
+
+}

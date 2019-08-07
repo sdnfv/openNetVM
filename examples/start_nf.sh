@@ -24,6 +24,8 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 NF_NAME=$1
 NF_PATH=$SCRIPTPATH/$NF_NAME
+# For NFD NF 
+NF_NAME=${NF_PATH##*/}
 BINARY=$NF_PATH/build/app/$NF_NAME
 DPDK_BASE_ARGS="-n 3 --proc-type=secondary"
 # For simple mode, only used for initial dpdk startup

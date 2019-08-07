@@ -36,47 +36,6 @@ print_header() {
     done
     echo "--"
     echo ""
-
-    sleep 1
-}
-
- # sets up dpdk, sets env variables, and runs the install script
-install_env() {
-    git submodule sync 
-    git submodule update --init
-
-    echo export ONVM_HOME=$(pwd) >> ~/.bashrc
-    export ONVM_HOME=$(pwd)
-
-    cd dpdk
-
-    echo export RTE_SDK=$(pwd) >> ~/.bashrc
-    export RTE_SDK=$(pwd)
-
-    echo export RTE_TARGET=x86_64-native-linuxapp-gcc  >> ~/.bashrc
-    export RTE_TARGET=x86_64-native-linuxapp-gcc
-
-    echo export ONVM_NUM_HUGEPAGES=1024 >> ~/.bashrc
-    export ONVM_NUM_HUGEPAGES=1024
-
-    echo $RTE_SDK
-
-    sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
-
-    cd ../
-    pwd
-    . ./scripts/install.sh
-}
-
-# makes all onvm code
-build_onvm() {
-    cd onvm
-    make clean && make
-    cd ../
-
-    cd examples
-    make clean && make
-    cd ../
 }
 
 # obtains core config in cores.out file
@@ -141,4 +100,10 @@ run_linter() {
             echo "Total errors found: $errors_found" >> $1
         fi
     done
+}
+
+# inputs are key_file, worker ip address, stats file - in that order 1,2,3
+fetch_files() {
+    scp -i $1 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $2:$3 ./$2.$3
+    check_exit_code "ERROR: Failed to fetch results from $2"
 }

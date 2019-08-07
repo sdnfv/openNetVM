@@ -57,6 +57,9 @@
 #include "onvm_config_common.h"
 #include "onvm_msg_common.h"
 
+#define ONVM_NF_HANDLE_TX 1                   // should be true if NFs primarily pass packets to each other
+#define ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT 0  // should be true if on NF shutdown onvm_mgr tries to reallocate cores
+
 #define ONVM_MAX_CHAIN_LENGTH 4  // the maximum chain length
 #define MAX_NFS 128              // total number of concurrent NFs allowed (-1 because ID 0 is reserved)
 #define MAX_SERVICES 32          // total number of unique services allowed
@@ -75,6 +78,7 @@
 #define ONVM_NF_ACTION_OUT  3  // send the packet out the NIC port set in the argument field
 
 #define PKT_WAKEUP_THRESHOLD 1 // for shared core mode, how many packets are required to wake up the NF
+#define MSG_WAKEUP_THRESHOLD 1 // for shared core mode, how many messages on an NF's ring are required to wake up the NF
 
 /* Used in setting bit flags for core options */
 #define MANUAL_CORE_ASSIGNMENT_BIT 0
@@ -397,7 +401,6 @@ struct lpm_request {
 #define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
 
 #define NF_NO_ID -1
-#define ONVM_NF_HANDLE_TX 1  // should be true if NFs primarily pass packets to each other
 
 /*
  * Given the rx queue name template above, get the queue name
@@ -469,7 +472,7 @@ get_sem_name(unsigned id) {
 
 static inline int
 whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info) {
-        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD)
+        if (rte_ring_count(nf->rx_q) < PKT_WAKEUP_THRESHOLD && rte_ring_count(nf->msg_q) < MSG_WAKEUP_THRESHOLD)
                 return 0;
 
         /* Check if its already woken up */

@@ -1,4 +1,3 @@
-access_log
 config
 webhook-config.json
 encrypted_secret.bin
@@ -10,4 +9,7 @@ repository
 linter-output.txt
 *key
 *.pub
-*.stats
+*stats
+*out*
+*log*
+nimbnode*

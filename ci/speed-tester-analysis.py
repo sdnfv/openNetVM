@@ -3,8 +3,6 @@ import os
 import json
 import re
 
-AVG_SPEED = 35000000
-
 """
 get median value of tx pps
 """
@@ -16,13 +14,14 @@ def median(array):
     else:
         return (array[half - 1] + array[half]) / 2.0
 
-if(len(sys.argv) != 4):
+if(len(sys.argv) != 5):
     print("ERROR: Invalid arguments.")
     sys.exit(1)
 
 STATS_FILE = sys.argv[1]
 STATS_NODE_NAME = sys.argv[2]
 OUT_FILE = sys.argv[3]
+AVG_SPEED = int(sys.argv[4])
 
 with open(STATS_FILE, "r") as f:
     contents = f.read()
@@ -41,7 +40,8 @@ if (performance_rating < 97):
 else:    
     results['pass_performance_check'] = True
 results['performance_rating'] = performance_rating
-results['summary'] = "[Results from %s]\n - Median TX pps for Speed Tester: %d\n - Performance rating - %.2f%% (compared to %d average)" % (STATS_NODE_NAME, median_speed, performance_rating, AVG_SPEED)
+results['results_from'] = "[Results from %s]" % (STATS_NODE_NAME)
+results['summary'] = "\n - Median TX pps for Speed Tester: %d\n  Performance rating - %.2f%% (compared to %d average)" % (median_speed, performance_rating, AVG_SPEED)
 
 with open(OUT_FILE, 'w') as outfile:
     json.dump(results, outfile)
