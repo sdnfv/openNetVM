@@ -65,7 +65,7 @@ if [[ $dash_dash_cnt -ge 2 ]]; then
   ONVM_ARGS="$(echo " ""$@" | awk -F "--" '{print $2;}')"
   # Move to NF arguments
   shift ${non_nf_arg_cnt}
-  if [[ $DPDK_ARGS == *"-l"* ]] && [[ ! $ONVM_ARGS == *"-m"* ]]; then
+  if [[ $DPDK_ARGS =~ "-l" && ! $ONVM_ARGS =~ "-m" ]]; then
     echo "Warning: Include -m flag in order to bind core specified in -l"
   fi
 elif [[ $dash_dash_cnt -eq 0 ]]; then
