@@ -363,13 +363,8 @@ struct lpm_request {
 };
 
 struct ft_request {
-        char *name;
-        int socket_id;
+        struct rte_hash_parameters *ipv4_hash_params;
         int status;
-        uint32_t entries;
-        uint32_t key_len;
-        uint32_t hash_func_init_val;
-        rte_hash_function hash_func;
 };
 
 /* define common names for structures shared between server and NF */
