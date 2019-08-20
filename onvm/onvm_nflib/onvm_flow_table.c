@@ -91,7 +91,7 @@ onvm_ft_create(int cnt, int entry_size) {
         }
 
         ft = (struct onvm_ft *) rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
-        if (ft == NULL) {
+        if (!ft) {
                 rte_hash_free(hash);
                 return NULL;
         }

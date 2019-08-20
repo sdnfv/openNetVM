@@ -108,9 +108,14 @@ onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
+/*
+ * Function that initializes a hashtable for a flow_table struct
+ *
+ * Input : the address of a ft_request struct
+ * Output : a return code based on initialization of a FT object (similar to LPM request)
+ */
 static void
 onvm_nf_init_ft(struct ft_request *ft);
-
 /********************************Interfaces***********************************/
 
 uint16_t
