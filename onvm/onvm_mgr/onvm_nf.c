@@ -175,7 +175,6 @@ onvm_nf_check_status(void) {
                                 onvm_nf_init_lpm_region(req_lpm);
                                 break;
                         case MSG_REQUEST_FT:
-                                RTE_LOG(INFO, APP, "Debug at message dequeue\n");
                                 ft = (struct ft_request *) msg->msg_data;
                                 onvm_nf_init_ft(ft);
                                 break;
@@ -429,7 +428,6 @@ onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
 
 static void
 onvm_nf_init_ft(struct ft_request *ft) {
-        RTE_LOG(INFO, APP, "Debug in init\n");
         struct rte_hash *hash;
         struct rte_hash_parameters ipv4_hash_parameters = {
                 .name = ft->name,

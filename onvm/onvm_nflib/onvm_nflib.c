@@ -288,27 +288,34 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 }
 
 int
-onvm_nflib_request_ft(struct ft_request *ft_req) {
-        RTE_LOG(INFO, APP, "Debug at beginning of request\n");
+onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
         struct onvm_nf_msg *request_message;
+        struct ft_request *ft_req;
         int ret;
 
-        RTE_LOG(INFO, APP, "Debug before rte_mepool_get\n");
+        ft_req = (struct ft_request *) rte_malloc(NULL, sizeof(struct ft_request), 0);
+        ft_req->name = (char *) rte_malloc(NULL, 64, 0);
+        if (!ft_req || !ft_req->name) {
+                return -1;
+        }
 
         ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
         if (ret != 0) {
-                RTE_LOG(INFO, APP, "Couldnt get mempool\n");
+                rte_mempool_put(nf_msg_pool, request_message);
                 return ret;
         }
 
-        RTE_LOG(INFO, APP, "Debug before vals are set\n");
+        snprintf(ft_req->name, 64, "%s", ipv4_hash_params->name);
+        ft_req->entries = ipv4_hash_params->entries;
+        ft_req->socket_id = ipv4_hash_params->socket_id;
+        ft_req->key_len = ipv4_hash_params->key_len;
+        ft_req->hash_func = ipv4_hash_params->hash_func;
+        ft_req->hash_func_init_val = ipv4_hash_params->hash_func_init_val;
 
         request_message->msg_type = MSG_REQUEST_FT;
         request_message->msg_data = ft_req;
-        RTE_LOG(INFO, APP, "Debug after vals are set\n");
 
         ret = rte_ring_enqueue(mgr_msg_queue, request_message);
-        RTE_LOG(INFO, APP, "Debug at enqueue of message\n");
         if (ret < 0) {
                 rte_mempool_put(nf_msg_pool, request_message);
                 return ret;
@@ -318,7 +325,6 @@ onvm_nflib_request_ft(struct ft_request *ft_req) {
         for (; ft_req->status == (uint16_t) NF_WAITING_FOR_FT;) {
                 sleep(1);
         }
-        RTE_LOG(INFO, APP, "Debug at end of request\n");
 
         rte_mempool_put(nf_msg_pool, request_message);
         return ft_req->status;

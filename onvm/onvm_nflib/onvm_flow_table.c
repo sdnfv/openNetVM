@@ -57,56 +57,40 @@ uint8_t rss_symmetric_key[40] = {
  * data array for storing values. Only supports IPv4 5-tuple lookups. */
 struct onvm_ft *
 onvm_ft_create(int cnt, int entry_size) {
-        RTE_LOG(INFO, APP, "Entering create func\n");
         struct rte_hash *hash;
+        struct rte_hash_parameters *ipv4_hash_params;
         struct onvm_ft *ft;
-        char *name;
         int status;
-        struct ft_request *ft_req;
 
-        ft_req = (struct ft_request *) rte_malloc(NULL, sizeof(struct ft_request), 0);
-        name = (char *) rte_malloc(NULL, 64, 0);
+        ipv4_hash_params = (struct rte_hash_parameters *) rte_calloc(NULL, 1, sizeof(struct rte_hash_parameters), 0);
+        if (!ipv4_hash_params) {
+                return NULL;
+        }
 
-        if (!ft_req || !name) return NULL;
-        RTE_LOG(INFO, APP, "Debug 2\n");
-
-//        struct rte_hash_parameters ipv4_hash_params = {
-//            .name = NULL,
-//            .entries = cnt,
-//            .key_len = sizeof(struct onvm_ft_ipv4_5tuple),
-//            .hash_func = NULL,
-//            .hash_func_init_val = 0,
-//        };
-
-//        char s[64];
+        char name[64];
         /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
-        ft_req->name = name;
-        ft_req->entries = cnt;
-        ft_req->socket_id = rte_socket_id();
-        ft_req->key_len = sizeof(struct onvm_ft_ipv4_5tuple);
-        ft_req->hash_func = NULL;
-        ft_req->hash_func_init_val = 0;
-//        ipv4_hash_params.name = s;
-//        ipv4_hash_params.socket_id = rte_socket_id();
-        snprintf(name, 64, "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
-//        hash = rte_hash_create(&ipv4_hash_params);
-        RTE_LOG(INFO, APP, "Debug 3\n");
-        status = onvm_nflib_request_ft(ft_req);
-        RTE_LOG(INFO, APP, "Debug 4\n");
-//        if (hash == NULL) {
-//                return NULL;
-//        }
-        if (status < 0) {
+        ipv4_hash_params->entries = cnt;
+        ipv4_hash_params->key_len = sizeof(struct onvm_ft_ipv4_5tuple);
+        ipv4_hash_params->hash_func = NULL;
+        ipv4_hash_params->hash_func_init_val = 0;
+        ipv4_hash_params->name = name;
+        ipv4_hash_params->socket_id = rte_socket_id();
+        snprintf(name, sizeof(name), "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+        if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+                hash = rte_hash_create(ipv4_hash_params);
+        } else {
+                status = onvm_nflib_request_ft(ipv4_hash_params);
+                if (status < 0) {
+                        return NULL;
+                }
+                hash = rte_hash_find_existing(name);
+        }
+
+        if (!hash) {
                 return NULL;
         }
 
-        hash = rte_hash_find_existing(name);
-
-        if (hash == NULL) {
-                return NULL;
-        }
-
-        ft = (struct onvm_ft *)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
+        ft = (struct onvm_ft *) rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
         if (ft == NULL) {
                 rte_hash_free(hash);
                 return NULL;
@@ -116,7 +100,7 @@ onvm_ft_create(int cnt, int entry_size) {
         ft->entry_size = entry_size;
         /* Create data array for storing values */
         ft->data = rte_calloc("entry", cnt, entry_size, 0);
-        if (ft->data == NULL) {
+        if (!ft->data) {
                 rte_hash_free(hash);
                 rte_free(ft);
                 return NULL;

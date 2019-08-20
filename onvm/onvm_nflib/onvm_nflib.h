@@ -271,7 +271,7 @@ int
 onvm_nflib_request_lpm(struct lpm_request *req);
 
 int
-onvm_nflib_request_ft(struct ft_request *req);
+onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params);
 
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
