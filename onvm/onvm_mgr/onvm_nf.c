@@ -434,15 +434,8 @@ onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
 static void
 onvm_nf_init_ft(struct ft_request *ft) {
         struct rte_hash *hash;
-        struct rte_hash_parameters ipv4_hash_parameters = {
-                .name = ft->name,
-                .entries = ft->entries,
-                .key_len = ft->key_len,
-                .hash_func = ft->hash_func,
-                .hash_func_init_val = ft->hash_func_init_val,
-        };
 
-        hash = rte_hash_create(&ipv4_hash_parameters);
+        hash = rte_hash_create(&ft->ipv4_hash_params);
         if (hash) {
                 ft->status = 0;
         } else {

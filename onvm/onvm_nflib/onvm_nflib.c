@@ -294,7 +294,6 @@ onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
         int ret;
 
         ft_req = (struct ft_request *) rte_malloc(NULL, sizeof(struct ft_request), 0);
-        ft_req->name = (char *) rte_malloc(NULL, 64, 0);
         if (!ft_req || !ft_req->name) {
                 return -1;
         }
@@ -305,12 +304,7 @@ onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
                 return ret;
         }
 
-        snprintf(ft_req->name, 64, "%s", ipv4_hash_params->name);
-        ft_req->entries = ipv4_hash_params->entries;
-        ft_req->socket_id = ipv4_hash_params->socket_id;
-        ft_req->key_len = ipv4_hash_params->key_len;
-        ft_req->hash_func = ipv4_hash_params->hash_func;
-        ft_req->hash_func_init_val = ipv4_hash_params->hash_func_init_val;
+        ft_req->ipv4_hash_params = ipv4_hash_params;
 
         request_message->msg_type = MSG_REQUEST_FT;
         request_message->msg_data = ft_req;
