@@ -294,7 +294,7 @@ onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
         int ret;
 
         ft_req = (struct ft_request *) rte_malloc(NULL, sizeof(struct ft_request), 0);
-        if (!ft_req || !ft_req->name) {
+        if (!ft_req) {
                 return -1;
         }
 

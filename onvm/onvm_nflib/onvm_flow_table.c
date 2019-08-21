@@ -62,12 +62,12 @@ onvm_ft_create(int cnt, int entry_size) {
         struct onvm_ft *ft;
         int status;
 
-        ipv4_hash_params = (struct rte_hash_parameters *) rte_calloc(NULL, 1, sizeof(struct rte_hash_parameters), 0);
+        ipv4_hash_params = (struct rte_hash_parameters *) rte_malloc(NULL, sizeof(struct rte_hash_parameters), 0);
         if (!ipv4_hash_params) {
                 return NULL;
         }
 
-        char name[64];
+        char *name = rte_malloc(NULL, 64, 0);
         /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
         ipv4_hash_params->entries = cnt;
         ipv4_hash_params->key_len = sizeof(struct onvm_ft_ipv4_5tuple);
@@ -75,7 +75,8 @@ onvm_ft_create(int cnt, int entry_size) {
         ipv4_hash_params->hash_func_init_val = 0;
         ipv4_hash_params->name = name;
         ipv4_hash_params->socket_id = rte_socket_id();
-        snprintf(name, sizeof(name), "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+        snprintf(name, 64, "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+
         if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
                 hash = rte_hash_create(ipv4_hash_params);
         } else {

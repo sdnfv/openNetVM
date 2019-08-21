@@ -435,7 +435,7 @@ static void
 onvm_nf_init_ft(struct ft_request *ft) {
         struct rte_hash *hash;
 
-        hash = rte_hash_create(&ft->ipv4_hash_params);
+        hash = rte_hash_create(ft->ipv4_hash_params);
         if (hash) {
                 ft->status = 0;
         } else {
