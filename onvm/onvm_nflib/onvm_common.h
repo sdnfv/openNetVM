@@ -362,6 +362,9 @@ struct lpm_request {
         int status;
 };
 
+/* 
+ * Structure used to initiate a flow tables hash_table from a secondary process, it is enqueued onto the managers message ring
+ */
 struct ft_request {
         struct rte_hash_parameters *ipv4_hash_params;
         int status;
