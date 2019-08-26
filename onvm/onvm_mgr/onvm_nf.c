@@ -108,6 +108,14 @@ onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
+/*
+ * Function that initializes a hashtable for a flow_table struct
+ *
+ * Input : the address of a ft_request struct
+ * Output : a return code based on initialization of a FT object (similar to LPM request)
+ */
+static void
+onvm_nf_init_ft(struct ft_request *ft);
 /********************************Interfaces***********************************/
 
 uint16_t
@@ -152,6 +160,7 @@ onvm_nf_check_status(void) {
         struct onvm_nf_msg *msg;
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct lpm_request *req_lpm;
+        struct ft_request *ft;
         uint16_t stop_nf_id;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
@@ -169,6 +178,10 @@ onvm_nf_check_status(void) {
                                 // TODO: Add stats event handler here
                                 req_lpm = (struct lpm_request *)msg->msg_data;
                                 onvm_nf_init_lpm_region(req_lpm);
+                                break;
+                        case MSG_REQUEST_FT:
+                                ft = (struct ft_request *) msg->msg_data;
+                                onvm_nf_init_ft(ft);
                                 break;
                         case MSG_NF_STARTING:
                                 nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
@@ -415,6 +428,18 @@ onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
                 req_lpm->status = 0;
         } else {
                 req_lpm->status = -1;
+        }
+}
+
+static void
+onvm_nf_init_ft(struct ft_request *ft) {
+        struct rte_hash *hash;
+
+        hash = rte_hash_create(ft->ipv4_hash_params);
+        if (hash) {
+                ft->status = 0;
+        } else {
+                ft->status = -1;
         }
 }
 

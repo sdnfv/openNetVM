@@ -53,6 +53,7 @@
 #include <signal.h>
 #include <rte_ether.h>
 #include <rte_mbuf.h>
+#include <rte_hash.h>
 
 #include "onvm_config_common.h"
 #include "onvm_msg_common.h"
@@ -361,6 +362,14 @@ struct lpm_request {
         int status;
 };
 
+/* 
+ * Structure used to initiate a flow tables hash_table from a secondary process, it is enqueued onto the managers message ring
+ */
+struct ft_request {
+        struct rte_hash_parameters *ipv4_hash_params;
+        int status;
+};
+
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
@@ -399,6 +408,7 @@ struct lpm_request {
 #define NF_CORE_OUT_OF_RANGE 11   // The manually selected core is out of range
 #define NF_CORE_BUSY 12           // The manually selected core is busy
 #define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
+#define NF_WAITING_FOR_FT 14      // NF is waiting for a flow-table request to be fulfilled
 
 #define NF_NO_ID -1
 
