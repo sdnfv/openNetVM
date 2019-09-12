@@ -402,6 +402,7 @@ init_port(uint8_t port_num) {
         if (retval < 0)
                 return retval;
 
+        ports->init[port_num] = 1;
         printf("done: \n");
 
         return 0;
