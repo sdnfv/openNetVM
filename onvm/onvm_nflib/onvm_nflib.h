@@ -270,6 +270,17 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 int
 onvm_nflib_request_lpm(struct lpm_request *req);
 
+/*
+ * Initializes a flow_tables hashmap. Returns the status code, representing the success or failure of the initialization 
+ *
+ * @param rte_hash_parameters
+ *  A hash_params struct containing the properly initialized properties of the hashmap
+ * @return
+ *  Status of the intitialization  
+ */
+int
+onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params);
+
 struct onvm_service_chain *
 onvm_nflib_get_default_chain(void);
 

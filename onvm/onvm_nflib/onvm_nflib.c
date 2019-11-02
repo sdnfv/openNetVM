@@ -288,6 +288,43 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 }
 
 int
+onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
+        struct onvm_nf_msg *request_message;
+        struct ft_request *ft_req;
+        int ret;
+
+        ft_req = (struct ft_request *) rte_malloc(NULL, sizeof(struct ft_request), 0);
+        if (!ft_req) {
+                return -1;
+        }
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        ft_req->ipv4_hash_params = ipv4_hash_params;
+
+        request_message->msg_type = MSG_REQUEST_FT;
+        request_message->msg_data = ft_req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        ft_req->status = NF_WAITING_FOR_FT;
+        for (; ft_req->status == (uint16_t) NF_WAITING_FOR_FT;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return ft_req->status;
+}
+
+int
 onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func nf_signal_handler) {
         /* Signal handling is global thus save global context */
         main_nf_local_ctx = nf_local_ctx;
