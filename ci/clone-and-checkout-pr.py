@@ -15,15 +15,14 @@ REPO_NAME = sys.argv[4]
 with open(sys.argv[1], "r") as credsfile:
     creds = [x.strip() for x in credsfile.readlines()]
 
-if len(creds) != 2:
+if len(creds) != 3:
     print("ERROR: Incorrect number of lines in credentials file!")
-
-username = creds[0]
-password = creds[1]
 
 sys.argv[2] = json.loads(sys.argv[2])['id']
 
-gh = login(username, password=password)
+token = creds[0]
+gh = login(token=token)
+
 if gh is None or str(gh) is "":
     print("ERROR: Could not authenticate with GitHub!")
     sys.exit(1)

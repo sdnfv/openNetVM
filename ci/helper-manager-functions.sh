@@ -104,6 +104,6 @@ run_linter() {
 
 # inputs are key_file, worker ip address, stats file - in that order 1,2,3
 fetch_files() {
-    scp -i $1 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $2:$3 ./$2.$3
+    scp -i $1 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $4@$2:$3 ./$2.$3
     check_exit_code "ERROR: Failed to fetch results from $2"
 }

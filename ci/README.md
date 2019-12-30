@@ -107,7 +107,7 @@ ProxyPassReverse /onvm-ci/ http://nimbnode44:8080/
 <Location /onvm-ci>
   Require all granted
 </Location>
-```  
+```
 (Also need to setup github webhook to post to **http://nimbus.seas.gwu.edu/onvm-ci/github-webhook**)
 
 ### Public and Private CI Runs
@@ -150,4 +150,32 @@ If you are worried if the CI build is offline or want to make sure it is listeni
 Other scripts should be self self-explanatory. 
 
 ### Planned improvements
-The current version of CI will build and report the speed_tester NF performance. We want to expand CI to cover more complex worker configs and multi worker experiments. A proposed solution is adding a worker config with specific setup and execution instructions into the worker list. With a custom worker config, we can instruct 1 worker to run mTCP epserver and the other node to run apache benchmark to measure the server performance. We can also add other experiments into the list, like multi node chains, specific performance benchmarks, etc. This will require running all the worker experiments in the background without blocking, and for determining when workers have finished the task we can periodically check an output file which the worker will write to when it has finished running the experiment. 
+The current version of CI will build and report the speed_tester NF performance. We want to expand CI to cover more complex worker configs and multi worker experiments. A proposed solution is adding a worker config with specific setup and execution instructions into the worker list. With a custom worker config, we can instruct 1 worker to run mTCP epserver and the other node to run apache benchmark to measure the server performance. We can also add other experiments into the list, like multi node chains, specific performance benchmarks, etc. This will require running all the worker experiments in the background without blocking, and for determining when workers have finished the task we can periodically check an output file which the worker will write to when it has finished running the experiment.
+
+### Moving CI Servers
+As CI requires a decent amount of configuration, here are the steps required to move it to another server. This can also be used if a server upgrade is necessary.
+
+**Apache Reverse Proxy**
+The first step is updating the reverse proxy on the nimbus apache config. Go to `/etc/apache2/apache2.conf` and find the lines that are similar to `ProxyPass /onvm-ci/ http://nimbnode44:8080/`. Change the node number to whatever the new server will be in the future. Do this on the `ProxyPassReverse` line as well. Run `sudo service apache2 restart` to take the changes.
+
+**CI User**
+Create a new user for hosting the files and running Continuous Integration.
+```sh
+sudo adduser onvm_ci
+(use LastPass password)
+sudo usermod -aG sudo onvm_ci
+```
+Now we want to run as that user with `sudo su onvm_ci && cd`. Get the onvm repo `git clone https://github.com/onvmstats/openNetVM.git` and then add a remote for upstream `git remote add upstream https://github.com/sdnfv/openNetVM.git`.
+
+**Critical Files**
+There are many files in the `.gitignore` that are not supposed to be shared publicly on ONVM. Thus, we must send them to the new server as they were not included in downloading the repo from github. Use the command `scp -r <file/folder> onvm_ci@<new server>:~/openNetVM/ci` on the following files to send them over:
+        - githubcreds
+        - config
+        - webhook-config.json
+        - encryption-key
+        - encrypted_secret.bin
+        - pubic.pem
+        - private.pem
+        - nimbnode17/
+
+Now start up a `tmux` session, and run CI with the correct config files.

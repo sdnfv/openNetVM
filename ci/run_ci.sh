@@ -64,7 +64,7 @@ check_exit_code "ERROR: Pip not installed"
 sudo -H pip3 install virtualenv --upgrade
 check_exit_code "ERROR: virtualenv had trouble upgrading"
 
-sudo -H pip3 install flask --upgrade 
+sudo -H pip3 install flask --upgrade
 check_exit_code "ERROR: Flask not installed or failed to install"
 
 sudo -H pip3 install --pre github3.py
@@ -75,6 +75,9 @@ check_exit_code "ERROR: Paramiko not installed or failed to install"
 
 sudo -H pip3 install pexpect
 check_exit_code "ERROR: Pexpect not installed or failed to install"
+
+sudo -H pip3 install pycryptodome
+check_exit_code "ERROR: Pycryptodome not installed or failed to install"
 
 print_header "Done Installing, running CI"
 

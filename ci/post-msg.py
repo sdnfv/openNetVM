@@ -36,17 +36,16 @@ def add_results_from_worker(file):
         results = json.load(f)
     if previous_results_from != results['results_from']:
         comment_body += "\n" + results['results_from']
-        previous_results_from = results['results_from'] 
+        previous_results_from = results['results_from']
     comment_body += "\n" + results['summary']
 
 with open(sys.argv[1], "r") as credsfile:
     creds = [x.strip() for x in credsfile.readlines()]
 
-if len(creds) != 2:
+if len(creds) != 3:
     print("ERROR: Incorrect number of lines in credentials file!")
 
-username = creds[0]
-password = creds[1]
+token = creds[0]
 
 data = json.loads(sys.argv[2], strict=False)
 PR_ID = int(data['id'])
@@ -60,7 +59,8 @@ REPO_NAME = str(sys.argv[4])
 
 POST_MSG = sys.argv[5]
 
-gh = login(username, password=password)
+gh = login(token=token)
+
 if gh is None or str(gh) is "":
     print("ERROR: Could not authenticate with GitHub!")
     sys.exit(1)
