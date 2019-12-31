@@ -248,7 +248,7 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
         struct onvm_nf *spawned_nf;
         uint16_t nf_id;
         int ret;
-        
+
         if (nf_init_cfg == NULL || nf_init_cfg->status != NF_WAITING_FOR_ID)
                 return 1;
 
@@ -290,7 +290,6 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
                 nf_init_cfg->status = ret;
                 return 1;
         }
-
 
         spawned_nf->instance_id = nf_id;
         spawned_nf->service_id = nf_init_cfg->service_id;
