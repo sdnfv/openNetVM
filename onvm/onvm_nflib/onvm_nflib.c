@@ -739,11 +739,12 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Ensure we only call nflib_stop once */
         rte_atomic16_set(&nf_local_ctx->nf_stopped, 1);
 
+        /* Terminate children */
+        onvm_nflib_terminate_children(nf_local_ctx->nf);
+
         /* Print statistics summary*/
         onvm_nflib_stats_summary_print(nf_local_ctx->nf->instance_id);
 
-        /* Terminate children */
-        onvm_nflib_terminate_children(nf_local_ctx->nf);
         /* Stop and free */
         onvm_nflib_cleanup(nf_local_ctx);
 }
