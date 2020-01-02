@@ -739,6 +739,9 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Ensure we only call nflib_stop once */
         rte_atomic16_set(&nf_local_ctx->nf_stopped, 1);
 
+        /* Print statistics summary*/
+        onvm_nflib_stats_summary_print(nf_local_ctx->nf->instance_id);
+
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
         /* Stop and free */
@@ -1289,4 +1292,35 @@ init_shared_core_mode_info(uint16_t instance_id) {
                 rte_exit(EXIT_FAILURE, "Can not attach the shared segment to the NF space for NF %d\n", instance_id);
 
         nf->shared_core.sleep_state = (rte_atomic16_t *)shm;
+}
+
+void
+onvm_nflib_stats_summary_print(uint16_t id) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+        const uint64_t rx = nfs[id].stats.rx;
+        const uint64_t rx_drop = nfs[id].stats.rx_drop;
+        const uint64_t tx = nfs[id].stats.tx;
+        const uint64_t tx_drop = nfs[id].stats.tx_drop;
+        const uint64_t act_out = nfs[id].stats.act_out;
+        const uint64_t act_tonf = nfs[id].stats.act_tonf;
+        const uint64_t act_drop = nfs[id].stats.act_drop;
+        const uint64_t act_next = nfs[id].stats.act_next;
+        const uint64_t act_buffer = nfs[id].stats.tx_buffer;
+        const uint64_t act_returned = nfs[id].stats.tx_returned;
+
+        /* Clear screen and move to top left */
+        printf("%s%s", clr, topLeft);
+        printf("NF activity summary\n");
+        printf("----------------------------------------------------\n");
+        printf("RX tot: %ld\n", rx);
+        printf("RX tot dropped: %ld\n", rx_drop);
+        printf("TX tot: %ld\n", tx);
+        printf("TX tot dropped: %ld\n", tx_drop);
+        printf("NF sent out: %ld\n", act_out);
+        printf("NF sent to NF: %ld\n", act_tonf);
+        printf("NF dropped: %ld\n", act_drop);
+        printf("NF next: %ld\n", act_next);
+        printf("NF tx buffered: %ld\n", act_buffer);
+        printf("NF tx returned: %ld\n\n", act_returned);
 }
