@@ -741,7 +741,6 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
-
         /* Print statistics summary*/
         onvm_nflib_stats_summary_print(nf_local_ctx->nf->instance_id);
 
@@ -1309,15 +1308,24 @@ onvm_nflib_stats_summary_print(uint16_t id) {
         const uint64_t act_next = nfs[id].stats.act_next;
         const uint64_t act_buffer = nfs[id].stats.tx_buffer;
         const uint64_t act_returned = nfs[id].stats.tx_returned;
+        char *nf_tag = nfs[id].tag;
+        uint16_t core = nfs[id].thread_info.core;
+        uint16_t service_id = nfs[id].service_id;
+        uint16_t instance_id = nfs[id].instance_id;
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
-        printf("NF activity summary\n");
+        printf("NF Activity summary\n");
         printf("----------------------------------------------------\n");
-        printf("RX tot: %ld\n", rx);
-        printf("RX tot dropped: %ld\n", rx_drop);
-        printf("TX tot: %ld\n", tx);
-        printf("TX tot dropped: %ld\n", tx_drop);
+        printf("NF tag: %s\n", nf_tag);
+        printf("NF instance ID: %d\n", instance_id);
+        printf("NF service ID: %d\n", service_id);
+        printf("NF assigned core: %d\n", core);
+        printf("----------------------------------------------------\n");
+        printf("RX total: %ld\n", rx);
+        printf("RX total dropped: %ld\n", rx_drop);
+        printf("TX total: %ld\n", tx);
+        printf("TX total dropped: %ld\n", tx_drop);
         printf("NF sent out: %ld\n", act_out);
         printf("NF sent to NF: %ld\n", act_tonf);
         printf("NF dropped: %ld\n", act_drop);
