@@ -44,6 +44,7 @@ with open(sys.argv[1], "r") as credsfile:
 
 if len(creds) != 3:
     print("ERROR: Incorrect number of lines in credentials file!")
+    sys.exit(1)
 
 token = creds[0]
 
