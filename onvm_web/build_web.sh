@@ -52,9 +52,7 @@ cp -r react-app/build ./web-build
 
 echo "Minifying web files"
 for css in ./web-build/static/css/*.css; do
-    uglifycss --output $css $css
+    uglifycss --output "$css" "$css"
 done
 
-for js in $(find ./web-build -name '*.js'); do
-    uglifyjs --output $js $js
-done
+find ./web-build -name "*.js" -exec uglifyjs --output {} {} \;

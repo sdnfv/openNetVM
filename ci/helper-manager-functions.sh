@@ -17,23 +17,20 @@ print_header() {
 
     # echo first line of dashes
     echo -n "--"
-    for i in `eval echo {1..$strlen}`
-    do
-        echo -n "-"
-    done
+    # we want to expand the eval
+    # shellcheck disable=SC2046
+    printf '%0.s-' $(eval echo "{1..$strlen}")
     echo "--"
 
      # echo the argument
     echo -n "| "
-    echo -n $1
+    echo -n "$1"
     echo " |"
 
     # echo the second line of dashes
     echo -n "--"
-    for i in `eval echo {1..$strlen}`
-    do
-        echo -n "-"
-    done
+    # shellcheck disable=SC2046
+    printf '%0.s-' $(eval echo "{1..$strlen}")
     echo "--"
     echo ""
 }
@@ -49,17 +46,17 @@ obtain_core_config() {
 check_exit_code() {
     if [ $? -ne 0 ]
     then
-        echo $1
-        cd $SCRIPT_LOC
-    python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1}" $REPO_OWNER $REPO_NAME "Error: $1"
-    exit 1
+        echo "$1"
+        cd "$SCRIPT_LOC"
+        python3 post-msg.py "$GITHUB_CREDS" "{\"id\": $PR_ID,\"request\":\"$REQUEST\",\"linter\": 1}" "$REPO_OWNER" "$REPO_NAME" "Error: $1"
+        exit 1
     fi
 }
 
 # runs the linter
 run_linter() {
     for fn in $(git diff --name-only upstream/develop...HEAD -- '*.c' '*.cpp' '*.h' | grep -v "cJSON" | grep -v "ndpi"); do
-        git_file_diff=$(git diff -U0 upstream/develop...HEAD -- $fn)
+        git_file_diff=$(git diff -U0 upstream/develop...HEAD -- "$fn")
         file_modifications=()
         while read -r diff_line; do
             # line number is denoted by @@ -lines_deleted +lines_added @@
@@ -71,14 +68,14 @@ run_linter() {
                 line_start=$(cut -d ',' -f 1 <<< "$diff_line")
                 line_end=$(cut -d ',' -f 2 <<< "$diff_line")
                 # Expand the comment on one line diff vs multiline->therefore addition
-                [[ ! $line_end == $line_start ]] && line_end=$(($line_start + $line_end))
+                [[ ! $line_end == "$line_start" ]] && line_end=$((line_start + line_end))
                 file_modifications[$line_start]=$line_end
                 # create mapping of start of chunk -> end line
             fi
         done <<< "$git_file_diff"
 
         # loop through the lines changed in the current file
-        file_lint=$(python $SCRIPT_LOC/../style/gwclint.py --verbose=4 $fn 2>&1 | grep -v "Done" | grep -v "Total errors found:")
+        file_lint=$(python "$SCRIPT_LOC"/../style/gwclint.py --verbose=4 "$fn" 2>&1 | grep -v "Done" | grep -v "Total errors found:")
         errors_found=0
         while read -r line; do
             error_line=$(cut -d ':' -f 2 <<< "$line")
@@ -88,8 +85,8 @@ run_linter() {
                 end=${file_modifications[$start]}
                 if [[ $error_line -ge $start && $error_line -le $end ]]; then
                     # git diff and linter output are in range, add to lint file
-                    errors_found=$(($errors_found+1))
-                    echo "$line" >> $1
+                    errors_found=$((errors_found+1))
+                    echo "$line" >> "$1"
                     break
                 fi
             done
@@ -97,13 +94,13 @@ run_linter() {
         # loop through the linter output
         if [[ $errors_found -gt 0 ]]; then
             # only output to file if we had errors
-            echo "Total errors found: $errors_found" >> $1
+            echo "Total errors found: $errors_found" >> "$1"
         fi
     done
 }
 
 # inputs are key_file, worker ip address, stats file - in that order 1,2,3
 fetch_files() {
-    scp -i $1 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null $2:$3 ./$2.$3
+    scp -i "$1" -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null "$2":"$3" ./"$2"."$3"
     check_exit_code "ERROR: Failed to fetch results from $2"
 }

@@ -5,6 +5,8 @@ set -e
 
 # source helper functions file
 . helper-manager-functions.sh
+# SCRIPT_LOC is used in helper-manager-functions.sh
+# shellcheck disable=SC2034
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Input Variables"
@@ -79,4 +81,4 @@ check_exit_code "ERROR: Pexpect not installed or failed to install"
 print_header "Done Installing, running CI"
 
 # run the web server with the input arguments
-python3 webhook-receiver.py $HOST $PORT $KEYWORD $CFG_NAME
+python3 webhook-receiver.py "$HOST" "$PORT" "$KEYWORD" "$CFG_NAME"

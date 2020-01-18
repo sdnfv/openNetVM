@@ -3,6 +3,8 @@
 set -e
 
 . helper-manager-functions.sh
+# SCRIPT_LOC is used in helper-manager-functions.sh
+# shellcheck disable=SC2034
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Config File and Sourcing Variables"
@@ -51,7 +53,7 @@ else
     POST_MSG=$5
 fi
 
-. $1 # source the variables from config file
+. "$1" # source the variables from config file
 
 print_header "Checking Required Variables"
 
@@ -69,5 +71,5 @@ then
 fi
 
 print_header "Posting Message in Comments on GitHub"
-python3 post-msg.py $GITHUB_CREDS "{\"id\": $PR_ID,\"request\":\"$REQUEST\"}" $REPO_OWNER $REPO_NAME "$POST_MSG"
+python3 post-msg.py "$GITHUB_CREDS" "{\"id\": $PR_ID,\"request\":\"$REQUEST\"}" "$REPO_OWNER" "$REPO_NAME" "$POST_MSG"
 check_exit_code "ERROR: Failed to post results to GitHub"
