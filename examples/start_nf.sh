@@ -24,7 +24,7 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 NF_NAME=$1
 NF_PATH=$SCRIPTPATH/$NF_NAME
-# For NFD NF 
+# For NFD NF
 NF_NAME=${NF_PATH##*/}
 BINARY=$NF_PATH/build/app/$NF_NAME
 DPDK_BASE_ARGS="-n 3 --proc-type=secondary"
@@ -82,4 +82,6 @@ elif [[ $dash_dash_cnt -eq 1 ]]; then
   exit 1
 fi
 
-exec sudo "$BINARY" "$DPDK_ARGS" -- "$ONVM_ARGS" -- "$@"
+# don't mess with variable expansion
+# shellcheck disable=SC2086
+exec sudo "$BINARY" $DPDK_ARGS -- $ONVM_ARGS -- "$@"
