@@ -18,7 +18,7 @@ log "Running Speed Tester NF"
 cd ~/repository/examples/speed_tester || echo "ERROR: couldn't cd into speed_tester" && return 1
 ./go.sh 1 -d 1 &>~/speed_stats &
 spd_tstr_pid=$?
-if [ $spd_tstr_pid -ne 1 ]
+if [ $spd_tstr_pid -ne 0 ]
 then
     echo "ERROR: Starting speed tester failed"
     return 1
