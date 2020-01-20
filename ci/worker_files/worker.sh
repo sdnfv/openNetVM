@@ -28,7 +28,7 @@ sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
 sudo apt-get install -y python3
 
-cd repository || echo "ERROR: couldn't cd into repository" && exit 1
+cd repository || exit 1
 log "Beginning Execution of Workload"
 
 log "Installing Environment"
