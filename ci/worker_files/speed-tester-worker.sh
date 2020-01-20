@@ -1,7 +1,7 @@
 #!/bin/bash
 
 log "Running ONVM Manager"
-cd ~/repository/onvm || echo "ERROR: couldn't cd into onvm" && return 1
+cd ~/repository/onvm || return 1
 ./go.sh 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout &>~/onvm_speed_stats &
 mgr_pid=$?
 if [ $mgr_pid -ne 0 ]
@@ -15,7 +15,7 @@ sleep 15
 log "Manager is live"
 
 log "Running Speed Tester NF"
-cd ~/repository/examples/speed_tester || echo "ERROR: couldn't cd into speed_tester" && return 1
+cd ~/repository/examples/speed_tester || return 1
 ./go.sh 1 -d 1 &>~/speed_stats &
 spd_tstr_pid=$?
 if [ $spd_tstr_pid -ne 0 ]
