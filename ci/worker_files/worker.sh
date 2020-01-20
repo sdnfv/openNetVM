@@ -46,7 +46,7 @@ do
     "0")
         . ~/speed-tester-worker.sh
         . ~/pktgen-worker.sh
-        . ~/mtcp-worker.sh
+        # . ~/mtcp-worker.sh
         ;;
     "1")
         . ~/speed-tester-worker.sh

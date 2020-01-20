@@ -134,7 +134,8 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    python3 prepare-worker.py "$worker_ip" "$worker_key_file"
+    worker_user="${tuple_arr[2]}"
+    python3 prepare-worker.py "$worker_ip" "$worker_key_file" "$worker_user"
 done
 
 sleep 10 # wait 10 seconds for reboot to take effect
@@ -158,13 +159,14 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
+    worker_user="${tuple_arr[2]}"
     # make sure the config file is updated with the correct run mode
     sed -i "/WORKER_MODE*/c\\WORKER_MODE=\"${RUN_MODE}\"" worker_files/worker-config
     # create directory for scp
     mkdir temp
     # put all files in one temporary folder for one scp
     cp -r ./"$worker_ip"/* ./repository ./worker_files/* temp
-    scp -i "$worker_key_file" -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* "$worker_ip":
+    scp -i "$worker_key_file" -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r ./temp/* "$worker_user"@"$worker_ip":
     check_exit_code "ERROR: Failed to copy ONVM files to $worker_ip"
     # get rid of the temp folder now for next worker
     sudo rm -rf temp
@@ -176,7 +178,8 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
-    python3 run-workload.py "$worker_ip" "$worker_key_file"
+    worker_user="${tuple_arr[2]}"
+    python3 run-workload.py "$worker_ip" "$worker_key_file" "$worker_user"
     check_exit_code "ERROR: Script failed on $worker_ip"
 done
 
@@ -186,22 +189,23 @@ do
     tuple_arr=($worker_tuple)
     worker_ip="${tuple_arr[0]}"
     worker_key_file="${tuple_arr[1]}"
+    worker_user="${tuple_arr[2]}"
     # get the benchmarks for each node (some servers are faster)
     . ./"$worker_ip"/benchmarks
     # TODO: this will overwrite results if we have more than 1 worker, investigate this case
     if [[ "$RUN_MODE" -eq "0" ]]
     then
-        # fetch pktgen stats
-        fetch_files "$worker_key_file" "$worker_ip" pktgen_stats
+        # fetch pktgen stats 
+        fetch_files "$worker_key_file" "$worker_ip" pktgen_stats "$worker_user"
         python3 pktgen-analysis.py ./"$worker_ip".pktgen_stats "$worker_ip" pktgen_summary.stats "$AVG_PKTGEN_SPEED"
         check_exit_code "Failed to parse Pktgen stats"
         # fetch speed_tester stats
-        fetch_files "$worker_key_file" "$worker_ip" speed_stats
+        fetch_files "$worker_key_file" "$worker_ip" speed_stats "$worker_user"
         python3 speed-tester-analysis.py ./"$worker_ip".speed_stats "$worker_ip" speed_summary.stats "$AVG_SPEED_TESTER_SPEED"
         check_exit_code "Failed to parse Speed Tester stats"
     else
         # only fetch speed tester stats if mode is not 0
-        fetch_files "$worker_key_file" "$worker_ip" speed_stats
+        fetch_files "$worker_key_file" "$worker_ip" speed_stats "$worker_user"
         python3 speed-tester-analysis.py ./"$worker_ip".speed_stats "$worker_ip" speed_summary.stats "$AVG_SPEED_TESTER_SPEED"
         check_exit_code "Failed to parse Speed Tester stats"
     fi

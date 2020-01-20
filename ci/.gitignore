@@ -7,6 +7,7 @@ githubcreds
 mykeyfile
 repository
 linter-output.txt
+auth_token
 *key
 *.pub
 *stats
