@@ -116,6 +116,18 @@ onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
  */
 static void
 onvm_nf_init_ft(struct ft_request *ft);
+
+/*
+ *  Set up the DPDK rings which will be used to pass packets, via
+ *  pointers, between the multi-process server and NF processes.
+ *  Each NF needs one RX queue.
+ *
+ *  Input: An nf struct
+ *  Output: rte_exit if failed, none otherwise
+ */
+static void
+onvm_nf_init_rings(struct onvm_nf *nf);
+
 /********************************Interfaces***********************************/
 
 uint16_t
@@ -236,9 +248,6 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
         struct onvm_nf *spawned_nf;
         uint16_t nf_id;
         int ret;
-        // TODO dynamically allocate memory here - make rx/tx ring
-        // take code from init_shm_rings in init.c
-        // flush rx/tx queue at the this index to start clean?
 
         if (nf_init_cfg == NULL || nf_init_cfg->status != NF_WAITING_FOR_ID)
                 return 1;
@@ -289,6 +298,8 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
         spawned_nf->thread_info.core = nf_init_cfg->core;
         spawned_nf->flags.time_to_live = nf_init_cfg->time_to_live;
         spawned_nf->flags.pkt_limit = nf_init_cfg->pkt_limit;
+        onvm_nf_init_rings(spawned_nf);
+
         // Let the NF continue its init process
         nf_init_cfg->status = NF_STARTING;
         return 0;
@@ -461,4 +472,37 @@ onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
 
         cores[new_core].nf_count++;
         return 0;
+}
+
+static void
+onvm_nf_init_rings(struct onvm_nf *nf) {
+        unsigned instance_id;
+        unsigned socket_id;
+        const char *rq_name;
+        const char *tq_name;
+        const char *msg_q_name;
+        const unsigned ringsize = NF_QUEUE_RINGSIZE;
+        const unsigned msgringsize = NF_MSG_QUEUE_SIZE;
+
+        instance_id = nf->instance_id;
+        socket_id = rte_socket_id();
+        rq_name = get_rx_queue_name(instance_id);
+        tq_name = get_tx_queue_name(instance_id);
+        msg_q_name = get_msg_queue_name(instance_id);
+        nf->rx_q =
+                rte_ring_create(rq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
+        nf->tx_q =
+                rte_ring_create(tq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
+        nf->msg_q =
+                rte_ring_create(msg_q_name, msgringsize, socket_id,
+                                RING_F_SC_DEQ); /* multi prod, single cons */
+
+        if (nf->rx_q == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for NF %u\n", instance_id);
+
+        if (nf->tx_q == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for NF %u\n", instance_id);
+
+        if (nf->msg_q == NULL)
+                rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", instance_id);
 }

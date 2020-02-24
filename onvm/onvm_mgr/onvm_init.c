@@ -83,9 +83,6 @@ init_nf_msg_pool(void);
 static int
 init_port(uint8_t port_num);
 
-static int
-init_shm_rings(void);
-
 static void
 init_shared_sem(void);
 
@@ -240,9 +237,6 @@ init(int argc, char *argv[]) {
         }
 
         check_all_ports_link_status(ports->num_ports, (~0x0));
-
-        /* initialise the NF queues/rings for inter-eu comms */
-        init_shm_rings();
 
         /* initialise a queue for newly created NFs */
         init_info_queue();
@@ -450,50 +444,6 @@ init_shared_sem(void) {
 
                 nf_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
         }
-}
-
-/**
- * Set up the DPDK rings which will be used to pass packets, via
- * pointers, between the multi-process server and NF processes.
- * Each NF needs one RX queue.
- */
-static int
-init_shm_rings(void) {
-        unsigned i;
-        unsigned socket_id;
-        const char *rq_name;
-        const char *tq_name;
-        const char *msg_q_name;
-        const unsigned ringsize = NF_QUEUE_RINGSIZE;
-        const unsigned msgringsize = NF_MSG_QUEUE_SIZE;
-
-        // use calloc since we allocate for all possible NFs
-        // ensure that all fields are init to 0 to avoid reading garbage
-        // TODO plopreiato, move to creation when a NF starts
-        for (i = 0; i < MAX_NFS; i++) {
-                /* Create an RX queue for each NF */
-                socket_id = rte_socket_id();
-                rq_name = get_rx_queue_name(i);
-                tq_name = get_tx_queue_name(i);
-                msg_q_name = get_msg_queue_name(i);
-                nfs[i].instance_id = i;
-                nfs[i].rx_q =
-                    rte_ring_create(rq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
-                nfs[i].tx_q =
-                    rte_ring_create(tq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
-                nfs[i].msg_q =
-                    rte_ring_create(msg_q_name, msgringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
-
-                if (nfs[i].rx_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for NF %u\n", i);
-
-                if (nfs[i].tx_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for NF %u\n", i);
-
-                if (nfs[i].msg_q == NULL)
-                        rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", i);
-        }
-        return 0;
 }
 
 /**
