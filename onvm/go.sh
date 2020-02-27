@@ -36,6 +36,11 @@ nf_cores=$3
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 verbosity=1
+#default base virtual address set
+virt_addr="--base-virtaddr=0x7f000000000"
+
+
+
 
 shift 3
 
