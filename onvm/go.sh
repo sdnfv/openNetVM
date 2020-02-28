@@ -39,9 +39,6 @@ verbosity=1
 #default base virtual address set
 virt_addr="--base-virtaddr=0x7f000000000"
 
-
-
-
 shift 3
 
 if [ -z $nf_cores ]
