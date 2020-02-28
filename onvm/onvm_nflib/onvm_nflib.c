@@ -1312,6 +1312,8 @@ onvm_nflib_stats_summary_print(uint16_t id) {
         uint16_t core = nfs[id].thread_info.core;
         uint16_t service_id = nfs[id].service_id;
         uint16_t instance_id = nfs[id].instance_id;
+        FILE *csv_fp;
+        char *csv_filename;
 
         /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
@@ -1332,4 +1334,41 @@ onvm_nflib_stats_summary_print(uint16_t id) {
         printf("NF next: %ld\n", act_next);
         printf("NF tx buffered: %ld\n", act_buffer);
         printf("NF tx returned: %ld\n\n", act_returned);
+
+        csv_filename = malloc(sizeof(char) * strlen(nf_tag) + 11);
+        if (csv_filename == NULL) {
+                printf("Error: Could not create csv file name for %s\n", nf_tag);
+                return;
+        }
+
+        if (strcpy(csv_filename, nf_tag) == NULL) {
+                printf("Error: Could not strcpy csv filename for %s\n", nf_tag);
+                return;
+        }
+
+        if (strcat(csv_filename, "_stats.csv") == NULL) {
+                printf("Error: Could not strcat csv filename for %s\n", nf_tag);
+                return;
+        }
+        csv_fp = fopen(csv_filename, "w");
+
+        fprintf(csv_fp, "NF tag, NF instance ID, NF service ID, NF assigned core, RX total, "
+                        "RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF, "
+                        "NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned");
+        fprintf(csv_fp, "\n%s", nf_tag);
+        fprintf(csv_fp, ", %d", instance_id);
+        fprintf(csv_fp, ", %d", service_id);
+        fprintf(csv_fp, ", %d", core);
+        fprintf(csv_fp, ", %ld", rx);
+        fprintf(csv_fp, ", %ld", rx_drop);
+        fprintf(csv_fp, ", %ld", tx);
+        fprintf(csv_fp, ", %ld", tx_drop);
+        fprintf(csv_fp, ", %ld", act_out);
+        fprintf(csv_fp, ", %ld", act_tonf);
+        fprintf(csv_fp, ", %ld", act_drop);
+        fprintf(csv_fp, ", %ld", act_next);
+        fprintf(csv_fp, ", %ld", act_buffer);
+        fprintf(csv_fp, ", %ld", act_returned);
+
+        fclose(csv_fp);
 }
