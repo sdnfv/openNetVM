@@ -12,7 +12,7 @@ then
     exit 1
 fi
 
-. "$1" # source config file
+. $1 # source config file
 
 if [[ -z $WORKER_MODE ]]
 then
@@ -23,12 +23,12 @@ fi
 # source helper functions file
 . helper-worker-functions.sh
 
-sudo apt-get install -y build-essential linux-headers-"$(uname -r)" git
+sudo apt-get install -y build-essential linux-headers-$(uname -r) git
 sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
 sudo apt-get install -y python3
 
-cd repository || exit 1
+cd repository
 log "Beginning Execution of Workload"
 
 log "Installing Environment"
@@ -46,20 +46,20 @@ do
     "0")
         . ~/speed-tester-worker.sh
         . ~/pktgen-worker.sh
-        # . ~/mtcp-worker.sh
+        . ~/mtcp-worker.sh
         ;;
     "1")
         . ~/speed-tester-worker.sh
-        ;;
+        ;;  
     "2")
         . ~/pktgen-worker.sh
         ;;
     "3")
         . ~/mtcp-worker.sh
-        ;;
-    *)
+        ;;  
+    *)  
         echo "Worker mode $mode has not been implemented"
-        ;;
+        ;;  
     esac
 done
 

@@ -52,7 +52,6 @@ while getopts "p:" opt; do
     esac
 done
 
-
 # Start ONVM web stats console at http://localhost:<port num>
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
 echo "$web_port"

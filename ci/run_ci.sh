@@ -5,8 +5,6 @@ set -e
 
 # source helper functions file
 . helper-manager-functions.sh
-# SCRIPT_LOC is used in helper-manager-functions.sh
-# shellcheck disable=SC2034
 SCRIPT_LOC=$(pwd)
 
 print_header "Validating Input Variables"
@@ -66,7 +64,7 @@ check_exit_code "ERROR: Pip not installed"
 sudo -H pip3 install virtualenv --upgrade
 check_exit_code "ERROR: virtualenv had trouble upgrading"
 
-sudo -H pip3 install flask --upgrade
+sudo -H pip3 install flask --upgrade 
 check_exit_code "ERROR: Flask not installed or failed to install"
 
 sudo -H pip3 install --pre github3.py
@@ -78,10 +76,7 @@ check_exit_code "ERROR: Paramiko not installed or failed to install"
 sudo -H pip3 install pexpect
 check_exit_code "ERROR: Pexpect not installed or failed to install"
 
-sudo -H pip3 install pycryptodome
-check_exit_code "ERROR: Pycryptodome not installed or failed to install"
-
 print_header "Done Installing, running CI"
 
 # run the web server with the input arguments
-python3 webhook-receiver.py "$HOST" "$PORT" "$KEYWORD" "$CFG_NAME"
+python3 webhook-receiver.py $HOST $PORT $KEYWORD $CFG_NAME

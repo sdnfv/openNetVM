@@ -17,24 +17,20 @@ def line_buffered(f):
             yield line_buf
             line_buf = ''
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 3:
     print("ERROR! Incorrect number of arguments")
     sys.exit(1)
 
 ip = sys.argv[1]
 key_file = sys.argv[2]
-worker_user = sys.argv[3]
 
-def paramiko_run(ip, key_file, worker_user):
-    key = RSAKey.from_private_key_file(key_file)
+key = RSAKey.from_private_key_file(key_file)
 
-    client = SSHClient()
-    client.set_missing_host_key_policy(AutoAddPolicy())
+client = SSHClient()
+client.set_missing_host_key_policy(AutoAddPolicy())
 
-    client.connect(ip, timeout = 30, username=worker_user,  pkey = key)
+client.connect(ip, timeout = 30, pkey = key)
 
-    (stdin, stdout, stderr) = client.exec_command("sudo ./worker.sh worker-config", get_pty=True)
+(stdin, stdout, stderr) = client.exec_command("sudo ./worker.sh worker-config", get_pty=True)
 
-    print(str(stderr.read()))
-
-paramiko_run(ip, key_file, worker_user)
+print(str(stderr.read()))

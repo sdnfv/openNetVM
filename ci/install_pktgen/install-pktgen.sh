@@ -12,7 +12,7 @@ check_exit_code "ERROR: Failed cloning"
 print_header "Installing Dependencies"
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y build-essential linux-headers-"$(uname -r)" git
+sudo apt-get install -y build-essential linux-headers-$(uname -r) git 
 sudo apt-get install -y libnuma1
 sudo apt-get install -y libnuma-dev
 sudo apt-get install libpcap-dev
@@ -28,7 +28,7 @@ sudo make install
 cd repository
 
 print_header "Installing Environment"
-install_env "$RUN_PKT"
+install_env $RUN_PKT
 check_exit_code "ERROR: Installing environment failed"
 
 print_header "Make pktgen-dpdk"
