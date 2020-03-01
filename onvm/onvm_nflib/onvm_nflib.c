@@ -742,7 +742,7 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
         /* Print statistics summary*/
-        onvm_nflib_stats_summary_print(nf_local_ctx->nf->instance_id);
+        onvm_nflib_stats_summary_output(nf_local_ctx->nf->instance_id);
 
         /* Stop and free */
         onvm_nflib_cleanup(nf_local_ctx);
@@ -1295,9 +1295,13 @@ init_shared_core_mode_info(uint16_t instance_id) {
 }
 
 void
-onvm_nflib_stats_summary_print(uint16_t id) {
+onvm_nflib_stats_summary_output(uint16_t id) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+        const char *csv_suffix = "_stats.csv";
+        const char *csv_stats_headers = "NF tag, NF instance ID, NF service ID, NF assigned core, RX total,"
+                                        "RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF,"
+                                        "NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned";
         const uint64_t rx = nfs[id].stats.rx;
         const uint64_t rx_drop = nfs[id].stats.rx_drop;
         const uint64_t tx = nfs[id].stats.tx;
@@ -1335,7 +1339,7 @@ onvm_nflib_stats_summary_print(uint16_t id) {
         printf("NF tx buffered: %ld\n", act_buffer);
         printf("NF tx returned: %ld\n\n", act_returned);
 
-        csv_filename = malloc(sizeof(char) * strlen(nf_tag) + 11);
+        csv_filename = malloc(sizeof(char) * strlen(nf_tag) + strlen(csv_suffix) + 1);
         if (csv_filename == NULL) {
                 printf("Error: Could not create csv file name for %s\n", nf_tag);
                 return;
@@ -1346,15 +1350,18 @@ onvm_nflib_stats_summary_print(uint16_t id) {
                 return;
         }
 
-        if (strcat(csv_filename, "_stats.csv") == NULL) {
+        if (strcat(csv_filename, csv_suffix) == NULL) {
                 printf("Error: Could not strcat csv filename for %s\n", nf_tag);
                 return;
         }
-        csv_fp = fopen(csv_filename, "w");
 
-        fprintf(csv_fp, "NF tag, NF instance ID, NF service ID, NF assigned core, RX total, "
-                        "RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF, "
-                        "NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned");
+        csv_fp = fopen(csv_filename, "w");
+        if (csv_fp == NULL) {
+                printf("Error: Could not open csv file\n");
+                return;
+        }
+
+        fprintf(csv_fp, "%s", csv_stats_headers);
         fprintf(csv_fp, "\n%s", nf_tag);
         fprintf(csv_fp, ", %d", instance_id);
         fprintf(csv_fp, ", %d", service_id);

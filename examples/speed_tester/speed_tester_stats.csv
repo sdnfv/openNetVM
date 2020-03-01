@@ -1,0 +1,2 @@
+NF tag, NF instance ID, NF service ID, NF assigned core, RX total,RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF,NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned
+speed_tester, 1, 1, 4, 58126048, 0, 58126047, 0, 0, 58126015, 1, 0, 0, 128
