@@ -1357,7 +1357,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
 
         csv_fp = fopen(csv_filename, "w");
         if (csv_fp == NULL) {
-                printf("Error: Could not open csv file\n");
+                printf("Error: Could not open csv_stats file\n");
                 return;
         }
 
@@ -1377,5 +1377,10 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         fprintf(csv_fp, ", %ld", act_buffer);
         fprintf(csv_fp, ", %ld", act_returned);
 
-        fclose(csv_fp);
+        if (fclose(csv_fp) != 0) {
+                printf("Error: Could not close csv_stats file\n");
+                return;
+        }
+
+        printf("CSV file written to %s directory\n", nf_tag);
 }
