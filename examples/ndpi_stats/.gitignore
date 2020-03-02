@@ -1,2 +1,3 @@
 ndpi_stats/
 build/
+*.csv

@@ -49,6 +49,3 @@ _preinstall
 
 # Debug files
 *.dSYM/
-
-# CSV files
-*.csv

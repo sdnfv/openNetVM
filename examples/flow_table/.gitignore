@@ -1,2 +1,3 @@
 flow_table/
 build/
+*.csv

@@ -1375,7 +1375,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         fprintf(csv_fp, ", %ld", act_drop);
         fprintf(csv_fp, ", %ld", act_next);
         fprintf(csv_fp, ", %ld", act_buffer);
-        fprintf(csv_fp, ", %ld", act_returned);
+        fprintf(csv_fp, ", %ld\n", act_returned);
 
         if (fclose(csv_fp) != 0) {
                 printf("Error: Could not close csv_stats file\n");
