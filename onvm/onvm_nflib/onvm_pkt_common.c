@@ -260,7 +260,7 @@ inline static void
 onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *buf) {
         struct packet_buf *port_buf;
 
-        if (tx_mgr == NULL || buf == NULL)
+        if (tx_mgr == NULL || buf == NULL || !ports->init[port])
                 return;
 
         port_buf = &tx_mgr->tx_thread_info->port_tx_bufs[port];

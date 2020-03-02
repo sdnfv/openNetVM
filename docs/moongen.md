@@ -1,7 +1,7 @@
 MoonGen Installation (DPDK-2.0 Version)
 ===================
 
-#### Welcome to installation memo for [MoonGen](http://arxiv.org/ftp/arxiv/papers/1410/1410.3322.pdf), MoonGen is a "Scriptable High-Speed Packet Generator". 
+#### Welcome to installation memo for [MoonGen](http://scholzd.github.io/MoonGen/install.html), MoonGen is a "Scriptable High-Speed Packet Generator". 
 ----------
 
 1. Preparation steps 

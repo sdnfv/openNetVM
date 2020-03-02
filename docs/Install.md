@@ -178,7 +178,7 @@ Configuring environment post reboot
 --
 After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the [environment setup script](../scripts/setup_environment.sh).
 
-Also, please double check if the environment variables from [step 3](#3-set-up-environment) are initialized.  If they are not, please go to [step 3](#3-set-up-environment)
+Also, please double check if the environment variables from [step 3](#set-up-environment) are initialized.  If they are not, please go to [step 3](#set-up-environment)
 
 Troubleshooting
 --
