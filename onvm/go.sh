@@ -36,7 +36,7 @@ nf_cores=$3
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 verbosity=1
-#init base virtual address to empty
+# Initialize base virtual address to empty.
 virt_addr=""
 
 shift 3
@@ -65,7 +65,7 @@ done
 
 verbosity_level="-v $verbosity"
 
-#If Base virtual address has not been set by user. Set to default.
+# If base virtual address has not been set by the user, set to default.
 if [[ -z $virt_addr ]]
 then
     echo "Base virtual address set to default"
