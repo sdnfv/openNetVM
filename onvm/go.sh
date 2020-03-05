@@ -66,7 +66,7 @@ done
 verbosity_level="-v $verbosity"
 
 #If Base virtual address has not been set by user. Set to default.
-if [ "${virt_addr}" = "" ]
+if [[ -z $virt_addr ]]
 then
     echo "Base virtual address set to default"
     virt_addr="--base-virtaddr=0x7f000000000"
