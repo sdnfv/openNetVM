@@ -32,7 +32,7 @@ jobs:
         run: |
           echo ${{ steps.getfile.outputs.files }}
         
-      # Install Python  
+      # Install Python.
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
