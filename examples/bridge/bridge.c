@@ -118,7 +118,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 
         pkt_process += print_delay;
 
-        /* Clear screen and move to top left */
+        /* Clear screen and move to top left. */
         printf("%s%s", clr, topLeft);
 
         printf("PACKETS\n");
