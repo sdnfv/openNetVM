@@ -1,0 +1,26 @@
+name: changes
+on: 
+  push:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Checkout
+        uses: actions/checkout@v1
+      
+      - name: Echo Branch name
+        run: echo ${{github.ref}}
+        
+      - name: Test Branch Name
+        if: github.ref != 'refs/heads/develop'
+        run: echo Run on refs/heads/develop not ${{github.ref}}
+      
+      - name: get changed files
+        id: getfile
+        run: |
+          echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | xargs)"
+      - name: echo output
+        run: |
+          echo ${{ steps.getfile.outputs.files }}
