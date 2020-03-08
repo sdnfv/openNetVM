@@ -36,11 +36,17 @@ jobs:
       - name: Clone Repo
         run: |
           git clone https://github.com/bdevierno1/openNetVM.git
-          grep -vf openNetVM/${{ steps.getfile.outputs.files }} ${{ steps.getfile.outputs.files }} > ${{ steps.getfile.outputs.files }}
+          
+          fullfilename=${{ steps.getfile.outputs.files }}
+          filename=$(basename "$fullfilename")
+          fname="${filename%.*}"
+          ext="${filename##*.}"
+          
+          grep -vf openNetVM/${{ steps.getfile.outputs.files }} ${{ steps.getfile.outputs.files }} > file.${ext}
       
       # Print changes made by user
       - name: Print Differences
-        run: cat ${{ steps.getfile.outputs.files }}
+        run: cat file.${ext}
         
       # Install Python  
       - name: Setup Python
