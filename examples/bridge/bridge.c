@@ -62,7 +62,7 @@
 static uint32_t print_delay = 1000000;
 
 /*
- * Print a usage message
+ * Print a usage message.
  */
 static void
 usage(const char *progname) {
