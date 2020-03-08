@@ -31,23 +31,6 @@ jobs:
       - name: echo output
         run: |
           echo ${{ steps.getfile.outputs.files }}
-          
-      # Clone Master Repository
-      - name: Clone Repo
-        run: git clone https://github.com/sdnfv/openNetVM.git
-      
-      - name: Get Line Changes
-        run: |    
-          fullfilename=${{ steps.getfile.outputs.files }}
-          filename=$(basename "$fullfilename")
-          fname="${filename%.*}"
-          ext="${filename##*.}"
-          
-          grep -vf openNetVM/${{ steps.getfile.outputs.files }} ${{ steps.getfile.outputs.files }} > file.${ext}
-      
-      # Print changes made by user
-      - name: Print Differences
-        run: cat file.${ext}
         
       # Install Python  
       - name: Setup Python
