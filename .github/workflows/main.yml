@@ -34,9 +34,10 @@ jobs:
           
       # Clone Master Repository
       - name: Clone Repo
-        run: |
-          git clone https://github.com/bdevierno1/openNetVM.git
-          
+        run: git clone https://github.com/sdnfv/openNetVM.git
+      
+      - name: Get Line Changes
+        run: |    
           fullfilename=${{ steps.getfile.outputs.files }}
           filename=$(basename "$fullfilename")
           fname="${filename%.*}"
