@@ -24,3 +24,10 @@ jobs:
       - name: echo output
         run: |
           echo ${{ steps.getfile.outputs.files }}
+          
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '2.7'
+      - name: Run Script
+        run: python style/gwclint.py
