@@ -5,32 +5,49 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     steps:
+      
       # Clone Repository
       - name: Checkout
         uses: actions/checkout@v1
+      
       # Echo the current branch name
       - name: Echo Branch name
         run: echo ${{github.ref}}
+      
       # If Branch name is not develop, exit
       - name: Test Branch Name
         if: github.ref != 'refs/heads/develop'
         run: |
           echo Run on refs/heads/develop not ${{github.ref}}
           #exit 1
+      
       # Get the name of the changed files. 
       - name: get changed files
         id: getfile
         run: |
           echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | xargs)"
+      
       # Print the names.
       - name: echo output
         run: |
           echo ${{ steps.getfile.outputs.files }}
+          
+      # Clone Master Repository
+      - name: Clone Repo
+        run: |
+          git clone https://github.com/bdevierno1/openNetVM.git
+          grep -vf openNetVM/${{ steps.getfile.outputs.files }} ${{ steps.getfile.outputs.files }} > ${{ steps.getfile.outputs.files }}
+      
+      # Print changes made by user
+      - name: Print Differences
+        run: cat ${{ steps.getfile.outputs.files }}
+        
       # Install Python  
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
           python-version: '2.7'
+
       # Run lint on all files changed
       - name: Run Lint Script
         run: python style/gwclint.py ${{ steps.getfile.outputs.files }}
