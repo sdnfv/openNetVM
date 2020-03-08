@@ -30,4 +30,4 @@ jobs:
         with:
           python-version: '2.7'
       - name: Run Script
-        run: python style/gwclint.py
+        run: python style/gwclint.py ${{ steps.getfile.outputs.files }}
