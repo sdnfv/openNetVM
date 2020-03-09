@@ -106,7 +106,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * This function displays stats. It uses ANSI terminal codes to clear
  * screen when called. It is called from a single non-master
  * thread in the server process, when the process is run with more
- * than one lcore enabled.
+ * than one lcore enabled
  */
 static void
 do_stats_display(struct rte_mbuf *pkt) {
