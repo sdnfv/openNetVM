@@ -65,12 +65,12 @@ Global state is managed via a small publisher/subscriber library located in [pub
 
 ## Build Installs
 
-A bug had been reported that net-tools does not come with base minimal install of Ubuntu 18.04, which could cause run-time error.
+A bug had been reported that net-tools does not come with base minimal install of Ubuntu 18.04, which could cause a run-time error.
 The following install command should solve that if you do not have net-tools installed.
 
-````sh
+```sh
 sudo apt-get install net-tools
-````
+```
 
 The ReactJS app is ready for execution, but follow this process if you need to edit `onvm_web/react-app`
 Assuming you're using an ubuntu system
@@ -85,6 +85,11 @@ sudo apt-get install -y nodejs
 sudo npm cache clean -f
 sudo npm install -g n
 sudo n stable
+```
+
+npm should come automatically with Node.js, but on the rare occasion you do not have npm, you need to install it yourself.
+```sh
+sudo apt-get install npm
 ```
 
 Install yarn with npm
