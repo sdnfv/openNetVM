@@ -65,13 +65,20 @@ Global state is managed via a small publisher/subscriber library located in [pub
 
 ## Build Installs
 
+A bug had been reported that net-tools does not come with base minimal install of Ubuntu 18.04, which could cause run-time error.
+The following install command should solve that if you do not have net-tools installed.
+
+````sh
+sudo apt-get install net-tools
+````
+
 The ReactJS app is ready for execution, but follow this process if you need to edit `onvm_web/react-app`
 Assuming you're using an ubuntu system
 Remember to run commands in sudo for nodejs and npm
 
 Install latest stable Node.js version
 ```sh
-curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+curl -sL https://deb.nodesource.com/setup_13.x | sudo -E bash -
 # Install Node.js from the Debian-based distributions repository
 sudo apt-get install -y nodejs
 # Use package manager
