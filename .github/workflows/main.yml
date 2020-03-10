@@ -40,4 +40,6 @@ jobs:
 
       # Run lint on all files changed
       - name: Run Lint Script
-        run: python style/gwclint.py ${{ steps.getfile.outputs.files }}
+        run: |
+          python style/gwclint.py ${{ steps.getfile.outputs.files }}
+          exit 0
