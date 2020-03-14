@@ -37,6 +37,12 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 verbosity=1
 
+if [[ ! -z $(ps ww -u root | grep "$SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr" | grep -v "grep") ]]
+then
+    echo "Manager cannot be started while another is running"
+    exit 1
+fi
+
 shift 3
 
 if [ -z $nf_cores ]
