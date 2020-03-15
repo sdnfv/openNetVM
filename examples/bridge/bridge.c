@@ -74,7 +74,7 @@ usage(const char *progname) {
 }
 
 /*
- * Parse the application arguments
+ * Parse the application arguments.
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
