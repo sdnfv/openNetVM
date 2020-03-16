@@ -1,6 +1,6 @@
 name: changes
 on: 
-  push:
+  pull_request:
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -19,7 +19,7 @@ jobs:
         if: github.ref != 'refs/heads/develop'
         run: |
           echo Run on refs/heads/develop not ${{github.ref}}
-          #exit 1
+          exit 1
       
       # Get the name of the changed files. 
       - name: get changed files
