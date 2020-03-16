@@ -29,8 +29,7 @@ jobs:
       
       # Print the names.
       - name: echo output
-        run: |
-          echo ${{ steps.getfile.outputs.files }}
+        run: echo ${{ steps.getfile.outputs.files }}
         
       # Install Python.
       - name: Setup Python
@@ -38,8 +37,29 @@ jobs:
         with:
           python-version: '2.7'
 
-      # Run lint on all files changed
-      - name: Run Lint Script
+      # Run lint on user's files and writes output to file1.
+      - name: RunLint on User Changes
+        continue-on-error: true
+        run: python style/gwclint.py ${{ steps.getfile.outputs.files }} &> file1.txt
+                       
+      # Clone Mater Branch.
+      - name: Clone Master
+        run: git clone https://github.com/sdnfv/openNetVM.git
+      
+      # Runs Lint on Master and writes output to 'file2'
+      - name: Run Lint on Master
+        continue-on-error: true
         run: |
-          python style/gwclint.py ${{ steps.getfile.outputs.files }}
-          exit 0
+          python style/gwclint.py openNetVM/${{ steps.getfile.outputs.files }} &> file2.txt
+      
+      - name : Echo User's Lint
+        run: cat file1.txt
+      
+      - name : Echo Master's Lint
+        run: cat file2.txt
+      
+      # If the diff file is not empty echo error to user.
+      - name: List Errors
+        run: |
+         echo "If Failed, refer to step 'Echo User's Lint' and 'Echo Master's Lint'. Please revise code to ensure there is not an increased number of errors compared to the master lint."
+         [ "$(wc -l < file1.txt)" -eq "$(wc -l < file2.txt)" ]
