@@ -7,7 +7,7 @@
  *   Copyright(c)
  *            2015-2019 George Washington University
  *            2015-2019 University of California Riverside
- *   All rights reserved
+ *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
