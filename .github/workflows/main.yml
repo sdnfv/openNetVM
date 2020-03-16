@@ -24,8 +24,7 @@ jobs:
       # Get the name of the changed files. 
       - name: get changed files
         id: getfile
-        run: |
-          echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | xargs)"
+        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | xargs)"
       
       # Print the names.
       - name: echo output
@@ -49,8 +48,7 @@ jobs:
       # Runs Lint on Master and writes output to 'file2'
       - name: Run Lint on Master
         continue-on-error: true
-        run: |
-          python style/gwclint.py openNetVM/${{ steps.getfile.outputs.files }} &> file2.txt
+        run: python style/gwclint.py openNetVM/${{ steps.getfile.outputs.files }} &> file2.txt
       
       - name : Echo User's Lint
         run: cat file1.txt
