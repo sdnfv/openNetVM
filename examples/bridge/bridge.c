@@ -7,7 +7,7 @@
  *   Copyright(c)
  *            2015-2019 George Washington University
  *            2015-2019 University of California Riverside
- *   All rights reserved
+ *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@
 static uint32_t print_delay = 1000000;
 
 /*
- * Print a usage message.
+ * Print a usage message
  */
 static void
 usage(const char *progname) {
@@ -118,7 +118,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 
         pkt_process += print_delay;
 
-        /* Clear screen and move to top left. */
+        /* Clear screen and move to top left */
         printf("%s%s", clr, topLeft);
 
         printf("PACKETS\n");
