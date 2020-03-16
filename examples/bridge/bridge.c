@@ -157,8 +157,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
 }
 
 int
-main(int argc, char *argv[]) {
-        int arg_offset;
+      main(int argc, char *argv[]) {
+                  int arg_offset;
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
