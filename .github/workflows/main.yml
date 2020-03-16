@@ -58,7 +58,7 @@ jobs:
       - name : Echo Master's Lint
         run: cat file2.txt
       
-      # If the diff file is not empty echo error to user.
+      # Perform check for increased number of errors.
       - name: List Errors
         run: |
          echo "If Failed, refer to step 'Echo User's Lint' and 'Echo Master's Lint'. Please revise code to ensure there is not an increased number of errors compared to the master lint."
