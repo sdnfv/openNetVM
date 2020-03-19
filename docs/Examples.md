@@ -76,8 +76,6 @@ In this example, we will be setting up a chain of NFs.  The length of the chain 
   2. Run Manager:
     - Run the manager in dynamic mode with the following command. We are using a corelist here to manually pin the manager to specific cores, a portmask to decide which NIC ports to use, and configuring it display manager statistics to stdout:
       - `# onvm/go.sh 0,1,2 1 0x3F8 -s stdout`  
-   * The manager default base virtual address is by default set to `0x7f000000000`. To configure to a specific address please use '--base-virtaddr' option, please use the `-a` flag for the onvm_mgr: 
-      - `# onvm/go.sh 0,1,2 1 0x3F8 -s stdout -a 0x7f00000000`
   3. Start NFs:
     - First, start at most `n-1` simple_forward NFs, where `n` corresponds to the total number of NFs that the system can handle.  This is determined from the `scripts/coremask.py` helper script.  We will only start two NFs for convenience.
     - Simple forward's arguments are core to pin it to, service ID, and
