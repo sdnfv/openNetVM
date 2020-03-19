@@ -741,7 +741,8 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
-        /* Print statistics summary*/
+
+        /* Print statistics summary */
         onvm_nflib_stats_summary_output(nf_local_ctx->nf->instance_id);
 
         /* Stop and free */
@@ -1383,4 +1384,5 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         }
 
         printf("CSV file written to %s directory\n", nf_tag);
+        free(csv_filename);
 }
