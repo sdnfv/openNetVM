@@ -74,8 +74,8 @@ In this example, we will be setting up a chain of NFs.  The length of the chain 
     - Running the script on our machine shows that the system can handle 7 NFs efficiently.  
       The manager needs three cores, one for NIC RX, one for statistics, and one for NIC TX.
   2. Run Manager:
-    - Run the manager in dynamic mode with the following command. We are using a corelist here to manually pin the manager to specific cores, a portmask to decide which NIC ports to use, and configuring it display manager statistics to stdout:
-      - `# onvm/go.sh 0,1,2 1 0x3F8 -s stdout`  
+    - Run the manager in dynamic mode with the following command.  We are using a corelist here to manually pin the manager to specific cores, a portmask to decide which NIC ports to use, and configuring it display manager statistics to stdout:
+      - `# onvm/go.sh 0,1,2 1 0x3F8 -s stdout`
   3. Start NFs:
     - First, start at most `n-1` simple_forward NFs, where `n` corresponds to the total number of NFs that the system can handle.  This is determined from the `scripts/coremask.py` helper script.  We will only start two NFs for convenience.
     - Simple forward's arguments are core to pin it to, service ID, and
