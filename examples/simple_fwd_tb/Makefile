@@ -4,7 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2020 National Institute of Technology Karnataka, Surathkal
+#          2015-2017 George Washington University
+#          2015-2017 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

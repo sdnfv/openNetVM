@@ -27,7 +27,7 @@ App Specific Arguments
   - `-d <dst>`: destination service ID to foward to
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
   - `-D <token_bucket_depth>`: depth of token bucket (in bytes)
-  - `-R <token_bucket_rate>`: rate of token regeneration (in mbps)
+  - `-R <token_bucket_rate>`: rate of token regeneration (in Mbps)
 
 Config File Support
 --

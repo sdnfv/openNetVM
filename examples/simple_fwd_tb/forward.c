@@ -61,15 +61,15 @@
 
 #define PKT_READ_SIZE ((uint16_t) 100000000) // TODO: Find proper value for PKT_READ_SIZE
 
-/* number of package between each print */
+/* number of packets between each print */
 static uint32_t print_delay = 1000000;
 
 static uint32_t destination;
 
 /* Token Bucket */
-static uint64_t tb_rate = 1000;
-static uint64_t tb_depth = 10000;
-static uint64_t tb_tokens = 10000;
+static uint64_t tb_rate = 1000; // rate at which tokens are generated (in Mbps)
+static uint64_t tb_depth = 10000; // depth of the token bucket (in bytes)
+static uint64_t tb_tokens = 10000; // number of the tokens in the bucket at any given time (in bytes)
 
 static uint64_t last_cycle;
 static uint64_t cur_cycles;
@@ -91,7 +91,7 @@ usage(const char *progname) {
         printf(" - `-d <dst>`: destination service ID to foward to\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(" - `-D <tb_depth>`: depth of token bucket (in bytes)\n");
-        printf(" - `-R <tb_rate>`: rate of token regeneration (in mbps) \n");
+        printf(" - `-R <tb_rate>`: rate of token regeneration (in Mbps) \n");
 }
 
 /*
@@ -111,12 +111,12 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
-            			case 'R':
-                                tb_rate = strtoul(optarg, NULL, 10);
-                                break;
-            			case 'D':
+                        case 'D':
                                 tb_depth = strtoul(optarg, NULL, 10);
                                 tb_tokens = tb_depth;
+                                break;
+                        case 'R':
+                                tb_rate = strtoul(optarg, NULL, 10);
                                 break;
                         case '?':
                                 usage(progname);
@@ -136,7 +136,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         }
 
         if (!dst_flag) {
-                RTE_LOG(INFO, APP, "Simple Forward NF requires destination flag -d.\n");
+                RTE_LOG(INFO, APP, "Simple Forward with Token Bucket NF requires destination flag -d.\n");
                 return -1;
         }
 
