@@ -47,7 +47,7 @@ include $(RTE_SDK)/mk/rte.vars.mk
 APP = simple_fwd_tb
 
 # all source are stored in SRCS-y
-SRCS-y := forward.c
+SRCS-y := forward_tb.c
 
 # OpenNetVM path
 ONVM= $(SRCDIR)/../../onvm

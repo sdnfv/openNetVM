@@ -34,7 +34,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * forward.c - an example using onvm. Simulates a queue with a Token Bucket
+ * forward_tb.c - an example using onvm. Simulates a queue with a Token Bucket
  * and forwards packets to a DST NF.
  ********************************************************************/
 
