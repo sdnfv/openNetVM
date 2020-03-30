@@ -59,8 +59,6 @@
 
 #define NF_TAG "simple_fwd_tb"
 
-#define PKT_READ_SIZE ((uint16_t) 100000000) // TODO: Find proper value for PKT_READ_SIZE
-
 /* number of packets between each print */
 static uint32_t print_delay = 1000000;
 
@@ -222,10 +220,10 @@ void sig_handler(int sig) {
 
 static int
 thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
-        void *pkts[PKT_READ_SIZE];
+        void *pkts[NF_QUEUE_RINGSIZE]; // max ring size
         struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
-        void *pktsTX[PKT_READ_SIZE];
+        void *pktsTX[NF_QUEUE_RINGSIZE]; // max ring size
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
@@ -263,8 +261,8 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
 
                 tx_batch_size = 0;
-                /* Dequeue all packets in rx_ring up to max possible (PKT_READ_SIZE) */
-                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
+                /* Dequeue all packets in rx_ring up to max possible */
+                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, NF_QUEUE_RINGSIZE, NULL);
 
                 /* Process all the packets upto a max of tb_depth */
                 pkt_processed_size = 0;
