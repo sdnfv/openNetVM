@@ -59,6 +59,8 @@
 
 #define NF_TAG "simple_fwd_tb"
 
+#define PKT_READ_SIZE ((uint16_t) 32)
+
 /* number of packets between each print */
 static uint32_t print_delay = 1000000;
 
@@ -220,10 +222,10 @@ void sig_handler(int sig) {
 
 static int
 thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
-        void *pkts[NF_QUEUE_RINGSIZE]; // max ring size
+        void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
-        void *pktsTX[NF_QUEUE_RINGSIZE]; // max ring size
+        void *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
@@ -231,7 +233,6 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
         struct rte_mempool *nf_msg_pool;
-        uint64_t pkt_processed_size;
 
         nf = nf_local_ctx->nf;
 
@@ -247,6 +248,8 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
+        last_cycle = rte_get_tsc_cycles();
+
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 /* Check for a stop message from the manager */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
@@ -261,27 +264,16 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
 
                 tx_batch_size = 0;
-                /* Dequeue all packets in rx_ring up to max possible */
-                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, NF_QUEUE_RINGSIZE, NULL);
+                nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
-                /* Process all the packets upto a max of tb_depth */
-                pkt_processed_size = 0;
-                for (i = 0; i < nb_pkts && pkt_processed_size + ((struct rte_mbuf *)pkts[i])->pkt_len <= tb_depth; i++) {
+                /* Process all the dequeued packets */
+                for (i = 0; i < nb_pkts; i++) {
                         meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
                         packet_handler_tb((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
-                        pkt_processed_size += ((struct rte_mbuf *)pkts[i])->pkt_len;
                 }
-                /* Mark all excess packets to be dropped */
-                for(; i < nb_pkts; i++) {
-                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                        meta->action = ONVM_NF_ACTION_DROP;
-                        pktsTX[tx_batch_size++] = pkts[i];
-                }
-                /* Enqueue all packets to the tx_ring */
-                if (likely(tx_batch_size > 0)) {
-                        rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL);
-                }
+
+                rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL);
         }
         return 0;
 }
