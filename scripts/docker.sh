@@ -69,16 +69,18 @@ if [[ "${DIR}" != "" ]] ; then
 fi
 
 if [[ "${CMD}" == "" ]] ; then
+    # ignore SC2086 shellcheck error
     sudo docker run \
         --interactive --tty \
         --privileged \
         --name="${NAME}" \
+        --hostname="${NAME}" \
         --network bridge \
         --volume=/var/run:/var/run \
         --volume="${HUGE}":"${HUGE}" \
         --volume="${ONVM}":/openNetVM \
-        "${DIR}" \
-        "${DEVICES[@]}" \
+        ${DIR} `# disable=SC2086` \
+        "${DEVICES[@]}" `# disable=SC2086` \
         sdnfv/opennetvm \
         /bin/bash
 else
@@ -86,14 +88,13 @@ else
         --detach=true \
         --privileged \
         --name="${NAME}" \
+        --hostname="${NAME}" \
         --network bridge \
         --volume=/var/run:/var/run \
         --volume="${HUGE}":"${HUGE}" \
         --volume="${ONVM}":/openNetVM \
-        "${DIR}" \
-        "${DEVICES[@]}" \
+        ${DIR} `# disable=SC2086` \
+        "${DEVICES[@]}" `# disable=SC2086` \
         sdnfv/opennetvm \
         /bin/bash -c "${CMD}"
 fi
-
-
