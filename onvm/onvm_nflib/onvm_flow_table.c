@@ -45,6 +45,7 @@
 #include <rte_malloc.h>
 
 #include "onvm_flow_table.h"
+#include "onvm_nflib.h"
 
 uint8_t rss_symmetric_key[40] = {
     0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a, 0x6d, 0x5a,
@@ -57,26 +58,40 @@ uint8_t rss_symmetric_key[40] = {
 struct onvm_ft *
 onvm_ft_create(int cnt, int entry_size) {
         struct rte_hash *hash;
+        struct rte_hash_parameters *ipv4_hash_params;
         struct onvm_ft *ft;
-        struct rte_hash_parameters ipv4_hash_params = {
-            .name = NULL,
-            .entries = cnt,
-            .key_len = sizeof(struct onvm_ft_ipv4_5tuple),
-            .hash_func = NULL,
-            .hash_func_init_val = 0,
-        };
+        int status;
 
-        char s[64];
-        /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
-        ipv4_hash_params.name = s;
-        ipv4_hash_params.socket_id = rte_socket_id();
-        snprintf(s, sizeof(s), "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
-        hash = rte_hash_create(&ipv4_hash_params);
-        if (hash == NULL) {
+        ipv4_hash_params = (struct rte_hash_parameters *) rte_malloc(NULL, sizeof(struct rte_hash_parameters), 0);
+        if (!ipv4_hash_params) {
                 return NULL;
         }
-        ft = (struct onvm_ft *)rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
-        if (ft == NULL) {
+
+        char *name = rte_malloc(NULL, 64, 0);
+        /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
+        ipv4_hash_params->entries = cnt;
+        ipv4_hash_params->key_len = sizeof(struct onvm_ft_ipv4_5tuple);
+        ipv4_hash_params->hash_func = NULL;
+        ipv4_hash_params->hash_func_init_val = 0;
+        ipv4_hash_params->name = name;
+        ipv4_hash_params->socket_id = rte_socket_id();
+        snprintf(name, 64, "onvm_ft_%d-%" PRIu64, rte_lcore_id(), rte_get_tsc_cycles());
+
+        if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+                hash = rte_hash_create(ipv4_hash_params);
+        } else {
+                status = onvm_nflib_request_ft(ipv4_hash_params);
+                if (status < 0) {
+                        return NULL;
+                }
+                hash = rte_hash_find_existing(name);
+        }
+
+        if (!hash) {
+                return NULL;
+        }
+        ft = (struct onvm_ft *) rte_calloc("table", 1, sizeof(struct onvm_ft), 0);
+        if (!ft) {
                 rte_hash_free(hash);
                 return NULL;
         }
@@ -85,7 +100,7 @@ onvm_ft_create(int cnt, int entry_size) {
         ft->entry_size = entry_size;
         /* Create data array for storing values */
         ft->data = rte_calloc("entry", cnt, entry_size, 0);
-        if (ft->data == NULL) {
+        if (!ft->data) {
                 rte_hash_free(hash);
                 rte_free(ft);
                 return NULL;

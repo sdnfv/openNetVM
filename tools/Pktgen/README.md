@@ -4,7 +4,7 @@ Pktgen Installation
 
 
 
-#### Welcome to installation memo for [Pktgen](http://pktgen.readthedocs.org/en/latest/index.html), Pktgen is an app build on [DPDK](http://dpdk.org/),  which is a high performance traffic generator. 
+#### Welcome to installation memo for [Pktgen](https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html), Pktgen is an app build on [DPDK](http://dpdk.org/),  which is a high performance traffic generator. 
 
 This guide is assuming that you have already got openNetVM installed on your machine, if not, please follow installation guide for openNetVM in file ***INSTALL.md***. 
 
