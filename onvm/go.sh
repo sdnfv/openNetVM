@@ -39,7 +39,7 @@ verbosity=1
 # Initialize base virtual address to empty.
 virt_addr=""
 
-if [[ ! -z $(ps ww -u root | grep "$SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr" | grep -v "grep") ]]
+if [[ -n $(pgrep -u root -f "/onvm_mgr/.*/onvm_mgr") ]]
 then
     echo "Manager cannot be started while another is running"
     exit 1

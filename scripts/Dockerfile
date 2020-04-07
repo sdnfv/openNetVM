@@ -34,22 +34,25 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM ubuntu:14.04
-MAINTAINER "Neel Shah" <neel@shah7.com>
-LABEL version="OpenNetVM v18.03"
+FROM ubuntu:18.04
+MAINTAINER "Kevin Deems" <kevin8deems@gmail.com>
+LABEL version="OpenNetVM v19.07"
 LABEL vendor="SDNFV @ UCR and GW"
 LABEL github="github.com/sdnfv/openNetVM"
 
 ENV ONVM_HOME=/openNetVM
 ENV RTE_TARGET=x86_64-native-linuxapp-gcc
 ENV RTE_SDK=$ONVM_HOME/dpdk
+ENV ONVM_NUM_HUGEPAGES=1024
 
 WORKDIR $ONVM_HOME
 
-RUN apt-get update && \
+RUN apt-get upgrade && apt-get update && \
     apt-get install -y build-essential \
+                       sudo \
                        gdb \
                        libnuma-dev \
                        vim \
                        less \
-                       git
+                       git \
+                       net-tools \

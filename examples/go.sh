@@ -10,10 +10,7 @@ if [ ! -f ../start_nf.sh ]; then
   exit 1
 fi
 
-SCRIPT=$(readlink -f "$0")
-MANAGER_PATH=$(dirname $(dirname "$SCRIPT"))
-
-if [[ -z $(ps ww -u root | grep "$MANAGER_PATH/onvm/onvm_mgr/$RTE_TARGET/onvm_mgr") ]]
+if [[ -z $(pgrep -u root -f "/onvm/onvm_mgr/.*/onvm_mgr") ]]
 then
     echo "NF cannot start without a running manager"
     exit 1
