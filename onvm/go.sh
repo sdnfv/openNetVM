@@ -23,7 +23,7 @@ function usage {
         echo -e "$0 0,1,2,3 3 0xF0 -s stdout -vv"
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout in raw data dump mode"
         echo -e "$0 0,1,2,3 3 0xF0 -a 0x7f000000000 -s stdout"
-        echo -e "\tRuns ONVM the same way as above, but adds a --base-virtaddr dpdk parameter"
+        echo -e "\tRuns ONVM the same way as above, but adds a --base-virtaddr dpdk parameter to overwrite default address"
         echo -e "$0 0,1,2,3 3 0xF0 -r 10 -d 2"
         echo -e "\tRuns ONVM the same way as above, but limits max service IDs to 10 and uses service ID 2 as the default"
         exit 1
@@ -36,6 +36,8 @@ nf_cores=$3
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 verbosity=1
+# Initialize base virtual address to empty.
+virt_addr=""
 
 if [[ ! -z $(ps ww -u root | grep "$SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr" | grep -v "grep") ]]
 then
@@ -68,6 +70,13 @@ while getopts "a:r:d:s:t:l:p:z:cv" opt; do
 done
 
 verbosity_level="-v $verbosity"
+
+# If base virtual address has not been set by the user, set to default.
+if [[ -z $virt_addr ]]
+then
+    echo "Base virtual address set to default 0x7f000000000"
+    virt_addr="--base-virtaddr=0x7f000000000"
+fi
 
 if [ "${stats}" = "-s web" ]
 then
