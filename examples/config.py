@@ -45,7 +45,7 @@ def remove_prefix(text, prefix):
 def start_nf(nf, param):
     os.chdir(nf)
     cmd = "./go.sh " + param
-    print(cmd)
+    print(nf + ": " + cmd)
     os.system(cmd)
     os.chdir("/local/onvm/openNetVM/examples")
     return
@@ -56,19 +56,8 @@ for k, v in data.items():
     nf = k
     param = str(v).strip("'{[]}'")
     param = remove_prefix(param, "u'parameters': u'")
+    thread = threading.Thread(start_nf(nf, param))
+    jobs.append(thread)
 
-    process = multiprocessing.Process(target=start_nf, args=(nf, param))
-    jobs.append(process)
-
-    # Create new thread
-    #thread= myThread(nf, param)
-
-    # Start new thread
-    #thread.start()
-    
-# start processes  
-for i in jobs:
-    i.start()
-
-# for i in jobs:
-    # i.join() 
+for j in jobs:
+    j.start()
