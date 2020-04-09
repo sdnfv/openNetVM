@@ -1,6 +1,19 @@
 import json
 import os
 import sys
+import threading
+import multiprocessing
+
+
+class myThread (threading.Thread):
+   def __init__(self, name, counter):
+      threading.Thread.__init__(self)
+      self.nf = nf
+      self.param = param
+   def run(self):
+      print ("Starting " + self.nf)
+      start_nf(self.nf, self.param)
+      print ("Exiting " + self.nf)
 
 
 # no config file passed as arg
@@ -20,21 +33,42 @@ else:
 # open config file and get num nf's
 with open(path) as f:
     data = json.load(f)
-    size = len(data)
+    # size = len(data)
 
+# strip parameters
 def remove_prefix(text, prefix):
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
 
-# clean up dict items 
-# start up nfs with specified parameters
-for k, v in data.items():
-    nf = k
-    param = str(v).strip("'{[]}'")
-    param = remove_prefix(param, "u'parameters': u'")
+#start specified nf
+def start_nf(nf, param):
     os.chdir(nf)
     cmd = "./go.sh " + param
     print(cmd)
     os.system(cmd)
     os.chdir("/local/onvm/openNetVM/examples")
+    return
+
+jobs = []
+# clean up dict items and start nf
+for k, v in data.items():
+    nf = k
+    param = str(v).strip("'{[]}'")
+    param = remove_prefix(param, "u'parameters': u'")
+
+    process = multiprocessing.Process(target=start_nf, args=(nf, param))
+    jobs.append(process)
+
+    # Create new thread
+    #thread= myThread(nf, param)
+
+    # Start new thread
+    #thread.start()
+    
+# start processes  
+for i in jobs:
+    i.start()
+
+# for i in jobs:
+    # i.join() 
