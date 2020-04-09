@@ -29,6 +29,8 @@ function usage {
         exit 1
 }
 
+dpdk_drivers=("igb_uio" "vfio-pci" "uio_pci_generic")
+
 cpu=$1
 ports=$2
 nf_cores=$3
@@ -48,6 +50,34 @@ shift 3
 if [ -z $nf_cores ]
 then
     usage
+fi
+
+if [ $ports == 0 ]
+then
+    echo "Warning: No NIC ports being used."
+else
+    ports_detected=0
+    for onvm_nic_pci in $ONVM_NIC_PCI
+    do
+	driver_in_use="$(lspci -s $onvm_nic_pci -k | grep "Kernel driver in use")" # | cut -d' ' -f5)"
+	if [[ "$driver_in_use" != "" ]]
+	then
+	    driver_in_use="$(cut -d' ' -f5 <<< $driver_in_use)"
+	    for dpdk_driver in ${dpdk_drivers[@]}
+	    do
+		if [[ "$dpdk_driver" == "$driver_in_use" ]]
+		then
+		    ports_detected=$((ports_detected+1))
+		    break
+	    fi
+	    done
+    	fi
+    done
+    if [ $ports_detected -lt $ports ]
+    then
+	echo "Error: Invalid port mask. Insufficient NICs bound."
+	exit 1
+    fi
 fi
 
 while getopts "a:r:d:s:t:l:p:z:cv" opt; do
