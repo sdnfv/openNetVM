@@ -15,11 +15,7 @@ jobs:
           message: |
             **Please Set PR to develop. 😊**
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Exit 1
-        if: github.base_ref != 'develop'  
-        run: exit 1
   C:
-    needs: [Branch]
     runs-on: ubuntu-latest
     steps: 
       
@@ -51,7 +47,6 @@ jobs:
          style/get-user-lint.sh cppcheck
   
   Python:
-    needs: [Branch]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -72,7 +67,6 @@ jobs:
         style/get-user-lint.sh python
   
   Shell:
-    needs: [Branch]
     runs-on: ubuntu-latest
     steps: 
       
