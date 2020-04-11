@@ -7,13 +7,19 @@ jobs:
   Branch: 
     runs-on: ubuntu-latest 
     steps: 
-      # If Branch name is not develop, exit
+      # If Branch name is not develop, comment
       - name: Test Branch Name
         if: github.base_ref != 'develop'
-        run: |
-          echo Run on develop not ${{github.base_ref}}
-          exit 1:         
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: |
+            **Please Set PR to develop. 😊**
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Exit 1
+        if: github.base_ref != 'develop'  
+        run: exit 1
   C:
+    needs: [Branch]
     runs-on: ubuntu-latest
     steps: 
       
@@ -28,6 +34,7 @@ jobs:
          style/get-user-lint.sh c
   
   Cppcheck:
+    needs: [Branch]
     runs-on: ubuntu-latest
     steps: 
       
@@ -44,6 +51,7 @@ jobs:
          style/get-user-lint.sh cppcheck
   
   Python:
+    needs: [Branch]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -64,6 +72,7 @@ jobs:
         style/get-user-lint.sh python
   
   Shell:
+    needs: [Branch]
     runs-on: ubuntu-latest
     steps: 
       
