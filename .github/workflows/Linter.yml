@@ -1,7 +1,7 @@
 name: Linter
 on:
   pull_request:
-   types: [opened, synchronize, edit]
+   types: [opened, synchronize]
 jobs:
   
   Branch: 
