@@ -68,8 +68,8 @@ if [[ "${DIR}" != "" ]] ; then
     DIR="--volume=${DIR}:/$(basename "${DIR}")"
 fi
 
+#shellcheck disable=SC2086
 if [[ "${CMD}" == "" ]] ; then
-    # ignore SC2086 shellcheck error
     sudo docker run \
         --interactive --tty \
         --privileged \
@@ -79,8 +79,8 @@ if [[ "${CMD}" == "" ]] ; then
         --volume=/var/run:/var/run \
         --volume="${HUGE}":"${HUGE}" \
         --volume="${ONVM}":/openNetVM \
-        ${DIR} `# disable=SC2086` \
-        "${DEVICES[@]}" `# disable=SC2086` \
+        ${DIR} \
+        "${DEVICES[@]}" \
         sdnfv/opennetvm \
         /bin/bash
 else
@@ -93,8 +93,8 @@ else
         --volume=/var/run:/var/run \
         --volume="${HUGE}":"${HUGE}" \
         --volume="${ONVM}":/openNetVM \
-        ${DIR} `# disable=SC2086` \
-        "${DEVICES[@]}" `# disable=SC2086` \
+        ${DIR} \
+        "${DEVICES[@]}" \
         sdnfv/opennetvm \
         /bin/bash -c "${CMD}"
 fi
