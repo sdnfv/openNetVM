@@ -1340,18 +1340,18 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         printf("NF tx buffered: %ld\n", act_buffer);
         printf("NF tx returned: %ld\n\n", act_returned);
 
-        csv_filename = malloc(sizeof(char) * strlen(nf_tag) + strlen(csv_suffix) + 1);
+        csv_filename = malloc(strlen(nf_tag) + strlen(csv_suffix) + 1);
         if (csv_filename == NULL) {
                 printf("Error: Could not create csv file name for %s\n", nf_tag);
                 return;
         }
 
-        if (strcpy(csv_filename, nf_tag) == NULL) {
-                printf("Error: Could not strcpy csv filename for %s\n", nf_tag);
+        if (snprintf(csv_filename, strlen(nf_tag) + 1, "%s", nf_tag) < 0) {
+                printf("Error: Could not copy buffer into csv filename for %s\n", nf_tag);
                 return;
         }
 
-        if (strcat(csv_filename, csv_suffix) == NULL) {
+        if (strncat(csv_filename, csv_suffix, strlen(csv_suffix)) == NULL) {
                 printf("Error: Could not strcat csv filename for %s\n", nf_tag);
                 return;
         }
