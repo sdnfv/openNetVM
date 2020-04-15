@@ -314,7 +314,7 @@ main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-        
+
         thread_main_loop(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);     
 
