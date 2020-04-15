@@ -23,7 +23,7 @@ Some of the goals of the Linter include:
 
 The Linter can be broken down into a few simple steps.
 
-* Github Action triggers *get-user-lint.sh* script.
+* Github Action triggers *run-lint.sh* script.
 * Depending on the argument passed in, lint using one of the following static analysis tools: \
   **shellcheck, cppcheck, gwclint.py, pylint**
 * Get the name of the files the user has made changes to.
@@ -57,10 +57,10 @@ This is especially so as these commands are run every time a new workflow has st
 
 After you have committed the files you would like to be linted, you may run one of the following commands.
 
-**style/get-user-lint.sh cppcheck** -- Lints C files with Cppcheck. \
-**style/get-user-lint.sh c** -- Lints C files for styling errors with gwclint.py. \
-**style/get-user-lint.sh python** -- Lints Python files with pylint. \
-**style/get-user-lint.sh shell** -- Lints bash shell script files with shellcheck.
+**style/run-lint.sh cppcheck** -- Lints C files with Cppcheck. \
+**style/run-lint.sh c** -- Lints C files for styling errors with gwclint.py. \
+**style/run-lint.sh python** -- Lints Python files with pylint. \
+**style/run-lint.sh shell** -- Lints bash shell script files with shellcheck.
 
 ### Pull requests.
 
@@ -82,7 +82,7 @@ The workflow has five seperate jobs that run concurrenly.
 
 ## Other Resources
 
-To learn more about how the linters look out for may visit one of the following resources.
+To learn more about how the linters function you may visit one of the following resources.
 * https://github.com/koalaman/shellcheck
 * https://www.pylint.org/
 * http://cppcheck.sourceforge.net/

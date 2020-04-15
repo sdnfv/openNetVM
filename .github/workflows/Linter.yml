@@ -19,30 +19,30 @@ jobs:
     steps:
       # Clone Repository
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       # Perform lint on user's files.
       - name: User's Lint
         run: |
-         chmod +x style/get-user-lint.sh
-         style/get-user-lint.sh c
+         chmod +x style/run-lint.sh
+         style/run-lint.sh c
   Cppcheck:
     needs: [Branch]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Install Requirements
         run: |
          sudo apt-get install cppcheck=1.82-1
       - name: User's Lint
         run: |
-         chmod +x style/get-user-lint.sh
-         style/get-user-lint.sh cppcheck
+         chmod +x style/run-lint.sh
+         style/run-lint.sh cppcheck
   Python:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
@@ -52,13 +52,13 @@ jobs:
         pip install pylint==2.4.4
     - name: Run Pylint
       run: |
-        chmod +x style/get-user-lint.sh
-        style/get-user-lint.sh python
+        chmod +x style/run-lint.sh
+        style/run-lint.sh python
   Shell:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Install Requirements
         run: |
          sudo apt install xz-utils
@@ -66,8 +66,8 @@ jobs:
          sudo cp "shellcheck-v0.7.0/shellcheck" /usr/bin/
       - name: User's Lint
         run: |
-         chmod +x style/get-user-lint.sh
-         style/get-user-lint.sh shell
+         chmod +x style/run-lint.sh
+         style/run-lint.sh shell
   Comment:
     needs: [Branch,C,Cppcheck,Python,Shell]
     runs-on: ubuntu-latest

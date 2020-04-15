@@ -3,16 +3,16 @@
 # A script to run linter functions on updated C/python/bash files.
 # This script is triggered by github actions when pull request are created.
 # Users may also run this script to lint their file changes before pushing their code.
-# Usage: run ./style/get-c-lint.sh python OR ./style/get-c-lint.sh c OR ./style/get-c-lint.sh shell OR ./style/get-c-lint.sh cppcheck
+# Usage: run ./style/run-lint.sh python OR ./style/run-lint.sh c OR ./style/run-lint.sh shell OR ./style/run-lint.sh cppcheck
 
 # Check if user is in main git repository and correct number of arguments are passed in.
 if [ ! -d .git ]; then
-    echo 'Please run in main git repository. Example Usage: ./style/get-c-lint.sh python';
+    echo 'Please run in main git repository. Example Usage: ./style/run-lint.sh python';
     exit 1
 fi
 
 if [ "$#" -ne 1 ]; then
-    echo 'Illegal number of parameters. Example usage: run ./style/get-user-lint.sh python'
+    echo 'Illegal number of parameters. Example usage: run ./style/run-lint.sh python'
     exit 1
 fi
 
@@ -27,18 +27,18 @@ touch $linter_out
 case "$1" in
 
 "python")  echo $'Running Python Lint.\n'
-    python3 "style/get-user-lint.py" "pylint" "*.py"
+    python3 "style/run-lint.py" "pylint" "*.py"
     ;;
 "c")  echo $'Running C Lint.\n'
-    python3 "style/get-user-lint.py" "python ./style/gwclint.py" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
+    python3 "style/run-lint.py" "python ./style/gwclint.py --verbose=2" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
     ;;
 "cppcheck") echo $'Running cppcheck Lint.\n'
-    python3 "style/get-user-lint.py" "cppcheck" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
+    python3 "style/run-lint.py" "cppcheck" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
    ;;
 "shell") echo $'Running Shell Lint.\n'
-    python3 "style/get-user-lint.py" "shellcheck -f gcc" "*.sh"
+    python3 "style/run-lint.py" "shellcheck -f gcc" "*.sh"
     ;;
-*) echo $'Illegal parameter. Example usage: run ./style/get-user-lint.sh python'
+*) echo $'Illegal parameter. Example usage: run ./style/run-lint.sh python'
    exit 1
    ;;
 esac
