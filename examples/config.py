@@ -1,20 +1,8 @@
 import json
 import os
 import sys
-import threading
-import multiprocessing
-
-
-class myThread (threading.Thread):
-   def __init__(self, name, counter):
-      threading.Thread.__init__(self)
-      self.nf = nf
-      self.param = param
-   def run(self):
-      print ("Starting " + self.nf)
-      start_nf(self.nf, self.param)
-      print ("Exiting " + self.nf)
-
+from multiprocessing import Process
+import sys
 
 # no config file passed as arg
 if (len(sys.argv) < 2):
@@ -51,13 +39,14 @@ def start_nf(nf, param):
     return
 
 jobs = []
-# clean up dict items and start nf
+# clean up dict items and get params
 for k, v in data.items():
     nf = k
     param = str(v).strip("'{[]}'")
     param = remove_prefix(param, "u'parameters': u'")
-    thread = threading.Thread(start_nf(nf, param))
-    jobs.append(thread)
+    p = Process(target = start_nf, args = (nf, param))
+    jobs.append(p)
 
+# start up all nf's
 for j in jobs:
     j.start()

@@ -1,7 +1,12 @@
 {
+        "basic_monitor": [
+                {
+                        "parameters": "2"
+                }
+        ],
         "speed_tester": [
-               {
-                        "parameters": "-d 3 -s 1 -p 16000"
-               }
-        ] 
+                {
+                        "parameters": "1 -d 2 -c 16000"
+                }
+        ]
 }
