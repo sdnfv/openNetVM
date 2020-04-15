@@ -85,7 +85,8 @@ void sig_handler(int sig);
 static void
 usage(const char *progname) {
         printf("Usage:\n");
-        printf("%s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -D <tb_depth> -R <tb_rate>\n", progname);
+        printf("%s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -D <tb_depth> -R <tb_rate>\n",
+                progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
@@ -181,12 +182,13 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         uint64_t tokens_produced;
-        
+
         /* Generate tokens only if `tb_tokens` is insufficient */
         if (tb_tokens < pkt->pkt_len) {
                 cur_cycles = rte_get_tsc_cycles();
                 /* Wait until sufficient tokens are available */
-                while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens < pkt->pkt_len) {
+                while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens
+                        < pkt->pkt_len) {
                         cur_cycles = rte_get_tsc_cycles();
                 }
                 tokens_produced = (((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz());
@@ -312,7 +314,7 @@ main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-
+        
         thread_main_loop(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);     
 
