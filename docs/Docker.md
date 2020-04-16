@@ -1,7 +1,7 @@
 Running openNetVM in Docker
 ==
 
-To run openNetVM NFs inside Docker containers, use the included [Docker Script][docker].  We provide a [Docker image on Docker Hub][onvm-docker] that is a copy of [Ubuntu 14.04][ubuntu] with a few dependencies installed.  This script does the following:
+To run openNetVM NFs inside Docker containers, use the included [Docker Script][docker].  We provide a [Docker image on Docker Hub][onvm-docker] that is a copy of [Ubuntu 18.04][ubuntu] with a few dependencies installed.  This script does the following:
 
   - Creates a Docker container off of the [sdnfv/opennetvm Docker image][onvm-docker] with a custom name
   - Maps NIC devices from the host into the container
@@ -157,7 +157,15 @@ docker push sdnfv/opennetvm:latest
 
 Now the image is updated, and will be the default next time someone pulls.
 
+Older Dockerfiles
+--
+
+If you want to use an older ONVM version on Ubuntu 14, take a look at the [Available Tags][onvm-docker-tags].
+The 18.03 tag runs ONVM when it had been set up for an older version of Ubuntu.
+The `latest` dockerfile runs on Ubuntu 18.04 and is called `latest`.
+
 [docker]: ../scripts/docker.sh
 [onvm-docker]: https://hub.docker.com/r/sdnfv/opennetvm/
+[onvm-docker-tags]: https://hub.docker.com/r/sdnfv/opennetvm/tags
 [ubuntu]: http://releases.ubuntu.com/14.04/
 
