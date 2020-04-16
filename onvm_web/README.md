@@ -35,6 +35,7 @@ cd onvm
 Doing that will launch openNetVM and use the console to display log
 messages. It will print out a message stating that the web stats
 console has been setup and information to access it.
+You could use the browser to monitor the stats of openNetVM manager.
 
 If something were to go wrong in the launching of the web stats, you could
 manually start it by doing the following:
@@ -84,6 +85,7 @@ sudo apt-get install -y nodejs
 # Use package manager
 sudo npm cache clean -f
 sudo npm install -g n
+# Install the current stable version of node
 sudo n stable
 ```
 
