@@ -495,4 +495,17 @@ whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info)
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
+#define onvm_macaddr_get(port_id, mac_addr) \
+        if (rte_eth_dev_is_valid_port(port_id)) { \
+                rte_eth_macaddr_get(port_id, mac_addr); \
+        } else { \
+                uint8_t *mac_addr_bytes = (uint8_t *)((struct ether_addr *)(mac_addr)->addr_bytes); \
+                mac_addr_bytes[0] = 2; \
+                mac_addr_bytes[1] = 0; \
+                mac_addr_bytes[2] = 0; \
+                mac_addr_bytes[3] = 0; \
+                mac_addr_bytes[4] = 0; \
+                mac_addr_bytes[5] = 0; \
+        }
+
 #endif  // _ONVM_COMMON_H_

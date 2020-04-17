@@ -98,6 +98,8 @@ static uint8_t measure_latency = 0;
 static uint32_t latency_packets = 0;
 static uint64_t total_latency = 0;
 
+extern struct port_info *ports;
+
 /*
  * Variables needed to replay a pcap file
  */
@@ -378,7 +380,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         /*using manager mac addr for source
                         *using input string for dest addr
                         */
-                        rte_eth_macaddr_get(0, &ehdr->s_addr);
+                        onvm_macaddr_get(0, &ehdr->s_addr);
                         for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                         }

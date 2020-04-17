@@ -327,7 +327,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 rte_exit(EXIT_FAILURE, "Failed to allocate common ehdr\n");
         }
 
-        rte_eth_macaddr_get(0, &ehdr->s_addr);
+        onvm_macaddr_get(0, &ehdr->s_addr);
         for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
         }
