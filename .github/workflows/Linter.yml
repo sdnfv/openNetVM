@@ -72,8 +72,6 @@ jobs:
     needs: [Branch,C,Cppcheck,Python,Shell]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Add Comment
         uses: mshick/add-pr-comment@v1
         with:

@@ -36,16 +36,12 @@ The Linter can be broken down into a few simple steps.
 * The following three linters need to be installed before you are able to run the linter in your terminal. \
 **pylint 2.4.4** \
 **Cppcheck 1.82** \
-**ShellCheck 0.7.0** 
+**ShellCheck 0.7.0**
 
-* Cppcheck and pylint can easily be installed using your package manager. You *may* run one of the following commands.
-   * **sudo apt-get install cppcheck=1.82-1**
-   * **pip install pylint==2.4.4**
+Run **./style/install-linters.sh** to install the different static tools.
 
-* Installing Shellcheck
-  * **sudo apt install xz-utils**
-  * **wget -qO- "https://github.com/koalaman/shellcheck/releases/download/v0.7.0/shellcheck-v0.7.0.linux.x86_64.tar.xz" | tar -xJv**
-  * **sudo cp "shellcheck-v0.7.0/shellcheck" /usr/bin/**
+If you encounter errors during installation, you *may* install the latest version that yout OS supports with **pip3 install pylint** and **sudo apt-get install cppcheck**
+
 * [Other Resources](#other-resources)
 
 Although the correct linter versions *may* be installed without versions being specified, it's a good idea to manually install the specific versions regardless.
@@ -55,7 +51,7 @@ This is especially so as these commands are run every time a new workflow has st
 
 ### From your terminal
 
-After you have committed the files you would like to be linted, you may run one of the following commands.
+To test the files you would like to be linted, you may run one of the following commands.
 
 **style/run-lint.sh cppcheck** -- Lints C files with Cppcheck. \
 **style/run-lint.sh c** -- Lints C files for styling errors with gwclint.py. \
@@ -70,7 +66,7 @@ Therefore, it is highly suggested to [turn off email notification for githubActi
 ## Github Actions
 
 The **.github/workflows/Linter.yml** script is triggered when pull request are opened. The workflow is automatically re-run when a pull request is made. \
-The workflow has five seperate jobs that run concurrenly.
+The workflow has five seperate jobs that run concurrently.
 
 * **Branch** -- Checks if the user has made PR to the correct branch. If not, comment on pr to suggest change.
 * **Cppcheck** -- Lints C files with Cppcheck. 

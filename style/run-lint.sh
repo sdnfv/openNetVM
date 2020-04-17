@@ -6,12 +6,12 @@
 # Usage: run ./style/run-lint.sh python OR ./style/run-lint.sh c OR ./style/run-lint.sh shell OR ./style/run-lint.sh cppcheck
 
 # Check if user is in main git repository and correct number of arguments are passed in.
-if [ ! -d .git ]; then
+if [[ ! -d .git ]]; then
     echo 'Please run in main git repository. Example Usage: ./style/run-lint.sh python';
     exit 1
 fi
 
-if [ "$#" -ne 1 ]; then
+if [[ "$#" -ne 1 ]]; then
     echo 'Illegal number of parameters. Example usage: run ./style/run-lint.sh python'
     exit 1
 fi
@@ -30,10 +30,10 @@ case "$1" in
     python3 "style/run-lint.py" "pylint" "*.py"
     ;;
 "c")  echo $'Running C Lint.\n'
-    python3 "style/run-lint.py" "python ./style/gwclint.py --verbose=2" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
+    python3 "style/run-lint.py" "python ./style/gwclint.py --verbose=2" "'*.c' '*.cpp' '*.h' | grep -v 'cJSON' | grep -v 'ndpi'"
     ;;
 "cppcheck") echo $'Running cppcheck Lint.\n'
-    python3 "style/run-lint.py" "cppcheck" "*.c *.cpp *.h | grep -v 'cJSON' | grep -v 'ndpi'"
+    python3 "style/run-lint.py" "cppcheck" "'*.c' '*.cpp' '*.h' | grep -v 'cJSON' | grep -v 'ndpi'"
    ;;
 "shell") echo $'Running Shell Lint.\n'
     python3 "style/run-lint.py" "shellcheck -f gcc" "*.sh"

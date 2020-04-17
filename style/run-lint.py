@@ -11,7 +11,7 @@ def git_changed_files():
     Run system command to get all C files modified.
     Return in an array split by line.
     '''
-    git_files_cmd = 'git diff --name-only upstream/develop...HEAD -- {0}' .format(sys.argv[2])
+    git_files_cmd = 'git diff --name-only upstream/develop {0}' .format(sys.argv[2])
     return os.popen(git_files_cmd).read().splitlines()
 
 def git_line_changes(file):
@@ -21,7 +21,7 @@ def git_line_changes(file):
     '''
 
     git_diff_cmd = 'git difftool --no-prompt --extcmd "./style/git-difftool-changed-lines.sh" \
-                -U0 upstream/develop...HEAD -- '
+                -U0 upstream/develop -- '
     return os.popen(git_diff_cmd + file).read().splitlines()
 
 def gwlint_output(file_name):
@@ -35,11 +35,15 @@ def gwlint_output(file_name):
     lint_lines = os.popen(get_python_lint_cmd).read().splitlines()
 
     # If lint with gwclint remove the last line of lint: "Done processing example-filename.c"
-    if sys.argv[1] == "python ./style/gwclint.py":
+    if sys.argv[1] == "python ./style/gwclint.py --verbose=2":
         lint_lines = lint_lines[:-1]
-    # If linting with cppcheck remove the first line of lint: "Running cppcheck example-filename.c"
+    # If linting with cppcheck, we only want errors. Remove lines such as Checking..."
     elif sys.argv[1] == "cppcheck":
-        lint_lines = lint_lines[1:]
+        cpp_lint_lines = []
+        for line in lint_lines:
+            if "error" in line:
+                cpp_lint_lines.append(line)
+        return cpp_lint_lines
     return lint_lines
 
 def get_lint_from_file(lint_file, line_inx):
