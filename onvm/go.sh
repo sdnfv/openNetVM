@@ -52,16 +52,11 @@ then
     usage
 fi
 
-if [[ $ports == 0 ]]
+ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
+if [[ $ports_detected -lt $ports ]]
 then
-    echo "Warning: No NIC ports being used."
-else
-    ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
-    if [[ $ports_detected -lt $ports ]]
-    then
-        echo "Error: Invalid port mask. Insufficient NICs bound."
-        exit 1
-    fi
+    echo "Error: Invalid port mask. Insufficient NICs bound."
+    exit 1
 fi
 
 while getopts "a:r:d:s:t:l:p:z:cv" opt; do
