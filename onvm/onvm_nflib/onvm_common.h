@@ -497,21 +497,30 @@ whether_wakeup_client(struct onvm_nf *nf, struct nf_wakeup_info *nf_wakeup_info)
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
 /*
- * Tries to fetch the MAC address of the port_id. 
- * Uses fake MAC address if port_id is invalid.
- * Return 0 if port is invalid, 1 if port is valid.
+ * Updates the ether_addr struct with a fake, safe MAC address.
  */
 static inline int
-onvm_macaddr_get(uint8_t port_id, struct ether_addr *mac_addr) {
+onvm_get_fake_macaddr(struct ether_addr *mac_addr) {
+        uint16_t *mac_addr_bytes = (uint16_t *)((struct ether_addr *)(mac_addr)->addr_bytes);
+        mac_addr_bytes[0] = 2;
+        mac_addr_bytes[1] = 0;
+        mac_addr_bytes[2] = 0;
+        return 0;
+}
+
+/*
+ * Tries to fetch the MAC address of the port_id. 
+ * Uses fake MAC address if port_id is invalid.
+ * Return 0 if port is valid, -1 if port is invalid.
+ */
+static inline int
+onvm_get_macaddr(uint8_t port_id, struct ether_addr *mac_addr) {
         if (rte_eth_dev_is_valid_port(port_id)) {
                 rte_eth_macaddr_get(port_id, mac_addr);
-                return 1;
-        } else {
-                uint16_t *mac_addr_bytes = (uint16_t *)((struct ether_addr *)(mac_addr)->addr_bytes);
-                mac_addr_bytes[0] = 2;
-                mac_addr_bytes[1] = 0;
-                mac_addr_bytes[2] = 0;
                 return 0;
+        } else {
+                onvm_get_fake_macaddr(mac_addr);
+                return -1;
         }
 }
 
