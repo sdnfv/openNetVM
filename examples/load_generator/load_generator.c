@@ -327,7 +327,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 rte_exit(EXIT_FAILURE, "Failed to allocate common ehdr\n");
         }
 
-        if (!onvm_macaddr_get(0, &ehdr->s_addr)) {
+        if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
                 rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
         }
         for (j = 0; j < ETHER_ADDR_LEN; ++j) {

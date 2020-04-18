@@ -531,7 +531,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         }
 
         if (pkt->port == lb->server_port) {
-                if (!onvm_macaddr_get(lb->client_port, &ehdr->s_addr)) {
+                if (onvm_get_macaddr(lb->client_port, &ehdr->s_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
                 for (i = 0; i < ETHER_ADDR_LEN; i++) {
@@ -541,7 +541,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 ip->src_addr = lb->ip_lb_client;
                 meta->destination = lb->client_port;
         } else {
-                if (!onvm_macaddr_get(lb->server_port, &ehdr->s_addr)) {
+                if (onvm_get_macaddr(lb->server_port, &ehdr->s_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
                 for (i = 0; i < ETHER_ADDR_LEN; i++) {
