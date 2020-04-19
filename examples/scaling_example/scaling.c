@@ -184,7 +184,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
                 /* Using manager mac addr for source*/
-                onvm_get_macaddr(0, &ehdr->s_addr);
+                onvm_get_fake_macaddr(&ehdr->s_addr);
                 for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                         ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                 }

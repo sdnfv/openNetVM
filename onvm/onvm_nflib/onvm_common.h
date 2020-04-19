@@ -519,7 +519,6 @@ onvm_get_macaddr(uint8_t port_id, struct ether_addr *mac_addr) {
                 rte_eth_macaddr_get(port_id, mac_addr);
                 return 0;
         } else {
-                onvm_get_fake_macaddr(mac_addr);
                 return -1;
         }
 }
