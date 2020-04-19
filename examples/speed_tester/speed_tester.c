@@ -98,8 +98,6 @@ static uint8_t measure_latency = 0;
 static uint32_t latency_packets = 0;
 static uint64_t total_latency = 0;
 
-extern struct port_info *ports;
-
 /*
  * Variables needed to replay a pcap file
  */
