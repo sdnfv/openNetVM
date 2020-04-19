@@ -509,17 +509,16 @@ onvm_get_fake_macaddr(struct ether_addr *mac_addr) {
 }
 
 /*
- * Tries to fetch the MAC address of the port_id. 
- * Uses fake MAC address if port_id is invalid.
+ * Tries to fetch the MAC address of the port_id.
  * Return 0 if port is valid, -1 if port is invalid.
  */
 static inline int
 onvm_get_macaddr(uint8_t port_id, struct ether_addr *mac_addr) {
-        if (rte_eth_dev_is_valid_port(port_id)) {
+        if (!rte_eth_dev_is_valid_port(port_id)) {
+                return -1;
+        } else {
                 rte_eth_macaddr_get(port_id, mac_addr);
                 return 0;
-        } else {
-                return -1;
         }
 }
 
