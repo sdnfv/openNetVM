@@ -516,10 +516,9 @@ static inline int
 onvm_get_macaddr(uint8_t port_id, struct ether_addr *mac_addr) {
         if (!rte_eth_dev_is_valid_port(port_id)) {
                 return -1;
-        } else {
-                rte_eth_macaddr_get(port_id, mac_addr);
-                return 0;
         }
+        rte_eth_macaddr_get(port_id, mac_addr);
+        return 0;
 }
 
 #endif  // _ONVM_COMMON_H_
