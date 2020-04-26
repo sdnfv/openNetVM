@@ -65,6 +65,16 @@
 
 #define PKT_READ_SIZE ((uint16_t)32)
 
+#define FQ_STATS_MSG                                                       \
+        "\n"                                                               \
+        "QUEUE ID         rx_pps  /  tx_pps             rx  /  tx      \n" \
+        "               drop_pps  /  drop_pps      rx_drop  /  tx_drop \n" \
+        "--------------------------------------------------------------\n"
+
+#define FQ_STATS_CONTENT                                                    \
+        "%2u             %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n"\
+        "               %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n\n"
+
 static uint32_t destination;
 
 /* For advanced rings scaling */
@@ -153,12 +163,13 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 void *
-do_fq_stats_display(__attribute__((unused)) void *arg) { //TODO: update print pattern
+do_fq_stats_display(__attribute__((unused)) void *arg) {  // TODO: update print pattern
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 printf("%s%s", clr, topLeft);
+                printf(FQ_STATS_MSG);
 
                 for (uint8_t i = 0; i < fairq->n; i++) {
                         struct fq_queue *fq;
@@ -176,13 +187,8 @@ do_fq_stats_display(__attribute__((unused)) void *arg) { //TODO: update print pa
                         tx_drop = fq->tx_drop;
                         tx_drop_last = fq->tx_drop_last;
 
-                        printf("qid : %" PRIu32 "\n", i);
-                        printf("rx / tx : %" PRIu64 ", %" PRIu64 "\n", rx, tx);
-                        printf("rx_pps / tx_pps : %" PRIu64 ", %" PRIu64 "\n", rx - rx_last, tx - tx_last);
-                        printf("rx_drop / tx_drop : %" PRIu64 ", %" PRIu64 "\n", rx_drop, tx_drop);
-                        printf("rx_drop_pps / tx_drop_pps : %" PRIu64 ", %" PRIu64 "\n\n", rx_drop - rx_drop_last,
-                               tx_drop - tx_drop_last);
-                        printf("\n");
+                        printf(FQ_STATS_CONTENT, i + 1, rx - rx_last, tx - tx_last, rx, tx, rx_drop - rx_drop_last,
+                               tx_drop - tx_drop_last, rx_drop, tx_drop);
 
                         fq->rx_last = rx;
                         fq->tx_last = tx;
