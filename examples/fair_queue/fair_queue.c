@@ -34,7 +34,9 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * fair_queue.c - TODO
+ * fair_queue.c - Categorize pkts based on 5-tuple (src/dst IP, src/dst
+ *      port, protocol) header values into separate queues and apply
+ *      individual token buckets to each queue.
  ********************************************************************/
 
 #include <errno.h>
@@ -59,17 +61,11 @@
 
 #include "fair_queue_helper.h"
 
-#define NF_TAG "fq"
+#define NF_TAG "fair_queue"
 
 #define PKT_READ_SIZE ((uint16_t)32)
 
-/* number of package between each print */
-static uint32_t print_delay = 1000000;
-
 static uint32_t destination;
-char *config_file = NULL;
-
-static struct fairq_t *fairq;
 
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
@@ -78,6 +74,8 @@ struct child_spawn_info {
         struct onvm_nf *parent;
 };
 
+static struct fairq_t *fairq;
+char *config_file = NULL;
 static struct token_bucket_config *config;
 
 struct token_bucket_config *
@@ -103,9 +101,8 @@ usage(const char *progname) {
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
-        printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(
-            " - `-f <config_file>`: Path to the JSON fair queue configuration file; Refer README.md for the "
+            " - `-f <config_file>`: Path to the JSON fair queue configuration file; Refer README for the "
             "structure.\n");
 }
 
@@ -116,14 +113,11 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, config_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:f:p:")) != -1) {
+        while ((c = getopt(argc, argv, "d:f:")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
                                 dst_flag = 1;
-                                break;
-                        case 'p':
-                                print_delay = strtoul(optarg, NULL, 10);
                                 break;
                         case 'f':
                                 config_file = strdup(optarg);
@@ -133,10 +127,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 usage(progname);
                                 if (optopt == 'd')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                                else if (optopt == 'p')
+                                else if (optopt == 'f')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-				else if (optopt == 'f')
-					RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                                 else if (isprint(optopt))
                                         RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
                                 else
@@ -161,17 +153,20 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 void *
-do_fq_stats_display(__attribute__((unused)) void *arg) {
-	const char clr[] = {27, '[', '2', 'J', '\0'};
+do_fq_stats_display(__attribute__((unused)) void *arg) { //TODO: update print pattern
+        const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 printf("%s%s", clr, topLeft);
 
                 for (uint8_t i = 0; i < fairq->n; i++) {
-                        struct fq_queue *fq = fairq->fq[i];
+                        struct fq_queue *fq;
                         uint64_t rx, rx_last, tx, tx_last;
                         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;
+
+                        fq = fairq->fq[i];
+
                         rx = fq->rx;
                         rx_last = fq->rx_last;
                         tx = fq->tx;
@@ -180,23 +175,22 @@ do_fq_stats_display(__attribute__((unused)) void *arg) {
                         rx_drop_last = fq->rx_drop_last;
                         tx_drop = fq->tx_drop;
                         tx_drop_last = fq->tx_drop_last;
+
                         printf("qid : %" PRIu32 "\n", i);
                         printf("rx / tx : %" PRIu64 ", %" PRIu64 "\n", rx, tx);
-                        printf("rx_pps / tx_pps : %" PRIu64 ", %" PRIu64 "\n", rx - rx_last,
-                               tx - tx_last);
+                        printf("rx_pps / tx_pps : %" PRIu64 ", %" PRIu64 "\n", rx - rx_last, tx - tx_last);
                         printf("rx_drop / tx_drop : %" PRIu64 ", %" PRIu64 "\n", rx_drop, tx_drop);
-                        printf("rx_drop_pps / tx_drop_pps : %" PRIu64 ", %" PRIu64 "\n\n",
-                               rx_drop - rx_drop_last, tx_drop - tx_drop_last);
+                        printf("rx_drop_pps / tx_drop_pps : %" PRIu64 ", %" PRIu64 "\n\n", rx_drop - rx_drop_last,
+                               tx_drop - tx_drop_last);
                         printf("\n");
+
                         fq->rx_last = rx;
                         fq->tx_last = tx;
                         fq->rx_drop_last = rx_drop;
                         fq->tx_drop_last = tx_drop;
-                        // TODO: we might be missing few pkts in stats. update to take care.
                 }
                 sleep(1);
         }
-
         return NULL;
 }
 
@@ -211,6 +205,8 @@ sig_handler(int sig) {
 
 static int
 tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
+        void *pktsTX[PKT_READ_SIZE];
+        int tx_batch_size;
         struct onvm_pkt_meta *meta;
         struct rte_ring *tx_ring;
         struct rte_ring *msg_q;
@@ -218,8 +214,6 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct onvm_nf_msg *msg;
         struct rte_mempool *nf_msg_pool;
         struct rte_mbuf *pkt;
-        void *pktsTX[PKT_READ_SIZE];
-        int tx_batch_size = 0;
 
         nf = nf_local_ctx->nf;
 
@@ -230,10 +224,11 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
-        printf("Process %d handling packets using advanced rings - tx\n", nf->instance_id);
+        printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
+        tx_batch_size = 0;
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 /* Check for a stop message from the manager */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
@@ -259,7 +254,7 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
                 pktsTX[tx_batch_size++] = pkt;
-                if (tx_batch_size == 32) {
+                if (tx_batch_size == PKT_READ_SIZE) {
                         rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL);
                         tx_batch_size = 0;
                 }
@@ -270,9 +265,10 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 static int
 rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         void *pkts[PKT_READ_SIZE];
-        void *pktsTX[32];
+        void *pktsDrop[PKT_READ_SIZE];
+        struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
-        int tx_batch_size = 0;
+        int tx_batch_size;
         struct rte_ring *rx_ring;
         struct rte_ring *tx_ring;
         struct rte_ring *msg_q;
@@ -289,10 +285,12 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
-        printf("Process %d handling packets using advanced rings - rx\n", nf->instance_id);
+        printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
         printf("entering while loop\n");
+
+        tx_batch_size = 0;
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 /* Check for a stop message from the manager */
                 if (unlikely(rte_ring_count(msg_q) > 0)) {
@@ -310,12 +308,12 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 for (i = 0; i < nb_pkts; i++) {
                         if (fairq_enqueue(fairq, pkts[i]) == -1) {
-                                struct onvm_pkt_meta *meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
-                                meta->action =
-                                    ONVM_NF_ACTION_DROP;  // TODO: check if we need to change destination as well
-                                pktsTX[tx_batch_size++] = pkts[i];
+                                meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
+                                meta->action = ONVM_NF_ACTION_DROP;
+                                meta->destination = destination;
+                                pktsDrop[tx_batch_size++] = pkts[i];
                                 if (tx_batch_size == 32) {
-                                        rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL);
+                                        rte_ring_enqueue_bulk(tx_ring, pktsDrop, tx_batch_size, NULL);
                                         tx_batch_size = 0;
                                 }
                         }
@@ -356,8 +354,7 @@ parse_config_file(uint8_t *num_queues, char *config_file) {
         if (config_file == NULL) {
                 /* Default Configuration of the fair queue system */
                 *num_queues = 2;
-                config =
-                    (struct token_bucket_config *)malloc(2 * sizeof(struct token_bucket_config));
+                config = (struct token_bucket_config *)malloc(2 * sizeof(struct token_bucket_config));
                 for (; i < *num_queues; i++) {
                         config[i].rate = 1000;
                         config[i].depth = 10000;
@@ -413,7 +410,7 @@ parse_config_file(uint8_t *num_queues, char *config_file) {
 
 int
 main(int argc, char *argv[]) {
-        pthread_t tx_thread; 
+        pthread_t tx_thread;
         pthread_t stats_thread;
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
@@ -425,14 +422,14 @@ main(int argc, char *argv[]) {
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
 
-	/* If we're using advanced rings also pass a custom cleanup function,
+        /* If we're using advanced rings also pass a custom cleanup function,
          * this can be used to handle NF specific (non onvm) cleanup logic */
         rte_atomic16_init(&signal_exit_flag);
         rte_atomic16_set(&signal_exit_flag, 0);
         onvm_nflib_start_signal_handler(nf_local_ctx, sig_handler);
 
-	/* No need to define a function table as adv rings won't run onvm_nflib_run */
-	nf_function_table = NULL;
+        /* No need to define a function table as adv rings won't run onvm_nflib_run */
+        nf_function_table = NULL;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
@@ -456,13 +453,13 @@ main(int argc, char *argv[]) {
         struct onvm_nf_init_cfg *child_cfg;
         child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
 
-	/* Prepare init data for the child */
+        /* Prepare init data for the child */
         child_cfg->service_id = nf->service_id;
         struct child_spawn_info *child_data = malloc(sizeof(struct child_spawn_info));
         child_data->child_cfg = child_cfg;
         child_data->parent = nf;
 
-	/* Increment the children count so that stats are displayed and NF does proper cleanup */
+        /* Increment the children count so that stats are displayed and NF does proper cleanup */
         rte_atomic16_inc(&nf->thread_info.children_cnt);
 
         /* Parse the config file to extract the fair queue configuration */
@@ -480,7 +477,7 @@ main(int argc, char *argv[]) {
         pthread_join(tx_thread, NULL);
         pthread_join(stats_thread, NULL);
 
-	free (config);
+        free(config);
         destroy_fairq(fairq);
 
         printf("If we reach here, program is ending\n");
