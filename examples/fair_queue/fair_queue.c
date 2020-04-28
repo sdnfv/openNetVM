@@ -171,7 +171,7 @@ do_fq_stats_display(__attribute__((unused)) void *arg) {
                 printf("%s%s", clr, topLeft);
                 printf(FQ_STATS_MSG);
 
-                for (uint8_t i = 0; i < fairq->n; i++) {
+                for (uint8_t i = 0; i < fairq->num_queues; i++) {
                         struct fq_queue *fq;
                         uint64_t rx, rx_last, tx, tx_last;
                         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;
