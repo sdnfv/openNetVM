@@ -19,7 +19,6 @@ struct fq_queue {
         uint64_t last_cycle;                                    // the last time tokens were generated
         uint64_t rx, rx_last, tx, tx_last;                      // maintaining stats
         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;  // maintaining stats
-        // TODO: check if we can use ring stats instead of maintaining here
 };
 
 struct fairq_t {
@@ -33,8 +32,16 @@ setup_fairq(struct fairq_t **fairq, uint8_t n, struct token_bucket_config *confi
         uint64_t cur_cycles;
         char ring_name[4];
 
-        *fairq = (struct fairq_t *)rte_malloc(NULL, sizeof(struct fairq_t), 0);  // TODO: Check if memory was allocated
+        *fairq = (struct fairq_t *)rte_malloc(NULL, sizeof(struct fairq_t), 0);
+        if ((*fairq) == NULL) {
+                rte_exit(EXIT_FAILURE, "Unable to allocate memory.\n");
+        }
+
         (*fairq)->fq = (struct fq_queue **)rte_malloc(NULL, sizeof(struct fq_queue *) * n, 0);
+        if ((*fairq)->fq == NULL) {
+                rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue.\n");
+        }
+
         (*fairq)->n = n;
         cur_cycles = rte_get_tsc_cycles();
 
@@ -42,10 +49,12 @@ setup_fairq(struct fairq_t **fairq, uint8_t n, struct token_bucket_config *confi
                 (*fairq)->fq[i] = (struct fq_queue *)rte_malloc(NULL, sizeof(struct fq_queue), 0);
                 struct fq_queue *fq = (*fairq)->fq[i];
 
-                snprintf(ring_name, 4, "fq%d", i);  // TODO: add checking
-                fq->ring = rte_ring_create(ring_name, NF_QUEUE_RINGSIZE / 4,
-                                           rte_socket_id(),                 // TODO: need to choose queue size carefully
+                snprintf(ring_name, 4, "fq%d", i);
+                fq->ring = rte_ring_create(ring_name, NF_QUEUE_RINGSIZE / 4, rte_socket_id(),
                                            RING_F_SP_ENQ | RING_F_SC_DEQ);  // single producer, single consumer
+                if (fq->ring == NULL) {
+                        rte_exit(EXIT_FAILURE, "Unable to create ring for queue %d.\n", i + 1);
+                }
                 fq->head_pkt = NULL;
 
                 fq->tb_depth = config[i].depth;
@@ -81,7 +90,6 @@ destroy_fairq(struct fairq_t *fairq) {
 static int
 get_fairq_id(struct fairq_t *fairq, struct rte_mbuf *pkt) {
         struct onvm_ft_ipv4_5tuple key;
-        uint32_t key_sum;
         uint32_t hash_value;
         int ret;
 
@@ -91,8 +99,13 @@ get_fairq_id(struct fairq_t *fairq, struct rte_mbuf *pkt) {
                 return -1;
         }
 
-        key_sum = key.src_addr + key.dst_addr + key.src_port + key.dst_port + key.proto;
-        hash_value = rte_hash_crc((void *)&key_sum, 32, fairq->n);
+        hash_value = fairq->n;
+        hash_value = rte_hash_crc_4byte(key.proto, hash_value);
+        hash_value = rte_hash_crc_4byte(key.src_addr, hash_value);
+        hash_value = rte_hash_crc_4byte(key.dst_addr, hash_value);
+        hash_value = rte_hash_crc_4byte(key.src_port, hash_value);
+        hash_value = rte_hash_crc_4byte(key.dst_port, hash_value);
+
         return hash_value % fairq->n;
 }
 
@@ -166,7 +179,7 @@ get_next_qid(struct fairq_t *fairq) {
                 timer_hz = rte_get_timer_hz();
                 if (fq->tb_tokens +
                         ((((cur_cycles - fq->last_cycle) * fq->tb_rate * 1000000) + timer_hz - 1) / timer_hz) >=
-                        fq->head_pkt->pkt_len) {
+                    fq->head_pkt->pkt_len) {
                         produce_tokens(fq);
 
                         uint8_t temp_qid = qid;
@@ -183,7 +196,7 @@ static int
 fairq_dequeue(struct fairq_t *fairq, struct rte_mbuf **pkt) {
         int dequeue_id;
         struct fq_queue *fq;
-        
+
         dequeue_id = get_next_qid(fairq);
 
         if (dequeue_id == -1) {

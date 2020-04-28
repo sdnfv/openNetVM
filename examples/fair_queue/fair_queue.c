@@ -163,7 +163,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 }
 
 void *
-do_fq_stats_display(__attribute__((unused)) void *arg) {  // TODO: update print pattern
+do_fq_stats_display(__attribute__((unused)) void *arg) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
@@ -197,6 +197,7 @@ do_fq_stats_display(__attribute__((unused)) void *arg) {  // TODO: update print 
                 }
                 sleep(1);
         }
+
         return NULL;
 }
 
