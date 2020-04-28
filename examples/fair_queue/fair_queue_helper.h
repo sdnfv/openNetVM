@@ -83,6 +83,7 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
 
         (*fairq)->fq = (struct fq_queue **)rte_malloc(NULL, sizeof(struct fq_queue *) * num_queues, 0);
         if ((*fairq)->fq == NULL) {
+                rte_free(*fairq);
                 rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue.\n");
         }
 
@@ -91,14 +92,29 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
 
         for (i = 0; i < num_queues; i++) {
                 (*fairq)->fq[i] = (struct fq_queue *)rte_malloc(NULL, sizeof(struct fq_queue), 0);
+                if ((*fairq)->fq[i] == NULL) {
+                        for (uint8_t j = 0; j < i; j++) {
+                                rte_ring_free((*fairq)->fq[j]->ring);
+                                rte_free((*fairq)->fq[j]);
+                        }
+                        rte_free((*fairq)->fq);
+                        rte_free(*fairq);
+                        rte_exit(EXIT_FAILURE, "Unable to allocate memory for queue %d.\n", i + 1);
+                }
                 struct fq_queue *fq = (*fairq)->fq[i];
 
                 snprintf(ring_name, 4, "fq%d", i);
                 fq->ring = rte_ring_create(ring_name, NF_QUEUE_RINGSIZE / 4, rte_socket_id(),
                                            RING_F_SP_ENQ | RING_F_SC_DEQ);  // single producer, single consumer
                 if (fq->ring == NULL) {
-                        rte_exit(EXIT_FAILURE, "Unable to create ring for queue %d.\n",
-                                 i + 1);  // TODO free previously allocated memory before exiting
+                        for (uint8_t j = 0; j < i; j++) {
+                                rte_ring_free((*fairq)->fq[j]->ring);
+                                rte_free((*fairq)->fq[j]);
+                        }
+                        rte_free((*fairq)->fq[i]);
+                        rte_free((*fairq)->fq);
+                        rte_free(*fairq);
+                        rte_exit(EXIT_FAILURE, "Unable to create ring for queue %d.\n", i + 1);
                 }
                 fq->head_pkt = NULL;
 
@@ -252,7 +268,7 @@ get_dequeue_qid(struct fairq_t *fairq) {
                 timer_hz = rte_get_timer_hz();
                 if (fq->tb_tokens +
                         ((((cur_cycles - fq->last_cycle) * fq->tb_rate * 1000000) + timer_hz - 1) / timer_hz) >=
-                        fq->head_pkt->pkt_len) {
+                    fq->head_pkt->pkt_len) {
                         produce_tokens(fq);
 
                         uint8_t temp_qid = qid;
