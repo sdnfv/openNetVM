@@ -349,7 +349,7 @@ start_child(void *arg) {
         /* Keep track of parent for proper termination */
         child_local_ctx->nf->thread_info.parent = parent->instance_id;
 
-        tx_loop(child_local_ctx);
+        rx_loop(child_local_ctx);
         onvm_nflib_stop(child_local_ctx);
         free(spawn_info);
         return NULL;
@@ -417,7 +417,7 @@ parse_config_file(uint8_t *num_queues, char *config_file) {
 
 int
 main(int argc, char *argv[]) {
-        pthread_t tx_thread;
+        pthread_t rx_thread;
         pthread_t stats_thread;
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
@@ -475,13 +475,13 @@ main(int argc, char *argv[]) {
         /* Set up fair_queue */
         setup_fairq(&fairq, num_queues, config);
 
-        pthread_create(&tx_thread, NULL, start_child, (void *)child_data);
+        pthread_create(&rx_thread, NULL, start_child, (void *)child_data);
         pthread_create(&stats_thread, NULL, do_fq_stats_display, NULL);
 
-        rx_loop(nf_local_ctx);
+        tx_loop(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);
 
-        pthread_join(tx_thread, NULL);
+        pthread_join(rx_thread, NULL);
         pthread_join(stats_thread, NULL);
 
         free(config);
