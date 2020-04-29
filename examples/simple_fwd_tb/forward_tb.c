@@ -50,16 +50,16 @@
 #include <unistd.h>
 
 #include <rte_common.h>
+#include <rte_cycles.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
-#include <rte_cycles.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
 #define NF_TAG "simple_fwd_tb"
 
-#define PKT_READ_SIZE ((uint16_t) 32)
+#define PKT_READ_SIZE ((uint16_t)32)
 
 /* number of packets between each print */
 static uint32_t print_delay = 1000000;
@@ -67,9 +67,9 @@ static uint32_t print_delay = 1000000;
 static uint32_t destination;
 
 /* Token Bucket */
-static uint64_t tb_rate = 1000; // rate at which tokens are generated (in Mbps)
-static uint64_t tb_depth = 10000; // depth of the token bucket (in bytes)
-static uint64_t tb_tokens = 10000; // number of the tokens in the bucket at any given time (in bytes)
+static uint64_t tb_rate = 1000;     // rate at which tokens are generated (in Mbps)
+static uint64_t tb_depth = 10000;   // depth of the token bucket (in bytes)
+static uint64_t tb_tokens = 10000;  // number of the tokens in the bucket at any given time (in bytes)
 
 static uint64_t last_cycle;
 static uint64_t cur_cycles;
@@ -77,7 +77,8 @@ static uint64_t cur_cycles;
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
 
-void sig_handler(int sig);
+void
+sig_handler(int sig);
 
 /*
  * Print a usage message
@@ -86,7 +87,7 @@ static void
 usage(const char *progname) {
         printf("Usage:\n");
         printf("%s [EAL args] -- [NF_LIB args] -- -d <destination> -p <print_delay> -D <tb_depth> -R <tb_rate>\n",
-                progname);
+               progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
@@ -100,7 +101,6 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-
         int c, dst_flag = 0;
 
         while ((c = getopt(argc, argv, "d:p:D:R:")) != -1) {
@@ -179,7 +179,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 
 static int
 packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
-               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+                  __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
         uint64_t tokens_produced;
 
@@ -187,8 +187,8 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         if (tb_tokens < pkt->pkt_len) {
                 cur_cycles = rte_get_tsc_cycles();
                 /* Wait until sufficient tokens are available */
-                while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens
-                        < pkt->pkt_len) {
+                while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens <
+                       pkt->pkt_len) {
                         cur_cycles = rte_get_tsc_cycles();
                 }
                 tokens_produced = (((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz());
@@ -214,7 +214,8 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         return 0;
 }
 
-void sig_handler(int sig) {
+void
+sig_handler(int sig) {
         if (sig != SIGINT && sig != SIGTERM)
                 return;
 
@@ -316,7 +317,7 @@ main(int argc, char *argv[]) {
         }
 
         thread_main_loop(nf_local_ctx);
-        onvm_nflib_stop(nf_local_ctx);     
+        onvm_nflib_stop(nf_local_ctx);
 
         printf("If we reach here, program is ending\n");
         return 0;
