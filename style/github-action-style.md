@@ -40,7 +40,7 @@ The Linter can be broken down into a few simple steps.
 
 Run **./style/install-linters.sh** to install the different static tools.
 
-If you encounter errors during installation, you *may* install the latest version that yout OS supports with **pip3 install pylint** and **sudo apt-get install cppcheck**
+If you encounter errors during installation, you *may* install the latest version that your OS supports with **pip3 install pylint** and **sudo apt-get install cppcheck**
 
 * [Other Resources](#other-resources)
 
@@ -66,7 +66,7 @@ Therefore, it is highly suggested to [turn off email notification for githubActi
 ## Github Actions
 
 The **.github/workflows/Linter.yml** script is triggered when pull request are opened. The workflow is automatically re-run when a pull request is made. \
-The workflow has five seperate jobs that run concurrently.
+The workflow has five separate jobs that run concurrently.
 
 * **Branch** -- Checks if the user has made PR to the correct branch. If not, comment on pr to suggest change.
 * **Cppcheck** -- Lints C files with Cppcheck. 

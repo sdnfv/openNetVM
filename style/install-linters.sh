@@ -16,5 +16,5 @@ shellcheck --version
 sudo apt install python3-pip
 pip3 --version
 pip3 install pylint==2.4.4
-export PATH=$HOME/.local/bin:$PATH
-pylint --version
+echo export PATH="$HOME"/.local/bin:"$PATH" >> ~/.bashrc
+echo "Please run source ~/.bashrc"
