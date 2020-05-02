@@ -374,7 +374,9 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 /* Process all packet actions */
                 onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
-                onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
+                if (tx_batch_size < PACKET_READ_SIZE) {
+                        onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
+                }
         }
         return 0;
 }
