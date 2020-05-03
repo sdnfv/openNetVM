@@ -371,7 +371,6 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                         packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
-
                 /* Process all packet actions */
                 onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
                 if (tx_batch_size < PACKET_READ_SIZE) {
