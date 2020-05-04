@@ -76,6 +76,7 @@
         "               %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n\n"
 
 static uint32_t destination;
+static uint16_t num_queues;
 
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
@@ -84,12 +85,7 @@ struct child_spawn_info {
         struct onvm_nf *parent;
 };
 
-static struct fairq_t *fairq;
-char *config_file = NULL;
-static struct token_bucket_config *config;
-
-struct token_bucket_config *
-parse_config_file(uint8_t *num_queues, char *config_file);
+static struct fairqueue_t *fairqueue;
 
 void
 sig_handler(int sig);
@@ -111,9 +107,7 @@ usage(const char *progname) {
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
-        printf(
-            " - `-f <config_file>`: Path to the JSON fair queue configuration file; Refer README for the "
-            "structure.\n");
+        printf(" - `-n <num_queues>`: Number of queues to simulate round robin fair queueing.\n");
 }
 
 /*
@@ -121,23 +115,23 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c, dst_flag = 0, config_flag = 0;
+        int c, dst_flag = 0, num_queues_flag = 0;
 
-        while ((c = getopt(argc, argv, "d:f:")) != -1) {
+        while ((c = getopt(argc, argv, "d:n:")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
                                 dst_flag = 1;
                                 break;
-                        case 'f':
-                                config_file = strdup(optarg);
-                                config_flag = 1;
+                        case 'n':
+                                num_queues = strtoul(optarg, NULL, 10);
+                                num_queues_flag = 1;
                                 break;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'd')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                                else if (optopt == 'f')
+                                else if (optopt == 'n')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                                 else if (isprint(optopt))
                                         RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -155,8 +149,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 return -1;
         }
 
-        if (!config_flag) {
-                RTE_LOG(INFO, APP, "Default queue configurations used. Specify a config file using -f FILE_PATH.\n");
+        if (!num_queues_flag) {
+                RTE_LOG(INFO, APP, "Default number of queues (2) used. Specify a number using flag -n.\n");
         }
 
         return optind;
@@ -171,12 +165,12 @@ do_fq_stats_display(__attribute__((unused)) void *arg) {
                 printf("%s%s", clr, topLeft);
                 printf(FQ_STATS_MSG);
 
-                for (uint8_t i = 0; i < fairq->num_queues; i++) {
-                        struct fq_queue *fq;
+                for (uint16_t i = 0; i < fairqueue->num_queues; i++) {
+                        struct fairqueue_queue *fq;
                         uint64_t rx, rx_last, tx, tx_last;
                         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;
 
-                        fq = fairq->fq[i];
+                        fq = fairqueue->fq[i];
 
                         rx = fq->rx;
                         rx_last = fq->rx_last;
@@ -251,7 +245,7 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 /* Dequeue packet from the fair queue system */
                 pkt = NULL;
-                fairq_dequeue(fairq, &pkt);
+                fairqueue_dequeue(fairqueue, &pkt);
 
                 if (pkt == NULL) {
                         continue;
@@ -314,7 +308,7 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 for (i = 0; i < nb_pkts; i++) {
-                        if (fairq_enqueue(fairq, pkts[i]) == -1) {
+                        if (fairqueue_enqueue(fairqueue, pkts[i]) == -1) {
                                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
                                 meta->action = ONVM_NF_ACTION_DROP;
                                 meta->destination = destination;
@@ -355,66 +349,6 @@ start_child(void *arg) {
         return NULL;
 }
 
-struct token_bucket_config *
-parse_config_file(uint8_t *num_queues, char *config_file) {
-        uint8_t i = 0;
-        if (config_file == NULL) {
-                /* Default Configuration of the fair queue system */
-                *num_queues = 2;
-                config = (struct token_bucket_config *)malloc(2 * sizeof(struct token_bucket_config));
-                for (; i < *num_queues; i++) {
-                        config[i].rate = 1000;
-                        config[i].depth = 10000;
-                }
-        } else {
-                cJSON *config_params = onvm_config_parse_file(config_file);
-                if (config_params == NULL) {
-                        rte_exit(EXIT_FAILURE,
-                                 "%s file could not be parsed/not found. Assure config file"
-                                 " the directory to the config file is being specified.\n",
-                                 config_file);
-                }
-
-                cJSON *num_q = NULL;
-
-                num_q = cJSON_GetObjectItem(config_params, "num_queues");
-                if (num_q == NULL)
-                        rte_exit(EXIT_FAILURE, "num_queues not found/invalid\n");
-                *num_queues = num_q->valueint;
-
-                config = (struct token_bucket_config *)malloc(num_q->valueint * sizeof(struct token_bucket_config));
-
-                cJSON *queue_list = NULL;
-                cJSON *rate = NULL;
-                cJSON *depth = NULL;
-                queue_list = cJSON_GetObjectItem(config_params, "queues");
-                if (queue_list == NULL)
-                        rte_exit(EXIT_FAILURE, "queues not found/invalid\n");
-                int num_of_queues = onvm_config_get_item_count(queue_list);
-                if (num_of_queues != num_q->valueint)
-                        rte_exit(EXIT_FAILURE, "Not enough queue configurations\n");
-
-                cJSON *queue = queue_list->child;
-                while (queue) {
-                        rate = cJSON_GetObjectItem(queue, "rate");
-                        depth = cJSON_GetObjectItem(queue, "depth");
-
-                        if (rate == NULL)
-                                rte_exit(EXIT_FAILURE, "rate not found/invalid\n");
-                        if (depth == NULL)
-                                rte_exit(EXIT_FAILURE, "depth not found/invalid\n");
-
-                        config[i].rate = rate->valueint;
-                        config[i].depth = depth->valueint;
-
-                        queue = queue->next;
-                        i++;
-                }
-                cJSON_Delete(config_params);
-        }
-        return config;
-}
-
 int
 main(int argc, char *argv[]) {
         pthread_t rx_thread;
@@ -423,7 +357,7 @@ main(int argc, char *argv[]) {
         struct onvm_nf_function_table *nf_function_table;
         struct onvm_nf *nf;
         int arg_offset;
-        uint8_t num_queues;
+        uint16_t n;
 
         const char *progname = argv[0];
 
@@ -469,11 +403,10 @@ main(int argc, char *argv[]) {
         /* Increment the children count so that stats are displayed and NF does proper cleanup */
         rte_atomic16_inc(&nf->thread_info.children_cnt);
 
-        /* Parse the config file to extract the fair queue configuration */
-        config = parse_config_file(&num_queues, config_file);
+	n = (num_queues == 0) ? 2 : num_queues;
 
         /* Set up fair_queue */
-        setup_fairq(&fairq, num_queues, config);
+        setup_fairqueue(&fairqueue, n);
 
         pthread_create(&rx_thread, NULL, start_child, (void *)child_data);
         pthread_create(&stats_thread, NULL, do_fq_stats_display, NULL);
@@ -484,8 +417,7 @@ main(int argc, char *argv[]) {
         pthread_join(rx_thread, NULL);
         pthread_join(stats_thread, NULL);
 
-        free(config);
-        destroy_fairq(fairq);
+        destroy_fairqueue(fairqueue);
 
         printf("If we reach here, program is ending\n");
         return 0;

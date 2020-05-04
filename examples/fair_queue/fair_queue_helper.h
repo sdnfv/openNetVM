@@ -48,54 +48,44 @@
 
 #define QUEUE_SIZE (NF_QUEUE_RINGSIZE)
 
-/* Token Bucket Configurations */
-struct token_bucket_config {
-        uint64_t rate;
-        uint64_t depth;
-};
-
 /* Structure of each queue */
-struct fq_queue {
-        uint32_t head;						
-        uint32_t tail;
-        struct rte_mbuf **pkts;
-        rte_spinlock_t lock;    
-        uint64_t tb_tokens, tb_rate, tb_depth;                  // token bucket
-        uint64_t last_cycle;                                    // last time tokens were generated for this queue
-	uint64_t rx, rx_last, tx, tx_last;                      // maintaining stats
+struct fairqueue_queue {
+        uint32_t head;                                          // head of the queue
+        uint32_t tail;                                          // tail of the queue
+        struct rte_mbuf **pkts;                                 // array of packet pointers
+        rte_spinlock_t lock;                                    // lock to access the queue
+        uint64_t rx, rx_last, tx, tx_last;                      // maintaining stats
         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;  // maintaining stats
 };
 
-/* Fairq structure */
-struct fairq_t {
-        struct fq_queue **fq;  // pointer to each queue
-        uint16_t num_queues;    // number of queues
+/* Fair queue structure */
+struct fairqueue_t {
+        struct fairqueue_queue **fq;  // pointer to each queue
+        uint16_t num_queues;          // number of queues
 };
 
 /*
- * Allocate memory to the fairq_t structure and initialize the variables along with token bucket configuration.
+ * Allocate memory to the fairqueue_t structure and initialize the variables.
  */
 static int
-setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_config *config) {
+setup_fairqueue(struct fairqueue_t **fairq, uint16_t num_queues) {
         uint16_t i;
-	uint64_t cur_cycles;
 
-        *fairq = (struct fairq_t *)rte_malloc(NULL, sizeof(struct fairq_t), 0);
+        *fairq = (struct fairqueue_t *)rte_malloc(NULL, sizeof(struct fairqueue_t), 0);
         if ((*fairq) == NULL) {
                 rte_exit(EXIT_FAILURE, "Unable to allocate memory.\n");
         }
 
-        (*fairq)->fq = (struct fq_queue **)rte_malloc(NULL, sizeof(struct fq_queue *) * num_queues, 0);
+        (*fairq)->fq = (struct fairqueue_queue **)rte_malloc(NULL, sizeof(struct fairqueue_queue *) * num_queues, 0);
         if ((*fairq)->fq == NULL) {
                 rte_free(*fairq);
                 rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue.\n");
         }
 
         (*fairq)->num_queues = num_queues;
-        cur_cycles = rte_get_tsc_cycles();
 
         for (i = 0; i < num_queues; i++) {
-                (*fairq)->fq[i] = (struct fq_queue *)rte_malloc(NULL, sizeof(struct fq_queue), 0);
+                (*fairq)->fq[i] = (struct fairqueue_queue *)rte_malloc(NULL, sizeof(struct fairqueue_queue), 0);
                 if ((*fairq)->fq[i] == NULL) {
                         for (uint16_t j = 0; j < i; j++) {
                                 rte_free((*fairq)->fq[j]);
@@ -104,9 +94,9 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
                         rte_free(*fairq);
                         rte_exit(EXIT_FAILURE, "Unable to allocate memory for queue %d.\n", i + 1);
                 }
-                struct fq_queue *fq = (*fairq)->fq[i];
+                struct fairqueue_queue *fq = (*fairq)->fq[i];
 
-                fq->pkts = (struct rte_mbuf **)rte_malloc(NULL, sizeof(struct rte_mbuf*) * QUEUE_SIZE, 0);
+                fq->pkts = (struct rte_mbuf **)rte_malloc(NULL, sizeof(struct rte_mbuf *) * QUEUE_SIZE, 0);
                 if (fq->pkts == NULL) {
                         for (uint16_t j = 0; j < i; j++) {
                                 rte_free((*fairq)->fq[j]);
@@ -119,12 +109,6 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
                 fq->head = 0;
                 fq->tail = 0;
                 rte_spinlock_init(&fq->lock);
-
-		fq->tb_depth = config[i].depth;
-                fq->tb_rate = config[i].rate;
-                fq->tb_tokens = fq->tb_depth;
-
-                fq->last_cycle = cur_cycles;
 
                 fq->rx = 0;
                 fq->rx_last = 0;
@@ -139,10 +123,10 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
 }
 
 /*
- * Free memory allocated to the fairq_t struct.
+ * Free memory allocated to the fairqueue_t struct.
  */
 static int
-destroy_fairq(struct fairq_t *fairq) {
+destroy_fairqueue(struct fairqueue_t *fairq) {
         uint16_t i;
 
         for (i = 0; i < fairq->num_queues; i++) {
@@ -157,11 +141,11 @@ destroy_fairq(struct fairq_t *fairq) {
 /*
  * Classify the incoming pkts based on the 5-tuple from the pkt header
  * (src IP, dst IP, src port, dst port, protocol)
- * into the queues of the fairq_t struct.
- * Internally called by `fairq_enqueue`.
+ * into the queues of the fairqueue_t struct.
+ * Internally called by `fairqueue_enqueue`.
  */
 static int
-get_enqueue_qid(struct fairq_t *fairq, struct rte_mbuf *pkt) {
+get_enqueue_qid(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
         struct onvm_ft_ipv4_5tuple key;
         uint32_t hash_value;
         int ret;
@@ -185,12 +169,12 @@ get_enqueue_qid(struct fairq_t *fairq, struct rte_mbuf *pkt) {
 }
 
 /*
- * Enqueue pkt to one of the queues of the fairq_t struct.
+ * Enqueue pkt to one of the queues of the fairqueue_t struct.
  */
 static int
-fairq_enqueue(struct fairq_t *fairq, struct rte_mbuf *pkt) {
+fairqueue_enqueue(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
         int qid;
-        struct fq_queue *fq;
+        struct fairqueue_queue *fq;
 
         qid = get_enqueue_qid(fairq, pkt);
         if (qid == -1) {
@@ -199,97 +183,55 @@ fairq_enqueue(struct fairq_t *fairq, struct rte_mbuf *pkt) {
         fq = fairq->fq[qid];
 
         rte_spinlock_lock(&fq->lock);
-        if(fq->head == fq->tail && fq->pkts[fq->head] != NULL) {
+        if (fq->head == fq->tail && fq->pkts[fq->head] != NULL) {
                 fq->rx_drop += 1;
                 return -1;
         }
         fq->pkts[fq->tail] = pkt;
         fq->tail = (fq->tail + 1) % QUEUE_SIZE;
-        fq->rx += 1;
         rte_spinlock_unlock(&fq->lock);
+        
+        fq->rx += 1;
 
         return 0;
 }
 
 /*
- * Produce due tokens to a queue in the fairq_t struct.
- */
-static int
-produce_tokens(struct fq_queue *fq) {
-        uint64_t cur_cycles;
-        uint64_t timer_hz;
-        uint64_t rate, time_diff;
-        uint64_t tokens_produced;
-
-        timer_hz = rte_get_timer_hz();
-        rate = fq->tb_rate * 1000000;
-
-        cur_cycles = rte_get_tsc_cycles();
-        time_diff = cur_cycles - fq->last_cycle;
-
-        /* Produce tokens upto maximum capacity */
-        tokens_produced = ((time_diff * rate) / timer_hz);
-        if (tokens_produced + fq->tb_tokens >= fq->tb_depth) {
-                fq->tb_tokens = fq->tb_depth;
-        } else {
-                fq->tb_tokens += tokens_produced;
-        }
-
-        fq->last_cycle = cur_cycles;
-
-        return 0;
-}
-
-/*
- * Check which queue has sufficient tokens in a round robin fashion.
- * Iterates through each queue atmost once and stops on finding a suitable queue.
- * Return the queue_id if any of the queues have sufficient tokens.
+ * Iterates through each queue atmost once and stops on finding a non-empty queue.
+ * Return the queue_id if queue isn't empty.
  * Return -1 otherwise.
- * Internally called by `fairq_dequeue`.
+ * Internally called by `fairqueue_dequeue`.
  */
 static int
-get_dequeue_qid(struct fairq_t *fairq) {
+get_dequeue_qid(struct fairqueue_t *fairq) {
         static uint16_t qid = 0;
         uint16_t start_qid;
-        struct fq_queue *fq;
-        uint64_t cur_cycles;
-        uint64_t timer_hz;
+        struct fairqueue_queue *fq;
 
         start_qid = qid;
         do {
                 fq = fairq->fq[qid];
 
-                if(fq->pkts[fq->head] == NULL) {
+                if (fq->pkts[fq->head] == NULL) {
                         qid = (qid + 1) % fairq->num_queues;
                         continue;
                 }
 
-                /* Check if queue has sufficient tokens */
-                cur_cycles = rte_get_tsc_cycles();
-                timer_hz = rte_get_timer_hz();
-
-		if (fq->tb_tokens +
-                        ((((cur_cycles - fq->last_cycle) * fq->tb_rate * 1000000) + timer_hz - 1) / timer_hz) >=
-                    fq->pkts[fq->head]->pkt_len) {
-                        produce_tokens(fq);
-
-                        uint8_t temp_qid = qid;
-                        qid = (qid + 1) % fairq->num_queues;
-                        return temp_qid;
-                }
-		qid = (qid + 1) % fairq->num_queues;
-        } while (qid != start_qid);  // Exit when all queues are empty
+                uint16_t temp_qid = qid;
+                qid = (qid + 1) % fairq->num_queues;
+                return temp_qid;
+        } while (qid != start_qid);
 
         return -1;
 }
 
 /*
- * Dequeue pkt from the fairq_t queues in a round robin fashion.
+ * Dequeue pkt from the fairqueue_t queues in a round robin fashion.
  */
 static int
-fairq_dequeue(struct fairq_t *fairq, struct rte_mbuf **pkt) {
+fairqueue_dequeue(struct fairqueue_t *fairq, struct rte_mbuf **pkt) {
         int qid;
-        struct fq_queue *fq;
+        struct fairqueue_queue *fq;
 
         qid = get_dequeue_qid(fairq);
 
@@ -302,7 +244,6 @@ fairq_dequeue(struct fairq_t *fairq, struct rte_mbuf **pkt) {
 
         /* Dequeue pkt */
         rte_spinlock_lock(&fq->lock);
-	fq->tb_tokens -= fq->pkts[fq->head]->pkt_len;
         *pkt = fq->pkts[fq->head];
         fq->pkts[fq->head] = NULL;
         fq->head = (fq->head + 1) % QUEUE_SIZE;
