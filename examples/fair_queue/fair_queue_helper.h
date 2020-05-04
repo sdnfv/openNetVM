@@ -44,6 +44,9 @@
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_ring.h>
+#include <rte_spinlock.h>
+
+#define QUEUE_SIZE (NF_QUEUE_RINGSIZE)
 
 /* Token Bucket Configurations */
 struct token_bucket_config {
@@ -53,18 +56,20 @@ struct token_bucket_config {
 
 /* Structure of each queue */
 struct fq_queue {
-        struct rte_ring *ring;                                  // rte ring structure
-        struct rte_mbuf *head_pkt;                              // head packet from ring, used to know size of pkt
+        uint32_t head;						
+        uint32_t tail;
+        struct rte_mbuf **pkts;
+        rte_spinlock_t lock;    
         uint64_t tb_tokens, tb_rate, tb_depth;                  // token bucket
         uint64_t last_cycle;                                    // last time tokens were generated for this queue
-        uint64_t rx, rx_last, tx, tx_last;                      // maintaining stats
+	uint64_t rx, rx_last, tx, tx_last;                      // maintaining stats
         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;  // maintaining stats
 };
 
 /* Fairq structure */
 struct fairq_t {
         struct fq_queue **fq;  // pointer to each queue
-        uint8_t num_queues;    // number of queues
+        uint16_t num_queues;    // number of queues
 };
 
 /*
@@ -72,9 +77,8 @@ struct fairq_t {
  */
 static int
 setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_config *config) {
-        uint8_t i;
-        uint64_t cur_cycles;
-        char ring_name[4];
+        uint16_t i;
+	uint64_t cur_cycles;
 
         *fairq = (struct fairq_t *)rte_malloc(NULL, sizeof(struct fairq_t), 0);
         if ((*fairq) == NULL) {
@@ -93,8 +97,7 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
         for (i = 0; i < num_queues; i++) {
                 (*fairq)->fq[i] = (struct fq_queue *)rte_malloc(NULL, sizeof(struct fq_queue), 0);
                 if ((*fairq)->fq[i] == NULL) {
-                        for (uint8_t j = 0; j < i; j++) {
-                                rte_ring_free((*fairq)->fq[j]->ring);
+                        for (uint16_t j = 0; j < i; j++) {
                                 rte_free((*fairq)->fq[j]);
                         }
                         rte_free((*fairq)->fq);
@@ -103,22 +106,21 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
                 }
                 struct fq_queue *fq = (*fairq)->fq[i];
 
-                snprintf(ring_name, 4, "fq%d", i);
-                fq->ring = rte_ring_create(ring_name, NF_QUEUE_RINGSIZE / 4, rte_socket_id(),
-                                           RING_F_SP_ENQ | RING_F_SC_DEQ);  // single producer, single consumer
-                if (fq->ring == NULL) {
-                        for (uint8_t j = 0; j < i; j++) {
-                                rte_ring_free((*fairq)->fq[j]->ring);
+                fq->pkts = (struct rte_mbuf **)rte_malloc(NULL, sizeof(struct rte_mbuf*) * QUEUE_SIZE, 0);
+                if (fq->pkts == NULL) {
+                        for (uint16_t j = 0; j < i; j++) {
                                 rte_free((*fairq)->fq[j]);
                         }
                         rte_free((*fairq)->fq[i]);
                         rte_free((*fairq)->fq);
                         rte_free(*fairq);
-                        rte_exit(EXIT_FAILURE, "Unable to create ring for queue %d.\n", i + 1);
+                        rte_exit(EXIT_FAILURE, "Unable to create queue for queue %d.\n", i + 1);
                 }
-                fq->head_pkt = NULL;
+                fq->head = 0;
+                fq->tail = 0;
+                rte_spinlock_init(&fq->lock);
 
-                fq->tb_depth = config[i].depth;
+		fq->tb_depth = config[i].depth;
                 fq->tb_rate = config[i].rate;
                 fq->tb_tokens = fq->tb_depth;
 
@@ -141,10 +143,11 @@ setup_fairq(struct fairq_t **fairq, uint8_t num_queues, struct token_bucket_conf
  */
 static int
 destroy_fairq(struct fairq_t *fairq) {
-        uint8_t i;
+        uint16_t i;
 
         for (i = 0; i < fairq->num_queues; i++) {
-                rte_ring_free(fairq->fq[i]->ring);
+                rte_free(fairq->fq[i]->pkts);
+                rte_free(fairq->fq[i]);
         }
         rte_free(fairq->fq);
         rte_free(fairq);
@@ -194,13 +197,16 @@ fairq_enqueue(struct fairq_t *fairq, struct rte_mbuf *pkt) {
                 return -1;
         }
         fq = fairq->fq[qid];
-        if (rte_ring_enqueue(fq->ring, pkt) == 0) {
-                fq->rx += 1;
-        } else {
-                /* ring was full */
+
+        rte_spinlock_lock(&fq->lock);
+        if(fq->head == fq->tail && fq->pkts[fq->head] != NULL) {
                 fq->rx_drop += 1;
                 return -1;
         }
+        fq->pkts[fq->tail] = pkt;
+        fq->tail = (fq->tail + 1) % QUEUE_SIZE;
+        fq->rx += 1;
+        rte_spinlock_unlock(&fq->lock);
 
         return 0;
 }
@@ -243,40 +249,36 @@ produce_tokens(struct fq_queue *fq) {
  */
 static int
 get_dequeue_qid(struct fairq_t *fairq) {
-        static uint8_t qid = 0;
+        static uint16_t qid = 0;
+        uint16_t start_qid;
+        struct fq_queue *fq;
         uint64_t cur_cycles;
         uint64_t timer_hz;
-        uint8_t start_qid;
-        struct fq_queue *fq;
 
         start_qid = qid;
         do {
                 fq = fairq->fq[qid];
 
-                /* Check if pkt needs to be moved from ring to `head_pkt` */
-                if (fq->head_pkt == NULL) {
-                        if (rte_ring_count(fq->ring) == 0) {
-                                qid = (qid + 1) % fairq->num_queues;
-                                continue;
-                        } else {
-                                rte_ring_dequeue(fq->ring, (void **)&fq->head_pkt);
-                        }
+                if(fq->pkts[fq->head] == NULL) {
+                        qid = (qid + 1) % fairq->num_queues;
+                        continue;
                 }
 
                 /* Check if queue has sufficient tokens */
                 cur_cycles = rte_get_tsc_cycles();
                 timer_hz = rte_get_timer_hz();
-                if (fq->tb_tokens +
+
+		if (fq->tb_tokens +
                         ((((cur_cycles - fq->last_cycle) * fq->tb_rate * 1000000) + timer_hz - 1) / timer_hz) >=
-                    fq->head_pkt->pkt_len) {
+                    fq->pkts[fq->head]->pkt_len) {
                         produce_tokens(fq);
 
                         uint8_t temp_qid = qid;
                         qid = (qid + 1) % fairq->num_queues;
                         return temp_qid;
                 }
-                qid = (qid + 1) % fairq->num_queues;
-        } while (qid != start_qid);  // Exit when none of the queue have sufficient tokens
+		qid = (qid + 1) % fairq->num_queues;
+        } while (qid != start_qid);  // Exit when all queues are empty
 
         return -1;
 }
@@ -299,15 +301,14 @@ fairq_dequeue(struct fairq_t *fairq, struct rte_mbuf **pkt) {
         fq = fairq->fq[qid];
 
         /* Dequeue pkt */
-        fq->tb_tokens -= fq->head_pkt->pkt_len;
-        *pkt = fq->head_pkt;
+        rte_spinlock_lock(&fq->lock);
+	fq->tb_tokens -= fq->pkts[fq->head]->pkt_len;
+        *pkt = fq->pkts[fq->head];
+        fq->pkts[fq->head] = NULL;
+        fq->head = (fq->head + 1) % QUEUE_SIZE;
+        rte_spinlock_unlock(&fq->lock);
 
         fq->tx += 1;
-
-        /* Update `head_pkt` */
-        if (rte_ring_dequeue(fq->ring, (void **)&fq->head_pkt) != 0) {
-                fq->head_pkt = NULL;  // no more pkts in queue
-        }
 
         return 0;
 }
