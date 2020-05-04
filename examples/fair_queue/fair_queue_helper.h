@@ -68,42 +68,42 @@ struct fairqueue_t {
  * Allocate memory to the fairqueue_t structure and initialize the variables.
  */
 static int
-setup_fairqueue(struct fairqueue_t **fairq, uint16_t num_queues) {
+setup_fairqueue(struct fairqueue_t **fairqueue, uint16_t num_queues) {
         uint16_t i;
 
-        *fairq = (struct fairqueue_t *)rte_malloc(NULL, sizeof(struct fairqueue_t), 0);
-        if ((*fairq) == NULL) {
+        *fairqueue = (struct fairqueue_t *)rte_malloc(NULL, sizeof(struct fairqueue_t), 0);
+        if ((*fairqueue) == NULL) {
                 rte_exit(EXIT_FAILURE, "Unable to allocate memory.\n");
         }
 
-        (*fairq)->fq = (struct fairqueue_queue **)rte_malloc(NULL, sizeof(struct fairqueue_queue *) * num_queues, 0);
-        if ((*fairq)->fq == NULL) {
-                rte_free(*fairq);
+        (*fairqueue)->fq = (struct fairqueue_queue **)rte_malloc(NULL, sizeof(struct fairqueue_queue *) * num_queues, 0);
+        if ((*fairqueue)->fq == NULL) {
+                rte_free(*fairqueue);
                 rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue.\n");
         }
 
-        (*fairq)->num_queues = num_queues;
+        (*fairqueue)->num_queues = num_queues;
 
         for (i = 0; i < num_queues; i++) {
-                (*fairq)->fq[i] = (struct fairqueue_queue *)rte_malloc(NULL, sizeof(struct fairqueue_queue), 0);
-                if ((*fairq)->fq[i] == NULL) {
+                (*fairqueue)->fq[i] = (struct fairqueue_queue *)rte_malloc(NULL, sizeof(struct fairqueue_queue), 0);
+                if ((*fairqueue)->fq[i] == NULL) {
                         for (uint16_t j = 0; j < i; j++) {
-                                rte_free((*fairq)->fq[j]);
+                                rte_free((*fairqueue)->fq[j]);
                         }
-                        rte_free((*fairq)->fq);
-                        rte_free(*fairq);
+                        rte_free((*fairqueue)->fq);
+                        rte_free(*fairqueue);
                         rte_exit(EXIT_FAILURE, "Unable to allocate memory for queue %d.\n", i + 1);
                 }
-                struct fairqueue_queue *fq = (*fairq)->fq[i];
+                struct fairqueue_queue *fq = (*fairqueue)->fq[i];
 
                 fq->pkts = (struct rte_mbuf **)rte_malloc(NULL, sizeof(struct rte_mbuf *) * QUEUE_SIZE, 0);
                 if (fq->pkts == NULL) {
                         for (uint16_t j = 0; j < i; j++) {
-                                rte_free((*fairq)->fq[j]);
+                                rte_free((*fairqueue)->fq[j]);
                         }
-                        rte_free((*fairq)->fq[i]);
-                        rte_free((*fairq)->fq);
-                        rte_free(*fairq);
+                        rte_free((*fairqueue)->fq[i]);
+                        rte_free((*fairqueue)->fq);
+                        rte_free(*fairqueue);
                         rte_exit(EXIT_FAILURE, "Unable to create queue for queue %d.\n", i + 1);
                 }
                 fq->head = 0;
@@ -126,15 +126,15 @@ setup_fairqueue(struct fairqueue_t **fairq, uint16_t num_queues) {
  * Free memory allocated to the fairqueue_t struct.
  */
 static int
-destroy_fairqueue(struct fairqueue_t *fairq) {
+destroy_fairqueue(struct fairqueue_t *fairqueue) {
         uint16_t i;
 
-        for (i = 0; i < fairq->num_queues; i++) {
-                rte_free(fairq->fq[i]->pkts);
-                rte_free(fairq->fq[i]);
+        for (i = 0; i < fairqueue->num_queues; i++) {
+                rte_free(fairqueue->fq[i]->pkts);
+                rte_free(fairqueue->fq[i]);
         }
-        rte_free(fairq->fq);
-        rte_free(fairq);
+        rte_free(fairqueue->fq);
+        rte_free(fairqueue);
         return 0;
 }
 
@@ -145,7 +145,7 @@ destroy_fairqueue(struct fairqueue_t *fairq) {
  * Internally called by `fairqueue_enqueue`.
  */
 static int
-get_enqueue_qid(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
+get_enqueue_qid(struct fairqueue_t *fairqueue, struct rte_mbuf *pkt) {
         struct onvm_ft_ipv4_5tuple key;
         uint32_t hash_value;
         int ret;
@@ -158,29 +158,29 @@ get_enqueue_qid(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
         }
 
         /* Classify pkts based on the 5tuple values */
-        hash_value = fairq->num_queues;
+        hash_value = fairqueue->num_queues;
         hash_value = rte_hash_crc_4byte(key.proto, hash_value);
         hash_value = rte_hash_crc_4byte(key.src_addr, hash_value);
         hash_value = rte_hash_crc_4byte(key.dst_addr, hash_value);
         hash_value = rte_hash_crc_4byte(key.src_port, hash_value);
         hash_value = rte_hash_crc_4byte(key.dst_port, hash_value);
 
-        return hash_value % fairq->num_queues;
+        return hash_value % fairqueue->num_queues;
 }
 
 /*
  * Enqueue pkt to one of the queues of the fairqueue_t struct.
  */
 static int
-fairqueue_enqueue(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
+fairqueue_enqueue(struct fairqueue_t *fairqueue, struct rte_mbuf *pkt) {
         int qid;
         struct fairqueue_queue *fq;
 
-        qid = get_enqueue_qid(fairq, pkt);
+        qid = get_enqueue_qid(fairqueue, pkt);
         if (qid == -1) {
                 return -1;
         }
-        fq = fairq->fq[qid];
+        fq = fairqueue->fq[qid];
 
         rte_spinlock_lock(&fq->lock);
         if (fq->head == fq->tail && fq->pkts[fq->head] != NULL) {
@@ -203,22 +203,22 @@ fairqueue_enqueue(struct fairqueue_t *fairq, struct rte_mbuf *pkt) {
  * Internally called by `fairqueue_dequeue`.
  */
 static int
-get_dequeue_qid(struct fairqueue_t *fairq) {
+get_dequeue_qid(struct fairqueue_t *fairqueue) {
         static uint16_t qid = 0;
         uint16_t start_qid;
         struct fairqueue_queue *fq;
 
         start_qid = qid;
         do {
-                fq = fairq->fq[qid];
+                fq = fairqueue->fq[qid];
 
                 if (fq->pkts[fq->head] == NULL) {
-                        qid = (qid + 1) % fairq->num_queues;
+                        qid = (qid + 1) % fairqueue->num_queues;
                         continue;
                 }
 
                 uint16_t temp_qid = qid;
-                qid = (qid + 1) % fairq->num_queues;
+                qid = (qid + 1) % fairqueue->num_queues;
                 return temp_qid;
         } while (qid != start_qid);
 
@@ -229,18 +229,18 @@ get_dequeue_qid(struct fairqueue_t *fairq) {
  * Dequeue pkt from the fairqueue_t queues in a round robin fashion.
  */
 static int
-fairqueue_dequeue(struct fairqueue_t *fairq, struct rte_mbuf **pkt) {
+fairqueue_dequeue(struct fairqueue_t *fairqueue, struct rte_mbuf **pkt) {
         int qid;
         struct fairqueue_queue *fq;
 
-        qid = get_dequeue_qid(fairq);
+        qid = get_dequeue_qid(fairqueue);
 
         if (qid == -1) {
                 *pkt = NULL;
                 return -1;
         }
 
-        fq = fairq->fq[qid];
+        fq = fairqueue->fq[qid];
 
         /* Dequeue pkt */
         rte_spinlock_lock(&fq->lock);

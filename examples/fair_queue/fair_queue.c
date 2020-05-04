@@ -71,12 +71,14 @@
         "               drop_pps  /  drop_pps      rx_drop  /  tx_drop \n" \
         "--------------------------------------------------------------\n"
 
-#define FQ_STATS_CONTENT                                                    \
-        "%2u             %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n"\
+#define FQ_STATS_CONTENT                                                             \
+        "%2u             %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 \
+        "\n"                                                                         \
         "               %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n\n"
 
 static uint32_t destination;
 static uint16_t num_queues;
+static uint8_t print_stats_flag;
 
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
@@ -106,8 +108,11 @@ usage(const char *progname) {
                progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-d <dst>`: destination service ID to foward to\n");
-        printf(" - `-n <num_queues>`: Number of queues to simulate round robin fair queueing.\n");
+        printf(" - `-d <dst>`: Destination service ID to foward to\n");
+        printf(" - `-n <num_queues>`: Number of queues to simulate round robin fair queueing\n");
+        printf(
+            " - `-p`: Print per queue stats on the terminal (Not recommended for use with large value of "
+            "num_queues)\n");
 }
 
 /*
@@ -116,8 +121,10 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, num_queues_flag = 0;
+        print_stats_flag = 0;
+        num_queues = 2;
 
-        while ((c = getopt(argc, argv, "d:n:")) != -1) {
+        while ((c = getopt(argc, argv, "d:n:p")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
@@ -126,6 +133,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'n':
                                 num_queues = strtoul(optarg, NULL, 10);
                                 num_queues_flag = 1;
+                                break;
+                        case 'p':
+                                print_stats_flag = 1;
                                 break;
                         case '?':
                                 usage(progname);
@@ -357,7 +367,6 @@ main(int argc, char *argv[]) {
         struct onvm_nf_function_table *nf_function_table;
         struct onvm_nf *nf;
         int arg_offset;
-        uint16_t n;
 
         const char *progname = argv[0];
 
@@ -403,19 +412,21 @@ main(int argc, char *argv[]) {
         /* Increment the children count so that stats are displayed and NF does proper cleanup */
         rte_atomic16_inc(&nf->thread_info.children_cnt);
 
-	n = (num_queues == 0) ? 2 : num_queues;
-
         /* Set up fair_queue */
-        setup_fairqueue(&fairqueue, n);
+        setup_fairqueue(&fairqueue, num_queues);
 
         pthread_create(&rx_thread, NULL, start_child, (void *)child_data);
-        pthread_create(&stats_thread, NULL, do_fq_stats_display, NULL);
+        if (print_stats_flag) {
+                pthread_create(&stats_thread, NULL, do_fq_stats_display, NULL);
+        }
 
         tx_loop(nf_local_ctx);
         onvm_nflib_stop(nf_local_ctx);
 
         pthread_join(rx_thread, NULL);
-        pthread_join(stats_thread, NULL);
+        if (print_stats_flag) {
+                pthread_join(stats_thread, NULL);
+        }
 
         destroy_fairqueue(fairqueue);
 
