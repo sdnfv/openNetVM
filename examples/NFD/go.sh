@@ -14,4 +14,4 @@ if [ ! -f ../../start_nf.sh ]; then
   exit 1
 fi
 
-../../start_nf.sh $NF_DIR "$@"
+../../start_nf.sh "$NF_DIR" "$@"
