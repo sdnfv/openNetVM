@@ -5,7 +5,7 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2020 National Institute of Technology Karnataka
+ *            2020 National Institute of Technology Karnataka, Surathkal
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,8 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * fair_queue.c - Categorize pkts based on 5-tuple (src/dst IP, src/dst
- *      port, protocol) header values into separate queues and apply
- *      individual token buckets to each queue.
+ *      port, protocol) header values into separate queues and dequeue
+ *      packets in a round robin fashion.
  ********************************************************************/
 
 #include <errno.h>
@@ -108,7 +108,7 @@ usage(const char *progname) {
                progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-d <dst>`: Destination service ID to foward to\n");
+        printf(" - `-d <dst>`: Destination service ID to forward to\n");
         printf(" - `-n <num_queues>`: Number of queues to simulate round robin fair queueing\n");
         printf(
             " - `-p`: Print per queue stats on the terminal (Not recommended for use with large value of "
@@ -121,8 +121,8 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, dst_flag = 0, num_queues_flag = 0;
-        print_stats_flag = 0;
-        num_queues = 2;
+        print_stats_flag = 0; /* No per queue output by default */
+        num_queues = 2;       /* Default number of queueus */
 
         while ((c = getopt(argc, argv, "d:n:p")) != -1) {
                 switch (c) {

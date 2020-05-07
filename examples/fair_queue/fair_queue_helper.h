@@ -5,7 +5,7 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2020 National Institute of Technology Karnataka
+ *            2020 National Institute of Technology Karnataka, Surathkal
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -73,13 +73,14 @@ setup_fairqueue(struct fairqueue_t **fairqueue, uint16_t num_queues) {
 
         *fairqueue = (struct fairqueue_t *)rte_malloc(NULL, sizeof(struct fairqueue_t), 0);
         if ((*fairqueue) == NULL) {
-                rte_exit(EXIT_FAILURE, "Unable to allocate memory.\n");
+                rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue structure.\n");
         }
 
-        (*fairqueue)->fq = (struct fairqueue_queue **)rte_malloc(NULL, sizeof(struct fairqueue_queue *) * num_queues, 0);
+        (*fairqueue)->fq =
+            (struct fairqueue_queue **)rte_malloc(NULL, sizeof(struct fairqueue_queue *) * num_queues, 0);
         if ((*fairqueue)->fq == NULL) {
                 rte_free(*fairqueue);
-                rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue.\n");
+                rte_exit(EXIT_FAILURE, "Unable to allocate memory for fair queue pointers.\n");
         }
 
         (*fairqueue)->num_queues = num_queues;
@@ -104,7 +105,7 @@ setup_fairqueue(struct fairqueue_t **fairqueue, uint16_t num_queues) {
                         rte_free((*fairqueue)->fq[i]);
                         rte_free((*fairqueue)->fq);
                         rte_free(*fairqueue);
-                        rte_exit(EXIT_FAILURE, "Unable to create queue for queue %d.\n", i + 1);
+                        rte_exit(EXIT_FAILURE, "Unable to create queue %d.\n", i + 1);
                 }
                 fq->head = 0;
                 fq->tail = 0;
@@ -150,14 +151,14 @@ get_enqueue_qid(struct fairqueue_t *fairqueue, struct rte_mbuf *pkt) {
         uint32_t hash_value;
         int ret;
 
-        /* Obtain the 5tuple values */
+        /* Obtain the 5-tuple values */
         ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0) {
                 printf("Received a non-IP4 packet!\n");
                 return -1;
         }
 
-        /* Classify pkts based on the 5tuple values */
+        /* Classify pkts based on the 5-tuple values */
         hash_value = fairqueue->num_queues;
         hash_value = rte_hash_crc_4byte(key.proto, hash_value);
         hash_value = rte_hash_crc_4byte(key.src_addr, hash_value);
@@ -190,7 +191,7 @@ fairqueue_enqueue(struct fairqueue_t *fairqueue, struct rte_mbuf *pkt) {
         fq->pkts[fq->tail] = pkt;
         fq->tail = (fq->tail + 1) % QUEUE_SIZE;
         rte_spinlock_unlock(&fq->lock);
-        
+
         fq->rx += 1;
 
         return 0;
