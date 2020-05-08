@@ -228,10 +228,9 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
-        void *pktsTX[PKT_READ_SIZE];
+        struct rte_mbuf *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         struct rte_ring *rx_ring;
-        struct rte_ring *tx_ring;
         struct rte_ring *msg_q;
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
@@ -243,7 +242,6 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Get rings from nflib */
         rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
@@ -276,7 +274,10 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
-                rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL);
+                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
+                if (tx_batch_size < PACKET_READ_SIZE) {
+                        onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
+                }
         }
         return 0;
 }
