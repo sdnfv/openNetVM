@@ -51,7 +51,6 @@ def get_lint_from_file(lint_file, line_inx):
     Line has to be parsed to find the file line number.
     '''
     line = lint_file[line_inx]
-    print(line)
     number = line.split(":", 2)[1]
 
     # Cppcheck return return lints in the format [filename.c:488].
