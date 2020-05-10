@@ -68,13 +68,4 @@ jobs:
         run: |
          chmod +x style/run-lint.sh
          style/run-lint.sh shell
-  Comment:
-    needs: [Branch,C,Cppcheck,Python,Shell]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Add Comment
-        uses: mshick/add-pr-comment@v1
-        with:
-          message: |
-            **All Lint Tests Passed!🚀**
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+  
