@@ -8,7 +8,7 @@ jobs:
     steps:
       # If Branch name is not develop, comment
       - name: Test Branch Name
-        if: github.base_ref != 'develop'
+        if: github.base_ref == 'develop'
         uses: mshick/add-pr-comment@v1
         with:
           message: |
@@ -68,4 +68,3 @@ jobs:
         run: |
          chmod +x style/run-lint.sh
          style/run-lint.sh shell
-  
