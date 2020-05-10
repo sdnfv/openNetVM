@@ -73,7 +73,6 @@ The workflow has five separate jobs that run concurrently.
 * **C** -- Lints C files for styling errors with gwclint.py 
 * **Python** -- Lints Python files with pylint. 
 * **Shell** -- Lints bash shell script files with shellcheck
-* **Comment** -- If all five previous jobs have passed, comment 'All Lint Tests Passed'
 
 
 ## Other Resources
