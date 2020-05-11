@@ -4,12 +4,11 @@ on:
    types: [opened, synchronize]
 jobs:
   Branch:
-    needs: [C,Cppcheck,Python,Shell]
     runs-on: ubuntu-latest
     steps:
       # If Branch name is not develop, comment
       - name: Test Branch Name
-        if: github.base_ref == 'develop'
+        if: github.base_ref != 'develop'
         run: |
           echo 'Please PR on develop branch.'
           exit 1
