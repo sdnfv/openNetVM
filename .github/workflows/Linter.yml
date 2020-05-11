@@ -9,7 +9,6 @@ jobs:
     steps:
       # If Branch name is not develop, comment
       - name: Test Branch Name
-        continue-on-error: true
         if: github.base_ref == 'develop'
         run: |
           echo 'Please PR on develop branch.'
