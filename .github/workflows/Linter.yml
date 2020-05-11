@@ -4,7 +4,7 @@ on:
    types: [opened, synchronize]
 jobs:
   Branch:
-    needs: [Branch,C,Cppcheck,Python,Shell]
+    needs: [C,Cppcheck,Python,Shell]
     runs-on: ubuntu-latest
     steps:
       # If Branch name is not develop, comment
