@@ -25,7 +25,6 @@ jobs:
          chmod +x style/run-lint.sh
          style/run-lint.sh c
   Cppcheck:
-    needs: [Branch]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
