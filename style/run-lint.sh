@@ -30,7 +30,7 @@ case "$1" in
     python3 "style/run-lint.py" "pylint" "*.py"
     ;;
 "c")  echo $'Running C Lint.\n'
-    python3 "style/run-lint.py" "python ./style/gwclint.py --verbose=2" "'*.c' '*.cpp' '*.h' | grep -v 'cJSON' | grep -v 'ndpi'"
+    python3 "style/run-lint.py" "python ./style/gwclint.py --verbose=4" "'*.c' '*.cpp' '*.h' | grep -v 'cJSON' | grep -v 'ndpi'"
     ;;
 "cppcheck") echo $'Running cppcheck Lint.\n'
     python3 "style/run-lint.py" "cppcheck" "'*.c' '*.cpp' '*.h' | grep -v 'cJSON' | grep -v 'ndpi'"

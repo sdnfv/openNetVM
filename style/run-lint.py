@@ -35,7 +35,7 @@ def gwlint_output(file_name):
     lint_lines = os.popen(get_python_lint_cmd).read().splitlines()
 
     # If lint with gwclint remove the last line of lint: "Done processing example-filename.c"
-    if sys.argv[1] == "python ./style/gwclint.py --verbose=2":
+    if sys.argv[1] == "python ./style/gwclint.py --verbose=4":
         lint_lines = lint_lines[:-1]
     # If linting with cppcheck, we only want errors. Remove lines such as Checking..."
     elif sys.argv[1] == "cppcheck":
