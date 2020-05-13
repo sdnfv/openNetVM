@@ -47,23 +47,30 @@ fi
 
 shift 3
 
-if [ -z $nf_cores ]
+if [ -z "$nf_cores" ]
 then
     usage
+fi
+
+ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
+if [[ $ports_detected -lt $ports ]]
+then
+    echo "Error: Invalid port mask. Insufficient NICs bound."
+    exit 1
 fi
 
 while getopts "a:r:d:s:t:l:p:z:cv" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
-        d) def_srvc="-d $optarg";;
+        d) def_srvc="-d $OPTARG";;
         s) stats="-s $OPTARG";;
         t) ttl="-t $OPTARG";;
         l) packet_limit="-l $OPTARG";;
         p) web_port="$OPTARG";;
         z) stats_sleep_time="-z $OPTARG";;
         c) shared_cpu_flag="-c";;
-        v) verbosity=$(($verbosity+1));;
+        v) verbosity=$((verbosity+1));;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
@@ -80,7 +87,7 @@ fi
 
 if [ "${stats}" = "-s web" ]
 then
-    cd ../onvm_web/
+    cd ../onvm_web/ || usage
     if [ -n "${web_port}" ]
     then
         . start_web_console.sh -p "${web_port}"
@@ -88,15 +95,17 @@ then
         . start_web_console.sh
     fi
 
-    cd $ONVM_HOME/onvm
+    cd "$ONVM_HOME"/onvm || usage
 fi
 
 sudo rm -rf /mnt/huge/rtemap_*
-sudo $SCRIPTPATH/onvm_mgr/$RTE_TARGET/onvm_mgr -l $cpu -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
+# watch out for variable expansion
+# shellcheck disable=SC2086
+sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
 
 if [ "${stats}" = "-s web" ]
 then
     echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
-    kill $ONVM_WEB_PID
-    kill $ONVM_WEB_PID2
+    kill "$ONVM_WEB_PID"
+    kill "$ONVM_WEB_PID2"
 fi

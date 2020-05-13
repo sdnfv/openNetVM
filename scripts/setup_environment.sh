@@ -70,14 +70,16 @@ if [ -z "$ONVM_HOME" ]; then
 fi
 
 # Source DPDK helper functions
-. $ONVM_HOME/scripts/dpdk_helper_scripts.sh
+. "$ONVM_HOME"/scripts/dpdk_helper_scripts.sh
 
 # Disable ASLR
 sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 
 # Setup/Check for free HugePages if the user wants to
 if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
-    set_numa_pages $hp_count
+    # hp_count is assigned in ./dpdk_helper_scripts.sh
+    # shellcheck disable=SC2154
+    set_numa_pages "$hp_count"
 fi
 
 # Verify sudo access
@@ -85,10 +87,10 @@ sudo -v
 
 # Load uio kernel modules
 grep -m 1 "igb_uio" /proc/modules | cat
-if [ ${PIPESTATUS[0]} != 0 ]; then
+if [ "${PIPESTATUS[0]}" != 0 ]; then
     echo "Loading uio kernel modules"
     sleep 1
-    cd $RTE_SDK/$RTE_TARGET/kmod
+    cd "$RTE_SDK"/"$RTE_TARGET"/kmod
     sudo modprobe uio
     sudo insmod igb_uio.ko
 else
@@ -107,7 +109,7 @@ if [ -z "$ONVM_NIC_PCI" ];then
         read -r -p "Bind interface $id to DPDK? [y/N] " response
         if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]];then
             echo "Binding $id to dpdk"
-            sudo $DPDK_DEVBIND -b igb_uio $id
+            sudo "$DPDK_DEVBIND" -b igb_uio "$id"
         fi
     done
 else
@@ -115,13 +117,13 @@ else
     for nic_id in $ONVM_NIC_PCI
     do
         echo "Binding $nic_id to DPDK"
-        sudo $DPDK_DEVBIND -b igb_uio $nic_id
+        sudo "$DPDK_DEVBIND" -b igb_uio "$nic_id"
     done
 fi
 
 echo "Finished Binding"
 $DPDK_DEVBIND --status
 
-sudo bash $ONVM_HOME/scripts/no_hyperthread.sh
+sudo bash "$ONVM_HOME"/scripts/no_hyperthread.sh
 
 echo "Environment setup complete."

@@ -35,6 +35,7 @@ cd onvm
 Doing that will launch openNetVM and use the console to display log
 messages. It will print out a message stating that the web stats
 console has been setup and information to access it.
+You could use the browser to monitor the stats of openNetVM manager.
 
 If something were to go wrong in the launching of the web stats, you could
 manually start it by doing the following:
@@ -65,19 +66,32 @@ Global state is managed via a small publisher/subscriber library located in [pub
 
 ## Build Installs
 
+A bug had been reported that net-tools does not come with base minimal install of Ubuntu 18.04, which could cause a run-time error.
+The following install command should solve that if you do not have net-tools installed.
+
+```sh
+sudo apt-get install net-tools
+```
+
 The ReactJS app is ready for execution, but follow this process if you need to edit `onvm_web/react-app`
 Assuming you're using an ubuntu system
 Remember to run commands in sudo for nodejs and npm
 
 Install latest stable Node.js version
 ```sh
-curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+curl -sL https://deb.nodesource.com/setup_13.x | sudo -E bash -
 # Install Node.js from the Debian-based distributions repository
 sudo apt-get install -y nodejs
 # Use package manager
 sudo npm cache clean -f
 sudo npm install -g n
+# Install the current stable version of node
 sudo n stable
+```
+
+npm should come automatically with Node.js, but on the rare occasion you do not have npm, you need to install it yourself.
+```sh
+sudo apt-get install npm
 ```
 
 Install yarn with npm

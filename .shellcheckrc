@@ -1,0 +1,13 @@
+# Expanding Sourcing Files
+disable=SC1090
+# Source File Doesn't Exist
+disable=SC1091
+
+# Exit On Fail CD
+disable=SC2164
+
+# Using $? For Exit Code
+disable=SC2181
+
+# Splitting Array Into Tuple
+disable=SC2206
