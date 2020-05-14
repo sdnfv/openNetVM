@@ -93,7 +93,7 @@ usage(const char *progname) {
         printf(" - `-d <dst>`: destination service ID to foward to\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(" - `-D <tb_depth>`: depth of token bucket (in bytes)\n");
-        printf(" - `-R <tb_rate>`: rate of token regeneration (in Mbps) \n");
+        printf(" - `-R <tb_rate>`: rate of token regeneration (in MBps) \n");
 }
 
 /*
