@@ -142,7 +142,7 @@ sudo docker rm $(sudo docker ps -aq)
 
 Create an account on Docker online and sign via CLI:
 ```bash
-sudo docker login --u <username> docker.io
+sudo docker login -u <username> docker.io
 ```
 
 Make sure you are apart of the sdnfv Docker organization:

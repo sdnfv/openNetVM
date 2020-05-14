@@ -47,10 +47,11 @@ ENV ONVM_NUM_HUGEPAGES=1024
 
 WORKDIR $ONVM_HOME
 
-RUN apt-get upgrade && apt-get update && \
+RUN apt-get update -y && apt-get upgrade -y && \
     apt-get install -y build-essential \
                        sudo \
                        gdb \
+                       python \
                        libnuma-dev \
                        vim \
                        less \
