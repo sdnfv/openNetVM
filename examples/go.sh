@@ -11,7 +11,7 @@ if [ ! -f ../start_nf.sh ]; then
 fi
 
 # only check for running manager if not in Docker
-if [[ -z $(pgrep -u root -f "/onvm/onvm_mgr/.*/onvm_mgr") && -z $(grep "docker" /proc/1/cgroup) ]]
+if [[ -z $(pgrep -u root -f "/onvm/onvm_mgr/.*/onvm_mgr") ]] && ! grep -q "docker" /proc/1/cgroup
 then
     echo "NF cannot start without a running manager"
     exit 1
