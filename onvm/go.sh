@@ -39,7 +39,8 @@ verbosity=1
 # Initialize base virtual address to empty.
 virt_addr=""
 
-if [[ -n $(pgrep -u root -f "/onvm_mgr/.*/onvm_mgr") ]]
+# only check for duplicate manager if not in Docker container
+if [[ -n $(pgrep -u root -f "/onvm_mgr/.*/onvm_mgr") && -z $(grep "docker" /proc/1/cgroup) ]]
 then
     echo "Manager cannot be started while another is running"
     exit 1
