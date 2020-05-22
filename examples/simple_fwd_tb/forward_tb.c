@@ -115,6 +115,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'D':
                                 tb_depth = strtoul(optarg, NULL, 10);
                                 tb_tokens = tb_depth;
+                                if (tb_depth < 10000) {
+                                        RTE_LOG(INFO, APP,
+                                                "WARNING: Small values of depth could lead to packet drops.\n");
+                                }
                                 break;
                         case 'R':
                                 tb_rate = strtoul(optarg, NULL, 10);
@@ -183,23 +187,33 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         static uint32_t counter = 0;
         uint64_t tokens_produced;
 
-        /* Generate tokens only if `tb_tokens` is insufficient */
-        if (tb_tokens < pkt->pkt_len) {
-                cur_cycles = rte_get_tsc_cycles();
-                /* Wait until sufficient tokens are available */
-                while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens <
-                       pkt->pkt_len) {
+        /* Check if length of packet is greater than depth */
+        if (unlikely(pkt->pkt_len > tb_depth)) {
+                meta->action = ONVM_NF_ACTION_DROP;
+        } else {
+                /* Generate tokens only if `tb_tokens` is insufficient */
+                if (tb_tokens < pkt->pkt_len) {
                         cur_cycles = rte_get_tsc_cycles();
-                }
-                tokens_produced = (((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz());
-                /* Update tokens to a max of tb_depth */
-                if (tokens_produced + tb_tokens > tb_depth) {
-                        tb_tokens = tb_depth;
-                } else {
-                        tb_tokens += tokens_produced;
+                        /* Wait until sufficient tokens are available */
+                        while ((((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz()) + tb_tokens <
+                               pkt->pkt_len) {
+                                cur_cycles = rte_get_tsc_cycles();
+                        }
+                        tokens_produced = (((cur_cycles - last_cycle) * tb_rate * 1000000) / rte_get_timer_hz());
+                        /* Update tokens to a max of tb_depth */
+                        if (tokens_produced + tb_tokens > tb_depth) {
+                                tb_tokens = tb_depth;
+                        } else {
+                                tb_tokens += tokens_produced;
+                        }
+
+                        last_cycle = cur_cycles;
                 }
 
-                last_cycle = cur_cycles;
+                tb_tokens -= pkt->pkt_len;
+
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
         }
 
         if (++counter == print_delay) {
@@ -207,10 +221,6 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 counter = 0;
         }
 
-        tb_tokens -= pkt->pkt_len;
-
-        meta->action = ONVM_NF_ACTION_TONF;
-        meta->destination = destination;
         return 0;
 }
 
