@@ -10,10 +10,8 @@ if [ ! -f ../start_nf.sh ]; then
   exit 1
 fi
 
-SCRIPT=$(readlink -f "$0")
-MANAGER_PATH=$(dirname "$(dirname "$SCRIPT")")
-
-if [[ -z $(pgrep -u root -f "$MANAGER_PATH/onvm/onvm_mgr/$RTE_TARGET/onvm_mgr") ]]
+# only check for running manager if not in Docker
+if [[ -z $(pgrep -u root -f "/onvm/onvm_mgr/.*/onvm_mgr") ]] && ! grep -q "docker" /proc/1/cgroup
 then
     echo "NF cannot start without a running manager"
     exit 1

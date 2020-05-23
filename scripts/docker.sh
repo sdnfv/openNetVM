@@ -68,6 +68,9 @@ if [[ "${DIR}" != "" ]] ; then
     DIR="--volume=${DIR}:/$(basename "${DIR}")"
 fi
 
+# warn users about go script ignoring manager checks
+echo "Please ensure the manager is running before starting dockerized NFs"
+
 #shellcheck disable=SC2086
 if [[ "${CMD}" == "" ]] ; then
     sudo docker run \

@@ -1,7 +1,7 @@
 Running openNetVM in Docker
 ==
 
-To run openNetVM NFs inside Docker containers, use the included [Docker Script][docker].  We provide a [Docker image on Docker Hub][onvm-docker] that is a copy of [Ubuntu 14.04][ubuntu] with a few dependencies installed.  This script does the following:
+To run openNetVM NFs inside Docker containers, use the included [Docker Script][docker].  We provide a [Docker image on Docker Hub][onvm-docker] that is a copy of [Ubuntu 18.04][ubuntu] with a few dependencies installed.  This script does the following:
 
   - Creates a Docker container off of the [sdnfv/opennetvm Docker image][onvm-docker] with a custom name
   - Maps NIC devices from the host into the container
@@ -40,6 +40,25 @@ sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c CO
   - This will start a container with one NIC device mapped in, /dev/uio0 , the hugepage directory at `/mnt/huge` mapped in, and the openNetVM source directory at `/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF.
 Careful, the path needs to be correct inside the container (use absolute path, here the openNetVM directory is mapped in the /).
 
+To remove all containers
+```bash
+sudo docker rm $(sudo docker ps -aq)
+```
+
+To remove all docker images from the system
+```bash
+# list all images
+sudo docker images -a
+
+# remove specific image
+sudo docker rmi <IMAGE ID>
+
+# clean up resources not associated with running container
+docker system prune
+
+# clean up all resources
+docker system prune -a
+```
 
 Running NFs Inside Containers
 --
@@ -62,7 +81,7 @@ sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c CO
                 hugepages mapped from the host's /hugepage directory and openNetVM
                 mapped from /root/openNetVM and it will name it Basic_Monitor_NF
 
-root@nimbnode /root/openNetVM/scripts# ./docker.sh -h /mnt/huge -o /root/openNetVM-dev -D /dev/uio0,/dev/uio1 -n basic_monitor
+root@nimbnode /root/openNetVM/scripts# ./docker.sh -h /mnt/huge -o /root/openNetVM -D /dev/uio0,/dev/uio1 -n basic_monitor
 root@899618eaa98c:/openNetVM# ls
 CPPLINT.cfg  LICENSE  Makefile  README.md  cscope.out  docs  dpdk examples  onvm  onvm_web  scripts  style  tags  tools
 root@899618eaa98c:/openNetVM# cd examples/
@@ -88,6 +107,65 @@ speed_tester_nf
 ...
 ```
 
+Setting Up and Updating Dockerfiles
+--
+
+If you need to update the Dockerfile in the future, you will need to follow these steps.
+
+```bash
+# install docker fully
+sudo curl -sSL https://get.docker.com/ | sh
+```
+
+Make an update to `scripts/Dockerfile`. Create an image from the new Dockerfile.
+
+```bash
+# run inside scripts/
+docker image build -t sdnfv/opennetvm:<some ID tag> - < ./Dockerfile
+```
+This command may take a while as it grabs the Ubuntu container, and installs dependencies.
+Test that the container built correctly. Go into `scripts/docker.sh` and temporarily change line 84
+
+```vim
+# from this
+sdnfv/opennetvm \
+# to this
+sdnfv/opennetvm:<some ID tag> \
+```
+
+Make sure it is the same tag as the build command. This stops docker from pulling the real `sdnfv/opennetvm`
+
+Test what you need to for the update and remove all containers.
+```bash
+sudo docker rm $(sudo docker ps -aq)
+```
+
+Create an account on Docker online and sign via CLI:
+```bash
+sudo docker login -u <username> docker.io
+```
+
+Make sure you are apart of the sdnfv Docker organization:
+```bash
+# push updated image
+docker push sdnfv/opennetvm
+
+# rename to update latest as well
+docker tag sdnfv/opennetvm:<some ID tag> sdnfv/opennetvm
+docker push sdnfv/opennetvm:latest
+```
+
+Now the image is updated, and will be the default next time someone pulls.
+
+Older Dockerfiles
+--
+
+If you want to use an older ONVM version on Ubuntu 14, take a look at the [Available Tags][onvm-docker-tags].
+The 18.03 tag runs ONVM when it had been set up for an older version of Ubuntu.
+The `latest` dockerfile runs on Ubuntu 18.04 and is called `latest`.
+
 [docker]: ../scripts/docker.sh
 [onvm-docker]: https://hub.docker.com/r/sdnfv/opennetvm/
+[onvm-docker-tags]: https://hub.docker.com/r/sdnfv/opennetvm/tags
 [ubuntu]: http://releases.ubuntu.com/14.04/
+
