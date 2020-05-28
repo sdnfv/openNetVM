@@ -13,6 +13,47 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v20.05 (5/2020): Bug Fixes, Usability Improvements, and Token Bucket NF
+
+### Miscellaneous Bug and Documentation Fixes
+
+- [[158](https://github.com/sdnfv/openNetVM/pull/158)] Print a warning message when the user specifies a specific core (`-l`) for NF to start on but doesn't specify a `-m` flag to use that core for NF to run on. To force an NF to run on a specific core, the `-m` flag must be used, otherwise the Manager will assign the NF to a free core.
+- [[159](https://github.com/sdnfv/openNetVM/pull/159)] In `onvm_ft_create` instead of calling `rte_hash_create` from secondary process (NF), enqueue a message for the primary process (onvm_mgr) to do it and then return a pointer.
+- [[160](https://github.com/sdnfv/openNetVM/pull/160)] Fixes the case when packets that had an invalid out port would crash the manager. This is done by maintaining a port init array.
+- [[166](https://github.com/sdnfv/openNetVM/pull/180), [209](https://github.com/sdnfv/openNetVM/pull/209/files)] Updates dependencies mentioned in [194](https://github.com/sdnfv/openNetVM/pull/194) by updating Acorn’s version from 5.7.3 to 5.7.4 for ONVM Web
+- [[173](https://github.com/sdnfv/openNetVM/pull/173)] Fixes a bug in load_generator that caused a seg fault, the NF wasn't calling the setup function before running. 
+- [[180](https://github.com/sdnfv/openNetVM/pull/180)] Prevent user from running multiple managers or starting an NF prior to the manager.
+- [[183](https://github.com/sdnfv/openNetVM/pull/183)] Improved style and efficiency of bash shell scripts using ShellCheck linter
+- [[189](https://github.com/sdnfv/openNetVM/pull/189)] Fixes broken links in Moongen and Pktgen installation guides
+- [[197](https://github.com/sdnfv/openNetVM/pull/197)] Fixes error where manager cannot start because base address for shared memory region is already in use which would cause `Cannot mmap memory for rte_config` error.
+- [[202](https://github.com/sdnfv/openNetVM/pull/202)] Allows Dockers to run on Ubuntu 18.04 successfully. Bug fixes allow NFs to be run both within or outside a container where checks for a running manager and manager duplication are only done when an NF is running outside a container.
+- [[204](https://github.com/sdnfv/openNetVM/pull/204)] UDP source port and destination port packet headers are now converted from Big Endian to CPU order, using built-in DPDK conversion method, resulting in correct packet information printing.
+
+###  New Features and NFs
+
+- [[178](https://github.com/sdnfv/openNetVM/pull/178)] Dynamically allocates memory for NF data structures when NFs start instead of statically at program initialization. Maximum number of NFs is still limited `MAX_NFS` in `onvm_common.h` (default is 128).
+- [[179](https://github.com/sdnfv/openNetVM/pull/179)] NFs print summary statistics when exiting
+- [[196](https://github.com/sdnfv/openNetVM/pull/196)] Continuous Integration improvements
+    - Created a Github Action to run linter on incoming PRs. Also checks if the PR was submitted to the `develop` branch.
+    - Added three static analysis tools.
+        - Pylint
+        - Cppcheck
+        - Shellcheck
+    - New scripts for researchers to install necessary dependencies and run linter locally.
+    - Removed CI code from the main repository
+- [[199](https://github.com/sdnfv/openNetVM/pull/199)] Added new Simple Forward Token Bucket Rate Limiter NF that simulates a queue with a token bucket and forwards packets to a specific destination.  The NF forwards packets based on a user specified rate (-R) and depth (-D). 
+
+Contributors:
+
+- Ethan Baron ([EthanBaron14](https://github.com/EthanBaron14))
+- Benjamin De Vierno (bdevierno1)
+- Catherine Meadows (catherinemeadows)
+- Mingyu Ma (WilliamMaa)
+- Sreya Nalla (sreya519)
+- Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+
+
 ## v19.07 (7/19): NFD library and example NFs, Continuous Integration updates, minor improvements and bug fixes.
 A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
