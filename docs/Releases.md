@@ -52,6 +52,7 @@ Contributors:
 - Sreya Nalla (sreya519)
 - Kevin Deems ([kevindweb](https://github.com/kevindweb))
 - Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+- Rohit M P ([rohit-mp](https://github.com/rohit-mp))
 
 
 ## v19.07 (7/19): NFD library and example NFs, Continuous Integration updates, minor improvements and bug fixes.
