@@ -13,7 +13,8 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v20.05 (5/2020): Bug Fixes, Usability Improvements, and Token Bucket NF
+## v20.05 (May 31, 2020): Bug Fixes, Usability Improvements, and Token Bucket NF
+A CloudLab template will be available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
 ### Miscellaneous Bug and Documentation Fixes
 
@@ -45,13 +46,13 @@ is the month.
 
 Contributors:
 
-- Ethan Baron ([EthanBaron14](https://github.com/EthanBaron14))
-- Benjamin De Vierno (bdevierno1)
-- Catherine Meadows (catherinemeadows)
-- Mingyu Ma (WilliamMaa)
-- Sreya Nalla (sreya519)
-- Kevin Deems ([kevindweb](https://github.com/kevindweb))
 - Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+- Ethan Baron ([EthanBaron14](https://github.com/EthanBaron14))
+- Benjamin De Vierno ([bdevierno1](https://github.com/bdevierno1))
+- Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Mingyu Ma ([WilliamMaa](https://github.com/WilliamMaa))
+- Catherine Meadows ([catherinemeadows](https://github.com/catherinemeadows))
+- Sreya Nalla ([sreya519](https://github.com/sreya519))
 - Rohit M P ([rohit-mp](https://github.com/rohit-mp))
 
 
