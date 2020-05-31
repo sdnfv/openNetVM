@@ -306,35 +306,36 @@ wakeup_thread_main(void *arg) {
  * Function to free all allocated memory from main function.
  */
 static void
-onvm_main_free(unsigned tx_lcores, unsigned rx_lcores, struct queue_mgr *tx_mgr[], struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]){
+onvm_main_free(unsigned tx_lcores, unsigned rx_lcores, struct queue_mgr *tx_mgr[],
+struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]) {
         unsigned i;
         for (i = 0; i < tx_lcores; i++) {
-                if (tx_mgr[i]-> nf_rx_bufs != NULL){
+                if (tx_mgr[i]-> nf_rx_bufs != NULL) {
                         free(tx_mgr[i]->nf_rx_bufs);
                 }
-                if (tx_mgr[i]->tx_thread_info->port_tx_bufs != NULL){
+                if (tx_mgr[i]->tx_thread_info->port_tx_bufs != NULL) {
                         free(tx_mgr[i]->tx_thread_info->port_tx_bufs);
                 }
-                if (tx_mgr[i]-> tx_thread_info != NULL){
+                if (tx_mgr[i]-> tx_thread_info != NULL) {
                         free(tx_mgr[i]->tx_thread_info);
                 }
-                if (tx_mgr[i] == NULL){
+                if (tx_mgr[i] == NULL) {
                         break;
                 }
                 rte_free(tx_mgr[i]);
         }
         for (i = 0; i < rx_lcores; i++) {
-                if (rx_mgr[i]->nf_rx_bufs != NULL){
+                if (rx_mgr[i]->nf_rx_bufs != NULL) {
                         free(rx_mgr[i]->nf_rx_bufs);
                 }
-                if (rx_mgr[i] == NULL){
+                if (rx_mgr[i] == NULL) {
                         break;
                 }
                 rte_free(rx_mgr[i]);
         }
-        if (ONVM_NF_SHARE_CORES){
+        if (ONVM_NF_SHARE_CORES) {
                 for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
-                        if (wakeup_ctx[i] == NULL){
+                        if (wakeup_ctx[i] == NULL) {
                                 break;
                         }
                         free(wakeup_ctx[i]);
