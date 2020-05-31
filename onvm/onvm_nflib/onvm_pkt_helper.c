@@ -720,7 +720,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr,
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_payload, payload, payload_len);
+        rte_memcpy(pkt_payload, payload, payload_len);
 
         /* Set udp hdr */
         pkt_udp_hdr = (struct udp_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*udp_hdr));
@@ -728,7 +728,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr,
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_udp_hdr, udp_hdr, sizeof(*udp_hdr));
+        rte_memcpy(pkt_udp_hdr, udp_hdr, sizeof(*udp_hdr));
 
         /* Set ip hdr */
         pkt_iph = (struct ipv4_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*iph));
@@ -736,7 +736,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr,
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_iph, iph, sizeof(*iph));
+        rte_memcpy(pkt_iph, iph, sizeof(*iph));
 
         /* Set eth hdr */
         pkt_eth_hdr = (struct ether_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*eth_hdr));
@@ -744,7 +744,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr,
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_eth_hdr, eth_hdr, sizeof(*eth_hdr));
+        rte_memcpy(pkt_eth_hdr, eth_hdr, sizeof(*eth_hdr));
 
         pkt->pkt_len = pkt->data_len;
         iph->total_length = rte_cpu_to_be_16(pkt->pkt_len - sizeof(struct ether_hdr));
