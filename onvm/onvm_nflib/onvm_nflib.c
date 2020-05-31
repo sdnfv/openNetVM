@@ -1088,23 +1088,23 @@ onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
 
 static void
 onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf) {
-        nf->nf_tx_mgr = rte_calloc("nf->nf_tx_mgr", 1, sizeof(struct queue_mgr), 0);
+        nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
         if (nf->nf_tx_mgr == NULL) {
                 RTE_LOG(ERR, APP, "Can't allocate queue_mgr struct\n");
                 return;
         }
         nf->nf_tx_mgr->mgr_type_t = NF;
-        nf->nf_tx_mgr->to_tx_buf = rte_calloc("nf->nf_tx_mgr->to_tx_buf", 1, sizeof(struct packet_buf), 0);
+        nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
         if (nf->nf_tx_mgr->to_tx_buf == NULL) {
-                rte_free(nf->nf_tx_mgr);
+                free(nf->nf_tx_mgr);
                 RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                 return;
         }
         nf->nf_tx_mgr->id = nf->instance_id;
-        nf->nf_tx_mgr->nf_rx_bufs = rte_calloc("nf->nf_tx_mgr->nf_rx_bufs", MAX_NFS, sizeof(struct packet_buf), 0);
+        nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
         if (nf->nf_tx_mgr->nf_rx_bufs == NULL) {
-                rte_free(nf->nf_tx_mgr->to_tx_buf);
-                rte_free(nf->nf_tx_mgr);
+                free(nf->nf_tx_mgr->to_tx_buf);
+                free(nf->nf_tx_mgr);
                 RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                 return;
         }
@@ -1250,14 +1250,14 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Cleanup for the nf_tx_mgr pointers */
         if (nf->nf_tx_mgr) {
                 if (nf->nf_tx_mgr->to_tx_buf != NULL) {
-                        rte_free(nf->nf_tx_mgr->to_tx_buf);
+                        free(nf->nf_tx_mgr->to_tx_buf);
                         nf->nf_tx_mgr->to_tx_buf = NULL;
                 }
                 if (nf->nf_tx_mgr->nf_rx_bufs != NULL) {
-                        rte_free(nf->nf_tx_mgr->nf_rx_bufs);
+                        free(nf->nf_tx_mgr->nf_rx_bufs);
                         nf->nf_tx_mgr->nf_rx_bufs = NULL;
                 }
-                rte_free(nf->nf_tx_mgr);
+                free(nf->nf_tx_mgr);
                 nf->nf_tx_mgr = NULL;
         }
 
