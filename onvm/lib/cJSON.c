@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
+#include <rte_memcpy.h>
 
 #ifdef ENABLE_LOCALES
 #include <locale.h>
@@ -172,7 +173,7 @@ static unsigned char* cJSON_strdup(const unsigned char* string, const internal_h
     {
         return NULL;
     }
-    memcpy(copy, string, length);
+    rte_memcpy(copy, string, length);
 
     return copy;
 }
@@ -457,7 +458,7 @@ static unsigned char* ensure(printbuffer * const p, size_t needed)
         }
         if (newbuffer)
         {
-            memcpy(newbuffer, p->buffer, p->offset + 1);
+            rte_memcpy(newbuffer, p->buffer, p->offset + 1);
         }
         p->hooks.deallocate(p->buffer);
     }
@@ -897,7 +898,7 @@ static cJSON_bool print_string_ptr(const unsigned char * const input, printbuffe
     if (escape_characters == 0)
     {
         output[0] = '\"';
-        memcpy(output + 1, input, output_length);
+        rte_memcpy(output + 1, input, output_length);
         output[output_length + 1] = '\"';
         output[output_length + 2] = '\0';
 
@@ -1135,7 +1136,7 @@ static unsigned char *print(const cJSON * const item, cJSON_bool format, const i
         {
             goto fail;
         }
-        memcpy(printed, buffer->buffer, cjson_min(buffer->length, buffer->offset + 1));
+        rte_memcpy(printed, buffer->buffer, cjson_min(buffer->length, buffer->offset + 1));
         printed[buffer->offset] = '\0'; /* just to be sure */
 
         /* free the buffer */
@@ -1329,7 +1330,7 @@ static cJSON_bool print_value(const cJSON * const item, printbuffer * const outp
             {
                 return false;
             }
-            memcpy(output, item->valuestring, raw_length);
+            rte_memcpy(output, item->valuestring, raw_length);
             return true;
         }
 
@@ -1848,7 +1849,7 @@ static cJSON *create_reference(const cJSON *item, const internal_hooks * const h
         return NULL;
     }
 
-    memcpy(reference, item, sizeof(cJSON));
+    rte_memcpy(reference, item, sizeof(cJSON));
     reference->string = NULL;
     reference->type |= cJSON_IsReference;
     reference->next = reference->prev = NULL;
