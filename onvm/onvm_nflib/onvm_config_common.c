@@ -75,6 +75,7 @@ onvm_config_parse_file(const char* filename) {
         json_str = (char*)malloc(file_length + 1);
         if (!json_str) {
                 printf("Unable to allocate space for json_str\n");
+                fclose(fp);
                 return NULL;
         }
         tmp = json_str;
@@ -108,14 +109,13 @@ onvm_config_extract_corelist(cJSON* dpdk_config, int* size, int** list) {
         }
 
         local_size = cJSON_GetArraySize(json_arr);
+        if (*list == NULL) {
+                return -1;
+        }
 
         local_list = (int*)malloc(*size * sizeof(int));
         if (local_list == NULL) {
                 free(*list);
-                return -1;
-        }
-
-        if (*list == NULL) {
                 return -1;
         }
 
@@ -533,7 +533,7 @@ onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_arg
                 (*dpdk_argv)[i] = (char*)malloc(arg_size[i]);
 
                 if ((*dpdk_argv)[i] == NULL) {
-                        while( i != 0){
+                        while (i != 0) {
                                 free((*dpdk_argv)[i]);
                                 i--;
                         }
