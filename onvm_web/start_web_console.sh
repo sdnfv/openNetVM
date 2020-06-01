@@ -52,16 +52,15 @@ while getopts "p:" opt; do
     esac
 done
 
-
 # Start ONVM web stats console at http://localhost:<port num>
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
-echo $web_port
+echo "$web_port"
 
 is_web_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":$web_port")
 if [[ "$is_web_port_in_use" != "" ]]
 then
   echo "[ERROR] Web port $web_port is in use"
-  echo $is_web_port_in_use
+  echo "$is_web_port_in_use"
   echo "[ERROR] Web stats failed to start"
   exit 1
 fi
@@ -70,15 +69,15 @@ is_data_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":8000")
 if [[ "$is_data_port_in_use" != "" ]]
 then
   echo "[ERROR] Port 8000 is in use"
-  echo $is_data_port_in_use
+  echo "$is_data_port_in_use"
   echo "[ERROR] Web stats failed to start"
   exit 1
 fi
 
-cd $ONVM_HOME/onvm_web
+cd "$ONVM_HOME"/onvm_web || usage
 nohup python cors_server.py 8000 &
 export ONVM_WEB_PID=$!
 
-cd $ONVM_HOME/onvm_web/web-build
-nohup python -m SimpleHTTPServer $web_port &
+cd "$ONVM_HOME"/onvm_web/web-build || usage
+nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!

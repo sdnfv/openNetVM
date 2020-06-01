@@ -63,10 +63,10 @@ PORT_NUM=$1
 echo "Starting pktgen"
 
 # Pktgen has to be started from pktgen-dpdk/
-if [ $PORT_NUM  -eq "2" ]; then
-    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p 0x3 $PORT_MASK -P -m "[1:2].0, [3:4].1" -f $PKTGEN_CONFIG)
-elif [ $PORT_NUM -eq "1" ]; then
-    (cd $PKTGEN_HOME && sudo $PKTGEN_BUILD -c 0xff -n 3 $BLACK_LIST -- -p 0x1 $PORT_MASK -P -m "[1:2].0" -f $PKTGEN_CONFIG)
+if [ "$PORT_NUM"  -eq "2" ]; then
+    (cd "$PKTGEN_HOME" && sudo "$PKTGEN_BUILD" -c 0xff -n 3 "$BLACK_LIST" -- -p 0x3 "$PORT_MASK" -P -m "[1:2].0, [3:4].1" -f "$PKTGEN_CONFIG")
+elif [ "$PORT_NUM" -eq "1" ]; then
+    (cd "$PKTGEN_HOME" && sudo "$PKTGEN_BUILD" -c 0xff -n 3 "$BLACK_LIST" -- -p 0x1 "$PORT_MASK" -P -m "[1:2].0" -f "$PKTGEN_CONFIG")
 else
     echo "Helper script only supports 1 or 2 ports"
     exit 0

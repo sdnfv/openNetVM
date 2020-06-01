@@ -44,11 +44,11 @@ while getopts :d:c:D:h:o:n: OPTION ; do
         h) HUGE=${OPTARG} ;;
         o) ONVM=${OPTARG} ;;
         n) NAME=${OPTARG} ;;
+        \?) echo "Unknown option -$OPTARG" && exit 1
     esac
 done
 
 DEVICES=()
-MODE=""
 
 if [[ "${NAME}" == "" ]] || [[ "${HUGE}" == "" ]] || [[ "${ONVM}" == "" ]] ; then
     echo -e "sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c COMMAND]\n"
@@ -65,35 +65,40 @@ for DEV in ${RAW_DEVICES} ; do
 done
 
 if [[ "${DIR}" != "" ]] ; then
-    DIR="--volume=${DIR}:/$(basename ${DIR})"
+    DIR="--volume=${DIR}:/$(basename "${DIR}")"
 fi
 
+# warn users about go script ignoring manager checks
+echo "Please ensure the manager is running before starting dockerized NFs"
+
+#shellcheck disable=SC2086
 if [[ "${CMD}" == "" ]] ; then
     sudo docker run \
         --interactive --tty \
         --privileged \
-        --name=${NAME} \
+        --name="${NAME}" \
+        --hostname="${NAME}" \
         --network bridge \
         --volume=/var/run:/var/run \
-        --volume=${HUGE}:${HUGE} \
-        --volume=${ONVM}:/openNetVM \
+        --volume="${HUGE}":"${HUGE}" \
+        --volume="${ONVM}":/openNetVM \
         ${DIR} \
-        ${DEVICES[@]} \
+        "${DEVICES[@]}" \
         sdnfv/opennetvm \
         /bin/bash
 else
     sudo docker run \
         --detach=true \
         --privileged \
-        --name=${NAME} \
+        --name="${NAME}" \
+        --hostname="${NAME}" \
         --network bridge \
         --volume=/var/run:/var/run \
-        --volume=${HUGE}:${HUGE} \
-        --volume=${ONVM}:/openNetVM \
+        --volume="${HUGE}":"${HUGE}" \
+        --volume="${ONVM}":/openNetVM \
         ${DIR} \
-        ${DEVICES[@]} \
+        "${DEVICES[@]}" \
         sdnfv/opennetvm \
         /bin/bash -c "${CMD}"
 fi
-
 

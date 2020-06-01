@@ -1,0 +1,67 @@
+name: Linter
+on:
+  pull_request:
+   types: [opened, synchronize]
+jobs:
+  Branch:
+    runs-on: ubuntu-latest
+    steps:
+      # If Branch name is not develop, comment
+      - name: Test Branch Name
+        if: github.base_ref != 'develop'
+        run: |
+          echo 'Please PR on develop branch.'
+          exit 1
+  C:
+    runs-on: ubuntu-latest
+    steps:
+      # Clone Repository
+      - name: Checkout
+        uses: actions/checkout@v2
+      # Perform lint on user's files.
+      - name: User's Lint
+        run: |
+         chmod +x style/run-lint.sh
+         style/run-lint.sh c
+  Cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Requirements
+        run: |
+         sudo apt-get install cppcheck=1.82-1
+      - name: User's Lint
+        run: |
+         chmod +x style/run-lint.sh
+         style/run-lint.sh cppcheck
+  Python:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+         python-version: 3.7
+    - name: Install Requirements
+      run: |
+        pip install pylint==2.4.4
+    - name: Run Pylint
+      run: |
+        chmod +x style/run-lint.sh
+        style/run-lint.sh python
+  Shell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Requirements
+        run: |
+         sudo apt install xz-utils
+         wget -qO- "https://github.com/koalaman/shellcheck/releases/download/v0.7.0/shellcheck-v0.7.0.linux.x86_64.tar.xz" | tar -xJv
+         sudo cp "shellcheck-v0.7.0/shellcheck" /usr/bin/
+      - name: User's Lint
+        run: |
+         chmod +x style/run-lint.sh
+         style/run-lint.sh shell
