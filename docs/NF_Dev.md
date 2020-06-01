@@ -99,6 +99,31 @@ values.
 }
 ```
 
+Additionally, a developer can run the [config python script](../examples/config.py) to launch linear or circular chains of multiple example NFs from a JSON config file. An example config file can be found [here](../examples/example_chain.json). 
+To run this program within the /examples folder:
+```
+python config.py [config file name] 
+```
+
+### JSON Config File For Launching Chain of Multiple NFs
+```
+{
+	"NF name": [
+		{
+			"parameters": "[parameters for running NF]"
+		}
+	],
+	"NF name": [
+		{
+			"parameters": "[parameters for running NF]"
+		},
+		{
+			"parameters": "[parameters for running second instance of this NF]"
+		}
+	]
+}
+```
+
 [onvm_mgr]: ../onvm/onvm_mgr
 [onvm_nflib]: ../onvm/onvm_nflib
 [onvm_nflib.h]: ../onvm/onvm_nflib/onvm_nflib.h
