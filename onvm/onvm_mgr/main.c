@@ -322,7 +322,7 @@ struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]) {
                 if (tx_mgr[i] == NULL) {
                         break;
                 }
-                rte_free(tx_mgr[i]);
+                free(tx_mgr[i]);
         }
         for (i = 0; i < rx_lcores; i++) {
                 if (rx_mgr[i]->nf_rx_bufs != NULL) {
@@ -331,7 +331,7 @@ struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]) {
                 if (rx_mgr[i] == NULL) {
                         break;
                 }
-                rte_free(rx_mgr[i]);
+                free(rx_mgr[i]);
         }
         if (ONVM_NF_SHARE_CORES) {
                 for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
