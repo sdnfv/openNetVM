@@ -1,7 +1,7 @@
 {
-        "basic_monitor": [
+        "simple_forward": [
                 {
-                        "parameters": "2"
+                        "parameters": "2 -d 1"
                 }
         ],
         "speed_tester": [
