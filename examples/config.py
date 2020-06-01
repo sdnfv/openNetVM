@@ -42,10 +42,12 @@ jobs = []
 # clean up dict items and get params
 for k, v in data.items():
     nf = k
-    param = str(v).strip("'{[]}'")
-    param = remove_prefix(param, "u'parameters': u'")
-    p = Process(target = start_nf, args = (nf, param))
-    jobs.append(p)
+   # print len([item for item in v if item])
+    for item in v:
+        param = str(item).strip("'{[]}'")
+        param = remove_prefix(param, "u'parameters': u'")
+        p = Process(target = start_nf, args = (nf, param))
+        jobs.append(p)
 
 # start up all nf's
 for j in jobs:
