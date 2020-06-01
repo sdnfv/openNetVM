@@ -13,7 +13,6 @@ if (len(sys.argv) < 2):
 fn = sys.argv[1]
 if os.path.exists(fn):
     path = os.path.join(os.path.abspath(os.getcwd()), os.path.basename(fn))
-    # print path
 else:
     print ("Error: No config file found")
     sys.exit(0)
@@ -21,7 +20,6 @@ else:
 # open config file and get num nf's
 with open(path) as f:
     data = json.load(f)
-    # size = len(data)
 
 # strip parameters
 def remove_prefix(text, prefix):
@@ -39,10 +37,9 @@ def start_nf(nf, param):
     return
 
 jobs = []
-# clean up dict items and get params
+# make processes for all nf and params
 for k, v in data.items():
     nf = k
-   # print len([item for item in v if item])
     for item in v:
         param = str(item).strip("'{[]}'")
         param = remove_prefix(param, "u'parameters': u'")
