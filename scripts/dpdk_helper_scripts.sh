@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HUGEPGSZ=`cat /proc/meminfo  | grep Hugepagesize | cut -d : -f 2 | tr -d ' '`
+HUGEPGSZ=$(grep Hugepagesize /proc/meminfo | cut -d : -f 2 | tr -d ' ')
 
 #
 # Unloads igb_uio.ko.
@@ -75,7 +75,6 @@ set_numa_pages()
 
     echo > .echo_tmp
     for d in /sys/devices/system/node/node? ; do
-        node=$(basename $d)
         echo "echo $hp_count > $d/hugepages/hugepages-${HUGEPGSZ}/nr_hugepages" >> .echo_tmp
     done
     echo "Reserving hugepages"
@@ -84,8 +83,8 @@ set_numa_pages()
 
     create_mnt_huge
 
-    hp_free=$(cat /proc/meminfo | grep HugePages_Free | awk '{print $2}')
-    if [ $hp_free == "0" ]; then
+    hp_free=$(grep HugePages_Free /proc/meminfo | awk '{print $2}')
+    if [ "$hp_free" == "0" ]; then
         echo "Coudn't set up huge pages. Did you try turning it off and on again?"
         exit 1
     else
