@@ -18,9 +18,32 @@ Check System
     your Kernel version should be higher than 2.6.33.
 
 3. Install dependencies
+
+    Install the Linux Kernel headers package for your kernel version.
     ```sh
     sudo apt-get install build-essential linux-headers-$(uname -r) git
     ```
+    If your distribution didn't come with Python or came with an earlier version, install Python 2 v2.7+ and Python 3 v3.4+. 
+    
+    To install Python 3 on Linux:
+
+    See if Python is already installed with
+
+    ```sh
+    python --version 
+    ```
+    If Python 2 v2.7+ or Python 3 v3.4+ isn't installed, install Python with your distribution's package manager (Note: the command and package name vary).
+
+    On Debian derivatives such as Ubuntu, use `apt`. Check the apt repository for the versions of Python available to you. Then, run a command similar to the following, substituting the correct package name:
+    ```sh
+    sudo apt-get install python3
+    ```
+
+    Run the following command to verify that Python installed correctly:
+    ```sh
+    python3 --version
+    ```
+
 4. Assure your kernel supports uio
     ```sh
     locate uio
