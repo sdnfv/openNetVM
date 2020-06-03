@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 #                    openNetVM
 #      https://github.com/sdnfv/openNetVM
