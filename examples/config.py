@@ -9,7 +9,7 @@ import subprocess
 
 # cleanup on user shutdown
 def handler(signal_received, frame):
-    print("Exiting...")
+    print("\nExiting...")
     for p in procs_list:
         try: 
             p.kill()
