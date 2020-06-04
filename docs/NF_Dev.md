@@ -104,7 +104,6 @@ To run this program within the /examples folder:
 ```
 python config.py [config file name] 
 ```
-
 ### JSON Config File For Launching Chain of Multiple NFs
 ```
 {
@@ -123,7 +122,6 @@ python config.py [config file name]
 	]
 }
 ```
-
 [onvm_mgr]: ../onvm/onvm_mgr
 [onvm_nflib]: ../onvm/onvm_nflib
 [onvm_nflib.h]: ../onvm/onvm_nflib/onvm_nflib.h
