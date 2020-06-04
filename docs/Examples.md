@@ -16,6 +16,8 @@ still required. Additionally, launching circular or linear chains with different
 For documentation on developing with config files, see
 [NF_Dev](NF_Dev.md)
 
+
+
 NF Starting Scripts
 --
 The example NFs can be started using the `start_nf.sh` script. The script can run any example NF based on the first argument which is the NF name(this is based on the assumption that the name matches the NF folder and the build binary). 
