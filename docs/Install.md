@@ -23,23 +23,21 @@ Check System
     ```sh
     sudo apt-get install build-essential linux-headers-$(uname -r) git
     ```
-    If your distribution didn't come with Python or came with an earlier version, install Python 2 v2.7+ and Python 3 v3.4+. 
-    
-    To install Python 3 on Linux:
+    If your distribution didn't come with Python or came with an earlier version, you will need to install Python 3 v3.4+. 
 
     See if Python is already installed with
 
     ```sh
-    python --version 
+    python3 --version 
     ```
-    If Python 2 v2.7+ or Python 3 v3.4+ isn't installed, install Python with your distribution's package manager (Note: the command and package name vary).
+    Install Python with your distribution's package manager (Note: the command and package name may vary).
 
-    On Debian derivatives such as Ubuntu, use `apt`. Check the apt repository for the versions of Python available to you. Then, run a command similar to the following, substituting the correct package name:
+    On Debian derivatives such as Ubuntu, use `apt`. Check the apt repository for the versions of Python available to you. Then, run the following command:
     ```sh
     sudo apt-get install python3
     ```
 
-    Run the following command to verify that Python installed correctly:
+    Verify that Python installed correctly with
     ```sh
     python3 --version
     ```
