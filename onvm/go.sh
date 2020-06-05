@@ -3,7 +3,7 @@
 function usage {
         echo "$0 PORTMASK NF-COREMASK [-r NUM-SERVICES] [-d DEFAULT-SERVICE] [-s STATS-OUTPUT] [-p WEB-PORT-NUMBER] [-z STATS-SLEEP-TIME]"
         # this works well on our 2x6-core nodes
-        echo "$0 3 0xF0 --> cores 0,1,2 and 3 with ports 0 and 1, with NFs running on cores 4,5,6,7"
+        echo "$0 3 0xF0 --> cores 0,1 and 2 with ports 0 and 1, with NFs running on cores 4,5,6,7"
         echo -e "\tBy default, cores will be used as follows in numerical order:"
         echo -e "\t\tRX thread, TX thread, ..., TX thread for last NF, Stats thread"
         echo -e "$0 3 0xF0 -m 2,3,4"
@@ -31,8 +31,46 @@ function usage {
         exit 1
 }
 
-ports=$1
-nf_cores=$2
+# User can still use legacy syntax for backwards compatibility. Check syntax of input
+# Check validity of core input
+core_check="^([0-8]+,){2}([0-8]+)(,[0-8]+)*$"
+port_check="^[0-9]+$"
+nf_check="^0x[0-9A-F]+$"
+if [[ $1 =~ $core_check ]] && [[ $2 =~ $port_check ]] && [[ $3 =~ $nf_check ]]
+then
+    cpu=$1
+    ports=$2
+    nf_cores=$3
+    shift 3
+# Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
+elif [[ $1 -ne "-n" && $1 -ne "-k" ]]
+then
+    if [[ ! $1 =~ $core_check ]] 
+    then
+        # This verifies that the user actually tried to input the cores but did so incorrectly
+        if [[ $2 =~ $port_check || $3 =~ $nf_check ]]
+        then
+            echo "Error: Invalid Manager Cores. Check input and try again."
+            exit 1
+        fi
+    elif [[ ! $2 =~ $port_check ]]
+    then
+        # This verifies that the user actually tried to input the port mask but did so incorrectly
+        if [[ $1 =~ $core_check || $3 =~ $nf_check ]]
+        then
+            echo "Error: Invalid Port Mask. Check input and try again."
+            exit 1
+        fi
+    elif [[ ! $3 =~ $nf_check ]]
+    then
+        # This verifies that the user actually tried to input the NF core mask but did so incorrectly
+        if [[ $1 =~ $core_check || $2 =~ $port_check ]]
+        then
+            echo "Error: Invalid NF Core Mask. Check input and try again."
+            exit 1
+        fi
+    fi
+fi
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
@@ -47,21 +85,7 @@ then
     exit 1
 fi
 
-shift 2
-
-if [ -z "$nf_cores" ]
-then
-    usage
-fi
-
-ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
-if [[ $ports_detected -lt $ports ]]
-then
-    echo "Error: Invalid port mask. Insufficient NICs bound."
-    exit 1
-fi
-
-while getopts "a:r:d:s:t:l:p:z:cvm:" opt; do
+while getopts "a:r:d:s:t:l:p:z:cvm:k:n:" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
@@ -73,30 +97,93 @@ while getopts "a:r:d:s:t:l:p:z:cvm:" opt; do
         z) stats_sleep_time="-z $OPTARG";;
         c) shared_cpu_flag="-c";;
         v) verbosity=$((verbosity+1));;
-        m) cpu=$OPTARG;;
+        m)
+            if [[ -n $cpu ]]
+            then
+                echo "Error: Cannot use manual manager core flag with legacy syntax. Correct syntax: "
+                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                exit 1
+            else
+                cpu=$OPTARG
+            fi;;
+        k)
+            if [[ -n $ports ]]
+            then
+                echo "Error: Cannot use manual port mask flag with legacy syntax. Correct syntax: "
+                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                exit 1
+            else
+                ports=$OPTARG
+            fi;; 
+        n) 
+            if [[ -n $nf_cores ]]
+            then
+                echo "Error: Cannot use manual NF core mask flag with legacy syntax. Correct syntax: "
+                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                exit 1
+            else
+                nf_cores=$OPTARG
+            fi;;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
 done
 
-# Check validity of core input
-eight_cores="^[0-9],[0-9],[0-9],[0-9],[0-9],[0-9],[0-9],[0-9]$"
-seven_cores="^[0-9],[0-9],[0-9],[0-9],[0-9],[0-9],[0-9]$"
-six_cores="^[0-9],[0-9],[0-9],[0-9],[0-9],[0-9]$"
-five_cores="^[0-9],[0-9],[0-9],[0-9],[0-9]$"
-four_cores="^[0-9],[0-9],[0-9],[0-9]$"
-three_cores="^[0-9],[0-9],[0-9]$"
-two_cores="^[0-9],[0-9]$"
-one_core="^[0-9]$"
-# Check for CPU core argument
+# Verify that dependency bc is installed
+if [[ $(dpkg-query -W -f='${Status}' bc 2>/dev/null | grep -c "ok installed") == 0 ]]
+then
+    echo "Error: bc is not installed. Install using:"
+    echo "  sudo apt-get install bc"
+    echo "See dependencies for more information"
+    exit 1
+fi
+
+# Check for ports flag
+if [ -z "$ports" ]
+then
+    echo "Error: Port Mask not set. openNetVM requires that a Port Mask be set using -k <port mask> using a hexadecimal number (without 0x)"
+    exit 1
+# Check port mask
+elif [[ ! $ports =~ $port_check ]]
+then
+    echo "Error: Invalid port mask. Check input and try again."
+    exit 1
+fi
+
+# Check for nf_cores flag
+if [ -z "$nf_cores" ]
+then
+    echo "Error: NF Core Mask not set. openNetVM requires that a NF Core Mask be set using -n <nf mask> using a hexadecimal number (starting with 0x)"
+    exit 1
+# Check NF core mask
+elif [[ ! $nf_cores =~ $nf_check ]]
+then
+    echo "Error: Invalid NF core mask. Check input and try again."
+    exit 1
+fi
+
+# Check for CPU core flag
 if [ -z "$cpu" ]
 then
     echo "INFO: Using default CPU cores 0,1,2"
     echo ""
     cpu="0,1,2"
-elif [[ ! $cpu =~ $three_cores ]] && [[ ! $cpu =~ $two_cores ]] && [[ ! $cpu =~ $four_cores ]] && [[ ! $cpu =~ $five_cores ]] && [[ ! $cpu =~ $six_cores ]] && [[ ! $cpu =~ $seven_cores ]] && [[ ! $cpu =~ $eight_cores ]] && [[ ! $cpu =~ $one_core ]]
+# Check CPU cores
+elif [[ ! $cpu =~ $core_check ]]
 then
-    echo "Error: Invalid CPU cores. Check input syntax and try again."
+    echo "Error: Invalid CPU cores. openNetVM accepts 3 or more cores. Check input and try again."
+    exit 1
+fi
+
+if [ -z "$nf_cores" ]
+then
+    usage
+fi
+
+ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
+if [[ $ports_detected -lt $ports ]]
+then
+    echo "Error: Invalid port mask. Insufficient NICs bound."
     exit 1
 fi
 
