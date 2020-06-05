@@ -35,8 +35,6 @@ Options:
 
         --      secondary commands
 
-                -m      list of manager cores to run on, separated by commas (without spaces)
-
                 -p      a hexadecimal bit mask of the ports to use.
 
                 -n      a hexadecimal bit mask of cores for NFs to run on.
