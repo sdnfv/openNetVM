@@ -35,6 +35,8 @@ Options:
 
         --      secondary commands
 
+                -m      list of manager cores to run on, separated by commas (without spaces)
+
                 -p      a hexadecimal bit mask of the ports to use.
 
                 -n      a hexadecimal bit mask of cores for NFs to run on.
@@ -59,7 +61,7 @@ Options:
 Usage
 --
 The manager default base virtual address is by default set to `0x7f000000000`. To configure to a specific address please use '--base-virtaddr' option, please use the `-a` flag for the onvm_mgr: 
-- `onvm/go.sh 0,1,2 1 0x3F8 -s stdout -a 0x7f000000000`
+- `onvm/go.sh 1 0x3F8 -s stdout -a 0x7f000000000`
 
 NF Library
 --

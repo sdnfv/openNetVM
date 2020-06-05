@@ -95,7 +95,7 @@ Set up Environment
 
 7. Disable ASLR since it makes sharing memory with NFs harder:
    ```sh
-    sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
+   sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
     ```
 
 Configure and compile DPDK
@@ -153,10 +153,10 @@ Make and test openNetVM
 
 3. Run openNetVM manager
 
-    Run openNetVM manager to use 3 cores (1 for displaying statistics, 1 for handling TX queues, 1 for handling manager RX queues), to use 1 NIC port (hexadecimal portmask), 0xF8 for the NF coremask (cores 3, 4, 5, 6, 7), and to use stdout for the statistics console:
+    Run openNetVM manager to use 3 cores (1 for displaying statistics, 1 for handling TX queues, 1 for handling manager RX queues; set to cores 0, 1 and 2, respectively, by default), to use 1 NIC port (hexadecimal portmask), 0xF8 for the NF coremask (cores 3, 4, 5, 6, 7), and to use stdout for the statistics console:int
 
     ```sh
-    ./onvm/go.sh 0,1,2 1 0xF8 -s stdout
+    ./onvm/go.sh 1 0xF8 -s stdout
     ```
     
     You should see information regarding the NIC port that openNetVM is using, and openNetVM manager statistics will be displayed.
