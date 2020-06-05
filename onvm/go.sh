@@ -29,9 +29,8 @@ function usage {
         exit 1
 }
 
-cpu=$1
-ports=$2
-nf_cores=$3
+ports=$1
+nf_cores=$2
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
@@ -46,7 +45,7 @@ then
     exit 1
 fi
 
-shift 3
+shift 2
 
 if [ -z "$nf_cores" ]
 then
@@ -60,7 +59,7 @@ then
     exit 1
 fi
 
-while getopts "a:r:d:s:t:l:p:z:cv" opt; do
+while getopts "a:r:d:s:t:l:p:z:cvm:" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
@@ -72,9 +71,40 @@ while getopts "a:r:d:s:t:l:p:z:cv" opt; do
         z) stats_sleep_time="-z $OPTARG";;
         c) shared_cpu_flag="-c";;
         v) verbosity=$((verbosity+1));;
+        m) cpu=$OPTARG;;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
+done
+
+# Check validity of core input
+three_cores="^[0-9],[0-9],[0-9]$"
+two_cores="^[0-9],[0-9]$"
+# Check for CPU core argument
+if [ -z "$cpu" ]
+then
+    echo "WARNING: Using default CPU cores 0,1,2"
+    echo ""
+    cpu="0,1,2"
+elif [[ ! $cpu =~ $three_cores ]] && [[ ! $cpu =~ $two_cores ]]
+then
+    echo "Error: Invalid CPU cores. openNetVM accepts two or three cores"
+    exit 1
+fi
+
+# Trim 0x from NF mask
+nf_cores_trimmed=${nf_cores:2}
+# Convert nf_cores to compare to cpu
+nf_cores_trimmed=$(echo "obase=10; ibase=16; $nf_cores_trimmed" | bc)
+# Convert cpu to separate
+cpu_separated=$(echo $cpu | tr "," "\n")
+for core in $cpu_separated
+do
+    if (( nf_cores_trimmed & (1 << (core)) ))
+    then
+        echo "WARNING: Manager and NF cores overlap."
+        echo ""
+    fi
 done
 
 verbosity_level="-v $verbosity"
