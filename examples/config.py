@@ -1,37 +1,36 @@
+#!/usr/bin/env python3
+
 import sys
 import json
 import os
 import shlex
 import time
-from signal import signal, SIGINT, SIGTERM
+from signal import signal, SIGINT
 from subprocess import Popen, PIPE
-import subprocess
 
 # cleanup on user shutdown
 def handler(signal_received, frame):
     print("\nExiting...")
-    for p in procs_list:
-        try: 
-            p.kill()
+    for proc in procs_list:
+        try:
+            proc.kill()
         except OSError:
             pass
     sys.exit(0)
 
-# get path to config file 
+# get path to config file words
 def get_config():
-    # no config file passed as arg
-    if (len(sys.argv) < 2):
-        print ("Error: Specify config file")
+    if len(sys.argv) < 2:
+        print("Error: Specify config file")
         sys.exit(0)
 
-    # get path of config file 
-    fn = sys.argv[1]
-    if os.path.exists(fn):
-        path = os.path.join(os.path.abspath(os.getcwd()), os.path.basename(fn))
-        return path
-    else:
-        print ("Error: No config file found")
-        sys.exit(0)
+    file_name = sys.argv[1]
+    if os.path.exists(file_name):
+        path_to_file = os.path.join(os.path.abspath(os.getcwd()), file_name)
+        print(path_to_file)
+        return path_to_file
+    print("Error: No config file found")
+    sys.exit(0)
 
 # strip parameters
 def remove_prefix(text, prefix):
@@ -40,16 +39,16 @@ def remove_prefix(text, prefix):
     return text
 
 # handle shutdown of all NFs on error
-def on_failure(err):
-    print(err)
+def on_failure(error_output):
+    print(error_output)
     for proc in procs_list:
         try:
             proc.kill()
         except OSError:
             pass
-    for nf in nf_list:
-        try: 
-            os.system("sudo pkill " + nf)
+    for n in nf_list:
+        try:
+            os.system("sudo pkill " + n)
         except OSError:
             pass
     print("Error occurred. Exiting...")
@@ -72,16 +71,19 @@ if __name__ == '__main__':
     for k, v in data.items():
         for item in v:
             nf_list.append(k)
-            param = str(item).strip("'{[]}'")
-            param = remove_prefix(param, "u'parameters': u'")
-            cmds_list.append("./go.sh " + param)
-    
-    # start NFs 
+            PARAM = str(item).strip("'{[]}'")
+            PARAM = remove_prefix(PARAM, "u'parameters': u'")
+            cmds_list.append("./go.sh " + PARAM)
+
+    # start NFs
     cwd = os.getcwd()
     for cmd, nf in zip(cmds_list, nf_list):
         os.chdir(nf)
-        p = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-        procs_list.append(p)
+        try:
+            p = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+            procs_list.append(p)
+        except OSError:
+            pass
         os.chdir(cwd)
     
     # check NFs are running
