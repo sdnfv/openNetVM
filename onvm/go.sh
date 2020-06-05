@@ -91,7 +91,7 @@ one_core="^[0-9]$"
 # Check for CPU core argument
 if [ -z "$cpu" ]
 then
-    echo "WARNING: Using default CPU cores 0,1,2"
+    echo "INFO: Using default CPU cores 0,1,2"
     echo ""
     cpu="0,1,2"
 elif [[ ! $cpu =~ $three_cores ]] && [[ ! $cpu =~ $two_cores ]] && [[ ! $cpu =~ $four_cores ]] && [[ ! $cpu =~ $five_cores ]] && [[ ! $cpu =~ $six_cores ]] && [[ ! $cpu =~ $seven_cores ]] && [[ ! $cpu =~ $eight_cores ]] && [[ ! $cpu =~ $one_core ]]
