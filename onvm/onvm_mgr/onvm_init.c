@@ -86,6 +86,9 @@ init_port(uint8_t port_num);
 static void
 init_shared_sem(void);
 
+static void
+init_nf_pool(void);
+
 static int
 init_info_queue(void);
 
@@ -263,6 +266,7 @@ init(int argc, char *argv[]) {
         onvm_sc_print(default_chain);
 
         onvm_flow_dir_init();
+        init_nf_pool();
 
         return 0;
 }
@@ -400,6 +404,29 @@ init_port(uint8_t port_num) {
         printf("done: \n");
 
         return 0;
+}
+
+static void
+init_nf_pool(void) {
+        struct rte_hash_parameters *nf_pool_hash_parameters;
+        char *name = rte_malloc(NULL, 64, 0);
+
+        if (name == NULL) {
+                RTE_LOG(INFO, APP, "Could not allocate name for nf pool hash structure\n");
+        }
+
+        nf_pool_hash_parameters = (struct rte_hash_parameters *) rte_malloc(NULL, sizeof(struct rte_hash_parameters), 0);
+        if (nf_pool_hash_parameters == NULL) {
+                RTE_LOG(INFO, APP, "Could not create nf pool hash structure\n");
+        }
+
+        nf_pool_hash_parameters->entries = 128;
+        nf_pool_hash_parameters->key_len = sizeof(struct rte_ring);
+        nf_pool_hash_parameters->hash_func = NULL;
+        nf_pool_hash_parameters->hash_func_init_val = 0;
+        nf_pool_hash_parameters->name = name;
+        nf_pool_hash_parameters->socket_id = rte_socket_id();
+        snprintf(name, 64, "onvm_nf_pool");
 }
 
 /**

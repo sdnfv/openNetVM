@@ -270,6 +270,14 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 int
 onvm_nflib_request_lpm(struct lpm_request *req);
 
+/**
+ * Request ring data structure. Return success or failure of this initiatlization 
+ * @param ring_request
+ * @return response status 
+ */
+int 
+onvm_nflib_request_ring(struct ring_request *ring_req);
+
 /*
  * Initializes a flow_tables hashmap. Returns the status code, representing the success or failure of the initialization 
  *

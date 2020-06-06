@@ -87,6 +87,9 @@ onvm_nf_ready(struct onvm_nf *nf);
 inline static int
 onvm_nf_stop(struct onvm_nf *nf);
 
+inline static int
+onvm_nf_get_next_instance_id(void);
+
 /*
  * Function to move a NF to another core.
  *
@@ -107,6 +110,9 @@ onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
  */
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
+
+static void
+onvm_nf_init_single_ring(struct ring_request *ring_req);
 
 /*
  * Function that initializes a hashtable for a flow_table struct
@@ -173,6 +179,7 @@ onvm_nf_check_status(void) {
         struct onvm_nf_init_cfg *nf_init_cfg;
         struct lpm_request *req_lpm;
         struct ft_request *ft;
+        struct ring_request *ring_req;
         uint16_t stop_nf_id;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
@@ -195,6 +202,10 @@ onvm_nf_check_status(void) {
                                 ft = (struct ft_request *) msg->msg_data;
                                 onvm_nf_init_ft(ft);
                                 break;
+                        case MSF_REQUEST_RING:
+                                ring_req = (struct ring_request *) msg->msg_data;
+                                onvm_nf_init_single_ring();
+                                break;                      
                         case MSG_NF_STARTING:
                                 nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
                                 if (onvm_nf_start(nf_init_cfg) == 0) {
@@ -454,6 +465,17 @@ onvm_nf_init_ft(struct ft_request *ft) {
         }
 }
 
+static void 
+onvm_nf_init_single_ring(struct ring_request *ring_req) {
+        struct rte_ring *ring;
+        ring = rte_ring_create(ring_req->name, ring_req->count, rte_socket_id(), RING_F_SC_DEQ);
+        if (ring) {
+                ring_req->status = 0;
+        } else {
+                ring_req->status = -1;
+        }
+}
+
 inline int
 onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
         uint16_t *msg_data;
@@ -505,4 +527,9 @@ onvm_nf_init_rings(struct onvm_nf *nf) {
 
         if (nf->msg_q == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", instance_id);
+}
+
+inline static int
+onvm_nf_get_next_instance_id(void) {
+        return next_instance_id;
 }

@@ -287,6 +287,32 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
         return lpm_req->status;
 }
 
+int 
+onvm_nflib_request_ring(struct ring_request *ring_req) {
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **) (&request_message));
+        if (ret != 0) return ret;
+
+        request_message->msg_type = MSG_REQUEST_RING;
+        request_message->msg_data = ring_req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        ring_req->status = NF_WAITING_FOR_RING;
+        for (; ring_req->status == (uint16_t) NF_WAITING_FOR_RING;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return ring_req->status;
+}
+
 int
 onvm_nflib_request_ft(struct rte_hash_parameters *ipv4_hash_params) {
         struct onvm_nf_msg *request_message;

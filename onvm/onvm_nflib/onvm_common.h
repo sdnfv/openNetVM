@@ -372,6 +372,13 @@ struct ft_request {
         int status;
 };
 
+struct ring_request {
+        char name[64];
+        unsigned count;
+        unsigned flags;
+        int status; 
+};
+
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
@@ -411,6 +418,7 @@ struct ft_request {
 #define NF_CORE_BUSY 12           // The manually selected core is busy
 #define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
 #define NF_WAITING_FOR_FT 14      // NF is waiting for a flow-table request to be fulfilled
+#define NF_WAITING_FOR_RING 15    // NF is waiting for a ring request to be fulfilled
 
 #define NF_NO_ID -1
 
