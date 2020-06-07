@@ -138,7 +138,7 @@ static void
 print_stats(void)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
-	unsigned portid;
+	unsigned i;
 
 	total_packets_dropped = 0;
 	total_packets_tx = 0;
@@ -152,22 +152,19 @@ print_stats(void)
 
 	printf("\nPort statistics ====================================");
 
-	for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-		/* TODO skip disabled ports */
-		//if ((l2fwd_enabled_port_mask & (1 << portid)) == 0)
-		//	continue;
+	for (i = 0; i < ports -> num_ports; i++) {
 		printf("\nStatistics for port %u ------------------------------"
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
 			   "\nPackets dropped: %21"PRIu64,
-			   portid,
-			   port_statistics[portid].tx,
-			   port_statistics[portid].rx,
-			   port_statistics[portid].dropped);
+			   ports->id[i],
+			   port_statistics[i].tx,
+			   port_statistics[i].rx,
+			   port_statistics[i].dropped);
 
-		total_packets_dropped += port_statistics[portid].dropped;
-		total_packets_tx += port_statistics[portid].tx;
-		total_packets_rx += port_statistics[portid].rx;
+		total_packets_dropped += port_statistics[i].dropped;
+		total_packets_tx += port_statistics[i].tx;
+		total_packets_rx += port_statistics[i].rx;
 	}
 	printf("\nAggregate statistics ==============================="
 		   "\nTotal packets sent: %18"PRIu64
@@ -184,17 +181,17 @@ print_stats(void)
  */
 static void
 l2fwd_initialize_ports(void) {
-        uint16_t portid;
-        for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-                rte_eth_macaddr_get(portid, &l2fwd_ports_eth_addr[portid]);
+        uint16_t i;
+        for (i = 0; i < ports -> num_ports; i++) {
+                rte_eth_macaddr_get(ports -> id[i], &l2fwd_ports_eth_addr[ports -> id[i]]);
 		printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
-                        portid,
-                        l2fwd_ports_eth_addr[portid].addr_bytes[0],
-                        l2fwd_ports_eth_addr[portid].addr_bytes[1],
-                        l2fwd_ports_eth_addr[portid].addr_bytes[2],
-                        l2fwd_ports_eth_addr[portid].addr_bytes[3],
-                        l2fwd_ports_eth_addr[portid].addr_bytes[4],
-                        l2fwd_ports_eth_addr[portid].addr_bytes[5]);
+                        ports ->id[i],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[0],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[1],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[2],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[3],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[4],
+                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[5]);
         }
 }
 
@@ -221,19 +218,17 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid)
 */
 static void
 l2fwd_set_dest_ports(){
-        int portid;
+        int i;
         unsigned nb_ports_in_mask = 0;
         int l2fwd_dst_ports[RTE_MAX_ETHPORTS];
         int last_port = 0;
-        for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-        /* TODO skip ports that are not enabled */
-
+        for (i = 0; i < ports -> num_ports; i++) {
                 if (nb_ports_in_mask % 2){ 
-                        l2fwd_dst_ports[portid] = last_port;
-                        l2fwd_dst_ports[last_port] = portid;
+                        l2fwd_dst_ports[ports -> id[i]] = last_port;
+                        l2fwd_dst_ports[last_port] = ports -> id[i];
                 }
                 else{
-                        last_port = portid;
+                        last_port = ports -> id[i];
                         nb_ports_in_mask++;
                 } 
         }
@@ -291,7 +286,7 @@ main(int argc, char *argv[]) {
         }
         if (ports -> num_ports == 0)
                 onvm_nflib_stop(nf_local_ctx);
-                rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
+                rte_exit(EXIT_FAILURE, "No Ethernet ports. Ensure ports binded to dpdk. - bye\n");
         argc -= arg_offset;
         argv += arg_offset;
 
