@@ -838,6 +838,9 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        if (scale_info == NULL) {
+                RTE_LOG(ERR, APP, "Can't allocate scale info struct\n");
+        }
         scale_info->nf_init_cfg = onvm_nflib_init_nf_init_cfg(parent->tag);
         scale_info->parent = parent;
 
@@ -849,6 +852,9 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        if (scale_info == NULL) {
+                RTE_LOG(ERR, APP, "Can't allocate scale info struct\n");
+        }
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
         scale_info->data = data;
@@ -1088,20 +1094,20 @@ onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
 
 static void
 onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf) {
-        nf->nf_tx_mgr = calloc(1, sizeof(struct queue_mgr));
+        nf->nf_tx_mgr = rte_calloc(NULL, 1, sizeof(struct queue_mgr), RTE_CACHE_LINE_SIZE);
         if (nf->nf_tx_mgr == NULL) {
                 RTE_LOG(ERR, APP, "Can't allocate queue_mgr struct\n");
                 return;
         }
         nf->nf_tx_mgr->mgr_type_t = NF;
-        nf->nf_tx_mgr->to_tx_buf = calloc(1, sizeof(struct packet_buf));
+        nf->nf_tx_mgr->to_tx_buf = rte_calloc(NULL, 1, sizeof(struct packet_buf), 512);
         if (nf->nf_tx_mgr->to_tx_buf == NULL) {
                 free(nf->nf_tx_mgr);
                 RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                 return;
         }
         nf->nf_tx_mgr->id = nf->instance_id;
-        nf->nf_tx_mgr->nf_rx_bufs = calloc(MAX_NFS, sizeof(struct packet_buf));
+        nf->nf_tx_mgr->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
         if (nf->nf_tx_mgr->nf_rx_bufs == NULL) {
                 free(nf->nf_tx_mgr->to_tx_buf);
                 free(nf->nf_tx_mgr);
@@ -1250,14 +1256,14 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Cleanup for the nf_tx_mgr pointers */
         if (nf->nf_tx_mgr) {
                 if (nf->nf_tx_mgr->to_tx_buf != NULL) {
-                        free(nf->nf_tx_mgr->to_tx_buf);
+                        rte_free(nf->nf_tx_mgr->to_tx_buf);
                         nf->nf_tx_mgr->to_tx_buf = NULL;
                 }
                 if (nf->nf_tx_mgr->nf_rx_bufs != NULL) {
-                        free(nf->nf_tx_mgr->nf_rx_bufs);
+                        rte_free(nf->nf_tx_mgr->nf_rx_bufs);
                         nf->nf_tx_mgr->nf_rx_bufs = NULL;
                 }
-                free(nf->nf_tx_mgr);
+                rte_free(nf->nf_tx_mgr);
                 nf->nf_tx_mgr = NULL;
         }
 
