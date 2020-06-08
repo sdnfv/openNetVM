@@ -153,7 +153,7 @@ def onvm_corelist():
         core = core_map.get((0, core_index), None)
         if core is None:
             print ("Not enough cores: onvm requires {} to run manager. (You have {})".format(ONVM_CONST_MGR_THRD, len(core_map)))
-            exit(1)
+            sys.exit(1)
         onvm_mgr_corelist.append(core)
         core_index += 1
 
@@ -193,7 +193,7 @@ def onvm_corelist_print():
         print ("Run no_hyperthread.sh to disable hyperthreading before ")
         print ("running this script again.")
         print ("")
-        exit(1)
+        sys.exit(1)
 
     print ("** MAKE SURE HYPERTHREADING IS DISABLED **")
     print ("")
