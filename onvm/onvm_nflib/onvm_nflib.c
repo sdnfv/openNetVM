@@ -838,6 +838,9 @@ onvm_nflib_get_empty_scaling_config(struct onvm_nf *parent) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        if (scale_info == NULL) {
+                RTE_LOG(ERR, APP, "Can't allocate scale info struct\n");
+        }
         scale_info->nf_init_cfg = onvm_nflib_init_nf_init_cfg(parent->tag);
         scale_info->parent = parent;
 
@@ -849,6 +852,9 @@ onvm_nflib_inherit_parent_config(struct onvm_nf *parent, void *data) {
         struct onvm_nf_scale_info *scale_info;
 
         scale_info = rte_calloc("nf_scale_info", 1, sizeof(struct onvm_nf_scale_info), 0);
+        if (scale_info == NULL) {
+                RTE_LOG(ERR, APP, "Can't allocate scale info struct\n");
+        }
         scale_info->nf_init_cfg = onvm_nflib_inherit_parent_init_cfg(parent);
         scale_info->parent = parent;
         scale_info->data = data;
