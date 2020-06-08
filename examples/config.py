@@ -49,12 +49,8 @@ from subprocess import Popen, PIPE
 
 def handler(signal_received, frame):
     """Handles cleanup on user shutdown"""
+    # pylint: disable=unused-argument
     print("\nExiting...")
-    for proc in procs_list:
-        try:
-            proc.kill()
-        except OSError:
-            pass
     sys.exit(0)
 
 def get_config():
@@ -69,20 +65,9 @@ def get_config():
     print("Error: No config file found")
     sys.exit(0)
 
-def remove_prefix(text, prefix):
-    """Strip parameters in JSON config file"""
-    if text.startswith(prefix):
-        return text[len(prefix):]
-    return text
-
 def on_failure(error_output):
     """Handles shutdown on error"""
     print(error_output)
-    for proc in procs_list:
-        try:
-            proc.kill()
-        except OSError:
-            pass
     for n in nf_list:
         try:
             os.system("sudo pkill " + n)
@@ -108,16 +93,15 @@ if __name__ == '__main__':
     for k, v in data.items():
         for item in v:
             nf_list.append(k)
-            PARAM = str(item).strip("'{[]}'")
-            PARAM = remove_prefix(PARAM, "u'parameters': u'")
-            cmds_list.append("./go.sh " + PARAM)
+            cmds_list.append("./go.sh " + item['parameters'])
 
     cwd = os.getcwd()
     for cmd, nf in zip(cmds_list, nf_list):
         try:
             os.chdir(nf)
         except OSError:
-            print("Error: Unable to access NF directory %s. Check syntax in your configuration file" % (nf))
+            print("Error: Unable to access NF directory %s." \
+                " Check syntax in your configuration file" % (nf))
             sys.exit(1)
         try:
             p = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
@@ -131,8 +115,7 @@ if __name__ == '__main__':
             ret_code = p.poll()
             if ret_code is not None:
                 out, err = p.communicate()
-                on_failure(out + err)
+                on_failure(out)
                 break
-            if ret_code is not None:
-                time.sleep(.1)
-                continue
+            time.sleep(.1)
+            continue
