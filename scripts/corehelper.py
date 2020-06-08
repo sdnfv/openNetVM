@@ -82,7 +82,7 @@ def dpdk_cpu_info():
     for core in core_details:
         for field in ["processor", "core id", "physical id"]:
             if field not in core:
-                print ("Error getting '%s' value from /proc/cpuinfo" % field)
+                print("Error getting '%s' value from /proc/cpuinfo" % field)
                 sys.exit(1)
             core[field] = int(core[field])
 
@@ -108,27 +108,27 @@ def dpdk_cpu_info_print():
     max_core_map_len = max_processor_len * 2 + len('[, ]') + len('Socket ')
     max_core_id_len = len(str(max(cores)))
 
-    print ("")
-    print ("============================================================")
-    print ("Core and Socket Information (as reported by '/proc/cpuinfo')")
-    print ("============================================================\n")
-    print ("cores = ",cores)
-    print ("sockets = ", sockets)
-    print ("")
-    print (" ".ljust(max_core_id_len + len('Core ')))
+    print("")
+    print("============================================================")
+    print("Core and Socket Information (as reported by '/proc/cpuinfo')")
+    print("============================================================\n")
+    print("cores = ",cores)
+    print("sockets = ", sockets)
+    print("")
+    print(" ".ljust(max_core_id_len + len('Core ')))
     for s in sockets:
-        print ("Socket %s" % str(s).ljust(max_core_map_len - len('Socket ')))
-    print ("")
-    print (" ".ljust(max_core_id_len + len('Core ')))
+        print("Socket %s" % str(s).ljust(max_core_map_len - len('Socket ')))
+    print("")
+    print(" ".ljust(max_core_id_len + len('Core ')))
     for s in sockets:
-        print ("--------".ljust(max_core_map_len))
-    print ("")
+        print("--------".ljust(max_core_map_len))
+    print("")
 
     for c in cores:
-        print ("Core %s" % str(c).ljust(max_core_id_len))
+        print("Core %s" % str(c).ljust(max_core_id_len))
         for s in sockets:
-            print (str(core_map[(s,c)]).ljust(max_core_map_len))
-        print ("\n")
+            print(str(core_map[(s,c)]).ljust(max_core_map_len))
+        print("\n")
 
 ### End Intel DPDK Codeblock ###
 
@@ -152,7 +152,7 @@ def onvm_corelist():
     while core_index < ONVM_CONST_MGR_THRD:
         core = core_map.get((0, core_index), None)
         if core is None:
-            print ("Not enough cores: onvm requires {} to run manager. (You have {})".format(ONVM_CONST_MGR_THRD, len(core_map)))
+            print("Not enough cores: onvm requires {} to run manager. (You have {})".format(ONVM_CONST_MGR_THRD, len(core_map)))
             sys.exit(1)
         onvm_mgr_corelist.append(core)
         core_index += 1
@@ -189,45 +189,45 @@ def onvm_corelist_print():
     onvm_print_header()
 
     if onvm_ht_isEnabled():
-        print ("This script only works if hyperthreading is disabled.")
-        print ("Run no_hyperthread.sh to disable hyperthreading before ")
-        print ("running this script again.")
-        print ("")
+        print("This script only works if hyperthreading is disabled.")
+        print("Run no_hyperthread.sh to disable hyperthreading before ")
+        print("running this script again.")
+        print("")
         sys.exit(1)
 
-    print ("** MAKE SURE HYPERTHREADING IS DISABLED **")
-    print ("")
-    print ("openNetVM requires at least three cores for the manager:")
-    print ("one for NIC RX, one for statistics, and one for NIC TX.")
-    print ("For rates beyond 10Gbps it may be necessary to run multiple TX")
-    print ("or RX threads.")
-    print ("")
-    print ("Each NF running on openNetVM needs its own core too.")
-    print ("")
+    print("** MAKE SURE HYPERTHREADING IS DISABLED **")
+    print("")
+    print("openNetVM requires at least three cores for the manager:")
+    print("one for NIC RX, one for statistics, and one for NIC TX.")
+    print("For rates beyond 10Gbps it may be necessary to run multiple TX")
+    print("or RX threads.")
+    print("")
+    print("Each NF running on openNetVM needs its own core too.")
+    print("")
 
-    print ("Use the following information to run openNetVM on this system:")
-    print ("")
+    print("Use the following information to run openNetVM on this system:")
+    print("")
 
     mgr_corelist=""
     for c in onvm_mgr_corelist:
         for i in c:
             mgr_corelist += "%s," %(i)
-    print ("\t- openNetVM Manager corelist: %s" %(mgr_corelist[:len(mgr_corelist)-1]))
+    print("\t- openNetVM Manager corelist: %s" %(mgr_corelist[:len(mgr_corelist)-1]))
 
-    print ("")
+    print("")
 
-    print ("\t- openNetVM can handle %d NFs on this system" %(len(onvm_nfs_corelist)))
+    print("\t- openNetVM can handle %d NFs on this system" %(len(onvm_nfs_corelist)))
 
     for i, cores in enumerate(onvm_nfs_corelist, 1):
-        print ("\t\t- NF %d:" %i)
+        print("\t\t- NF %d:" %i)
         for c in cores:
-            print ("%s" %(c))
+            print("%s" %(c))
 
 def onvm_print_header():
-    print ("===============================================================")
-    print ("\t\t openNetVM CPU Corelist Helper")
-    print ("===============================================================")
-    print ("")
+    print("===============================================================")
+    print("\t\t openNetVM CPU Corelist Helper")
+    print("===============================================================")
+    print("")
 
 """
 Function contains program execution sequence
@@ -246,8 +246,8 @@ def run():
         dpdk_cpu_info()
         dpdk_cpu_info_print()
     else:
-        print ("You supplied 0 arguments, running with flag --onvm")
-        print ("")
+        print("You supplied 0 arguments, running with flag --onvm")
+        print("")
 
         dpdk_cpu_info()
         onvm_corelist()
