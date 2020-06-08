@@ -219,7 +219,7 @@ def onvm_corelist_print():
 	for i, cores in enumerate(onvm_nfs_corelist, 1):
 		print ("\t\t- NF %d:" %(i)),
 		for c in cores:
-			print "%s" %(c)
+			print ("%s" %(c))
 
 def onvm_print_header():
 	print ("===============================================================")
