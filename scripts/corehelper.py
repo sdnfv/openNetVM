@@ -37,6 +37,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+""" Setup and display ONVM core list info """
+
 import sys
 import argparse
 import os
@@ -56,7 +58,7 @@ onvm_nfs_corelist = []
 This function reads the /proc/cpuinfo file and determines the CPU
 architecture which will be used to determine corelists for each
 openNetVM NF and the manager.
-From Intel DPDK tools/cpu_layout.py
+From Intel DPDK usertools/cpu_layout.py
 """
 def dpdk_cpu_info():
     global core_map
@@ -95,7 +97,7 @@ def dpdk_cpu_info():
 
 """
 Print out CPU architecture info.
-From Intel DPDK tools/cpu_layout.py
+From Intel DPDK usertools/cpu_layout.py
 """
 def dpdk_cpu_info_print():
     global core_map
@@ -113,19 +115,19 @@ def dpdk_cpu_info_print():
     print ("cores = ",cores)
     print ("sockets = ", sockets)
     print ("")
-    print (" ".ljust(max_core_id_len + len('Core '))),
+    print (" ".ljust(max_core_id_len + len('Core ')))
     for s in sockets:
-        print ("Socket %s" % str(s).ljust(max_core_map_len - len('Socket '))),
+        print ("Socket %s" % str(s).ljust(max_core_map_len - len('Socket ')))
     print ("")
-    print (" ".ljust(max_core_id_len + len('Core '))),
+    print (" ".ljust(max_core_id_len + len('Core ')))
     for s in sockets:
-        print ("--------".ljust(max_core_map_len)),
+        print ("--------".ljust(max_core_map_len))
     print ("")
 
     for c in cores:
-        print ("Core %s" % str(c).ljust(max_core_id_len)),
+        print ("Core %s" % str(c).ljust(max_core_id_len))
         for s in sockets:
-            print (str(core_map[(s,c)]).ljust(max_core_map_len)),
+            print (str(core_map[(s,c)]).ljust(max_core_map_len))
         print ("\n")
 
 ### End Intel DPDK Codeblock ###
@@ -217,7 +219,7 @@ def onvm_corelist_print():
     print ("\t- openNetVM can handle %d NFs on this system" %(len(onvm_nfs_corelist)))
 
     for i, cores in enumerate(onvm_nfs_corelist, 1):
-        print ("\t\t- NF %d:" %(i)),
+        print ("\t\t- NF %d:" %i)
         for c in cores:
             print ("%s" %(c))
 

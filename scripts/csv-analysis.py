@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+""" Analyze and convert packet data into .csv file """
 
 import sys
 import os.path
