@@ -67,12 +67,14 @@ static uint32_t print_delay = 1000000;
 static uint32_t destination;
 
 /* Token Bucket */
-static uint64_t tb_rate = 1000;     // rate at which tokens are generated (in Mbps)
-static uint64_t tb_depth = 10000;   // depth of the token bucket (in bytes)
-static uint64_t tb_tokens = 10000;  // number of the tokens in the bucket at any given time (in bytes)
+struct tb_config {
+        uint64_t tb_rate;    // rate at which tokens are generated (in Mbps)
+        uint64_t tb_depth;   // depth of the token bucket (in bytes)
+        uint64_t tb_tokens;  // number of the tokens in the bucket at any given time (in bytes)
 
-static uint64_t last_cycle;
-static uint64_t cur_cycles;
+        uint64_t last_cycle;
+        uint64_t cur_cycles;
+};
 
 /* For advanced rings scaling */
 rte_atomic16_t signal_exit_flag;
@@ -100,8 +102,17 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname) {
+parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf) {
         int c, dst_flag = 0;
+        struct tb_config *tb_params;
+
+        tb_params = (struct tb_config *)malloc(sizeof(struct tb_config));
+        /* Assigning default values */
+        tb_params->tb_rate = 1000;
+        tb_params->tb_depth = 10000;
+        tb_params->tb_tokens = 10000;
+        tb_params->last_cycle = rte_get_tsc_cycles();
+        nf->data = (void *)tb_params;
 
         while ((c = getopt(argc, argv, "d:p:D:R:")) != -1) {
                 switch (c) {
@@ -113,15 +124,15 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
                         case 'D':
-                                tb_depth = strtoul(optarg, NULL, 10);
-                                tb_tokens = tb_depth;
-                                if (tb_depth < 10000) {
+                                tb_params->tb_depth = strtoul(optarg, NULL, 10);
+                                tb_params->tb_tokens = tb_params->tb_depth;
+                                if (tb_params->tb_depth < 10000) {
                                         RTE_LOG(INFO, APP,
                                                 "WARNING: Small values of depth could lead to packet drops.\n");
                                 }
                                 break;
                         case 'R':
-                                tb_rate = strtoul(optarg, NULL, 10);
+                                tb_params->tb_rate = strtoul(optarg, NULL, 10);
                                 break;
                         case '?':
                                 usage(progname);
@@ -184,8 +195,23 @@ do_stats_display(struct rte_mbuf *pkt) {
 static int
 packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                   __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        struct onvm_nf *nf;
+        struct tb_config *tb_params;
         static uint32_t counter = 0;
         uint64_t tokens_produced;
+        uint64_t tb_rate;
+        uint64_t tb_depth;
+        uint64_t tb_tokens;
+        uint64_t last_cycle;
+        uint64_t cur_cycles;
+
+        nf = nf_local_ctx->nf;
+        tb_params = (struct tb_config *)nf->data;
+        tb_rate = tb_params->tb_rate;
+        tb_depth = tb_params->tb_depth;
+        tb_tokens = tb_params->tb_tokens;
+        last_cycle = tb_params->last_cycle;
+        cur_cycles = tb_params->cur_cycles;
 
         /* Check if length of packet is greater than depth */
         if (unlikely(pkt->pkt_len > tb_depth)) {
@@ -220,6 +246,12 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 do_stats_display(pkt);
                 counter = 0;
         }
+
+        tb_params->tb_rate = tb_rate;
+        tb_params->tb_depth = tb_depth;
+        tb_params->tb_tokens = tb_tokens;
+        tb_params->last_cycle = last_cycle;
+        tb_params->cur_cycles = cur_cycles;
 
         return 0;
 }
@@ -259,7 +291,7 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
 
-        last_cycle = rte_get_tsc_cycles();
+        ((struct tb_config *)nf->data)->last_cycle = rte_get_tsc_cycles();
 
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 /* Check for a stop message from the manager */
@@ -296,6 +328,7 @@ int
 main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
+        struct onvm_nf *nf;
         int arg_offset;
 
         const char *progname = argv[0];
@@ -322,7 +355,8 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0) {
+        nf = nf_local_ctx->nf;
+        if (parse_app_args(argc, argv, progname, nf) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
