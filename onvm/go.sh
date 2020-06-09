@@ -36,6 +36,7 @@ function usage {
 core_check="^([0-8]+,){2}([0-8]+)(,[0-8]+)*$"
 port_check="^[0-9]+$"
 nf_check="^0x[0-9A-F]+$"
+flag_check="^-[ardstlpzcvmkn]$"
 if [[ $1 =~ $core_check ]] && [[ $2 =~ $port_check ]] && [[ $3 =~ $nf_check ]]
 then
     cpu=$1
@@ -43,7 +44,7 @@ then
     nf_cores=$3
     shift 3
 # Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
-elif [[ $1 -ne "-n" && $1 -ne "-k" ]]
+elif [[ ! $1 =~ $flag_check ]]
 then
     if [[ ! $1 =~ $core_check ]] 
     then
