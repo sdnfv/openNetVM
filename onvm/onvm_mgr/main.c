@@ -407,7 +407,6 @@ main(int argc, char *argv[]) {
         struct queue_mgr *tx_mgr[tx_lcores];
         struct queue_mgr *rx_mgr[rx_lcores];
         struct wakeup_thread_context *wakeup_ctx[ONVM_NUM_WAKEUP_THREADS];
-        long int packet_buf_cache_size = 512;
 
         for (i = 0; i < tx_lcores; i++) {
                 tx_mgr[i] = rte_calloc(NULL, 1, sizeof(struct queue_mgr), RTE_CACHE_LINE_SIZE);
@@ -425,13 +424,13 @@ main(int argc, char *argv[]) {
                         return -1;
                 }
                 tx_mgr[i]->tx_thread_info->port_tx_bufs =
-                    rte_calloc(NULL, RTE_MAX_ETHPORTS, sizeof(struct packet_buf), packet_buf_cache_size);
+                    rte_calloc(NULL, RTE_MAX_ETHPORTS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i]->tx_thread_info->port_tx_bufs == NULL) {
                         RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
                         return -1;
                 }
-                tx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), packet_buf_cache_size);
+                tx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i]->nf_rx_bufs == NULL) {
                         RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
@@ -458,7 +457,7 @@ main(int argc, char *argv[]) {
                 rx_mgr[i]->mgr_type_t = MGR;
                 rx_mgr[i]->id = i;
                 rx_mgr[i]->tx_thread_info = NULL;
-                rx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), packet_buf_cache_size);
+                rx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (rx_mgr[i] -> nf_rx_bufs == NULL) {
                         RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
