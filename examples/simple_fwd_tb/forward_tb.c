@@ -68,7 +68,7 @@ static uint32_t destination;
 
 /* Token Bucket */
 struct tb_config {
-        uint64_t tb_rate;    // rate at which tokens are generated (in Mbps)
+        uint64_t tb_rate;    // rate at which tokens are generated (in MBps)
         uint64_t tb_depth;   // depth of the token bucket (in bytes)
         uint64_t tb_tokens;  // number of the tokens in the bucket at any given time (in bytes)
 
