@@ -53,6 +53,7 @@
 #include <rte_cycles.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -106,7 +107,7 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
         int c, dst_flag = 0;
         struct tb_config *tb_params;
 
-        tb_params = (struct tb_config *)malloc(sizeof(struct tb_config));
+        tb_params = (struct tb_config *)rte_malloc(NULL, sizeof(struct tb_config), 0);
         /* Assigning default values */
         tb_params->tb_rate = 1000;
         tb_params->tb_depth = 10000;
@@ -247,8 +248,6 @@ packet_handler_tb(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 counter = 0;
         }
 
-        tb_params->tb_rate = tb_rate;
-        tb_params->tb_depth = tb_depth;
         tb_params->tb_tokens = tb_tokens;
         tb_params->last_cycle = last_cycle;
         tb_params->cur_cycles = cur_cycles;
