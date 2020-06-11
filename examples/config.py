@@ -45,11 +45,14 @@ import os
 import shlex
 import time
 from signal import signal, SIGINT
-from subprocess import Popen, PIPE
+from subprocess import Popen
+from datetime import datetime
 
 def handler(signal_received, frame):
     """Handles cleanup on user shutdown"""
     # pylint: disable=unused-argument
+    for lf in log_files:
+        lf.close()
     print("\nExiting...")
     sys.exit(0)
 
@@ -67,24 +70,48 @@ def get_config():
 
 def on_failure(error_output):
     """Handles shutdown on error"""
-    print(error_output)
+    for lf in log_files:
+        lf.close()
     for n in nf_list:
         try:
             os.system("sudo pkill " + n)
         except OSError:
             pass
+    print(error_output)
     print("Error occurred. Exiting...")
     sys.exit(1)
+
+def running_services():
+    """Checks running NFs"""
+    while 1:
+        for pl in procs_list:
+            ret_code = pl.poll()
+            if ret_code is not None:
+                out, err = pl.communicate()
+                on_failure(out + err)
+                break
+            time.sleep(.1)
+            continue
 
 procs_list = []
 nf_list = []
 cmds_list = []
+log_files = []
 if __name__ == '__main__':
+    signal(SIGINT, handler)
     if os.path.basename(os.getcwd()) != "examples":
         print("Error: Run script from within /examples folder")
         sys.exit(1)
 
-    signal(SIGINT, handler)
+    if len(sys.argv) < 3:
+        time_obj = datetime.now().time()
+        log_dir = time_obj.strftime("%H:%M:%S")
+    else:
+        log_dir = sys.argv[2]
+    try:
+        os.mkdir(log_dir)
+    except OSError:
+        on_failure("Creation of directory %s failed" % (dir))
 
     config_file = get_config()
 
@@ -95,6 +122,13 @@ if __name__ == '__main__':
             nf_list.append(k)
             cmds_list.append("./go.sh " + item['parameters'])
 
+    for cmd, nf in zip(cmds_list, nf_list):
+        service_name = nf
+        instance_id = cmd.split()
+        log_file = "log-" + nf + "-" + instance_id[1] + ".txt"
+        log_files.append(open(os.path.join(log_dir, log_file), 'w'))
+
+    i = 0
     cwd = os.getcwd()
     for cmd, nf in zip(cmds_list, nf_list):
         try:
@@ -104,18 +138,11 @@ if __name__ == '__main__':
                 " Check syntax in your configuration file" % (nf))
             sys.exit(1)
         try:
-            p = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+            p = Popen(shlex.split(cmd), stdout=log_files[i], stderr=log_files[i])
+            i += 1
             procs_list.append(p)
         except OSError:
             pass
         os.chdir(cwd)
 
-    while 1:
-        for p in procs_list:
-            ret_code = p.poll()
-            if ret_code is not None:
-                out, err = p.communicate()
-                on_failure(out)
-                break
-            time.sleep(.1)
-            continue
+    running_services()

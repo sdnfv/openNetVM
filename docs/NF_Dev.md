@@ -100,9 +100,13 @@ values.
 ```
 
 Additionally, a developer can run the [config python script](../examples/config.py) to launch linear or circular chains of multiple example NFs from a JSON config file. An example config file can be found [here](../examples/example_chain.json). 
-To run this program within the /examples folder:
+When the NF Chain is launched, a directory will be created with the user-specified [dir name]. If no directory name is specified, the default name will the be the timestamp. Output from each NF will be continuously written to the the corresponding log text file within the created directory. Format of the log file name is as follows: "log-NF name-instance ID". To track the output of a NF:
 ```
-python config.py [config file name] 
+tail -f <logfile name>
+```  
+This script must be run within the /examples folder:
+```
+python config.py <config file name> [dir name] 
 ```
 ### JSON Config File For Launching Chain of Multiple NFs
 ```
