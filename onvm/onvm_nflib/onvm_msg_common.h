@@ -56,6 +56,7 @@
 #define MSG_CHANGE_CORE 8
 #define MSG_REQUEST_FT 9
 #define MSG_REQUEST_RING 10
+#define MSG_REQUEST_ID 11
 
 struct onvm_nf_msg {
         uint8_t msg_type; /* Constant saying what type of message is */

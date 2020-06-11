@@ -278,6 +278,9 @@ onvm_nflib_request_lpm(struct lpm_request *req);
 int 
 onvm_nflib_request_ring(struct ring_request *ring_req);
 
+int 
+onvm_nflib_request_current_instance_id(void);
+
 /*
  * Initializes a flow_tables hashmap. Returns the status code, representing the success or failure of the initialization 
  *
@@ -304,5 +307,11 @@ onvm_nflib_get_onvm_config(void);
  */
 void
 onvm_nflib_stats_summary_output(uint16_t id);
+
+struct onvm_nf *
+onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args);
+
+struct onvm_nf *
+onvm_nflib_pool_dequeue(const char *nf_name);
 
 #endif // _ONVM_NFLIB_H_

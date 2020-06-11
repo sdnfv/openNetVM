@@ -270,6 +270,7 @@ struct onvm_nf {
         uint16_t instance_id;
         uint16_t service_id;
         uint8_t status;
+        uint8_t pool_nf;
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
@@ -324,6 +325,15 @@ struct onvm_nf {
                 /* Mutex for NF sem_wait */
                 sem_t *nf_mutex;
         } shared_core;
+
+        struct {
+                /*
+                 * Sleep state to track state of whether the NF is active
+                 * Same logic as shared core 
+                 */
+                rte_atomic16_t *pool_state;
+                sem_t *pool_mutex;
+        } pool_status;
 };
 
 /*
@@ -373,10 +383,24 @@ struct ft_request {
 };
 
 struct ring_request {
-        char name[64];
+        char *name;
         unsigned count;
         unsigned flags;
         int status; 
+};
+
+struct id_request {
+        int instance_id;
+        int status;
+};
+
+// If the values in optional args are not -1, use the optional args
+struct simple_forward_args {
+        const char *service_id;
+        const char *destination_id;
+        struct {
+                const char *packet_delay;
+        } optional_args;
 };
 
 /* define common names for structures shared between server and NF */
@@ -397,6 +421,7 @@ struct ring_request {
 #define _NF_MSG_QUEUE_NAME "NF_%u_MSG_QUEUE"
 #define _NF_MEMPOOL_NAME "NF_INFO_MEMPOOL"
 #define _NF_MSG_POOL_NAME "NF_MSG_MEMPOOL"
+#define _NF_POOL_NAME "onvm_nf_pool"
 
 /* interrupt semaphore specific updates */
 #define SHMSZ 4                         // size of shared memory segement (page_size)
@@ -419,6 +444,7 @@ struct ring_request {
 #define NF_WAITING_FOR_LPM 13     // NF is waiting for a LPM request to be fulfilled
 #define NF_WAITING_FOR_FT 14      // NF is waiting for a flow-table request to be fulfilled
 #define NF_WAITING_FOR_RING 15    // NF is waiting for a ring request to be fulfilled
+#define NF_WAITING_FOR_INSTANCE_ID 16      // NF is waiting for the manager to return the next instance ID
 
 #define NF_NO_ID -1
 
@@ -475,6 +501,11 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
 static inline key_t
 get_rx_shmkey(unsigned id) {
         return KEY_PREFIX * 10 + id;
+}
+
+static inline key_t
+get_rx_shmpoolkey(unsigned id) {
+        return KEY_PREFIX * 10 + id * 2;
 }
 
 /*

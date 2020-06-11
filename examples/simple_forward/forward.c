@@ -52,6 +52,7 @@
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -159,8 +160,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 counter = 0;
         }
 
-        meta->action = ONVM_NF_ACTION_TONF;
         meta->destination = destination;
+        meta->action = ONVM_NF_ACTION_TONF;
         return 0;
 }
 
@@ -169,7 +170,6 @@ main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
-
         const char *progname = argv[0];
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
@@ -195,9 +195,7 @@ main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-
         onvm_nflib_run(nf_local_ctx);
-
         onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;

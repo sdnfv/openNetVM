@@ -171,6 +171,11 @@ master_thread_main(void) {
                 }
         }
 
+        for (i = 0; i < MAX_NFS; i++) {
+                sem_close(nf_pool_wakeup_infos[i].mutex);
+                sem_unlink(nf_pool_wakeup_infos[i].sem_name);
+        }
+
         RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
 }
 

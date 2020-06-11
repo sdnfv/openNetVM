@@ -180,6 +180,7 @@ onvm_nf_check_status(void) {
         struct lpm_request *req_lpm;
         struct ft_request *ft;
         struct ring_request *ring_req;
+        struct id_request *id_req;
         uint16_t stop_nf_id;
         int num_msgs = rte_ring_count(incoming_msg_queue);
 
@@ -202,9 +203,9 @@ onvm_nf_check_status(void) {
                                 ft = (struct ft_request *) msg->msg_data;
                                 onvm_nf_init_ft(ft);
                                 break;
-                        case MSF_REQUEST_RING:
+                        case MSG_REQUEST_RING:
                                 ring_req = (struct ring_request *) msg->msg_data;
-                                onvm_nf_init_single_ring();
+                                onvm_nf_init_single_ring(ring_req);
                                 break;                      
                         case MSG_NF_STARTING:
                                 nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
@@ -212,6 +213,11 @@ onvm_nf_check_status(void) {
                                         onvm_stats_gen_event_nf_info("NF Starting", &nfs[nf_init_cfg->instance_id]);
                                 }
                                 break;
+                        case MSG_REQUEST_ID:
+                                id_req = (struct id_request *) msg->msg_data;
+                                id_req->instance_id = next_instance_id;
+                                id_req->status = 0;
+                                break;     
                         case MSG_NF_READY:
                                 nf = (struct onvm_nf *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
@@ -302,6 +308,7 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
                 return 1;
         }
 
+        spawned_nf->pool_nf = 0;
         spawned_nf->instance_id = nf_id;
         spawned_nf->service_id = nf_init_cfg->service_id;
         spawned_nf->status = NF_STARTING;
