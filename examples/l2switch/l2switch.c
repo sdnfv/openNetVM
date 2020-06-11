@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2019 George Washington University
- *            2015-2019 University of California Riverside
+ *            2015-2020 George Washington University
+ *            2015-2020 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * l2switch.c - send all packets from one port out the other.
+ * l2switch.c - send all packets from one port out the adjacent port.
  ********************************************************************/
 
 
@@ -80,7 +80,11 @@ struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 extern struct port_info *ports;
 
 /* MAC updating enabled by default */
-static int mac_updating = 1;
+static int mac_updating = 0;
+
+/* Print mac address disabled by default */
+static int print_mac = 1;
+
 /*
  * Print a usage message
  */
@@ -107,9 +111,12 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
                         case 'n':
-                                /* MAC updating enabled by default */
+                                /* Disable MAC updating. */
                                 mac_updating = 1;
                                 break;
+                        case 'm':
+                                /* Enable printing of MAC address.*/
+                                print_mac = 0;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
@@ -156,23 +163,20 @@ print_stats(void)
 		printf("\nStatistics for port %u ------------------------------"
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
-			   "\nPackets dropped: %21"PRIu64,
+			   "\nForwarding to port: %u"PRIu64,
 			   ports->id[ports -> id[i]],
 			   port_statistics[ports -> id[i]].tx,
 			   port_statistics[ports -> id[i]].rx,
-			   port_statistics[ports -> id[i]].dropped);
+			   l2fwd_dst_ports[ports -> id[i]]);
 
-		total_packets_dropped += port_statistics[ports -> id[i]].dropped;
 		total_packets_tx += port_statistics[ports -> id[i]].tx;
 		total_packets_rx += port_statistics[ports -> id[i]].rx;
 	}
 	printf("\nAggregate statistics ==============================="
 		   "\nTotal packets sent: %18"PRIu64
-		   "\nTotal packets received: %14"PRIu64
-		   "\nTotal packets dropped: %15"PRIu64,
+		   "\nTotal packets received: %14"PRIu64,
 		   total_packets_tx,
-		   total_packets_rx,
-		   total_packets_dropped);
+		   total_packets_rx);
 	printf("\n====================================================\n");
 }
 /*
@@ -210,6 +214,16 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid)
 	*((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
 
 	ether_addr_copy(&l2fwd_ports_eth_addr[dest_portid], &eth->s_addr);
+
+        if (print_mac) {
+                printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
+                        eth->s_addr.addr_bytes[0],
+                        eth->s_addr.addr_bytes[1],
+                        eth->s_addr.addr_bytes[2],
+                        eth->s_addr.addr_bytes[3],
+                        eth->s_addr.addr_bytes[4],
+                        eth->s_addr.addr_bytes[5]);
+        }
 }
 
 /* The destination port is the adjacent port from the enabled portmask, that is, 
