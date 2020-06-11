@@ -640,10 +640,8 @@ onvm_nflib_thread_main_loop(void *arg) {
                         }
                 }
 
-                if (nf->pool_nf == 1) {
-                        RTE_LOG(INFO, APP, "Put into the pool, going to sleep\n");
+                if (unlikely(nf->pool_status.pool_sleep_state == 1)) {
                         sem_wait(nf->pool_status.pool_mutex);
-                        RTE_LOG(INFO, APP, "Taken out of the pool, waking up\n\n\n");
                 }
 
                 nb_pkts_added =
@@ -1278,6 +1276,14 @@ onvm_nflib_cleanup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nf->data = NULL;
         }
 
+        if (nf->rx_q) {
+                rte_ring_free(nf->rx_q);
+        }
+
+        if (nf->tx_q) {
+                rte_ring_free(nf->tx_q);
+        }
+
         /* Cleanup for the nf_tx_mgr pointers */
         if (nf->nf_tx_mgr) {
                 if (nf->nf_tx_mgr->to_tx_buf != NULL) {
@@ -1343,9 +1349,6 @@ init_shared_core_mode_info(uint16_t instance_id) {
 
 static void
 init_pool_info(uint16_t instance_id) {
-        key_t key;
-        int shmid;
-        char *shm;
         struct onvm_nf *nf;
         char *sem_name;
 
@@ -1354,18 +1357,10 @@ init_pool_info(uint16_t instance_id) {
         snprintf(sem_name, 64, "nf_pool_%d", instance_id);
 
         nf->pool_status.pool_mutex = sem_open(sem_name, 0, 0666, 0);
+        nf->pool_status.pool_mutex_name = sem_name;
         if (nf->pool_status.pool_mutex == SEM_FAILED)
                 rte_exit(EXIT_FAILURE, "Unable to execute semphore for NF %d\n", instance_id);
 
-        /* Get flag which is shared by server */
-        key = get_rx_shmpoolkey(instance_id);
-        if ((shmid = shmget(key, SHMSZ, 0666)) < 0)
-                rte_exit(EXIT_FAILURE, "Unable to locate the segment for NF %d\n", instance_id);
-
-        if ((shm = shmat(shmid, NULL, 0)) == (char *)-1)
-                rte_exit(EXIT_FAILURE, "Can not attach the shared segment to the NF space for NF %d\n", instance_id);
-
-        nf->pool_status.pool_state = (rte_atomic16_t *) shm;
 }
 
 void
@@ -1491,6 +1486,8 @@ onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args) {
                         RTE_LOG(INFO, APP, "Could not lookup %s ring\n", nf_name);
                         return NULL;
                 }
+                rte_free(rte_ring_request);
+                rte_free(nf_ring_name);
         }
         if (nf_args == NULL) {
                 RTE_LOG(INFO, APP, "NF args structs is NULL\n");
@@ -1506,7 +1503,7 @@ onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args) {
                 return NULL;
         }
 
-        spawned_nf->pool_nf = 1;
+        spawned_nf->pool_status.pool_sleep_state = 1;
         return spawned_nf;
 }
 
@@ -1515,7 +1512,6 @@ onvm_nflib_pool_dequeue(const char *nf_name) {
         struct rte_ring *nf_pool_ring;
         struct onvm_nf *dequeued_nf = NULL;
         sem_t *sem;
-        char *sem_name;
 
         nf_pool_ring = rte_ring_lookup(nf_name);
         if (nf_pool_ring == NULL) {
@@ -1525,17 +1521,12 @@ onvm_nflib_pool_dequeue(const char *nf_name) {
                 RTE_LOG(INFO, APP, "Could not dequeue the %s NF\n", nf_name);
                 return NULL;
         }
-        RTE_LOG(INFO, APP, "Dequeued ID: %d Dequeued pool status: %d\n", dequeued_nf->instance_id, dequeued_nf->pool_nf);
-        
-        sem_name = rte_malloc(NULL, sizeof(char) * 64, 0);
-        snprintf(sem_name, 64, "nf_pool_%d", dequeued_nf->instance_id);
-        sem = sem_open(sem_name, 0, 0666, 0);
-        dequeued_nf->pool_nf = 0;
+        sem = sem_open(dequeued_nf->pool_status.pool_mutex_name, 0, 0666, 0);
+        dequeued_nf->pool_status.pool_sleep_state = 0;
         if (sem_post(sem) < 0) {
                 RTE_LOG(INFO, APP, "Could not post to semaphore\n");
         }
 
-        rte_free(sem_name);
         return dequeued_nf;
 }
 
@@ -1578,6 +1569,7 @@ onvm_nflib_fork(const char *nf_name, void *nf_args) {
                 }
         }
 
+        //rte_free(binary_string);
         return &nfs[instance_id];
 }
 
@@ -1617,6 +1609,7 @@ onvm_nflib_create_binary_exec_string(const char *nf_name) {
         strncat(binary_directory, build_nf, build_nf_len);
         strncat(binary_directory, nf_name, nf_name_len);
 
+        rte_free(cwd);
         return binary_directory;
 }
 

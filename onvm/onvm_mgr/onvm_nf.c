@@ -308,7 +308,7 @@ onvm_nf_start(struct onvm_nf_init_cfg *nf_init_cfg) {
                 return 1;
         }
 
-        spawned_nf->pool_nf = 0;
+        spawned_nf->pool_status.pool_sleep_state = 0;
         spawned_nf->instance_id = nf_id;
         spawned_nf->service_id = nf_init_cfg->service_id;
         spawned_nf->status = NF_STARTING;

@@ -443,7 +443,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
-                if (nfs[i].pool_nf == 1) {
+                if (nfs[i].pool_status.pool_sleep_state == 1) {
                         continue;
                 }
                 const uint64_t rx = nfs[i].stats.rx;

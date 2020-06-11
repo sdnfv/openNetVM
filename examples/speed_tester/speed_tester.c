@@ -456,7 +456,7 @@ main(int argc, char *argv[]) {
         args = rte_malloc(NULL, sizeof(struct simple_forward_args), 0);
         args->destination_id = "1";
         args->service_id = "2";
-        args->optional_args.packet_delay= "10000";
+        args->optional_args.packet_delay= "1000000";
         if (onvm_nflib_pool_enqueue("simple_forward", args) != NULL) {
                 RTE_LOG(INFO, APP, "Spawned a new simple_forward nf and added to ring\n");
         }
@@ -482,12 +482,9 @@ main(int argc, char *argv[]) {
         if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
                 RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
         }
-        if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
-                RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
-        }
-        if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
-                RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
-        }
+        // if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
+        //         RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
+        // }
 
         onvm_nflib_run(nf_local_ctx);
 

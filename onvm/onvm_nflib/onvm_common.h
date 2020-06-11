@@ -331,8 +331,9 @@ struct onvm_nf {
                  * Sleep state to track state of whether the NF is active
                  * Same logic as shared core 
                  */
-                rte_atomic16_t *pool_state;
+                volatile int16_t pool_sleep_state;
                 sem_t *pool_mutex;
+                const char *pool_mutex_name;
         } pool_status;
 };
 
@@ -505,7 +506,7 @@ get_rx_shmkey(unsigned id) {
 
 static inline key_t
 get_rx_shmpoolkey(unsigned id) {
-        return KEY_PREFIX * 10 + id * 2;
+        return KEY_PREFIX * 11 + id;
 }
 
 /*

@@ -149,6 +149,10 @@ master_thread_main(void) {
                         rte_atomic16_set(nf_wakeup_infos[i].shm_server, 0);
                         sem_post(nf_wakeup_infos[i].mutex);
                 }
+                if (nfs[i].pool_status.pool_sleep_state == 1) {
+                        nfs[i].pool_status.pool_sleep_state = 0;
+                        sem_post(nf_pool_wakeup_infos[i].mutex);
+                }
         }
 
         /* Wait to process all exits */
@@ -171,6 +175,7 @@ master_thread_main(void) {
                 }
         }
 
+        /* Clean up the nf pool structs */
         for (i = 0; i < MAX_NFS; i++) {
                 sem_close(nf_pool_wakeup_infos[i].mutex);
                 sem_unlink(nf_pool_wakeup_infos[i].sem_name);
