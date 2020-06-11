@@ -111,10 +111,10 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                         nf->stats.act_tonf++;
                         onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkts[i], nf);
                 } else if (meta->action == ONVM_NF_ACTION_OUT) {
-                        nf->stats.act_out++;
                         if (tx_mgr->mgr_type_t == MGR) {
                                 onvm_pkt_enqueue_port(tx_mgr, meta->destination, pkts[i]);
                         } else {
+                                nf->stats.act_out++;
                                 out_buf = tx_mgr->to_tx_buf;
                                 out_buf->buffer[out_buf->count++] = pkts[i];
                                 if (out_buf->count == PACKET_READ_SIZE) {
