@@ -326,7 +326,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         if (ehdr == NULL) {
                 rte_exit(EXIT_FAILURE, "Failed to allocate common ehdr\n");
         }
-        
+
         if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
                 RTE_LOG(INFO, APP, "Using fake MAC address\n");
                 onvm_get_fake_macaddr(&ehdr->s_addr);
@@ -343,7 +343,7 @@ main(int argc, char *argv[]) {
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
         const char *progname = argv[0];
-        
+
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
