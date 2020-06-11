@@ -157,14 +157,14 @@ print_stats(void)
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
 			   "\nPackets dropped: %21"PRIu64,
-			   ports->id[i],
-			   port_statistics[i].tx,
-			   port_statistics[i].rx,
-			   port_statistics[i].dropped);
+			   ports->id[ports -> id[i]],
+			   port_statistics[ports -> id[i]].tx,
+			   port_statistics[ports -> id[i]].rx,
+			   port_statistics[ports -> id[i]].dropped);
 
-		total_packets_dropped += port_statistics[i].dropped;
-		total_packets_tx += port_statistics[i].tx;
-		total_packets_rx += port_statistics[i].rx;
+		total_packets_dropped += port_statistics[ports -> id[i]].dropped;
+		total_packets_tx += port_statistics[ports -> id[i]].tx;
+		total_packets_rx += port_statistics[ports -> id[i]].rx;
 	}
 	printf("\nAggregate statistics ==============================="
 		   "\nTotal packets sent: %18"PRIu64
@@ -226,6 +226,7 @@ l2fwd_set_dest_ports(){
                 if (nb_ports_in_mask % 2){ 
                         l2fwd_dst_ports[ports -> id[i]] = last_port;
                         l2fwd_dst_ports[last_port] = ports -> id[i];
+                        nb_ports_in_mask++;
                 }
                 else{
                         last_port = ports -> id[i];
@@ -284,9 +285,10 @@ main(int argc, char *argv[]) {
                         rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
                 }
         }
-        if (ports -> num_ports == 0)
+        if (ports -> num_ports == 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "No Ethernet ports. Ensure ports binded to dpdk. - bye\n");
+        }
         argc -= arg_offset;
         argv += arg_offset;
 
