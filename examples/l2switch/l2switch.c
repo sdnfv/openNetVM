@@ -80,10 +80,10 @@ struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 extern struct port_info *ports;
 
 /* MAC updating enabled by default */
-static int mac_updating = 0;
+static int mac_updating = 1;
 
 /* Print mac address disabled by default */
-static int print_mac = 1;
+static int print_mac = 0;
 
 /*
  * Print a usage message
@@ -96,6 +96,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
         printf(" - `-n : Disables mac updating. \n");
+        printf(" - `-m : Enables printing updated mac address. \n");
 }
 
 /*
@@ -105,18 +106,19 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt(argc, argv, "p:n:")) != -1) {
+        while ((c = getopt(argc, argv, "p:n:m")) != -1) {
                 switch (c) {
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
                         case 'n':
                                 /* Disable MAC updating. */
-                                mac_updating = 1;
+                                mac_updating = 0;
                                 break;
                         case 'm':
                                 /* Enable printing of MAC address.*/
-                                print_mac = 0;
+                                print_mac = 1;
+                                break;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
@@ -163,7 +165,7 @@ print_stats(void)
 		printf("\nStatistics for port %u ------------------------------"
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
-			   "\nForwarding to port: %u"PRIu64,
+			   "\nForwarding to port: %u",
 			   ports->id[ports -> id[i]],
 			   port_statistics[ports -> id[i]].tx,
 			   port_statistics[ports -> id[i]].rx,
@@ -213,7 +215,7 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid)
 	tmp = &eth->d_addr.addr_bytes[0];
 	*((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
 
-	ether_addr_copy(&l2fwd_ports_eth_addr[dest_portid], &eth->s_addr);
+	ether_addr_copy(tmp, &eth->s_addr);
 
         if (print_mac) {
                 printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
