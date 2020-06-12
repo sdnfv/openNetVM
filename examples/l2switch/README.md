@@ -1,4 +1,4 @@
-Flow Tracker
+Layer 2 Switch
 ==
 l2switch is an NF based on the dpdk [l2fwd example](https://doc.dpdk.org/guides/sample_app_ug/l2_forward_real_virtual.html) that sends packets out the adjacent port. The destination port is the adjacent port from the enabled portmask, that is, if the first four ports are enabled (portmask 0xf),
 ports 1 and 2 forward into each other, and ports 3 and 4 forward into each other. Individual packets destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID.
