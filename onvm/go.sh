@@ -49,7 +49,7 @@ fi
 shift 3
 
 # Verify that bc is installed
-if [[ $(dpkg-query -W -f='${Status}' bc 2>/dev/null | grep -c "ok installed") == 0 ]]
+if [[ $(command -v bc | grep -c "/usr/bin/bc") == 0 ]]
 then
     echo "Error: bc is not installed. Install using:"
     echo "  sudo apt-get install bc"
