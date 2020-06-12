@@ -144,8 +144,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 
 static void
-print_stats(void)
-{
+print_stats(void) {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	unsigned i;
 
@@ -204,8 +203,7 @@ l2fwd_initialize_ports(void) {
 /* The source MAC address is replaced by the TX_PORT MAC address */
 /* The destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID */
 static void
-l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid)
-{
+l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid) {
 	struct ether_hdr *eth;
 	void *tmp;
 
@@ -233,16 +231,15 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid)
  * ports 1 and 2 forward into each other, and ports 3 and 4 forward into each other.
 */
 static void
-l2fwd_set_dest_ports(){
+l2fwd_set_dest_ports() {
         int i;
         unsigned nb_ports_in_mask = 0;
         int last_port = 0;
         for (i = 0; i < ports -> num_ports; i++) {
-                if (nb_ports_in_mask % 2){ 
+                if (nb_ports_in_mask % 2) {
                         l2fwd_dst_ports[ports -> id[i]] = last_port;
                         l2fwd_dst_ports[last_port] = ports -> id[i];
-                }
-                else{
+                } else {
                         last_port = ports -> id[i];
                 }
                 nb_ports_in_mask++;
@@ -308,7 +305,7 @@ main(int argc, char *argv[]) {
 
         /* Initialize port stats. */
         memset(&port_statistics, 0, sizeof(port_statistics));
-        
+
         /* Set destination port for each port. */
         l2fwd_set_dest_ports();
 
