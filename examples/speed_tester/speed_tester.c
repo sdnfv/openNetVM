@@ -379,6 +379,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         *using input string for dest addr
                         */
                         if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
+                                RTE_LOG(INFO, APP, "Using fake MAC address\n");
                                 onvm_get_fake_macaddr(&ehdr->s_addr);
                         }
                         for (j = 0; j < ETHER_ADDR_LEN; ++j) {
