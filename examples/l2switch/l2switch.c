@@ -166,7 +166,7 @@ print_stats(void)
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
 			   "\nForwarding to port: %u",
-			   ports->id[ports -> id[i]],
+			   ports->id[i],
 			   port_statistics[ports -> id[i]].tx,
 			   port_statistics[ports -> id[i]].rx,
 			   l2fwd_dst_ports[ports -> id[i]]);
@@ -236,18 +236,16 @@ static void
 l2fwd_set_dest_ports(){
         int i;
         unsigned nb_ports_in_mask = 0;
-        int l2fwd_dst_ports[RTE_MAX_ETHPORTS];
         int last_port = 0;
         for (i = 0; i < ports -> num_ports; i++) {
                 if (nb_ports_in_mask % 2){ 
                         l2fwd_dst_ports[ports -> id[i]] = last_port;
                         l2fwd_dst_ports[last_port] = ports -> id[i];
-                        nb_ports_in_mask++;
                 }
                 else{
                         last_port = ports -> id[i];
-                        nb_ports_in_mask++;
-                } 
+                }
+                nb_ports_in_mask++;
         }
         if (nb_ports_in_mask % 2) {
                         printf("Notice: odd number of ports in portmask.\n");
