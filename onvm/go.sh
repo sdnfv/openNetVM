@@ -42,16 +42,22 @@ flag_check="^-[ardstlpzcvmkn]$"
 if [[ -n ${BASH_REMATCH[0]} ]]
 then
     core_match=true
+else
+    core_match=false
 fi
 [[ $2 =~ $port_check ]]
 if [[ -n ${BASH_REMATCH[0]} ]]
 then
     port_match=true
+else
+    port_match=false
 fi
 [[ $3 =~ $nf_check ]]
 if [[ -n ${BASH_REMATCH[0]} ]]
 then
     nf_match=true
+else
+    nf_match=false
 fi
 
 if $core_match && $port_match && $nf_match
