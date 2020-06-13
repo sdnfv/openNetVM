@@ -37,7 +37,24 @@ core_check="^([0-8]+,){2}([0-8]+)(,[0-8]+)*$"
 port_check="^[0-9]+$"
 nf_check="^0x[0-9A-F]+$"
 flag_check="^-[ardstlpzcvmkn]$"
-if [[ $1 =~ $core_check ]] && [[ $2 =~ $port_check ]] && [[ $3 =~ $nf_check ]]
+# Check for argument matches
+[[ $1 =~ $core_check ]]
+if [[ -n ${BASH_REMATCH[0]} ]]
+then
+    core_match=true
+fi
+[[ $2 =~ $port_check ]]
+if [[ -n ${BASH_REMATCH[0]} ]]
+then
+    port_match=true
+fi
+[[ $3 =~ $nf_check ]]
+if [[ -n ${BASH_REMATCH[0]} ]]
+then
+    nf_match=true
+fi
+
+if $core_match && $port_match && $nf_match
 then
     cpu=$1
     ports=$2
@@ -46,26 +63,26 @@ then
 # Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
 elif [[ ! $1 =~ $flag_check ]]
 then
-    if [[ ! $1 =~ $core_check ]] 
+    if ! $core_match
     then
         # This verifies that the user actually tried to input the cores but did so incorrectly
-        if [[ $2 =~ $port_check || $3 =~ $nf_check ]]
+        if $port_match || $nf_match
         then
             echo "Error: Invalid Manager Cores. Check input and try again."
             exit 1
         fi
-    elif [[ ! $2 =~ $port_check ]]
+    elif ! $port_match
     then
         # This verifies that the user actually tried to input the port mask but did so incorrectly
-        if [[ $1 =~ $core_check || $3 =~ $nf_check ]]
+        if $core_match || $nf_match
         then
             echo "Error: Invalid Port Mask. Check input and try again."
             exit 1
         fi
-    elif [[ ! $3 =~ $nf_check ]]
+    elif ! $nf_match
     then
         # This verifies that the user actually tried to input the NF core mask but did so incorrectly
-        if [[ $1 =~ $core_check || $2 =~ $port_check ]]
+        if $core_match || $port_match
         then
             echo "Error: Invalid NF Core Mask. Check input and try again."
             exit 1
@@ -131,7 +148,7 @@ while getopts "a:r:d:s:t:l:p:z:cvm:k:n:" opt; do
 done
 
 # Verify that dependency bc is installed
-if [[ $(dpkg-query -W -f='${Status}' bc 2>/dev/null | grep -c "ok installed") == 0 ]]
+if [[ -z $(command -v bc) ]]
 then
     echo "Error: bc is not installed. Install using:"
     echo "  sudo apt-get install bc"
