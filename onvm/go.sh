@@ -49,7 +49,7 @@ fi
 shift 3
 
 # Verify that bc is installed
-if [[ $(command -v bc | grep -c "/usr/bin/bc") == 0 ]]
+if [[ -z $(command -v bc) ]]
 then
     echo "Error: bc is not installed. Install using:"
     echo "  sudo apt-get install bc"
