@@ -211,11 +211,11 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * For RFC about ARP, see https://tools.ietf.org/html/rfc826
  * RETURNS 0 if success, -1 otherwise */
 static int
-send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *nf) {
+send_arp_reply(int port, struct rte_ether_addr *tha, uint32_t tip, struct onvm_nf *nf) {
         struct rte_mbuf *out_pkt = NULL;
         struct onvm_pkt_meta *pmeta = NULL;
-        struct ether_hdr *eth_hdr = NULL;
-        struct arp_hdr *out_arp_hdr = NULL;
+        struct rte_ether_hdr *eth_hdr = NULL;
+        struct rte_arp_hdr *out_arp_hdr = NULL;
 
         size_t pkt_size = 0;
 
@@ -229,30 +229,30 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *n
                 return -1;
         }
 
-        pkt_size = sizeof(struct ether_hdr) + sizeof(struct arp_hdr);
+        pkt_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_arp_hdr);
         out_pkt->data_len = pkt_size;
         out_pkt->pkt_len = pkt_size;
 
         // SET ETHER HEADER INFO
         eth_hdr = onvm_pkt_ether_hdr(out_pkt);
-        ether_addr_copy(&ports->mac[port], &eth_hdr->s_addr);
-        eth_hdr->ether_type = rte_cpu_to_be_16(ETHER_TYPE_ARP);
-        ether_addr_copy(tha, &eth_hdr->d_addr);
+        rte_ether_addr_copy(&ports->mac[port], &eth_hdr->s_addr);
+        eth_hdr->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
+        rte_ether_addr_copy(tha, &eth_hdr->d_addr);
 
         // SET ARP HDR INFO
-        out_arp_hdr = rte_pktmbuf_mtod_offset(out_pkt, struct arp_hdr *, sizeof(struct ether_hdr));
+        out_arp_hdr = rte_pktmbuf_mtod_offset(out_pkt, struct rte_arp_hdr *, sizeof(struct rte_ether_hdr));
 
-        out_arp_hdr->arp_hrd = rte_cpu_to_be_16(ARP_HRD_ETHER);
-        out_arp_hdr->arp_pro = rte_cpu_to_be_16(ETHER_TYPE_IPv4);
-        out_arp_hdr->arp_hln = 6;
-        out_arp_hdr->arp_pln = sizeof(uint32_t);
-        out_arp_hdr->arp_op = rte_cpu_to_be_16(ARP_OP_REPLY);
+        out_arp_hdr->arp_hardware = rte_cpu_to_be_16(RTE_ARP_HRD_ETHER);
+        out_arp_hdr->arp_protocol = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
+        out_arp_hdr->arp_hlen = 6;
+        out_arp_hdr->arp_plen = sizeof(uint32_t);
+        out_arp_hdr->arp_opcode = rte_cpu_to_be_16(RTE_ARP_OP_REPLY);
 
-        ether_addr_copy(&ports->mac[port], &out_arp_hdr->arp_data.arp_sha);
+        rte_ether_addr_copy(&ports->mac[port], &out_arp_hdr->arp_data.arp_sha);
         out_arp_hdr->arp_data.arp_sip = state_info->source_ips[ports->id[port]];
 
         out_arp_hdr->arp_data.arp_tip = tip;
-        ether_addr_copy(tha, &out_arp_hdr->arp_data.arp_tha);
+        rte_ether_addr_copy(tha, &out_arp_hdr->arp_data.arp_tha);
 
         // SEND PACKET OUT/SET METAINFO
         pmeta = onvm_get_pkt_meta(out_pkt);
@@ -265,8 +265,8 @@ send_arp_reply(int port, struct ether_addr *tha, uint32_t tip, struct onvm_nf *n
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
-        struct ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
-        struct arp_hdr *in_arp_hdr = NULL;
+        struct rte_ether_hdr *eth_hdr = onvm_pkt_ether_hdr(pkt);
+        struct rte_arp_hdr *in_arp_hdr = NULL;
         int result = -1;
 
         /*
@@ -276,10 +276,10 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
          * If its an ARP REPLY send to dest
          * Ignore (fwd to dest) other opcodes
          */
-        if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
-                in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
-                switch (rte_cpu_to_be_16(in_arp_hdr->arp_op)) {
-                        case ARP_OP_REQUEST:
+        if (rte_cpu_to_be_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_ARP) {
+                in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct rte_arp_hdr *, sizeof(struct rte_ether_hdr));
+                switch (rte_cpu_to_be_16(in_arp_hdr->arp_opcode)) {
+                        case RTE_ARP_OP_REQUEST:
                                 if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) ==
                                                 state_info->source_ips[ports->id[pkt->port]]) {
                                         result = send_arp_reply(pkt->port, &eth_hdr->s_addr,
@@ -292,13 +292,13 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                                         return 0;
                                 }
                                 break;
-                        case ARP_OP_REPLY:
+                        case RTE_ARP_OP_REPLY:
                                 /* Here we can potentially save the information */
                                 break;
                         default:
                                 if (state_info->print_flag) {
                                         printf("ARP with opcode %d, port %d (ID %d) DROPPED\n",
-                                               rte_cpu_to_be_16(in_arp_hdr->arp_op), pkt->port, ports->id[pkt->port]);
+                                               rte_cpu_to_be_16(in_arp_hdr->arp_opcode), pkt->port, ports->id[pkt->port]);
                                 }
                 }
         }

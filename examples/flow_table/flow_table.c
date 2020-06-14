@@ -168,7 +168,7 @@ do_stats_display(struct rte_mbuf *pkt, int32_t tbl_index) {
         printf("\n\n");
 
 #ifdef DEBUG_PRINT
-        struct ipv4_hdr *ip;
+        struct rte_ipv4_hdr *ip;
         ip = onvm_pkt_ipv4_hdr(pkt);
         if (ip != NULL) {
                 onvm_pkt_print(pkt);
