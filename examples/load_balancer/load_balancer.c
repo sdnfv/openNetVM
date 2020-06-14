@@ -101,14 +101,14 @@ struct loadbalance {
 
 /* Struct for backend servers */
 struct backend_server {
-        uint8_t d_addr_bytes[ETHER_ADDR_LEN];
+        uint8_t d_addr_bytes[RTE_ETHER_ADDR_LEN];
         uint32_t d_ip;
 };
 
 /* Struct for flow info */
 struct flow_info {
         uint8_t dest;
-        uint8_t s_addr_bytes[ETHER_ADDR_LEN];
+        uint8_t s_addr_bytes[RTE_ETHER_ADDR_LEN];
         uint64_t last_pkt_cycles;
         int is_active;
 };
@@ -268,7 +268,7 @@ do_stats_display(struct rte_mbuf *pkt) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr *ip;
+        struct rte_ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -308,8 +308,8 @@ static void
 get_iface_inf(void) {
         int fd, i;
         struct ifreq ifr;
-        uint8_t client_addr_bytes[ETHER_ADDR_LEN];
-        uint8_t server_addr_bytes[ETHER_ADDR_LEN];
+        uint8_t client_addr_bytes[RTE_ETHER_ADDR_LEN];
+        uint8_t server_addr_bytes[RTE_ETHER_ADDR_LEN];
 
         fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         ifr.ifr_addr.sa_family = AF_INET;
@@ -321,7 +321,7 @@ get_iface_inf(void) {
         lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
         ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < ETHER_ADDR_LEN; i++)
+        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
                 server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
 
         /* Parse client interface */
@@ -331,11 +331,11 @@ get_iface_inf(void) {
         lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
         ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < ETHER_ADDR_LEN; i++)
+        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
                 client_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
 
         /* Compare the interfaces to onvm_mgr ports by hwaddr and assign port id accordingly */
-        if (memcmp(&client_addr_bytes, &ports->mac[0], ETHER_ADDR_LEN) == 0) {
+        if (memcmp(&client_addr_bytes, &ports->mac[0], RTE_ETHER_ADDR_LEN) == 0) {
                 lb->client_port = ports->id[0];
                 lb->server_port = ports->id[1];
         } else {
@@ -488,8 +488,8 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct ipv4_hdr *ip;
-        struct ether_hdr *ehdr;
+        struct rte_ipv4_hdr *ip;
+        struct rte_ether_hdr *ehdr;
         struct flow_info *flow_info;
         int i, ret;
 
@@ -525,7 +525,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         /* If the flow entry is new, save the client information */
         if (flow_info->is_active == 0) {
                 flow_info->is_active = 1;
-                for (i = 0; i < ETHER_ADDR_LEN; i++) {
+                for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
                         flow_info->s_addr_bytes[i] = ehdr->s_addr.addr_bytes[i];
                 }
         }
@@ -534,7 +534,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 if (onvm_get_macaddr(lb->client_port, &ehdr->s_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
-                for (i = 0; i < ETHER_ADDR_LEN; i++) {
+                for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
                         ehdr->d_addr.addr_bytes[i] = flow_info->s_addr_bytes[i];
                 }
 
@@ -544,7 +544,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 if (onvm_get_macaddr(lb->server_port, &ehdr->s_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
-                for (i = 0; i < ETHER_ADDR_LEN; i++) {
+                for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
                         ehdr->d_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
                 }
 
