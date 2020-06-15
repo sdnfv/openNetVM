@@ -160,18 +160,18 @@ print_stats(void) {
 
 	printf("\nPort statistics ====================================");
 
-	for (i = 0; i < ports -> num_ports; i++) {
+	for (i = 0; i < ports->num_ports; i++) {
 		printf("\nStatistics for port %u ------------------------------"
 			   "\nPackets sent: %24"PRIu64
 			   "\nPackets received: %20"PRIu64
 			   "\nForwarding to port: %u",
 			   ports->id[i],
-			   port_statistics[ports -> id[i]].tx,
-			   port_statistics[ports -> id[i]].rx,
-			   l2fwd_dst_ports[ports -> id[i]]);
+			   port_statistics[ports->id[i]].tx,
+			   port_statistics[ports->id[i]].rx,
+			   l2fwd_dst_ports[ports->id[i]]);
 
-		total_packets_tx += port_statistics[ports -> id[i]].tx;
-		total_packets_rx += port_statistics[ports -> id[i]].rx;
+		total_packets_tx += port_statistics[ports->id[i]].tx;
+		total_packets_rx += port_statistics[ports->id[i]].rx;
 	}
 	printf("\nAggregate statistics ==============================="
 		   "\nTotal packets sent: %18"PRIu64
@@ -187,16 +187,16 @@ print_stats(void) {
 static void
 l2fwd_initialize_ports(void) {
         uint16_t i;
-        for (i = 0; i < ports -> num_ports; i++) {
-                rte_eth_macaddr_get(ports -> id[i], &l2fwd_ports_eth_addr[ports -> id[i]]);
-		printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
-                        ports ->id[i],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[0],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[1],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[2],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[3],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[4],
-                        l2fwd_ports_eth_addr[ports -> id[i]].addr_bytes[5]);
+        for (i = 0; i < ports->num_ports; i++) {
+                rte_eth_macaddr_get(ports->id[i], &l2fwd_ports_eth_addr[ports->id[i]]);
+                printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
+                        ports->id[i],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[0],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[1],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[2],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[3],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[4],
+                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[5]);
         }
 }
 
@@ -204,16 +204,14 @@ l2fwd_initialize_ports(void) {
 /* The destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID */
 static void
 l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid) {
-	struct ether_hdr *eth;
-	void *tmp;
+        struct ether_hdr *eth;
+        void *tmp;
+        eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
-	eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-
-	/* 02:00:00:00:00:xx */
-	tmp = &eth->d_addr.addr_bytes[0];
-	*((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
-
-	ether_addr_copy(tmp, &eth->s_addr);
+        /* 02:00:00:00:00:xx */
+        tmp = &eth->d_addr.addr_bytes[0];
+        *((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
+        ether_addr_copy(tmp, &eth->s_addr);
 
         if (print_mac) {
                 printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
@@ -235,12 +233,12 @@ l2fwd_set_dest_ports() {
         int i;
         unsigned nb_ports_in_mask = 0;
         int last_port = 0;
-        for (i = 0; i < ports -> num_ports; i++) {
+        for (i = 0; i < ports->num_ports; i++) {
                 if (nb_ports_in_mask % 2) {
-                        l2fwd_dst_ports[ports -> id[i]] = last_port;
-                        l2fwd_dst_ports[last_port] = ports -> id[i];
+                        l2fwd_dst_ports[ports->id[i]] = last_port;
+                        l2fwd_dst_ports[last_port] = ports->id[i];
                 } else {
-                        last_port = ports -> id[i];
+                        last_port = ports->id[i];
                 }
                 nb_ports_in_mask++;
         }
@@ -248,28 +246,34 @@ l2fwd_set_dest_ports() {
                         printf("Notice: odd number of ports in portmask.\n");
                         l2fwd_dst_ports[last_port] = last_port;
         }
+
 }
+
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        if (counter++ == print_delay) {
+        if (++counter == print_delay) {
                 print_stats();
                 counter = 0;
         }
+        if (pkt->port > RTE_MAX_ETHPORTS) {
+                RTE_LOG(INFO, APP, "Packet source port greater than MAX ethernet ports allowed. \n");
+                meta->action = ONVM_NF_ACTION_DROP;
+                return 0;
+        }
         /* Update stats packet received on port. */
-        port_statistics[pkt -> port].rx += 1;
+        port_statistics[pkt->port].rx += 1;
         unsigned dst_port = l2fwd_dst_ports[pkt->port];
 
         /* If mac_updating enabled update source and destination mac address of packet. */
-	if (mac_updating)
-		l2fwd_mac_updating(pkt, dst_port);
+        if (mac_updating)
+                l2fwd_mac_updating(pkt, dst_port);
 
+        /* Set destination port of packet. */
         meta->destination = dst_port;
-
         /* Update stats packet sent from source port. */
         port_statistics[dst_port].tx += 1;
-
         meta->action = ONVM_NF_ACTION_OUT;
         return 0;
 }
@@ -296,7 +300,7 @@ main(int argc, char *argv[]) {
                         rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
                 }
         }
-        if (ports -> num_ports == 0) {
+        if (ports->num_ports == 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "No Ethernet ports. Ensure ports binded to dpdk. - bye\n");
         }
