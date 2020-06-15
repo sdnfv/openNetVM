@@ -433,7 +433,7 @@ main(int argc, char *argv[]) {
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void *)tx_mgr[i], cur_lcore) == -EBUSY) {
                         RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d TX\n", cur_lcore,
-                                tx_mgr->tx_thread_info->first_nf);
+                                tx_mgr[i]->tx_thread_info->first_nf);
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
                         return -1;
                 }
