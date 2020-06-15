@@ -411,38 +411,28 @@ main(int argc, char *argv[]) {
         for (i = 0; i < tx_lcores; i++) {
                 tx_mgr[i] = rte_calloc(NULL, 1, sizeof(struct queue_mgr), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i] == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate queue_mgr struct\n");
-                        onvm_main_free(tx_lcores, rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 tx_mgr[i]->mgr_type_t = MGR;
                 tx_mgr[i]->id = i;
                 tx_mgr[i]->tx_thread_info = rte_calloc(NULL, 1, sizeof(struct tx_thread_info), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i]->tx_thread_info == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate tx_thread_info struct\n");
-                        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 tx_mgr[i]->tx_thread_info->port_tx_bufs =
                     rte_calloc(NULL, RTE_MAX_ETHPORTS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i]->tx_thread_info->port_tx_bufs == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
-                        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 tx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (tx_mgr[i]->nf_rx_bufs == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
-                        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 tx_mgr[i]->tx_thread_info->first_nf = RTE_MIN(i * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 tx_mgr[i]->tx_thread_info->last_nf = RTE_MIN((i + 1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void *)tx_mgr[i], cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d TX\n", cur_lcore,
-                                tx_mgr[i]->tx_thread_info->first_nf);
-                        return -1;
+                        goto onvm_free;
                 }
         }
 
@@ -450,18 +440,14 @@ main(int argc, char *argv[]) {
         for (i = 0; i < rx_lcores; i++) {
                 rx_mgr[i] = rte_calloc(NULL, 1, sizeof(struct queue_mgr), RTE_CACHE_LINE_SIZE);
                 if (rx_mgr[i] == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate queue_mgr struct\n");
-                        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 rx_mgr[i]->mgr_type_t = MGR;
                 rx_mgr[i]->id = i;
                 rx_mgr[i]->tx_thread_info = NULL;
                 rx_mgr[i]->nf_rx_bufs = rte_calloc(NULL, MAX_NFS, sizeof(struct packet_buf), RTE_CACHE_LINE_SIZE);
                 if (rx_mgr[i] -> nf_rx_bufs == NULL) {
-                        RTE_LOG(ERR, APP, "Can't allocate packet_buf struct\n");
-                        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                        return -1;
+                        goto onvm_free;
                 }
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(rx_thread_main, (void *)rx_mgr[i], cur_lcore) == -EBUSY) {
@@ -477,9 +463,7 @@ main(int argc, char *argv[]) {
                 for (i = 0; i < ONVM_NUM_WAKEUP_THREADS; i++) {
                         wakeup_ctx[i] = rte_calloc(NULL, 1, sizeof(struct wakeup_thread_context), RTE_CACHE_LINE_SIZE);
                         if (wakeup_ctx[i] == NULL) {
-                                RTE_LOG(ERR, APP, "Can't allocate wakeup info struct\n");
-                                onvm_main_free(tx_lcores, rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
-                                return -1;
+                                goto onvm_free;
                         }
                         wakeup_ctx[i]->first_nf = RTE_MIN(i * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
                         wakeup_ctx[i]->last_nf = RTE_MIN((i + 1) * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
@@ -496,4 +480,9 @@ main(int argc, char *argv[]) {
         master_thread_main();
         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
         return 0;
+
+onvm_free:
+        RTE_LOG(ERR, APP, "Can't allocate required struct.\n");
+        onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
+        return -1;
 }
