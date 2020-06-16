@@ -63,15 +63,9 @@ then
 fi
 
 ports_bin=$(echo "obase=2; ibase=16; $ports" | bc)
-count_ports=0
-while [[ $ports_bin -ne 0 ]]
-do
-    if [[ $((ports_bin % 10)) -eq 1 ]]
-    then
-        count_ports=$((count_ports+1))
-    fi
-    ports_bin=$ports_bin/10
-done
+ports_bin="${ports_bin//0/}"
+count_ports="${#ports_bin}"
+
 ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
 if [[ $ports_detected -lt $count_ports ]]
 then
