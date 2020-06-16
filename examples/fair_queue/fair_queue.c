@@ -173,7 +173,7 @@ do_fq_stats_display(__attribute__((unused)) void *arg) {
 
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 printf("%s%s", clr, topLeft);
-                printf(FQ_STATS_MSG);
+                printf("%s", FQ_STATS_MSG);
 
                 for (uint16_t i = 0; i < fairqueue->num_queues; i++) {
                         struct fairqueue_queue *fq;
