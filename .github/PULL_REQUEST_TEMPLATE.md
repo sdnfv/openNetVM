@@ -1,3 +1,5 @@
+<!-- Hey, thanks for contributing to openNetVM! When submitting your Pull Request, please make sure you're submitting to the sdnfv:develop branch; once we have a good set of merged PR's on develop, we'll merge everything to sdnfv:master for a release. -->
+
 <<Replace this line with a short description of the changes>>
 
 <!-- Add detailed description and provide running instructions -->
