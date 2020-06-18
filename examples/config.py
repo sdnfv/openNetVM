@@ -115,7 +115,11 @@ if __name__ == '__main__':
     config_file = get_config()
 
     with open(config_file) as f:
-        data = json.load(f)
+        try:
+            data = json.load(f)
+        except:
+            print("Cannot load config file. Check JSON syntax\n")
+            sys.exit(1)
     for k, v in data.items():
         for item in v:
             nf_list.append(k)
