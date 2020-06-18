@@ -741,6 +741,10 @@ onvm_nflib_stop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Terminate children */
         onvm_nflib_terminate_children(nf_local_ctx->nf);
+
+        /* Print statistics summary */
+        onvm_nflib_stats_summary_output(nf_local_ctx->nf->instance_id);
+
         /* Stop and free */
         onvm_nflib_cleanup(nf_local_ctx);
 }
@@ -1289,4 +1293,96 @@ init_shared_core_mode_info(uint16_t instance_id) {
                 rte_exit(EXIT_FAILURE, "Can not attach the shared segment to the NF space for NF %d\n", instance_id);
 
         nf->shared_core.sleep_state = (rte_atomic16_t *)shm;
+}
+
+void
+onvm_nflib_stats_summary_output(uint16_t id) {
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+        const char *csv_suffix = "_stats.csv";
+        const char *csv_stats_headers = "NF tag, NF instance ID, NF service ID, NF assigned core, RX total,"
+                                        "RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF,"
+                                        "NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned";
+        const uint64_t rx = nfs[id].stats.rx;
+        const uint64_t rx_drop = nfs[id].stats.rx_drop;
+        const uint64_t tx = nfs[id].stats.tx;
+        const uint64_t tx_drop = nfs[id].stats.tx_drop;
+        const uint64_t act_out = nfs[id].stats.act_out;
+        const uint64_t act_tonf = nfs[id].stats.act_tonf;
+        const uint64_t act_drop = nfs[id].stats.act_drop;
+        const uint64_t act_next = nfs[id].stats.act_next;
+        const uint64_t act_buffer = nfs[id].stats.tx_buffer;
+        const uint64_t act_returned = nfs[id].stats.tx_returned;
+        char *nf_tag = nfs[id].tag;
+        uint16_t core = nfs[id].thread_info.core;
+        uint16_t service_id = nfs[id].service_id;
+        uint16_t instance_id = nfs[id].instance_id;
+        FILE *csv_fp;
+        char *csv_filename;
+
+        /* Clear screen and move to top left */
+        printf("%s%s", clr, topLeft);
+        printf("NF Activity summary\n");
+        printf("----------------------------------------------------\n");
+        printf("NF tag: %s\n", nf_tag);
+        printf("NF instance ID: %d\n", instance_id);
+        printf("NF service ID: %d\n", service_id);
+        printf("NF assigned core: %d\n", core);
+        printf("----------------------------------------------------\n");
+        printf("RX total: %ld\n", rx);
+        printf("RX total dropped: %ld\n", rx_drop);
+        printf("TX total: %ld\n", tx);
+        printf("TX total dropped: %ld\n", tx_drop);
+        printf("NF sent out: %ld\n", act_out);
+        printf("NF sent to NF: %ld\n", act_tonf);
+        printf("NF dropped: %ld\n", act_drop);
+        printf("NF next: %ld\n", act_next);
+        printf("NF tx buffered: %ld\n", act_buffer);
+        printf("NF tx returned: %ld\n\n", act_returned);
+
+        csv_filename = malloc(strlen(nf_tag) + strlen(csv_suffix) + 1);
+        if (csv_filename == NULL) {
+                printf("Error: Could not create csv file name for %s\n", nf_tag);
+                return;
+        }
+
+        if (snprintf(csv_filename, strlen(nf_tag) + 1, "%s", nf_tag) < 0) {
+                printf("Error: Could not copy buffer into csv filename for %s\n", nf_tag);
+                return;
+        }
+
+        if (strncat(csv_filename, csv_suffix, strlen(csv_suffix)) == NULL) {
+                printf("Error: Could not strcat csv filename for %s\n", nf_tag);
+                return;
+        }
+
+        csv_fp = fopen(csv_filename, "w");
+        if (csv_fp == NULL) {
+                printf("Error: Could not open csv_stats file\n");
+                return;
+        }
+
+        fprintf(csv_fp, "%s", csv_stats_headers);
+        fprintf(csv_fp, "\n%s", nf_tag);
+        fprintf(csv_fp, ", %d", instance_id);
+        fprintf(csv_fp, ", %d", service_id);
+        fprintf(csv_fp, ", %d", core);
+        fprintf(csv_fp, ", %ld", rx);
+        fprintf(csv_fp, ", %ld", rx_drop);
+        fprintf(csv_fp, ", %ld", tx);
+        fprintf(csv_fp, ", %ld", tx_drop);
+        fprintf(csv_fp, ", %ld", act_out);
+        fprintf(csv_fp, ", %ld", act_tonf);
+        fprintf(csv_fp, ", %ld", act_drop);
+        fprintf(csv_fp, ", %ld", act_next);
+        fprintf(csv_fp, ", %ld", act_buffer);
+        fprintf(csv_fp, ", %ld\n", act_returned);
+
+        if (fclose(csv_fp) != 0) {
+                printf("Error: Could not close csv_stats file\n");
+                return;
+        }
+
+        printf("CSV file written to %s directory\n", nf_tag);
+        free(csv_filename);
 }
