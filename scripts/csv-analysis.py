@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+""" Analyze and convert packet data into .csv file """
 
 import sys
 import os.path
@@ -9,15 +10,15 @@ update_time = -1
 
 def main():
     if len(sys.argv) != 2:
-        print "Invalid number of arguments!"
-        print USAGE_INFO
+        print("Invalid number of arguments!")
+        print(USAGE_INFO)
         sys.exit(-1)
 
     file_name = sys.argv[1]
 
     if not(os.path.isfile(file_name)):
-        print "Invalid file path!"
-        print USAGE_INFO
+        print("Invalid file path!")
+        print(USAGE_INFO)
         sys.exit(-1)
 
     data_table = parse_data(file_name)
@@ -31,24 +32,24 @@ def main():
 
 def print_output(analyses):
     for a in analyses:
-        print a["label"]
-        print "-------------------------"
-        print "Packet Data (pps)"
-        print "Min: " + str(a["min"])
-        print "Max: " + str(a["max"])
-        print "Avg: " + str(a["avg"])
-        print "Median: " + str(a["median"])
+        print(a["label"])
+        print("-------------------------")
+        print("Packet Data (pps)")
+        print("Min: " + str(a["min"]))
+        print("Max: " + str(a["max"]))
+        print("Avg: " + str(a["avg"]))
+        print("Median: " + str(a["median"]))
 
-        print ""
+        print("")
 
-        print "Time Data (seconds)"
-        print "Start Time: " + str(a["start"])
+        print("Time Data (seconds)")
+        print("Start Time: " + str(a["start"]))
         if(a["end"] != -1):
-            print "End Time: " + str(a["end"])
+            print("End Time: " + str(a["end"]))
         else:
-            print "End Time: Does not end!"
+            print("End Time: Does not end!")
 
-        print ""
+        print("")
 
 def analyze_data(info, label):
     data = info["data"]
