@@ -452,40 +452,22 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        struct simple_forward_args *args;
-        args = rte_malloc(NULL, sizeof(struct simple_forward_args), 0);
-        args->destination_id = "1";
-        args->service_id = "2";
-        args->optional_args.packet_delay= "1000000";
-        if (onvm_nflib_pool_enqueue("simple_forward", args) != NULL) {
-                RTE_LOG(INFO, APP, "Spawned a new simple_forward nf and added to ring\n");
-        }
+        // struct simple_forward_args *args;
+        // args = rte_malloc(NULL, sizeof(struct simple_forward_args), 0);
+        // args->destination_id = "1";
+        // args->service_id = "2";
+        // args->optional_args.print_delay= "1000000";
+        // RTE_LOG(INFO, APP, "Spawning 2 instances of simple_forward\n");
 
-        args->destination_id = "1";
-        args->service_id = "3";
-        args->optional_args.packet_delay= "10000";
-        if (onvm_nflib_pool_enqueue("simple_forward", args) != NULL) {
-                RTE_LOG(INFO, APP, "Spawned a new simple_forward nf and added to ring\n");
-        }
-
-        args->destination_id = "1";
-        args->service_id = "4";
-        args->optional_args.packet_delay= "10000";
-        if (onvm_nflib_pool_enqueue("simple_forward", args) != NULL) {
-                RTE_LOG(INFO, APP, "Spawned a new simple_forward nf and added to ring\n");
-        }
-
-        sleep(1);
-        if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
-                RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
-        }
-        if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
-                RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
-        }
-        // if (onvm_nflib_pool_dequeue("simple_forward") != NULL) {
-        //         RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
+        // if (onvm_nflib_pool_enqueue("simple_forward", args, 2) == 0) {
+        //         RTE_LOG(INFO, APP, "Spawned 5 new simple_forward nf and added to ring\n");
         // }
 
+        // RTE_LOG(INFO, APP, "Dequeueing single simple_forward instance\n");
+        // if (onvm_nflib_pool_dequeue("simple_forward", 2, 2) == 0) {
+        //         RTE_LOG(INFO, APP, "Dequeued NF from the pool\n");
+        // }
+        
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);

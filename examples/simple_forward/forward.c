@@ -52,7 +52,6 @@
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
-#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"

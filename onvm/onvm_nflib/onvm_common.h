@@ -274,6 +274,8 @@ struct onvm_nf {
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
+        /* Args struct that can be used for nf pool operations */
+        void *args;
 
         struct {
                 uint16_t core;
@@ -334,6 +336,7 @@ struct onvm_nf {
                 volatile int16_t pool_sleep_state;
                 sem_t *pool_mutex;
                 const char *pool_mutex_name;
+                char *binary_executable;
         } pool_status;
 };
 
@@ -351,6 +354,14 @@ struct onvm_nf_init_cfg {
         uint16_t time_to_live;
         /* If set NF will stop after pkts TX reach pkt_limit */
         uint16_t pkt_limit;
+};
+
+struct onvm_nf_pool_ctx {
+        struct rte_ring *pool_ring;
+        void *args;
+        const char *binary_executable;
+        const char *nf_name;
+        unsigned refill;
 };
 
 /*
@@ -400,9 +411,59 @@ struct simple_forward_args {
         const char *service_id;
         const char *destination_id;
         struct {
-                const char *packet_delay;
+                const char *print_delay;
         } optional_args;
 };
+
+struct aes_decrypt_args {
+        const char *service_id;
+        const char *destination_id;
+        struct {
+                const char *print_delay;
+        } optional_args;
+};
+
+struct aes_encrypt_args {
+        const char *service_id;
+        const char *destination_id;
+        struct {
+                const char *print_delay;
+        } optional_args;
+};
+
+struct arp_response_args {
+        const char *service_id;
+        const char *destination_id;
+        const char *source_ip_list;
+        struct {
+                const char *print_flag;
+        } optional_args;
+};
+
+struct basic_monitor_args {
+        const char *service_id;
+        struct {
+                const char *print_delay;
+        } optional_args;
+};
+
+struct bridge_args {
+        const char *service_id;
+        struct {
+                const char *print_delay;
+        } optional_args;
+};
+
+struct firewall_args {
+        const char *service_id;
+        const char *destination_id;
+        const char *rules_file;
+        struct {
+                const char *print_delay;
+                const char *debug_mode;
+        } optional_args;
+};
+
 
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"

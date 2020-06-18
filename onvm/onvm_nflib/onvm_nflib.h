@@ -308,10 +308,26 @@ onvm_nflib_get_onvm_config(void);
 void
 onvm_nflib_stats_summary_output(uint16_t id);
 
-struct onvm_nf *
-onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args);
+int
+onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int nf_count, int refill);
+
+int
+onvm_nflib_pool_dequeue(const char *nf_name, int nf_count, int refill_threshold);
+
+struct rte_hash *
+onvm_nflib_get_nfpool_hashmap(void);
+
+int 
+onvm_nflib_fork_pool_nfs(const char *nf_name, void *nf_args, struct rte_ring *nf_pool_ring, int nf_count);
+
+void
+init_pool_info(uint16_t instance_id);
 
 struct onvm_nf *
-onvm_nflib_pool_dequeue(const char *nf_name);
+onvm_nflib_fork(const char *nf_name, void *nf_args);
+
+char *
+onvm_nflib_create_binary_exec_string(const char *nf_name);
+
 
 #endif // _ONVM_NFLIB_H_
