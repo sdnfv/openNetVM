@@ -104,13 +104,19 @@ if __name__ == '__main__':
     if len(sys.argv) < 3:
         time_obj = datetime.now().time()
         log_dir = time_obj.strftime("%H:%M:%S")
+        os.mkdir(log_dir)
+        print("Creating directory %s" % (log_dir))
     else:
         log_dir = sys.argv[2]
-    try:
-        os.mkdir(log_dir)
-    except OSError:
-        print("Creation of directory %s failed" % (log_dir))
-        on_failure()
+        if os.path.isdir(log_dir) is False:
+            try:
+                os.mkdir(log_dir)
+                print("Creating directory %s" % (log_dir))
+            except OSError:
+                print("Creation of directory %s failed" % (log_dir))
+                on_failure()
+        else:
+            print("Outputting log files to %s" % (log_dir))
 
     config_file = get_config()
 
@@ -118,7 +124,7 @@ if __name__ == '__main__':
         try:
             data = json.load(f)
         except:
-            print("Cannot load config file. Check JSON syntax\n")
+            print("Cannot load config file. Check JSON syntax")
             sys.exit(1)
     for k, v in data.items():
         for item in v:
@@ -144,6 +150,7 @@ if __name__ == '__main__':
             p = Popen(shlex.split(cmd), stdout=(log_files[i]), stderr=log_files[i], \
                 universal_newlines=True)
             procs_list.append(p)
+            print("Starting %s %s" % (nf, cmd))
             i += 1
         except OSError:
             pass
