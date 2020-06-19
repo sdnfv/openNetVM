@@ -310,6 +310,9 @@ onvm_main_free(unsigned tx_lcores, unsigned rx_lcores, struct queue_mgr *tx_mgr[
 struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]) {
         unsigned i;
         for (i = 0; i < tx_lcores; i++) {
+                if (tx_mgr[i] == NULL) {
+                        break;
+                }
                 if (tx_mgr[i]-> nf_rx_bufs != NULL) {
                         rte_free(tx_mgr[i]->nf_rx_bufs);
                 }
@@ -319,17 +322,14 @@ struct queue_mgr *rx_mgr[], struct wakeup_thread_context *wakeup_ctx[]) {
                 if (tx_mgr[i]-> tx_thread_info != NULL) {
                         rte_free(tx_mgr[i]->tx_thread_info);
                 }
-                if (tx_mgr[i] == NULL) {
-                        break;
-                }
                 rte_free(tx_mgr[i]);
         }
         for (i = 0; i < rx_lcores; i++) {
-                if (rx_mgr[i]->nf_rx_bufs != NULL) {
-                        rte_free(rx_mgr[i]->nf_rx_bufs);
-                }
                 if (rx_mgr[i] == NULL) {
                         break;
+                }
+                if (rx_mgr[i]->nf_rx_bufs != NULL) {
+                        rte_free(rx_mgr[i]->nf_rx_bufs);
                 }
                 rte_free(rx_mgr[i]);
         }
