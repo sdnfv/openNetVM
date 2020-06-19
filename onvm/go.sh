@@ -48,16 +48,18 @@ fi
 
 shift 3
 
+# Verify that bc is installed
+if [[ -z $(command -v bc) ]]
+then
+    echo "Error: bc is not installed. Install using:"
+    echo "  sudo apt-get install bc"
+    echo "See dependencies for more information"
+    exit 1
+fi
+
 if [ -z "$nf_cores" ]
 then
     usage
-fi
-
-ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
-if [[ $ports_detected -lt $ports ]]
-then
-    echo "Error: Invalid port mask. Insufficient NICs bound."
-    exit 1
 fi
 
 while getopts "a:r:d:s:t:l:p:z:cv" opt; do
@@ -76,6 +78,21 @@ while getopts "a:r:d:s:t:l:p:z:cv" opt; do
             ;;
     esac
 done
+
+# Convert the port mask to binary
+# Using bc where obase=2 indicates the output is base 2 and ibase=16 indicates the output is base 16
+ports_bin=$(echo "obase=2; ibase=16; $ports" | bc)
+# Splice out the 0's from the binary numbers. The result is only 1's. Example: 1011001 -> 1111
+ports_bin="${ports_bin//0/}"
+# The number of ports is the length of the string of 1's. Using above example: 1111 -> 4
+count_ports="${#ports_bin}"
+
+ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/Network devices using kernel driver/q' | grep -c "drv")
+if [[ $ports_detected -lt $count_ports ]]
+then
+    echo "Error: Invalid port mask. Insufficient NICs bound."
+    exit 1
+fi
 
 verbosity_level="-v $verbosity"
 
