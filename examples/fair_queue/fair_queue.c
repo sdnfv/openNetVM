@@ -53,6 +53,7 @@
 #include <rte_common.h>
 #include <rte_cycles.h>
 #include <rte_ip.h>
+#include <rte_malloc.h>
 #include <rte_mbuf.h>
 
 #include "cJSON.h"
@@ -77,7 +78,6 @@
         "               %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64 "\n\n"
 
 static uint32_t destination;
-static uint16_t num_queues;
 static uint8_t print_stats_flag;
 
 /* For advanced rings scaling */
@@ -86,8 +86,6 @@ struct child_spawn_info {
         struct onvm_nf_init_cfg *child_cfg;
         struct onvm_nf *parent;
 };
-
-static struct fairqueue_t *fairqueue;
 
 void
 sig_handler(int sig);
@@ -119,10 +117,11 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname) {
+parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf) {
         int c, dst_flag = 0, num_queues_flag = 0;
-        print_stats_flag = 0; /* No per queue output by default */
-        num_queues = 2;       /* Default number of queueus */
+        struct fairqueue_t *fairqueue;
+        print_stats_flag = 0;    /* No per queue output by default */
+        uint16_t num_queues = 2; /* Default number of queueus */
 
         while ((c = getopt(argc, argv, "d:n:p")) != -1) {
                 switch (c) {
@@ -163,6 +162,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 RTE_LOG(INFO, APP, "Default number of queues (2) used. Specify a number using flag -n.\n");
         }
 
+        /* Setup fair queue */
+        setup_fairqueue(&fairqueue, num_queues);
+        nf->data = (void *)fairqueue;
+
         return optind;
 }
 
@@ -170,17 +173,20 @@ void *
 do_fq_stats_display(__attribute__((unused)) void *arg) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+        struct fairqueue_t *fair_queue;
+
+        fair_queue = (struct fairqueue_t *)arg;
 
         while (!rte_atomic16_read(&signal_exit_flag)) {
                 printf("%s%s", clr, topLeft);
                 printf("%s", FQ_STATS_MSG);
 
-                for (uint16_t i = 0; i < fairqueue->num_queues; i++) {
+                for (uint16_t i = 0; i < fair_queue->num_queues; i++) {
                         struct fairqueue_queue *fq;
                         uint64_t rx, rx_last, tx, tx_last;
                         uint64_t rx_drop, tx_drop, rx_drop_last, tx_drop_last;
 
-                        fq = fairqueue->fq[i];
+                        fq = fair_queue->fq[i];
 
                         rx = fq->rx;
                         rx_last = fq->rx_last;
@@ -225,9 +231,10 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct onvm_nf_msg *msg;
         struct rte_mempool *nf_msg_pool;
         struct rte_mbuf *pkt;
+        struct fairqueue_t *fair_queue;
 
         nf = nf_local_ctx->nf;
-
+        fair_queue = (struct fairqueue_t *)nf->data;
         onvm_nflib_nf_ready(nf);
 
         /* Get rings from nflib */
@@ -255,7 +262,7 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 /* Dequeue packet from the fair queue system */
                 pkt = NULL;
-                fairqueue_dequeue(fairqueue, &pkt);
+                fairqueue_dequeue(fair_queue, &pkt);
 
                 if (pkt == NULL) {
                         continue;
@@ -286,8 +293,10 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
         struct rte_mempool *nf_msg_pool;
+        struct fairqueue_t *fair_queue;
 
         nf = nf_local_ctx->nf;
+        fair_queue = (struct fairqueue_t *)nf->data;
         onvm_nflib_nf_ready(nf);
 
         /* Get rings from nflib */
@@ -299,7 +308,6 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         printf("Process %d handling packets using advanced rings\n", nf->instance_id);
         if (onvm_threading_core_affinitize(nf->thread_info.core) < 0)
                 rte_exit(EXIT_FAILURE, "Failed to affinitize to core %d\n", nf->thread_info.core);
-        printf("entering while loop\n");
 
         tx_batch_size = 0;
         while (!rte_atomic16_read(&signal_exit_flag)) {
@@ -318,7 +326,7 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 nb_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
 
                 for (i = 0; i < nb_pkts; i++) {
-                        if (fairqueue_enqueue(fairqueue, pkts[i]) == -1) {
+                        if (fairqueue_enqueue(fair_queue, pkts[i]) == -1) {
                                 meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
                                 meta->action = ONVM_NF_ACTION_DROP;
                                 meta->destination = destination;
@@ -352,6 +360,7 @@ start_child(void *arg) {
 
         /* Keep track of parent for proper termination */
         child_local_ctx->nf->thread_info.parent = parent->instance_id;
+        child_local_ctx->nf->data = parent->data;
 
         rx_loop(child_local_ctx);
         onvm_nflib_stop(child_local_ctx);
@@ -394,12 +403,14 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0) {
+        nf = nf_local_ctx->nf;
+
+        if (parse_app_args(argc, argv, progname, nf) < 0) {
+                destroy_fairqueue(nf->data);
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
-        nf = nf_local_ctx->nf;
         struct onvm_nf_init_cfg *child_cfg;
         child_cfg = onvm_nflib_init_nf_init_cfg(nf->tag);
 
@@ -412,23 +423,19 @@ main(int argc, char *argv[]) {
         /* Increment the children count so that stats are displayed and NF does proper cleanup */
         rte_atomic16_inc(&nf->thread_info.children_cnt);
 
-        /* Set up fair_queue */
-        setup_fairqueue(&fairqueue, num_queues);
-
         pthread_create(&rx_thread, NULL, start_child, (void *)child_data);
         if (print_stats_flag) {
-                pthread_create(&stats_thread, NULL, do_fq_stats_display, NULL);
+                pthread_create(&stats_thread, NULL, do_fq_stats_display, nf->data);
         }
 
         tx_loop(nf_local_ctx);
+        destroy_fairqueue(nf->data);
         onvm_nflib_stop(nf_local_ctx);
 
         pthread_join(rx_thread, NULL);
         if (print_stats_flag) {
                 pthread_join(stats_thread, NULL);
         }
-
-        destroy_fairqueue(fairqueue);
 
         printf("If we reach here, program is ending\n");
         return 0;
