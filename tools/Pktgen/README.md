@@ -3,9 +3,9 @@ Pktgen Installation
 
 #### Welcome to the installation guide for [Pktgen](https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html). Pktgen is a high performance traffic generator app built on [DPDK](http://dpdk.org/).
 
-This guide is assuming that you already have openNetVM installed on your machine. If not, please follow the ONVM [installation guide](https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md). 
+This guide assumes that you already have openNetVM installed on your machine. If you do not, please follow the [ONVM installation guide](https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md). 
 
-For further information regarding Pktgen configuration or set up, please visit the [ONVM Pktgen Wiki page](https://github.com/sdnfv/openNetVM/wiki/Packet-generation-using-Pktgen).
+For further information regarding Pktgen configuration or set up, please refer to the [ONVM Pktgen Wiki page](https://github.com/sdnfv/openNetVM/wiki/Packet-generation-using-Pktgen).
 
 ----------
 
@@ -19,7 +19,7 @@ For further information regarding Pktgen configuration or set up, please visit t
 `$grep -i huge /proc/meminfo`
 
 
-Ensure that you have enough Hugepage memory available by verifying that `HugePages_Free` is not equal to 0. If it is, you will likely need to reboot you machine, with `sudo reboot` to free Hugepages. After rebooting your computer, repeat this step. You may need to refer to Step 5 of ONVM install guide for guiance of creating Hugepage directory and reserving memory if issues are persistent.
+Ensure that you have enough hugepage memory available by verifying that `HugePages_Free` is not equal to 0. If it is, you will likely need to reboot you machine, with `sudo reboot` to free hugepages. After rebooting your computer, repeat this step. You may need to refer to the troubleshooting section of the ONVM install guide for if issues are persistent.
 ```
 AnonHugePages:      2048 kB
 HugePages_Total:    1024
@@ -34,7 +34,7 @@ Hugepagesize:       2048 kB
 
 Pktgen requires that at least one 10Gb NIC port is bound to the DPDK driver. 
 
-You can check the status of you NICs with `./dpdk/usertools/dpdk-devbind -s`.   
+You can check the status of you NICs with `./dpdk/usertools/dpdk-devbind.py -s`.   
 The desired NIC status should appear as such:  
 
 ```
@@ -48,7 +48,7 @@ Network devices using kernel driver
 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
 ```
 
-Please refer to the Troubleshooting section of the ONVM Install Guide for instructions on how to bind NIC cards to the DPDK driver. 
+Please refer to the troubleshooting section of the ONVM Install Guide for instructions on how to bind NIC cards to the DPDK driver. 
 
 
 2 Installation of Pktgen 
@@ -67,7 +67,7 @@ readline: `sudo apt-get install libreadline-dev`
 
 #### Install Lua
 
-To build and install the latest version, you will need to download the package before extracting and building.   
+To build and install the latest version, you will need to download, extract and build the package from [Lua](https://www.lua.org/download.html).   
 From your root directory:
 ```
 cd ~/
@@ -105,7 +105,7 @@ Updating configuration for pktgen, three servers are set up for observing the tr
 
 2.3 Configure Pktgen for openNetVM
 ------------- 
-1. Run the ONVM manager and retrive the MAC address being used.
+1. Run the ONVM manager and retrieve the MAC address being used.
 
 Pktgen script files are located in `openNetVM-Scripts`, found in the `tools/Pktgen` directory.   
 
