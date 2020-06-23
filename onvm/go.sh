@@ -235,7 +235,7 @@ do
     if (( nf_cores_trimmed & (1 << (core)) ))
     then
         echo "WARNING: Manager and NF cores overlap."
-        echo ""
+        echo "" 
         break
     fi
 done
