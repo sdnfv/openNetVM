@@ -166,24 +166,28 @@ fi
 if [ -z "$ports" ]
 then
     echo "Error: Port Mask not set. openNetVM requires that a Port Mask be set using -k <port mask> using a hexadecimal number (without 0x)"
-    exit 1
+    echo ""
+    usage
 # Check port mask
 elif [[ ! $ports =~ $port_check ]]
 then
     echo "Error: Invalid port mask. Check input and try again."
-    exit 1
+    echo ""
+    usage
 fi
 
 # Check for nf_cores flag
 if [ -z "$nf_cores" ]
 then
     echo "Error: NF Core Mask not set. openNetVM requires that a NF Core Mask be set using -n <nf mask> using a hexadecimal number (starting with 0x)"
-    exit 1
+    echo ""
+    usage
 # Check NF core mask
 elif [[ ! $nf_cores =~ $nf_check ]]
 then
     echo "Error: Invalid NF core mask. Check input and try again."
-    exit 1
+    echo ""
+    usage
 fi
 
 # Check for CPU core flag
@@ -196,7 +200,8 @@ then
 elif [[ ! $cpu =~ $core_check ]]
 then
     echo "Error: Invalid CPU cores. openNetVM accepts 3 or more cores. Check input and try again."
-    exit 1
+    echo ""
+    usage
 fi
 
 if [ -z "$nf_cores" ]
