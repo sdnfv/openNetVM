@@ -19,7 +19,7 @@ For further information regarding Pktgen configuration or set up, please refer t
 `$grep -i huge /proc/meminfo`
 
 
-Ensure that you have enough hugepage memory available by verifying that `HugePages_Free` is not equal to 0. If it is, you will likely need to reboot you machine, with `sudo reboot` to free hugepages. After rebooting your computer, repeat this step. You may need to refer to the troubleshooting section of the ONVM install guide for if issues are persistent.
+Ensure that you have enough hugepage memory available by verifying that `HugePages_Free` is not equal to 0. If it is, you will likely need to reboot your machine, with `sudo reboot` to free hugepages. After a reboot, repeat this step. You may need to refer to the troubleshooting section of the ONVM install guide for if issues are persistent.
 ```
 AnonHugePages:      2048 kB
 HugePages_Total:    1024
@@ -32,7 +32,7 @@ Hugepagesize:       2048 kB
 1.2 Check your current status of NIC binding and active status
 ------------- 
 
-Pktgen requires that at least one 10Gb NIC port is bound to the DPDK driver. 
+Pktgen requires that at least one 10Gb NIC port is bound to the DPDK driver at the time of use. 
 
 You can check the status of you NICs with `./dpdk/usertools/dpdk-devbind.py -s`.   
 The desired NIC status should appear as such:  
@@ -67,7 +67,7 @@ readline: `sudo apt-get install libreadline-dev`
 
 #### Install Lua
 
-To build and install the latest version, you will need to download, extract and build the package from [Lua](https://www.lua.org/download.html).   
+To install the latest version, you will need to download, extract and build the package from [Lua](https://www.lua.org/download.html).   
 From your root directory:
 ```
 cd ~/
