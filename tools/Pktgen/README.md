@@ -34,7 +34,7 @@ Hugepagesize:       2048 kB
 
 Pktgen requires that at least one 10Gb NIC port is bound to the DPDK driver at the time of use. 
 
-You can check the status of you NICs with `./dpdk/usertools/dpdk-devbind.py -s`.   
+You can check the status of your NICs with `./dpdk/usertools/dpdk-devbind.py -s`.   
 The desired NIC status should appear as such:  
 
 ```
