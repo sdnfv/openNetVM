@@ -61,13 +61,11 @@ Please refer to the Troubleshooting section of the ONVM Install Guide for instru
 `git submodule init`   
 `git submodule update`
 
-#### Install pcap dependency   
-`sudo apt-get install libpcap-dev`
+#### Install dependencies
+pcap: `sudo apt-get install libpcap-dev`   
+readline: `sudo apt-get install libreadline-dev` 
 
 #### Install Lua
-
-Ensure that you have development tools installed on your system. Otherwise run   
-`sudo apt-get install libreadline-dev` 
 
 To build and install the latest version, you will need to download the package before extracting and building.   
 From your root directory:
@@ -95,6 +93,7 @@ Enter working directory, and compile the application
 `$cd tools/Pktgen/pktgen-dpdk/`
 
 `$make`   
+
 ***Note:*** *Compilation of Pktgen may display errors regarding installation location of Lua. Please ignore.*
 
 Test pktgen by running:
@@ -106,10 +105,13 @@ Updating configuration for pktgen, three servers are set up for observing the tr
 
 2.3 Configure Pktgen for openNetVM
 ------------- 
+1. Run the ONVM manager and retrive the MAC address being used.
 
-Pktgen script files are located in `openNetVM-Scripts`, found in the Pktgen directory.
+Pktgen script files are located in `openNetVM-Scripts`, found in the `tools/Pktgen` directory.   
 
-1. Modify mac and optionally src/dest ip in the `pktgen-config.lua`.
+2. In the `pktgen-config.lua` file, modify the MAC address to match that being used by the ONVM manager. Optionally, you may want to modify the src/dest ip as well. 
+
+Further guidance on Pktgen configuration for ONVM can be found in [ONVM's Pktgen Wiki page](https://github.com/sdnfv/openNetVM/wiki/Packet-generation-using-Pktgen). 
 
 2.4 Run pktgen
 ------------- 
