@@ -62,7 +62,7 @@ fi
 
 # Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
 # The flag regex check ensures that the user is trying to input a flag, which is an indicator that they are using the new syntax
-if [[ ! $1 =~ $flag_check && ! ($core_match && $port_match && $nf_match) ]]
+if [[ ! $1 =~ $flag_check ]] && (! $core_match || ! $port_match || ! $nf_match)
 then
     if ( ! $core_match && ( $port_match || $nf_match ))
     then
@@ -82,6 +82,7 @@ then
         echo "Error: Invalid NF Core Mask. Proper syntax: $0 <cores> <port mask> <NF cores> [OPTIONS]"
         echo "Example: $0 0,1,2 1 0xF8 -s stdout"
         exit 1
+    # We should never get here, but just a catch-all situation
     else
         echo "Error: Invalid input."
         echo ""
