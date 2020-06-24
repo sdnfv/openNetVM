@@ -1628,7 +1628,7 @@ onvm_nflib_pool_dequeue(const char *nf_name, int dq_num, int refill) {
 
         if (rte_ring_count(nf_pool_ring) < pool_ctx->refill) {
                 total_refill = pool_ctx->refill - rte_ring_count(nf_pool_ring);
-                spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args, 
+                spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args,
                                                             nf_pool_ring, total_refill);
                 RTE_LOG(INFO, APP, "Refilled NF pool with %d NF's\n", spawned_nf_count);
         }
@@ -1659,7 +1659,7 @@ onvm_nflib_fork(const char *nf_name, void *nf_args) {
                 if (strcmp(nf_name, "simple_forward") == 0) {
                         args_sf = (struct simple_forward_args *) nf_args;
                         if (args_sf->optional_args.print_delay != NULL) {
-                                fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r", 
+                                fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r",
                                         args_sf->service_id, "--","-d", args_sf->destination_id, "--", "-p", args_sf->optional_args.print_delay, NULL);
                                 RTE_LOG(INFO, APP, "Execl error %d\n", fork_error);
                                 return NULL;
