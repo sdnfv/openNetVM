@@ -641,21 +641,6 @@ onvm_nflib_thread_main_loop(void *arg) {
         if (nf->function_table->setup != NULL)
                 nf->function_table->setup(nf_local_ctx);
 
-
-        if (strcmp(nf->tag, "speed_tester") == 0) {
-                struct simple_forward_args *args;
-                args = rte_malloc(NULL, sizeof(struct simple_forward_args), 0);
-                args->destination_id = "1";
-                args->service_id = "2";
-                args->optional_args.print_delay= "1000000";
-                RTE_LOG(INFO, APP, "Spawning 5 instances of simple_forward\n");
-
-                if (onvm_nflib_pool_enqueue("simple_forward", args, 10, 3) == 0) {
-                        RTE_LOG(INFO, APP, "Spawned 5 new simple_forward nf and added to ring\n");
-                }
-
-                onvm_nflib_pool_dequeue("simple_forward", 6, -1);
-        }
         start_time = rte_get_tsc_cycles();
         for (;rte_atomic16_read(&nf_local_ctx->keep_running) && rte_atomic16_read(&main_nf_local_ctx->keep_running);) {
                 /* Possibly sleep if in shared core mode, otherwise continue */
