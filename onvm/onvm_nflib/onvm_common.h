@@ -274,8 +274,6 @@ struct onvm_nf {
         char *tag;
         /* Pointer to NF defined state data */
         void *data;
-        /* Args struct that can be used for nf pool operations */
-        void *args;
 
         struct {
                 uint16_t core;
@@ -423,48 +421,6 @@ struct aes_decrypt_args {
         } optional_args;
 };
 
-struct aes_encrypt_args {
-        const char *service_id;
-        const char *destination_id;
-        struct {
-                const char *print_delay;
-        } optional_args;
-};
-
-struct arp_response_args {
-        const char *service_id;
-        const char *destination_id;
-        const char *source_ip_list;
-        struct {
-                const char *print_flag;
-        } optional_args;
-};
-
-struct basic_monitor_args {
-        const char *service_id;
-        struct {
-                const char *print_delay;
-        } optional_args;
-};
-
-struct bridge_args {
-        const char *service_id;
-        struct {
-                const char *print_delay;
-        } optional_args;
-};
-
-struct firewall_args {
-        const char *service_id;
-        const char *destination_id;
-        const char *rules_file;
-        struct {
-                const char *print_delay;
-                const char *debug_mode;
-        } optional_args;
-};
-
-
 /* define common names for structures shared between server and NF */
 #define MP_NF_RXQ_NAME "MProc_Client_%u_RX"
 #define MP_NF_TXQ_NAME "MProc_Client_%u_TX"
@@ -563,11 +519,6 @@ onvm_nf_is_valid(struct onvm_nf *nf) {
 static inline key_t
 get_rx_shmkey(unsigned id) {
         return KEY_PREFIX * 10 + id;
-}
-
-static inline key_t
-get_rx_shmpoolkey(unsigned id) {
-        return KEY_PREFIX * 11 + id;
 }
 
 /*

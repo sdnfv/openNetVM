@@ -414,6 +414,9 @@ init_port(uint8_t port_num) {
 static void
 init_shared_sem(void) {
         uint16_t i;
+        key_t key;
+        int shmid;
+        char *shm;
         sem_t *mutex;
         const char * sem_name;
 
@@ -433,21 +436,29 @@ init_shared_sem(void) {
                         exit(1);
                 }
                 nf_wakeup_infos[i].mutex = mutex;
+
+                key = get_rx_shmkey(i);
+                if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+                        fprintf(stderr, "can not create the shared memory segment for NF %d\n", i);
+                        exit(1);
+                }
+
+                if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+                        fprintf(stderr, "can not attach the shared segment to the server space for NF %d\n", i);
+                        exit(1);
+                }
+
+                nf_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
         }
 }
 
 static void
 init_pool_sem(void) {
         uint16_t i;
-        key_t key;
-        int shmid;
-        char *shm;
         sem_t *mutex;
         char * sem_name;
 
         nf_pool_wakeup_infos = rte_calloc("POOL_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
-
-
         for (i = 0; i < MAX_NFS; i++) {
                 sem_name = rte_malloc(NULL, sizeof(char) * 64, 0);
                 snprintf(sem_name, 64, "nf_pool_%d", i);
@@ -460,18 +471,6 @@ init_pool_sem(void) {
                         exit(1);
                 }
                 nf_pool_wakeup_infos[i].mutex = mutex;
-
-                key = get_rx_shmpoolkey(i);
-                if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
-                        fprintf(stderr, "can not create the shared memory segment for NF %d\n", i);
-                        exit(1);
-                }
-
-                if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
-                        fprintf(stderr, "can not attach the shared segment to the server space for NF %d\n", i);
-                        exit(1);
-                }
-                nf_pool_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
         }
 }
 

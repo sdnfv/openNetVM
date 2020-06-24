@@ -87,9 +87,6 @@ onvm_nf_ready(struct onvm_nf *nf);
 inline static int
 onvm_nf_stop(struct onvm_nf *nf);
 
-inline static int
-onvm_nf_get_next_instance_id(void);
-
 /*
  * Function to move a NF to another core.
  *
@@ -111,6 +108,13 @@ onvm_nf_relocate_nf(uint16_t nf, uint16_t new_core);
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm);
 
+/*
+ * Function that initializes an rte_ring
+ * 
+ * Input  : the address of an ring request struct
+ * Output : a return code based on initialization of the ring object
+ * 
+ */
 static void
 onvm_nf_init_single_ring(struct ring_request *ring_req);
 
@@ -534,9 +538,4 @@ onvm_nf_init_rings(struct onvm_nf *nf) {
 
         if (nf->msg_q == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", instance_id);
-}
-
-inline static int
-onvm_nf_get_next_instance_id(void) {
-        return next_instance_id;
 }

@@ -57,7 +57,7 @@ ports_detected=$("$RTE_SDK"/usertools/dpdk-devbind.py --status-dev net | sed '/N
 if [[ $ports_detected -lt $ports ]]
 then
     echo "Error: Invalid port mask. Insufficient NICs bound."
-   # exit 1
+    exit 1
 fi
 
 while getopts "a:r:d:s:t:l:p:z:cv" opt; do
@@ -102,7 +102,7 @@ fi
 sudo rm -rf /mnt/huge/rtemap_*
 # watch out for variable expansion
 # shellcheck disable=SC2086
-sudo "$SCRIPTPATH"/onvm_mgr/x86_64-native-linuxapp-gcc/onvm_mgr -l "$cpu" -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
+sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
 
 if [ "${stats}" = "-s web" ]
 then
