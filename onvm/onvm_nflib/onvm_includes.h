@@ -85,6 +85,7 @@
 #include <rte_ring.h>
 #include <rte_string_fns.h>
 #include <rte_tailq.h>
+#include <rte_jhash.h>
 
 /******************************Internal headers*******************************/
 

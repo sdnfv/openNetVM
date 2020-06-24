@@ -210,7 +210,7 @@ onvm_nf_check_status(void) {
                         case MSG_REQUEST_RING:
                                 ring_req = (struct ring_request *) msg->msg_data;
                                 onvm_nf_init_single_ring(ring_req);
-                                break;                      
+                                break;
                         case MSG_NF_STARTING:
                                 nf_init_cfg = (struct onvm_nf_init_cfg *)msg->msg_data;
                                 if (onvm_nf_start(nf_init_cfg) == 0) {
@@ -221,7 +221,7 @@ onvm_nf_check_status(void) {
                                 id_req = (struct id_request *) msg->msg_data;
                                 id_req->instance_id = next_instance_id;
                                 id_req->status = 0;
-                                break;     
+                                break;
                         case MSG_NF_READY:
                                 nf = (struct onvm_nf *)msg->msg_data;
                                 if (onvm_nf_ready(nf) == 0) {
@@ -476,7 +476,7 @@ onvm_nf_init_ft(struct ft_request *ft) {
         }
 }
 
-static void 
+static void
 onvm_nf_init_single_ring(struct ring_request *ring_req) {
         struct rte_ring *ring;
         ring = rte_ring_create(ring_req->name, ring_req->count, rte_socket_id(), RING_F_SC_DEQ);

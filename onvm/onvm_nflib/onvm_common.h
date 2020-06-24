@@ -396,7 +396,7 @@ struct ring_request {
         char *name;
         unsigned count;
         unsigned flags;
-        int status; 
+        int status;
 };
 
 struct id_request {
@@ -404,7 +404,6 @@ struct id_request {
         int status;
 };
 
-// If the values in optional args are not -1, use the optional args
 struct simple_forward_args {
         const char *service_id;
         const char *destination_id;

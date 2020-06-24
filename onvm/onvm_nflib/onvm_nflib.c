@@ -61,7 +61,6 @@
 #include "onvm_includes.h"
 #include "onvm_nflib.h"
 #include "onvm_sc_common.h"
-#include <rte_jhash.h>
 
 /**********************************Macros*************************************/
 
@@ -238,7 +237,7 @@ onvm_nflib_handle_signal(int signal);
  * Forks NF's and enqueues them into a given ring. The ring stores NF struct pointers corresponding
  * to its pool.
  */
-int 
+int
 onvm_nflib_fork_pool_nfs(const char *nf_name, void *nf_args, struct rte_ring *nf_pool_ring, int nf_count);
 
 /**
@@ -1567,7 +1566,7 @@ onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int eq_num, int refi
         return spawned_nf_count;
 }
 
-int 
+int
 onvm_nflib_fork_pool_nfs(const char *nf_name, void *nf_args, struct rte_ring *nf_pool_ring, int nf_count) {
         struct onvm_nf *spawned_nf;
         int i, count_sleep;
@@ -1629,7 +1628,8 @@ onvm_nflib_pool_dequeue(const char *nf_name, int dq_num, int refill) {
 
         if (rte_ring_count(nf_pool_ring) < pool_ctx->refill) {
                 total_refill = pool_ctx->refill - rte_ring_count(nf_pool_ring);
-                spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args, nf_pool_ring, total_refill);
+                spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args, 
+                                                            nf_pool_ring, total_refill);
                 RTE_LOG(INFO, APP, "Refilled NF pool with %d NF's\n", spawned_nf_count);
         }
 
@@ -1653,7 +1653,7 @@ onvm_nflib_fork(const char *nf_name, void *nf_args) {
                 return NULL;
         }
 
-        instance_id = onvm_nflib_request_current_instance_id();
+        instance_id = onvm_nflib_request_next_instance_id();
         binary_string = onvm_nflib_create_binary_exec_string(nf_name);
         if (fork() == 0) {
                 if (strcmp(nf_name, "simple_forward") == 0) {
@@ -1732,8 +1732,8 @@ onvm_nflib_create_binary_exec_string(const char *nf_name) {
         return binary_directory;
 }
 
-int 
-onvm_nflib_request_current_instance_id(void) {
+int
+onvm_nflib_request_next_instance_id(void) {
         struct id_request *get_next_id;
         struct onvm_nf_msg *request_message;
         int ret, instance_id;

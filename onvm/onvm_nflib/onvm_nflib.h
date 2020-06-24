@@ -275,11 +275,14 @@ onvm_nflib_request_lpm(struct lpm_request *req);
  * @param ring_request
  * @return response status 
  */
-int 
+int
 onvm_nflib_request_ring(struct ring_request *ring_req);
 
-int 
-onvm_nflib_request_current_instance_id(void);
+/**
+ * Requests the next available instance ID from the manager. Not MT safe. 
+ */ 
+int
+onvm_nflib_request_next_instance_id(void);
 
 /*
  * Initializes a flow_tables hashmap. Returns the status code, representing the success or failure of the initialization 
