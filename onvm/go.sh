@@ -36,7 +36,7 @@ function usage {
 core_check="^([0-8]+,){2}([0-8]+)(,[0-8]+)*$"
 port_check="^[0-9]+$"
 nf_check="^0x[0-9A-F]+$"
-flag_check="^-[ardstlpzcvmkn]$"
+flag_check="^-[a-z]$"
 # Check for argument matches
 [[ $1 =~ $core_check ]]
 if [[ -n ${BASH_REMATCH[0]} ]]
@@ -60,40 +60,40 @@ else
     nf_match=false
 fi
 
-if $core_match && $port_match && $nf_match
+# Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
+# The flag regex check ensures that the user is trying to input a flag, which is an indicator that they are using the new syntax
+if [[ ! $1 =~ $flag_check ]]
 then
+    if ( ! $core_match && ( $port_match || $nf_match ))
+    then
+        # This verifies that the user actually tried to input the cores but did so incorrectly
+        echo "Error: Invalid Manager Cores. Proper syntax: $0 <cores> <port mask> <NF cores> [OPTIONS]"
+        echo "Example: $0 0,1,2 1 0xF8 -s stdout"
+        exit 1
+    elif ( ! $port_match && ( $core_match || $nf_match ))
+    then
+        # This verifies that the user actually tried to input the port mask but did so incorrectly
+        echo "Error: Invalid Port Mask. Proper syntax: $0 <cores> <port mask> <NF cores> [OPTIONS]"
+        echo "Example: $0 0,1,2 1 0xF8 -s stdout"
+        exit 1
+    elif ( ! $nf_match && ($core_match || $port_match ))
+    then
+        # This verifies that the user actually tried to input the NF core mask but did so incorrectly
+        echo "Error: Invalid NF Core Mask. Proper syntax: $0 <cores> <port mask> <NF cores> [OPTIONS]"
+        echo "Example: $0 0,1,2 1 0xF8 -s stdout"
+        exit 1
+    else
+        echo "Error: Invalid input."
+        echo ""
+        usage
+    fi
+elif $core_match && $port_match && $nf_match
+then
+    script_name=$0
     cpu=$1
     ports=$2
     nf_cores=$3
     shift 3
-# Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
-elif [[ ! $1 =~ $flag_check ]]
-then
-    if ! $core_match
-    then
-        # This verifies that the user actually tried to input the cores but did so incorrectly
-        if $port_match || $nf_match
-        then
-            echo "Error: Invalid Manager Cores. Check input and try again."
-            exit 1
-        fi
-    elif ! $port_match
-    then
-        # This verifies that the user actually tried to input the port mask but did so incorrectly
-        if $core_match || $nf_match
-        then
-            echo "Error: Invalid Port Mask. Check input and try again."
-            exit 1
-        fi
-    elif ! $nf_match
-    then
-        # This verifies that the user actually tried to input the NF core mask but did so incorrectly
-        if $core_match || $port_match
-        then
-            echo "Error: Invalid NF Core Mask. Check input and try again."
-            exit 1
-        fi
-    fi
 fi
 
 SCRIPT=$(readlink -f "$0")
@@ -122,28 +122,31 @@ while getopts "a:r:d:s:t:l:p:z:cvm:k:n:" opt; do
         c) shared_cpu_flag="-c";;
         v) verbosity=$((verbosity+1));;
         m)
+            # User is trying to set CPU cores but has already done so using legacy syntax
             if [[ -n $cpu ]]
             then
-                echo "Error: Cannot use manual manager core flag with legacy syntax. Correct syntax: "
-                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                echo "Error: Cannot use manual manager core flag with legacy syntax. Proper syntax: $script_name <cores> <port mask> <NF cores> [OPTIONS]"
+                echo "Example: $script_name 0,1,2 1 0xF8 -s stdout"
                 exit 1
             else
                 cpu=$OPTARG
             fi;;
         k)
+            # User is trying to set port mask but has already done so using legacy syntax
             if [[ -n $ports ]]
             then
-                echo "Error: Cannot use manual port mask flag with legacy syntax. Correct syntax: "
-                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                echo "Error: Cannot use manual port mask flag with legacy syntax. Proper syntax: $script_name <cores> <port mask> <NF cores> [OPTIONS]"
+                echo "Example: $script_name 0,1,2 1 0xF8 -s stdout"
                 exit 1
             else
                 ports=$OPTARG
             fi;; 
         n) 
+            # User is trying to set NF core mask but has already done so using legacy syntax
             if [[ -n $nf_cores ]]
             then
-                echo "Error: Cannot use manual NF core mask flag with legacy syntax. Correct syntax: "
-                echo "  ./go.sh -k <port mask> -n <NF cores> [OPTIONS]"
+                echo "Error: Cannot use manual NF core mask flag with legacy syntax. Proper syntax: $script_name <cores> <port mask> <NF cores> [OPTIONS]"
+                echo "Example: $script_name 0,1,2 1 0xF8 -s stdout"
                 exit 1
             else
                 nf_cores=$OPTARG
