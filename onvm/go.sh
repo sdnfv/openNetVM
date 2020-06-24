@@ -62,7 +62,7 @@ fi
 
 # Make sure someone isn't inputting the cores incorrectly and they are using legacy syntax
 # The flag regex check ensures that the user is trying to input a flag, which is an indicator that they are using the new syntax
-if [[ ! $1 =~ $flag_check ]]
+if [[ ! $1 =~ $flag_check && ! ($core_match && $port_match && $nf_match) ]]
 then
     if ( ! $core_match && ( $port_match || $nf_match ))
     then
