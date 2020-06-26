@@ -74,6 +74,39 @@ then
   exit 1
 fi
 
+# start Grafana server at http://localhost:3000
+echo "Starting Grafana server at http://localhost:3000"
+is_grafana_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":3000")
+if [[ "$is_grafana_port_in_use" != "" ]]
+then
+  echo "[ERROR] Grafana port 3000 is in use"
+  echo "$is_grafana_port_in_use"
+  echo "[ERROR] Grafana server failed to start"
+  exit 1
+fi
+
+# start prometheus server at http://localhost:9090
+echo "Starting Prometheus server at http://localhost:9090"
+is_prometheus_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9090")
+if [[ "$is_prometheus_port_in_use" != "" ]]
+then
+  echo "[ERROR] Prometheus port 9090 is in use"
+  echo "$is_prometheus_port_in_use"
+  echo "[ERROR] Prometheus server failed to start"
+  exit 1
+fi
+
+# start node exporter server at http://localhost:9100
+echo "Starting node exporter server at http://localhost:9100"
+is_node_exporter_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9090")
+if [[ "$is_node_exporter_port_in_use" != "" ]]
+then
+  echo "[ERROR] Node exporter port 9100 is in use"
+  echo "$is_prometheus_port_in_use"
+  echo "[ERROR] Node exporter server failed to start"
+  exit 1
+fi
+
 cd "$ONVM_HOME"/onvm_web || usage
 nohup python cors_server.py 8000 &
 export ONVM_WEB_PID=$!
@@ -81,3 +114,14 @@ export ONVM_WEB_PID=$!
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!
+
+cd "$ONVM_HOME"/onvm_web/grafana || usage
+nohup sudo ./bin/grafana-server web &
+export GRAFANA_PID=$!
+
+nohup sudo docker run -p 9090:9090 -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
+export PROMETHEUS_PID=$!
+
+cd "$ONVM_HOME"/onvm_web/node_exporter || usage
+nohup node_exporter &
+export NODE_PID=$!

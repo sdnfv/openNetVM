@@ -1,0 +1,26 @@
+{
+  "type": "datasource",
+  "name": "MySQL",
+  "id": "mysql",
+  "category": "sql",
+
+  "info": {
+    "description": "Data source for MySQL databases",
+    "author": {
+      "name": "Grafana Labs",
+      "url": "https://grafana.com"
+    },
+    "logos": {
+      "small": "img/mysql_logo.svg",
+      "large": "img/mysql_logo.svg"
+    }
+  },
+
+  "alerting": true,
+  "annotations": true,
+  "metrics": true,
+
+  "queryOptions": {
+    "minInterval": true
+  }
+}

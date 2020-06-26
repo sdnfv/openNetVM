@@ -1,0 +1,18 @@
+{
+  "type": "transform",
+  "name": "GEL Data",
+  "id": "gel",
+  "executable": "gel",
+  "backend": true,
+  "info": {
+    "version": "0.6.0",
+    "author": {
+      "name": "Grafana Project",
+      "url": "https://grafana.com"
+    },
+    "logos": {
+      "small": "img/pipeline.svg",
+      "large": "img/pipeline.svg"
+    }
+  }
+}

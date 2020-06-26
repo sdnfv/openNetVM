@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: "prometheus"
+    orgId: 1
+    folder: ""
+    folderUid: ""
+    disableDeletion: true
+    type: file
+    options:
+      path: ${ONVM_HOME}/onvm_web/grafana/conf/provisioning/dashboards/grafana_dashboards
