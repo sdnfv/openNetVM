@@ -56,6 +56,15 @@ cd onvm_web
 
 This would only start the web consle and display the web status, it would not start the onvm manager!
 
+## Install Guide
+
+Because Prometheus is running on the official docker image, please make sure you have `docker.io` installed on your machine.
+If not, please run following command to install it first, otherwise prometheus server may not be able to properly started.
+
+```sh
+sudo apt install docker.io
+```
+
 ## Design and Implementation
 
 Within OpenNetVM's [main.c file][onvm_main_c], the master thread initializes the system, starts other threads, then runs the stats in an infinite loop until the user kills or interrupts the process. The stats thread sleeps for a set amount of time, then updates the statistics. When run in web mode, it does this by outputting stats about ports and NFs into `onvm_json_stats.json` and outputting an event list into `onvm_json_events.json`, truncating the existing version of the file and overwriting with each iteration of the loop.

@@ -30,4 +30,4 @@ scrape_configs:
     # - node1.mingyuma-qv74156.gwcloudlab-pg0.wisc.cloudlab.us:9100
     # to test this on nimnode, use nimnode URL
     # for normal usage, use localhost
-    - localhost:9100
+    - ${HOSTIP}:9100
