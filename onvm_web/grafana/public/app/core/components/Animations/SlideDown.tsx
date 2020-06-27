@@ -1,5 +1,5 @@
-import React, { CSSProperties, FC } from "react";
-import Transition from "react-transition-group/Transition";
+import React, { CSSProperties, FC } from 'react';
+import Transition from 'react-transition-group/Transition';
 
 interface Style {
   transition?: string;
@@ -8,12 +8,12 @@ interface Style {
 
 // When animating using max-height we need to use a static value.
 // If this is not enough, pass in <SlideDown maxHeight="....
-const defaultMaxHeight = "200px";
+const defaultMaxHeight = '200px';
 const defaultDuration = 200;
 
 export const defaultStyle: Style = {
   transition: `max-height ${defaultDuration}ms ease-in-out`,
-  overflow: "hidden"
+  overflow: 'hidden',
 };
 
 export interface Props {
@@ -23,20 +23,15 @@ export interface Props {
   style?: CSSProperties;
 }
 
-export const SlideDown: FC<Props> = ({
-  children,
-  in: inProp,
-  maxHeight = defaultMaxHeight,
-  style = defaultStyle
-}) => {
+export const SlideDown: FC<Props> = ({ children, in: inProp, maxHeight = defaultMaxHeight, style = defaultStyle }) => {
   // There are 4 main states a Transition can be in:
   // ENTERING, ENTERED, EXITING, EXITED
   // https://reactcommunity.or[g/react-transition-group/
   const transitionStyles: { [str: string]: CSSProperties } = {
     exited: { maxHeight: 0 },
     entering: { maxHeight: maxHeight },
-    entered: { maxHeight: "unset", overflow: "visible" },
-    exiting: { maxHeight: 0 }
+    entered: { maxHeight: 'unset', overflow: 'visible' },
+    exiting: { maxHeight: 0 },
   };
 
   return (
@@ -45,7 +40,7 @@ export const SlideDown: FC<Props> = ({
         <div
           style={{
             ...style,
-            ...transitionStyles[state]
+            ...transitionStyles[state],
           }}
         >
           {children}

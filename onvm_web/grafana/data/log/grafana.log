@@ -820,3 +820,162 @@ t=2020-06-22T14:19:00-0500 lvl=warn msg="Failed to create ProvisionedExternalId"
 t=2020-06-22T14:19:23-0500 lvl=warn msg="Failed to create ProvisionedExternalId" logger=http.server err="Rel: can't make /users/mingyuma/openNetVM/onvm_web/grafana-7.0.3/conf/provisioning/dashboards/prometheus.json relative to "
 t=2020-06-22T21:05:16-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: terminated"
 t=2020-06-22T21:05:16-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T08:33:53-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T08:33:53-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T08:33:53-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T08:33:53-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T08:33:53-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T08:33:53-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T08:33:53-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T08:33:53-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T08:33:53-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T08:33:53-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T08:33:53-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T08:33:53-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T08:33:53-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T08:33:53-0500 lvl=info msg="External plugins directory created" logger=plugins directory=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T08:33:53-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T08:33:53-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T08:33:53-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T08:33:53-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T08:33:55-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T08:33:55-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:30:30-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T15:30:30-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:30:30-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:30:30-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:30:30-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:30:30-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:30:30-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:30:30-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:30:30-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:30:30-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:30:30-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:30:30-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:30:30-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:30:30-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T15:30:31-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:30:31-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:30:31-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/ status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:8080/
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/grafana.dark.d3489276abe5fda2bd26.css status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/runtime.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/angular~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/moment~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:17-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/vendors~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/grafana.dark.d3489276abe5fda2bd26.css status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/runtime.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/angular~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/moment~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:31:24-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/vendors~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:07-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: terminated"
+t=2020-06-27T15:34:07-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:34:36-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T15:34:36-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:34:36-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:34:36-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:34:36-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:34:36-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:34:36-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:34:36-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:34:36-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:34:36-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:34:36-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:34:36-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:34:36-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:34:36-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T15:34:36-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:34:36-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:34:36-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/grafana.dark.d3489276abe5fda2bd26.css status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/runtime.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/angular~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/vendors~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:34:45-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/moment~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/ status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/grafana.dark.d3489276abe5fda2bd26.css status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/runtime.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/angular~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/moment~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:35:10-0500 lvl=info msg="Request Completed" logger=context userId=0 orgId=0 uname= method=GET path=/public/build/vendors~app.d3489276abe5fda2bd26.js status=302 remote_addr=128.164.227.83 time_ms=0 size=29 referer=http://node1.mingyuma-qv74833.gwcloudlab-pg0.wisc.cloudlab.us:3000/login
+t=2020-06-27T15:36:42-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T15:36:42-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:41:19-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T15:41:19-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:41:19-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:41:19-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:41:19-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:41:19-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:41:19-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:41:19-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:41:19-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:41:19-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:41:19-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:41:19-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:41:19-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:41:19-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T15:41:20-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:41:20-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:41:20-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:41:22-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T15:41:22-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:41:52-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T15:41:52-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:41:52-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:41:52-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:41:52-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:41:52-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:41:52-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:41:52-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:41:52-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:41:52-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:41:52-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:41:52-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:41:52-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:41:52-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T15:41:52-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:41:52-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:41:52-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:41:54-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T15:41:54-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:42:46-0500 lvl=eror msg="Failed to detect generated javascript files in public/build" logger=settings
+t=2020-06-27T15:42:46-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:42:46-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:42:46-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:42:46-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:42:46-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:42:46-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:42:46-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:42:46-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:42:46-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:42:46-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:42:46-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:42:46-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:42:46-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/module.js
+t=2020-06-27T15:42:46-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:42:46-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:42:46-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:42:50-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T15:42:50-0500 lvl=info msg="Stopped Stream Manager"
+t=2020-06-27T15:48:12-0500 lvl=info msg="Starting Grafana" logger=server version=7.0.3 commit=00ee734baf branch=HEAD compiled=2020-06-03T10:19:31-0500
+t=2020-06-27T15:48:12-0500 lvl=info msg="Config loaded from" logger=settings file=/users/mingyuma/openNetVM/onvm_web/grafana/conf/defaults.ini
+t=2020-06-27T15:48:12-0500 lvl=info msg="Path Home" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana
+t=2020-06-27T15:48:12-0500 lvl=info msg="Path Data" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data
+t=2020-06-27T15:48:12-0500 lvl=info msg="Path Logs" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/log
+t=2020-06-27T15:48:12-0500 lvl=info msg="Path Plugins" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/data/plugins
+t=2020-06-27T15:48:12-0500 lvl=info msg="Path Provisioning" logger=settings path=/users/mingyuma/openNetVM/onvm_web/grafana/conf/provisioning
+t=2020-06-27T15:48:12-0500 lvl=info msg="App mode production" logger=settings
+t=2020-06-27T15:48:12-0500 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
+t=2020-06-27T15:48:12-0500 lvl=info msg="Starting DB migration" logger=migrator
+t=2020-06-27T15:48:12-0500 lvl=info msg="Starting plugin search" logger=plugins
+t=2020-06-27T15:48:12-0500 lvl=info msg="Registering plugin" logger=plugins name="Direct Input"
+t=2020-06-27T15:48:12-0500 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=/users/mingyuma/openNetVM/onvm_web/grafana/plugins-bundled/internal/input-datasource/README.md
+t=2020-06-27T15:48:12-0500 lvl=info msg="deleted datasource based on configuration" logger=provisioning.datasources name=Prometheus
+t=2020-06-27T15:48:12-0500 lvl=info msg="inserting datasource from configuration " logger=provisioning.datasources name=Prometheus uid=
+t=2020-06-27T15:48:12-0500 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3000 protocol=http subUrl= socket=
+t=2020-06-27T15:48:24-0500 lvl=info msg="Shutdown started" logger=server reason="System signal: interrupt"
+t=2020-06-27T15:48:24-0500 lvl=info msg="Stopped Stream Manager"

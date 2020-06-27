@@ -1,5 +1,5 @@
-import React, { FC, CSSProperties } from "react";
-import Transition, { ExitHandler } from "react-transition-group/Transition";
+import React, { FC, CSSProperties } from 'react';
+import Transition, { ExitHandler } from 'react-transition-group/Transition';
 
 interface Props {
   duration: number;
@@ -12,14 +12,14 @@ interface Props {
 export const FadeIn: FC<Props> = props => {
   const defaultStyle: CSSProperties = {
     transition: `opacity ${props.duration}ms linear`,
-    opacity: 0
+    opacity: 0,
   };
 
   const transitionStyles: { [str: string]: CSSProperties } = {
-    exited: { opacity: 0, display: "none" },
+    exited: { opacity: 0, display: 'none' },
     entering: { opacity: 0 },
     entered: { opacity: 1 },
-    exiting: { opacity: 0 }
+    exiting: { opacity: 0 },
   };
 
   return (
@@ -33,7 +33,7 @@ export const FadeIn: FC<Props> = props => {
         <div
           style={{
             ...defaultStyle,
-            ...transitionStyles[state]
+            ...transitionStyles[state],
           }}
         >
           {props.children}

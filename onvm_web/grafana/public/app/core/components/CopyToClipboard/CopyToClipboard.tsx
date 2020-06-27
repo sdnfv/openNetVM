@@ -1,5 +1,5 @@
-﻿import React, { PureComponent, ReactNode } from "react";
-import ClipboardJS from "clipboard";
+﻿import React, { PureComponent, ReactNode } from 'react';
+import ClipboardJS from 'clipboard';
 
 interface Props {
   text: () => string;
@@ -34,20 +34,20 @@ export class CopyToClipboard extends PureComponent<Props> {
     const { text, onSuccess, onError } = this.props;
 
     this.clipboardjs = new ClipboardJS(this.myRef.current, {
-      text: text
+      text: text,
     });
 
     if (onSuccess) {
-      this.clipboardjs.on("success", evt => {
+      this.clipboardjs.on('success', evt => {
         evt.clearSelection();
         onSuccess(evt);
       });
     }
 
     if (onError) {
-      this.clipboardjs.on("error", evt => {
-        console.error("Action:", evt.action);
-        console.error("Trigger:", evt.trigger);
+      this.clipboardjs.on('error', evt => {
+        console.error('Action:', evt.action);
+        console.error('Trigger:', evt.trigger);
         onError(evt);
       });
     }
@@ -60,24 +60,17 @@ export class CopyToClipboard extends PureComponent<Props> {
   }
 
   getElementType = () => {
-    return this.props.elType || "button";
+    return this.props.elType || 'button';
   };
 
   render() {
-    const {
-      elType,
-      text,
-      children,
-      onError,
-      onSuccess,
-      ...restProps
-    } = this.props;
+    const { elType, text, children, onError, onSuccess, ...restProps } = this.props;
 
     return React.createElement(
       this.getElementType(),
       {
         ref: this.myRef,
-        ...restProps
+        ...restProps,
       },
       this.props.children
     );

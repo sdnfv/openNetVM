@@ -1,9 +1,9 @@
-import React, { ButtonHTMLAttributes } from "react";
-import { IconButton } from "@grafana/ui";
-import { selectors } from "@grafana/e2e-selectors";
+import React, { ButtonHTMLAttributes } from 'react';
+import { IconButton } from '@grafana/ui';
+import { selectors } from '@grafana/e2e-selectors';
 
 export interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
-  surface: "dashboard" | "panel" | "header";
+  surface: 'dashboard' | 'panel' | 'header';
 }
 
 export const BackButton: React.FC<Props> = ({ surface, onClick }) => {
@@ -20,4 +20,4 @@ export const BackButton: React.FC<Props> = ({ surface, onClick }) => {
   );
 };
 
-BackButton.displayName = "BackButton";
+BackButton.displayName = 'BackButton';

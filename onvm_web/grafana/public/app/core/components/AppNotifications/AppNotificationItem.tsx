@@ -1,6 +1,6 @@
-import React, { Component } from "react";
-import { AppNotification } from "app/types";
-import { Alert } from "@grafana/ui";
+import React, { Component } from 'react';
+import { AppNotification } from 'app/types';
+import { Alert } from '@grafana/ui';
 
 interface Props {
   appNotification: AppNotification;

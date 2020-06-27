@@ -1,4 +1,4 @@
-import { Emitter } from "./utils/emitter";
+import { Emitter } from './utils/emitter';
 
 export const appEvents = new Emitter();
 

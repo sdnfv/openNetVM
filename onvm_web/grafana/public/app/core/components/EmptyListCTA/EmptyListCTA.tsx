@@ -1,12 +1,6 @@
-import React, { MouseEvent, useContext } from "react";
-import {
-  CallToActionCard,
-  LinkButton,
-  ThemeContext,
-  Icon,
-  IconName
-} from "@grafana/ui";
-import { css } from "emotion";
+import React, { MouseEvent, useContext } from 'react';
+import { CallToActionCard, LinkButton, ThemeContext, Icon, IconName } from '@grafana/ui';
+import { css } from 'emotion';
 
 export interface Props {
   title: string;
@@ -42,7 +36,7 @@ const EmptyListCTA: React.FunctionComponent<Props> = ({
   proTipLinkTitle,
   proTipTarget,
   infoBox,
-  infoBoxTitle
+  infoBoxTitle,
 }) => {
   const theme = useContext(ThemeContext);
 
@@ -58,18 +52,15 @@ const EmptyListCTA: React.FunctionComponent<Props> = ({
             </a>
           </span>
         ) : (
-          ""
+          ''
         )}
         {infoBox ? (
-          <div
-            key="infoBoxHtml"
-            className={`grafana-info-box ${infoBoxStyles}`}
-          >
+          <div key="infoBoxHtml" className={`grafana-info-box ${infoBoxStyles}`}>
             {infoBoxTitle && <h5>{infoBoxTitle}</h5>}
             <div dangerouslySetInnerHTML={infoBox} />
           </div>
         ) : (
-          ""
+          ''
         )}
       </>
     );
@@ -79,7 +70,7 @@ const EmptyListCTA: React.FunctionComponent<Props> = ({
     ? css`
         margin-bottom: 20px;
       `
-    : "";
+    : '';
 
   const ctaElement = (
     <LinkButton
