@@ -100,6 +100,7 @@ then
   echo "[ERROR] Prometheus server failed to start"
   exit 1
 elif [[ "$is_docker_installed" == "" ]]
+then
   echo "[ERROR] docker.io is not installed on this machine"
   echo "[ERROR] Prometheus server failed to start"
   exit 1
