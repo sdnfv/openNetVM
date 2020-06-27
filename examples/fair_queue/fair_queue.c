@@ -34,8 +34,8 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * fair_queue.c - Categorize pkts based on 5-tuple (src/dst IP, src/dst
- *      port, protocol) header values into separate queues and dequeue
+ * fair_queue.c - Simulates fair queueing by categorizing packets based 
+ *      on IPv4 header values into separate queues and dequeue
  *      packets in a round robin fashion.
  ********************************************************************/
 
