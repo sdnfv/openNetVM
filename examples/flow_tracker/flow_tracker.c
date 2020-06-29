@@ -65,7 +65,7 @@
 
 /*Struct that holds all NF state information */
 struct state_info {
-        struct onvm_ft *ft;
+        struct onvm_ft *em_tbl;
         uint16_t destination;
         uint16_t print_delay;
         uint16_t num_stored;
@@ -79,8 +79,6 @@ struct flow_stats {
         uint64_t last_pkt_cycles;
         int is_active;
 };
-
-struct state_info *state_info;
 
 /*
  * Prints application arguments
@@ -259,7 +257,7 @@ table_lookup_entry(struct rte_mbuf *pkt, struct state_info *state_info) {
                 return -1;
         }
 
-        int ret = onvm_ft_fill_key_symmetric(&key, pkt);
+        int ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0)
                 return -1;
 
