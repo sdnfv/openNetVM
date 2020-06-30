@@ -37,5 +37,5 @@
 FROM grafana/grafana
 COPY ./provisioning /etc/grafana/provisioning
 
-RUN export GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
-    export HOSTIP=${HOSTIP}
+ENV GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+ENV HOSTIP=${HOSTIP}
