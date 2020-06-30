@@ -37,6 +37,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# check if docker is installed
+if [$(command -v docker) == ""]
+then
+  echo "docker is not installed, please install docker with"
+  echo "sudo apt install docker.io"
+  exit 1
+fi
+
 function usage {
     echo "$0 [-p WEB-PORT-NUMBER]"
     exit 1
@@ -89,6 +97,12 @@ then
   exit 1
 fi
 
+# check if Grafana docker image has been build
+if [[$(sudo docker image | grep modified_grafana) == ""]]
+then
+  sudo docker build -t grafana/modified_grafana ../
+fi
+
 # start prometheus server at http://localhost:9090
 echo "Starting Prometheus server at http://localhost:9090"
 is_docker_installed=$(sudo apt list | grep docker.io)
@@ -125,13 +139,19 @@ cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!
 
-cd "$ONVM_HOME"/onvm_web/grafana/bin || usage
-sudo chmod a+x grafana-server
-nohup sudo ./grafana-server web &
-export GRAFANA_PID=$!
+if [$(sudo docker ps -a | grep grafana) == ""]
+then
+  nohup sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
+else
+  nohup sudo docker start grafana
+fi
 
-nohup sudo docker run -p 9090:9090 -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
-export PROMETHEUS_PID=$!
+if [$(sudo docker ps -a | grep prometheus) == ""]
+then
+  nohup sudo docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
+else  
+  nohup sudo docker start prometheus
+fi
 
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage
 sudo chmod a+x node_exporter

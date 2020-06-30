@@ -35,4 +35,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 FROM grafana/grafana
-COPY ./grafana/conf/provisioning /etc/grafana/provisioning
+COPY ./provisioning /etc/grafana/provisioning
+
+RUN export GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+    export HOSTIP=${HOSTIP}
