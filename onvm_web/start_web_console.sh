@@ -40,7 +40,7 @@
 # check if docker is installed
 if [$(command -v docker) == ""]
 then
-  echo "docker is not installed, please install docker with"
+  echo "[ERROR] Docker is not installed, please install docker with"
   echo "sudo apt install docker.io"
   exit 1
 fi
@@ -105,17 +105,11 @@ fi
 
 # start prometheus server at http://localhost:9090
 echo "Starting Prometheus server at http://localhost:9090"
-is_docker_installed=$(sudo apt list | grep docker.io)
 is_prometheus_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9090")
 if [[ "$is_prometheus_port_in_use" != "" ]]
 then
   echo "[ERROR] Prometheus port 9090 is in use"
   echo "$is_prometheus_port_in_use"
-  echo "[ERROR] Prometheus server failed to start"
-  exit 1
-elif [[ "$is_docker_installed" == "" ]]
-then
-  echo "[ERROR] docker.io is not installed on this machine"
   echo "[ERROR] Prometheus server failed to start"
   exit 1
 fi
