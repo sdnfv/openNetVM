@@ -53,20 +53,15 @@
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
 #define NF_TAG "l2switch"
 
-/* Number of package between each print. */
-static uint32_t print_delay = 1000000;
-
-/* List of enabled ports. */
-static uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
-
-/* Ethernet addresses of ports. */
-static struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+/* Shared data structure containing host port info. */
+extern struct port_info *ports;
 
 /* Per-port statistics struct. */
 struct l2fwd_port_statistics {
@@ -74,16 +69,21 @@ struct l2fwd_port_statistics {
 	uint64_t rx;
 	uint64_t dropped;
 } __rte_cache_aligned;
-struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
-/* Shared data structure containing host port info. */
-extern struct port_info *ports;
-
-/* MAC updating enabled by default */
-static int mac_updating = 1;
-
-/* Print mac address disabled by default */
-static int print_mac = 0;
+/*Struct that holds all NF state information */
+struct state_info {
+       /* Number of package between each print. */
+       uint32_t print_delay;
+       /* List of enabled ports. */
+       uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+       /* Ethernet addresses of ports. */
+       struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+       struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
+       /* MAC updating enabled by default */
+       int mac_updating;
+       /* Print mac address disabled by default */
+       int print_mac;
+};
 
 /*
  * Print a usage message
@@ -103,21 +103,21 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname) {
+parse_app_args(int argc, char *argv[], const char *progname, struct state_info *stats) {
         int c;
 
         while ((c = getopt(argc, argv, "p:n:m")) != -1) {
                 switch (c) {
                         case 'p':
-                                print_delay = strtoul(optarg, NULL, 10);
+                                stats->print_delay = strtoul(optarg, NULL, 10);
                                 break;
                         case 'n':
                                 /* Disable MAC updating. */
-                                mac_updating = 0;
+                                stats->mac_updating = 0;
                                 break;
                         case 'm':
                                 /* Enable printing of MAC address.*/
-                                print_mac = 1;
+                                stats->print_mac = 1;
                                 break;
                         case '?':
                                 usage(progname);
@@ -144,7 +144,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 
 static void
-print_stats(void) {
+print_stats(struct state_info *stats) {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	unsigned i;
 
@@ -166,12 +166,12 @@ print_stats(void) {
 			   "\nPackets received: %20"PRIu64
 			   "\nForwarding to port: %u",
 			   ports->id[i],
-			   port_statistics[ports->id[i]].tx,
-			   port_statistics[ports->id[i]].rx,
-			   l2fwd_dst_ports[ports->id[i]]);
+			   stats->port_statistics[ports->id[i]].tx,
+			   stats->port_statistics[ports->id[i]].rx,
+			   stats->l2fwd_dst_ports[ports->id[i]]);
 
-		total_packets_tx += port_statistics[ports->id[i]].tx;
-		total_packets_rx += port_statistics[ports->id[i]].rx;
+		total_packets_tx += stats->port_statistics[ports->id[i]].tx;
+		total_packets_rx += stats->port_statistics[ports->id[i]].rx;
 	}
 	printf("\nAggregate statistics ==============================="
 		   "\nTotal packets sent: %18"PRIu64
@@ -185,25 +185,25 @@ print_stats(void) {
  * It saves the ethernet addresses in the struct ether_addr array.
  */
 static void
-l2fwd_initialize_ports(void) {
+l2fwd_initialize_ports(struct state_info *stats) {
         uint16_t i;
         for (i = 0; i < ports->num_ports; i++) {
-                rte_eth_macaddr_get(ports->id[i], &l2fwd_ports_eth_addr[ports->id[i]]);
+                rte_eth_macaddr_get(ports->id[i], &stats->l2fwd_ports_eth_addr[ports->id[i]]);
                 printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
                         ports->id[i],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[0],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[1],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[2],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[3],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[4],
-                        l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[5]);
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[0],
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[1],
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[2],
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[3],
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[4],
+                        stats->l2fwd_ports_eth_addr[ports->id[i]].addr_bytes[5]);
         }
 }
 
 /* The source MAC address is replaced by the TX_PORT MAC address */
 /* The destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID */
 static void
-l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid) {
+l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid, struct state_info *stats) {
         struct ether_hdr *eth;
         void *tmp;
         eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
@@ -213,7 +213,7 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid) {
         *((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
         ether_addr_copy(tmp, &eth->s_addr);
 
-        if (print_mac) {
+        if (stats->print_mac) {
                 printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
                         eth->s_addr.addr_bytes[0],
                         eth->s_addr.addr_bytes[1],
@@ -229,14 +229,14 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid) {
  * ports 1 and 2 forward into each other, and ports 3 and 4 forward into each other.
 */
 static void
-l2fwd_set_dest_ports() {
+l2fwd_set_dest_ports(struct state_info *stats) {
         int i;
         unsigned nb_ports_in_mask = 0;
         int last_port = 0;
         for (i = 0; i < ports->num_ports; i++) {
                 if (nb_ports_in_mask % 2) {
-                        l2fwd_dst_ports[ports->id[i]] = last_port;
-                        l2fwd_dst_ports[last_port] = ports->id[i];
+                        stats->l2fwd_dst_ports[ports->id[i]] = last_port;
+                        stats->l2fwd_dst_ports[last_port] = ports->id[i];
                 } else {
                         last_port = ports->id[i];
                 }
@@ -244,7 +244,7 @@ l2fwd_set_dest_ports() {
         }
         if (nb_ports_in_mask % 2) {
                         printf("Notice: odd number of ports in portmask.\n");
-                        l2fwd_dst_ports[last_port] = last_port;
+                        stats->l2fwd_dst_ports[last_port] = last_port;
         }
 
 }
@@ -253,8 +253,10 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        if (++counter == print_delay) {
-                print_stats();
+        struct onvm_nf *nf = nf_local_ctx->nf;
+        struct state_info *stats = (struct state_info *)nf->data;
+        if (++counter == stats->print_delay) {
+                print_stats(stats);
                 counter = 0;
         }
         if (pkt->port > RTE_MAX_ETHPORTS) {
@@ -263,19 +265,35 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 return 0;
         }
         /* Update stats packet received on port. */
-        port_statistics[pkt->port].rx += 1;
-        unsigned dst_port = l2fwd_dst_ports[pkt->port];
+        stats->port_statistics[pkt->port].rx += 1;
+        unsigned dst_port = stats->l2fwd_dst_ports[pkt->port];
 
         /* If mac_updating enabled update source and destination mac address of packet. */
-        if (mac_updating)
-                l2fwd_mac_updating(pkt, dst_port);
+        if (stats->mac_updating)
+                l2fwd_mac_updating(pkt, dst_port, stats);
 
         /* Set destination port of packet. */
         meta->destination = dst_port;
         /* Update stats packet sent from source port. */
-        port_statistics[dst_port].tx += 1;
+        stats->port_statistics[dst_port].tx += 1;
         meta->action = ONVM_NF_ACTION_OUT;
         return 0;
+}
+
+void
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
+        struct onvm_nf *nf = nf_local_ctx->nf;
+        struct state_info *stats = (struct state_info *)nf->data;
+
+        /* Initialize port stats. */
+        memset(&stats->port_statistics, 0, sizeof(stats->port_statistics));
+
+        /* Set destination port for each port. */
+        l2fwd_set_dest_ports(stats);
+
+        /* Get mac address for each port.  */
+        l2fwd_initialize_ports(stats);
+
 }
 
 int
@@ -290,6 +308,7 @@ main(int argc, char *argv[]) {
 
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
@@ -307,20 +326,24 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        /* Initialize port stats. */
-        memset(&port_statistics, 0, sizeof(port_statistics));
+        struct onvm_nf *nf = nf_local_ctx->nf;
+        struct state_info *stats = rte_calloc("state", 1, sizeof(struct state_info), 0);
+        if (stats == NULL) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Unable to initialize NF stats.");
+        }
+        /* MAC updating enabled by default */
+        stats->mac_updating = 1;
+        /* Print mac address disabled by default */
+        stats->print_mac = 0;
+        stats->print_delay = 1000000;
+        nf->data = (void *)stats;
 
-        /* Set destination port for each port. */
-        l2fwd_set_dest_ports();
-
-        /* Get mac address for each port.  */
-        l2fwd_initialize_ports();
-
-        if (parse_app_args(argc, argv, progname) < 0) {
+        if (parse_app_args(argc, argv, progname, stats) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-        RTE_LOG(INFO, APP, "MAC updating %s\n", mac_updating ? "enabled" : "disabled");
+        RTE_LOG(INFO, APP, "MAC updating %s\n", stats->mac_updating ? "enabled" : "disabled");
 
         onvm_nflib_run(nf_local_ctx);
 
