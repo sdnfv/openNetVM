@@ -61,8 +61,8 @@ while getopts "p:" opt; do
 done
 
 # Get localhost IP address
-ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}'
-export HOSTIP=$!
+# ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}'
+# export HOSTIP=$!
 
 # Start ONVM web stats console at http://localhost:<port num>
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
@@ -135,7 +135,7 @@ fi
 if [$(sudo docker ps -a | grep prometheus) == ""]
 then
   sudo nohup docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
-else  
+else
   sudo nohup docker start prometheus
 fi
 
@@ -151,4 +151,3 @@ export ONVM_WEB_PID=$!
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!
-

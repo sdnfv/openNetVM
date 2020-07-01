@@ -123,10 +123,7 @@ sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=pr
 
 if [ "${stats}" = "-s web" ]
 then
-    echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2, $GRAFANA_PID, $PROMETHEUS_PID, $NODE_PID"
+    echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
     kill "$ONVM_WEB_PID"
     kill "$ONVM_WEB_PID2"
-    sudo docker stop grafana
-    sudo docker stop prometheus
-    kill "$NODE_PID"
 fi
