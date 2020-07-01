@@ -98,7 +98,7 @@ then
 fi
 
 # check if Grafana docker image has been build
-if [[$(sudo docker image | grep modified_grafana) == ""]]
+if [[$(sudo docker images | grep modified_grafana) == ""]]
 then
   sudo docker build -t grafana/modified_grafana ../
 fi
@@ -125,14 +125,16 @@ then
   exit 1
 fi
 
-if [$(sudo docker ps -a | grep grafana) == ""]
+is_grafana_started=$(sudo docker ps -a | grep grafana)
+if [["$is_grafana_started" == ""]]
 then
   sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
 else
   sudo docker start grafana
 fi
 
-if [$(sudo docker ps -a | grep prometheus) == ""]
+is_prometheus_started=$(sudo docker ps -a | grep prometheus)
+if [[ "$is_prometheus_started" == "" ]]
 then
   sudo docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
 else
