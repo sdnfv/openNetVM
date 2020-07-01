@@ -98,7 +98,8 @@ then
 fi
 
 # check if Grafana docker image has been build
-if [[$(sudo docker images | grep modified_grafana) == ""]]
+is_grafana_build=$(sudo docker images | grep modified_grafana)
+if [["$is_grafana_build" == ""]]
 then
   sudo docker build -t grafana/modified_grafana ../
 fi
