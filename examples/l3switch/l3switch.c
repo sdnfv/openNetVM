@@ -127,20 +127,20 @@ print_stats(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         /* Clear screen and move to top left */
         printf("\nPort statistics ====================================");
         int i;
-	for (i = 0; i < ports->num_ports; i++) {
-		printf("\nStatistics for port %u ------------------------------"
-			   "\nPackets forwarded to: %20"PRIu64,
-			   ports->id[i],
-			   stats->port_statistics[ports->id[i]]);
+        for (i = 0; i < ports->num_ports; i++) {
+                printf("\nStatistics for port %u ------------------------------"
+                          "\nPackets forwarded to: %20"PRIu64,
+                           ports->id[i],
+                           stats->port_statistics[ports->id[i]]);
 
-		total_packets += stats->port_statistics[ports->id[i]];
-	}
-	printf("\nAggregate statistics ==============================="
-		   "\nTotal packets forwarded: %17"PRIu64
+               total_packets += stats->port_statistics[ports->id[i]];
+        }
+        printf("\nAggregate statistics ==============================="
+                   "\nTotal packets forwarded: %17"PRIu64
                    "\nPackets dropped: %18"PRIu64,
-		   total_packets,
+                   total_packets,
                    stats->packets_dropped);
-	printf("\n====================================================\n");
+        printf("\n====================================================\n");
 
         printf("\n\n");
 }
@@ -313,7 +313,7 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        /* 
+        /*
          * The following allocates a struct which keeps track of all NF state information.
          * Longest prefix match is enabled by default as well as default values for print delay
          * and hash entry number.
@@ -336,9 +336,14 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
 
+        if (ports->num_ports == 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "No Ethernet ports. Ensure ports binded to dpdk. - bye\n");
+        }
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+        free_tables(stats);
         printf("If we reach here, program is ending\n");
         return 0;
 }
