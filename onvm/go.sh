@@ -128,5 +128,5 @@ then
     kill "$ONVM_WEB_PID2"
     sudo docker stop grafana
     sudo docker stop prometheus
-    kill "$NODE_PID"
+    sudo kill "$NODE_PID"
 fi
