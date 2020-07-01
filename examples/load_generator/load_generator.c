@@ -328,7 +328,8 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
 
         if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
-                rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
+                RTE_LOG(INFO, APP, "Using fake MAC address\n");
+                onvm_get_fake_macaddr(&ehdr->s_addr);
         }
         for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
