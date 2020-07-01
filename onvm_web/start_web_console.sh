@@ -125,6 +125,25 @@ then
   exit 1
 fi
 
+if [$(sudo docker ps -a | grep grafana) == ""]
+then
+  sudo nohup docker run -p 3000:3000 --name grafana grafana/modified_grafana
+else
+  sudo nohup docker start grafana
+fi
+
+if [$(sudo docker ps -a | grep prometheus) == ""]
+then
+  sudo nohup docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
+else  
+  sudo nohup docker start prometheus
+fi
+
+cd "$ONVM_HOME"/onvm_web/node_exporter || usage
+sudo chmod a+x node_exporter
+sudo nohup ./node_exporter &
+export NODE_PID=$!
+
 cd "$ONVM_HOME"/onvm_web || usage
 nohup python cors_server.py 8000 &
 export ONVM_WEB_PID=$!
@@ -133,21 +152,3 @@ cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!
 
-if [$(sudo docker ps -a | grep grafana) == ""]
-then
-  nohup sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
-else
-  nohup sudo docker start grafana
-fi
-
-if [$(sudo docker ps -a | grep prometheus) == ""]
-then
-  nohup sudo docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus &
-else  
-  nohup sudo docker start prometheus
-fi
-
-cd "$ONVM_HOME"/onvm_web/node_exporter || usage
-sudo chmod a+x node_exporter
-nohup sudo ./node_exporter &
-export NODE_PID=$!
