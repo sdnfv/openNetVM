@@ -126,4 +126,7 @@ then
     echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
     kill "$ONVM_WEB_PID"
     kill "$ONVM_WEB_PID2"
+    sudo docker stop grafana
+    sudo docker stop prometheus
+    kill "$NODE_PID"
 fi
