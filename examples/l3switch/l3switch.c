@@ -148,7 +148,7 @@ print_stats(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 /*
  * This function checks for valid ipv4 packets. Updates the
  * src and destination ethernet addresses of packets. It then performs a lookup
- * for the destination port. If the destination port value returned is not valid/not binded to dpdk, 
+ * for the destination port. If the destination port value returned is not valid/not binded to dpdk,
  * the packet is forwarded back to the port of incoming traffic.
  */
 static int
@@ -254,7 +254,6 @@ free_tables(struct state_info *stats) {
         } else {
                 onvm_ft_free(stats->em_tbl);
         }
-        rte_free(stats);
 }
 
 void
@@ -342,8 +341,8 @@ main(int argc, char *argv[]) {
         }
         onvm_nflib_run(nf_local_ctx);
 
-        onvm_nflib_stop(nf_local_ctx);
         free_tables(stats);
+        onvm_nflib_stop(nf_local_ctx);
         printf("If we reach here, program is ending\n");
         return 0;
 }
