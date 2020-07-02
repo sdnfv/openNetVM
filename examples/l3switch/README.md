@@ -1,6 +1,8 @@
 Layer 3 Switch
 ==
-l3switch is an NF based on the dpdk [l3fwd example](https://doc.dpdk.org/guides/sample_app_ug/l3_forward.html) that leverages the openNetVM's flow director API. 
+l3switch is based on DPDK's [l3fwd example](https://doc.dpdk.org/guides/sample_app_ug/l3_forward.html) that leverages the openNetVM's flow director API. This NF has two modes, exact match and longest prefix match. In longest prefix match mode, a lookup matches a packet to a destination port. The lookup is based on the destination IP address. In exact match mode, a lookup is is based on the packet 5-tuple i.e. destination and src of the packets port and IP.
+
+Hash entry number refers to the number of flow rules when running in exact match mode.
 
 Compilation and Execution
 --
@@ -27,7 +29,7 @@ App Specific Arguments
 
 For example: ./go.sh 1 -e -h 7
 
-Will enable exact match mode with hash entry number set to 7. Hash entry number will default to 4 if not manually set or not running in rxact match mode.
+Will enable exact match mode with hash entry number set to 7. Hash entry number will default to 4 if not manually set or not running in exact match mode.
 
 Config File Support
 --
