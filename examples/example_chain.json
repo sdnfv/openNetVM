@@ -1,4 +1,12 @@
 {
+        "objects": [
+                {
+                        "TTL": 10
+                },
+                {
+                        "directory": "output_files"
+                }
+        ],
         "simple_forward": [
                 {
                         "parameters": "2 -d 1"

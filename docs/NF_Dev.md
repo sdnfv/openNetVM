@@ -99,18 +99,26 @@ values.
 }
 ```
 
-Additionally, a developer can run the [config python script](../examples/config.py) to launch linear or circular chains of multiple example NFs from a JSON config file. An example config file can be found [here](../examples/example_chain.json). 
-When the NF Chain is launched, a directory will be created with the user-specified [dir name]. If no directory name is specified, the default name will the be the timestamp. Output from each NF will be continuously written to the the corresponding log text file within the created directory. Format of the log file name is as follows: "log-NF name-instance ID". To track the output of a NF:
+Additionally, a developer can run the [config python script](../examples/config.py) to launch linear or circular chains of multiple example NFs from a JSON config file. An example config file can be found [here](../examples/example_chain.json). In the config file, a user can specify a number of seconds for the chain to run before shutdown. If no timeout is specified, the chain will run until a raised error or a manual shutdown (Ctrl + C). 
+When the NF Chain is launched, a directory will be created with the user-specified directory name from the config file. If no directory name is specified, the default name will the be the timestamp. Output from each NF will be continuously written to the corresponding log text file within the created or pre-existing directory. Format of the log file name is as follows: "log-NF name-instance ID". To track the output of a NF:
 ```
 tail -f <logfile name>
 ```  
 This script must be run within the /examples folder:
 ```
-python config.py <config file name> [dir name] 
+python config.py <config file name>
 ```
 ### JSON Config File For Launching Chain of Multiple NFs
 ```
 {
+  "objects [optional]": [
+		{
+			"TTL": X (seconds)
+		},
+    {
+      "directory": "existing or new dir name" 
+    }
+	],
 	"NF name": [
 		{
 			"parameters": "[parameters for running NF]"
