@@ -111,13 +111,13 @@ python config.py <config file name>
 ### JSON Config File For Launching Chain of Multiple NFs
 ```
 {
-  "objects [optional]": [
+   	"objects [optional]": [
 		{
 			"TTL": X (seconds)
 		},
-    {
-      "directory": "existing or new dir name" 
-    }
+	        {
+      			"directory": "existing or new dir name" 
+   		}	
 	],
 	"NF name": [
 		{
