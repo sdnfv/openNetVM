@@ -106,7 +106,7 @@ tail -f <logfile name>
 ```  
 This script must be run within the /examples folder:
 ```
-python config.py <config file name>
+python3 config.py <config file name>
 ```
 ### JSON Config File For Launching Chain of Multiple NFs
 ```

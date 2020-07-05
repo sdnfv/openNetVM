@@ -187,7 +187,7 @@ if __name__ == '__main__':
             p = Popen(shlex.split(cmd), stdout=(log_files[i]), stderr=log_files[i], \
                 universal_newlines=True)
             procs_list.append(p)
-            print("Starting %s %s" % (nf, cmd))
+            print("Starting %s %s" % (nf, cmd), flush=True)
             i += 1
         except OSError:
             pass
