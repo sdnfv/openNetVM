@@ -101,7 +101,7 @@ fi
 is_grafana_build=$(sudo docker images | grep modified_grafana)
 if [[ "$is_grafana_build" == "" ]]
 then
-  sudo docker build -t grafana/modified_grafana ../
+  sudo docker build -t grafana/modified_grafana ./
 fi
 
 # start prometheus server at http://localhost:9090
