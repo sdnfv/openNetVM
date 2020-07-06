@@ -53,6 +53,6 @@ onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
 
-kill onvm_web_pid
-kill onvm_web_pid2
-sudo kill node_pid
+kill "$onvm_web_pid"
+kill "$onvm_web_pid2"
+sudo kill "$node_pid"
