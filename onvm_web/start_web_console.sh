@@ -99,7 +99,7 @@ fi
 
 # check if Grafana docker image has been build
 is_grafana_build=$(sudo docker images | grep modified_grafana)
-if [["$is_grafana_build" == ""]]
+if [[ "$is_grafana_build" == "" ]]
 then
   sudo docker build -t grafana/modified_grafana ../
 fi
@@ -127,7 +127,7 @@ then
 fi
 
 is_grafana_started=$(sudo docker ps -a | grep grafana)
-if [["$is_grafana_started" == ""]]
+if [[ "$is_grafana_started" == "" ]]
 then
   sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
 else
