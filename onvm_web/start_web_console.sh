@@ -129,17 +129,17 @@ fi
 is_grafana_started=$(sudo docker ps -a | grep grafana)
 if [[ "$is_grafana_started" == "" ]]
 then
-  sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
+  nohup sudo docker run -p 3000:3000 --name grafana grafana/modified_grafana
 else
-  sudo docker start grafana
+  nohup sudo docker start grafana
 fi
 
 is_prometheus_started=$(sudo docker ps -a | grep prometheus)
 if [[ "$is_prometheus_started" == "" ]]
 then
-  sudo docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+  nohup sudo docker run -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
 else
-  sudo docker start prometheus
+  nohup sudo docker start prometheus
 fi
 
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage
