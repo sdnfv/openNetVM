@@ -29,4 +29,4 @@ scrape_configs:
     # to test this on cloudlab, use cloudlab defualt URL
     # to test this on nimnode, use nimnode URL
     # for normal usage, use localhost
-    - 128.105.145.61:9100
+    - HOSTIP:9100

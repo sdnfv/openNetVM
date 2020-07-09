@@ -37,20 +37,23 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# check if docker is installed
-if [$(command -v docker) == ""]
-then
-  echo "[ERROR] Docker is not installed, please install docker with"
-  echo "sudo apt install docker.io"
-  exit 1
-fi
-
 function usage {
     echo "$0 [-p WEB-PORT-NUMBER]"
     exit 1
 }
 
 web_port=8080
+prometheus_file="./Prometheus.yaml"
+grafana_file="./provisioning/datasources/sample.yaml"
+
+# check if docker is installed
+is_docker_installed=$(command -v docker)
+if [[ $is_docker_installed == "" ]]
+then
+  echo "[ERROR] Docker is not installed, please install docker with"
+  echo "sudo apt install docker.io"
+  exit 1
+fi
 
 while getopts "p:" opt; do
     case $opt in
@@ -61,7 +64,7 @@ while getopts "p:" opt; do
 done
 
 # Get localhost IP address
-ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}' &
+host_ip=ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}' &
 export HOSTIP=$!
 
 # Start ONVM web stats console at http://localhost:<port num>
@@ -129,6 +132,7 @@ fi
 is_grafana_started=$(sudo docker ps -a | grep grafana)
 if [[ "$is_grafana_started" == "" ]]
 then
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $grafana_file
   nohup sudo docker run -d -p 3000:3000 --name grafana grafana/modified_grafana
 else
   nohup sudo docker start grafana
@@ -137,6 +141,7 @@ fi
 is_prometheus_started=$(sudo docker ps -a | grep prometheus)
 if [[ "$is_prometheus_started" == "" ]]
 then
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
   nohup sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
 else
   nohup sudo docker start prometheus
