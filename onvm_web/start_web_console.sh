@@ -60,7 +60,7 @@ while getopts "p:" opt; do
     esac
 done
 
-Get localhost IP address
+# Get localhost IP address
 ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}'
 export HOSTIP=$!
 
