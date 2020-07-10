@@ -43,7 +43,7 @@ function usage {
 }
 
 web_port=8080
-prometheus_file="./Prometheus.yaml"
+prometheus_file="./Prometheus.yml"
 grafana_file="./provisioning/datasources/sample.yaml"
 
 # check if docker is installed
