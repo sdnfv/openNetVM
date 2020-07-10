@@ -107,6 +107,7 @@ if [[ "$is_grafana_build" == "" ]]
 then
   sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $grafana_file
   sudo docker build -t grafana/modified_grafana ./
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $grafana_file
 fi
 
 # start prometheus server at http://localhost:9090
@@ -144,6 +145,7 @@ if [[ "$is_prometheus_started" == "" ]]
 then
   sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
   nohup sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
 else
   nohup sudo docker start prometheus
 fi
