@@ -105,6 +105,7 @@ fi
 is_grafana_build=$(sudo docker images | grep modified_grafana)
 if [[ "$is_grafana_build" == "" ]]
 then
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $grafana_file
   sudo docker build -t grafana/modified_grafana ./
 fi
 
@@ -133,7 +134,6 @@ fi
 is_grafana_started=$(sudo docker ps -a | grep grafana)
 if [[ "$is_grafana_started" == "" ]]
 then
-  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $grafana_file
   nohup sudo docker run -d -p 3000:3000 --name grafana grafana/modified_grafana
 else
   nohup sudo docker start grafana
