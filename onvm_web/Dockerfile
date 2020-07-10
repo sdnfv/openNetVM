@@ -36,5 +36,3 @@
 
 FROM grafana/grafana
 COPY ./provisioning /etc/grafana/provisioning
-
-ENV HOSTIP=$HOSTIP
