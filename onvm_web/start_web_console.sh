@@ -64,6 +64,7 @@ while getopts "p:" opt; do
 done
 
 # Get localhost IP address
+# This might need to change depending on the host address
 host_ip=ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}' &
 export HOSTIP=$!
 

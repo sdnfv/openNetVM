@@ -37,22 +37,67 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+function usage {
+    echo "$0 -r remove build docker images"
+    echo -e "\tRemove grafana and/or prometheus docker image"
+    exit 1
+}
+
+remove=0
+
+while getopts "r:" opt; do
+    case $opt in
+        r) remove=$OPTARG;;
+        \?) echo "Unknown option -$OPTARG" && usage
+            ;;
+    esac
+done
+
 is_grafana_running=$(sudo docker container ls | grep grafana)
 if [[ is_grafana_running != "" ]]
 then
-    sudo docker stop grafana
+  sudo docker stop grafana
 fi
 
 is_prometheus_running=$(sudo docker container ls | grep prometheus)
 if [[ is_prometheus_running != "" ]]
 then
-    sudo docker stop prometheus
+  sudo docker stop prometheus
+fi
+
+# remove grafana image
+is_grafana_image_build=$(sudo docker images | grep grafana/modified_grafana)
+if [[ $remove =~ "grafana" && is_grafana_image_build != "" ]]
+then
+  echo "removing grafana image"
+  sudo docker rm grafana
+  sudo docker rmi grafana/modified_grafana
+fi
+
+# remove prometheus image
+is_prometheus_image_build=$(sudo docker images | grep prom/prometheus)
+if [[ $remove =~ "prometheus" && is_prometheus_image_build != "" ]]
+then
+  echo "removing prometheus image"
+  sudo docker rm prometheus
+  sudo docker rmi prom/prometheus
 fi
 
 onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
 
-kill ${onvm_web_pid}
-kill ${onvm_web_pid2}
-sudo kill ${node_pid}
+if [[ onvm_web_pid != "" ]]
+then
+  kill ${onvm_web_pid}
+fi
+
+if [[ onvm_web_pid2 != "" ]]
+then
+  kill ${onvm_web_pid2}
+fi
+
+if [[ node_pid != "" ]]
+then
+  kill ${node_pid}
+fi
