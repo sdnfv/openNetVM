@@ -145,9 +145,11 @@ if [[ "$is_prometheus_started" == "" ]]
 then
   sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
   nohup sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
-  # sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
 else
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
   nohup sudo docker start prometheus
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
 fi
 
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage
