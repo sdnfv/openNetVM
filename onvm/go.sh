@@ -108,9 +108,9 @@ then
     cd ../onvm_web/ || usage
     if [ -n "${web_port}" ]
     then
-        . start_web_console.sh -p "${web_port}"
+        sudo ./start_web_console.sh -p "${web_port}"
     else
-        . start_web_console.sh
+        sudo ./start_web_console.sh
     fi
 
     cd "$ONVM_HOME"/onvm || usage
