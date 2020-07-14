@@ -39,7 +39,7 @@
 
 function usage {
     echo "$0 -r remove build docker images"
-    echo -e "\tRemove grafana and/or prometheus docker image"
+    echo -e "\tRemove docker image"
     exit 1
 }
 
