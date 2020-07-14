@@ -176,7 +176,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                 flow_entry->sc = onvm_sc_create();
                 onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
-                // onvm_sc_print(flow_entry->sc);
+                meta->destination = destination;
+                meta->action = ONVM_NF_ACTION_TONF;
         }
         return 0;
 }
