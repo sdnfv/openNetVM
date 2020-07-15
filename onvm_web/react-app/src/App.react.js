@@ -14,7 +14,8 @@ import PortDashboardPage from "./pages/PortDashboardPage.react";
 import SingleNFPage from "./pages/SingleNFPage.react";
 import CoreMappingsPage from "./pages/CoreMappingsPage.react";
 import Error404Page from "./pages/Error404Page.react";
-import Grafana from "./pages/Grafana.react.js"
+import Grafana from "./pages/Grafana.react"
+import LaunchNFChainPage from "./pages/LaunchNFChain.react"
 
 import "tabler-react/dist/Tabler.css";
 import "./c3jscustom.css";
