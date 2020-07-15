@@ -158,13 +158,14 @@ sudo nohup ./node_exporter &
 export NODE_PID=$!
 
 # Create all the log files needed for the server
-touch log.txt
 cd "$ONVM_HOME"/examples
 touch nf_chain_config.json
 
 cd "$ONVM_HOME"/onvm_web || usage
 nohup sudo python3 cors_server.py &
 export ONVM_WEB_PID=$!
+
+touch log.txt
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
