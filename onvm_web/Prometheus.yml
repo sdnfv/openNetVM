@@ -33,5 +33,5 @@ scrape_configs:
 
 - job_name: push_gateway
   static_configs:
-  -targets:
+  - targets:
     - HOSTIP:9091
