@@ -72,9 +72,9 @@ def on_failure():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in nf_list:
+    for n in procs_list:
         try:
-            os.system("sudo pkill " + n)
+            os.system("sudo pkill -P" + n.pid)
         except OSError:
             pass
     print("Error occurred. Exiting...")
@@ -84,9 +84,9 @@ def on_timeout():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in nf_list:
+    for n in procs_list:
         try:
-            os.system("sudo pkill " + n)
+            os.system("sudo pkill -P" + n.pid)
         except OSError:
             pass
     print("Exiting...")
