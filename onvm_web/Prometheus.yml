@@ -30,3 +30,8 @@ scrape_configs:
     # to test this on nimnode, use nimnode URL
     # for normal usage, use localhost
     - HOSTIP:9100
+
+- job_name: push_gateway
+  static_configs:
+  -targets:
+    - HOSTIP:9091

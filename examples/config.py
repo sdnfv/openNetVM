@@ -1,3 +1,4 @@
+  
 #!/usr/bin/env python3
 
 #                        openNetVM
@@ -80,43 +81,52 @@ def on_failure():
     print("Error occurred. Exiting...")
     sys.exit(1)
 
+def on_timeout():
+    """Handles shutdown on error"""
+    for lf in log_files:
+        lf.close()
+    for n in nf_list:
+        try:
+            os.system("sudo pkill -P " + n)
+        except OSError:
+            pass
+    print("Exiting...")
+    sys.exit(0)
+
 def running_services():
     """Checks running NFs"""
-    while 1:
-        for pl in procs_list:
-            ret_code = pl.poll()
-            if ret_code is not None:
-                on_failure()
-                break
+    if timeout != 0:
+        start = time.time()
+        time.clock()
+        elapsed = 0
+        while elapsed < timeout:
+            elapsed = time.time() - start
+            for pl in procs_list:
+                ret_code = pl.poll()
+                if ret_code is not None:
+                    on_failure()
+                    break
             time.sleep(.1)
-            continue
+        on_timeout()
+    else:
+        while 1:
+            for pl in procs_list:
+                ret_code = pl.poll()
+                if ret_code is not None:
+                    on_failure()
+                    break
+            time.sleep(.1)
 
 procs_list = []
 nf_list = []
 cmds_list = []
 log_files = []
+timeout = 0
 if __name__ == '__main__':
     signal(SIGINT, handler)
     if os.path.basename(os.getcwd()) != "examples":
         print("Error: Run script from within /examples folder")
         sys.exit(1)
-
-    if len(sys.argv) < 3:
-        time_obj = datetime.now().time()
-        log_dir = time_obj.strftime("%H:%M:%S")
-        os.mkdir(log_dir)
-        print("Creating directory %s" % (log_dir))
-    else:
-        log_dir = sys.argv[2]
-        if os.path.isdir(log_dir) is False:
-            try:
-                os.mkdir(log_dir)
-                print("Creating directory %s" % (log_dir))
-            except OSError:
-                print("Creation of directory %s failed" % (log_dir))
-                on_failure()
-        else:
-            print("Outputting log files to %s" % (log_dir))
 
     config_file = get_config()
 
@@ -126,10 +136,38 @@ if __name__ == '__main__':
         except:
             print("Cannot load config file. Check JSON syntax")
             sys.exit(1)
+
+    is_dir = 0
     for k, v in data.items():
-        for item in v:
-            nf_list.append(k)
-            cmds_list.append("./go.sh " + item['parameters'])
+        if k == "objects":
+            for item in v:
+                if "directory" in item:
+                    if is_dir == 0:
+                        log_dir = item["directory"]
+                        if os.path.isdir(log_dir) is False:
+                            try:
+                                os.mkdir(log_dir)
+                                print("Creating directory %s" % (log_dir))
+                                is_dir = 1
+                            except OSError:
+                                print("Creation of directory %s failed" % (log_dir))
+                                on_failure()
+                        else:
+                            print("Outputting log files to %s" % (log_dir))
+                            is_dir = 1
+                if "TTL" in item:
+                    timeout = item["TTL"]
+        else:
+            for item in v:
+                nf_list.append(k)
+                cmds_list.append("./go.sh " + item['parameters'])
+
+    if is_dir == 0:
+        time_obj = datetime.now().time()
+        log_dir = time_obj.strftime("%H:%M:%S")
+        os.mkdir(log_dir)
+        print("Creating directory %s" % (log_dir))
+        is_dir = 1
 
     for cmd, nf in zip(cmds_list, nf_list):
         service_name = nf
