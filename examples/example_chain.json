@@ -1,0 +1,15 @@
+{
+    "simple_forward": [
+            {
+                    "parameters": "2 -d 1"
+            }
+    ],
+    "speed_tester": [
+            {
+                    "parameters": "1 -d 2 -c 16000"
+            },
+    {
+        "parameters": "3 -d 3 -c 16000"
+            }
+    ]
+}
