@@ -129,6 +129,6 @@ then
     sudo docker stop grafana
     sudo docker stop prometheus
     sudo kill "$NODE_PID"
-    rm "$ONVM_HOME"/example/nf_chain_config.json
+    rm "$ONVM_HOME"/examples/nf_chain_config.json
     rm "$ONVM_HOME"/onvm_web/log.txt
 fi
