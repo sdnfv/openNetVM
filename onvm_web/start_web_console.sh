@@ -135,21 +135,29 @@ fi
 is_grafana_started=$(sudo docker ps -a | grep grafana)
 if [[ "$is_grafana_started" == "" ]]
 then
-  nohup sudo docker run -d -p 3000:3000 --name grafana grafana/modified_grafana
+  sudo docker run -d -p 3000:3000 --name grafana grafana/modified_grafana
 else
-  nohup sudo docker start grafana
+  sudo docker start grafana
 fi
 
 is_prometheus_started=$(sudo docker ps -a | grep prometheus)
 if [[ "$is_prometheus_started" == "" ]]
 then
   sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
-  nohup sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+  sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
   sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
 else
   sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
-  nohup sudo docker start prometheus
+  sudo docker start prometheus
   sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
+fi
+
+is_influxdb_started=$(sudo docker ps -a | grep influxdb)
+if [[ "$is_influxdb_started" == "" ]]
+then
+  sudo docker run -d -p 8086:8086 --name influxdb -v "$ONVM_HOME"/onvm_web/influxdb_data:/var/lib/influxdb influxdb
+else
+  sudo docker start influxdb
 fi
 
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage

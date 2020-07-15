@@ -53,16 +53,25 @@ while getopts "r:" opt; do
     esac
 done
 
+# stop grafana docker container
 is_grafana_running=$(sudo docker container ls | grep grafana)
-if [[ is_grafana_running != "" ]]
+if [[ "$is_grafana_running" != "" ]]
 then
   sudo docker stop grafana
 fi
 
+# stop prometheus docker container
 is_prometheus_running=$(sudo docker container ls | grep prometheus)
-if [[ is_prometheus_running != "" ]]
+if [[ "$is_prometheus_running" != "" ]]
 then
   sudo docker stop prometheus
+fi
+
+# stop influxdb docker container
+is_influxdb_running=$(sudo docker container ls | grep influxdb)
+if [[ "$is_influxdb_running" != "" ]]
+then
+  sudo docker stop influxdb
 fi
 
 # remove grafana image
@@ -87,17 +96,17 @@ onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
 
-if [[ onvm_web_pid != "" ]]
+if [[ "$onvm_web_pid" != "" ]]
 then
   kill ${onvm_web_pid}
 fi
 
-if [[ onvm_web_pid2 != "" ]]
+if [[ "$onvm_web_pid2" != "" ]]
 then
   kill ${onvm_web_pid2}
 fi
 
-if [[ node_pid != "" ]]
+if [[ "$node_pid" != "" ]]
 then
   kill ${node_pid}
 fi
