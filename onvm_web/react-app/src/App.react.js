@@ -37,6 +37,7 @@ function App(props: Props): React.Node {
             <Route exact path="/ports" component={PortDashboardPage} />
             <Route exact path="/core-mappings" component={CoreMappingsPage} />
             <Route exact path="/grafana" component={Grafana} />
+            <Route exact path="/nf-chain" component={LaunchNFChainPage} />
             <Route component={Error404Page} />
           </Switch>
         </Router>
