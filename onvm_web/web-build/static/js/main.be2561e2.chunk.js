@@ -17,22 +17,22 @@
         i = n(73),
         s = n(44),
         u = n(70),
-        p = n(4),
-        m = n(5),
-        f = n(7),
-        h = n(6),
-        d = n(8),
+        p = n(3),
+        f = n(4),
+        m = n(6),
+        h = n(5),
+        d = n(7),
         b = n(71),
         v = n(72),
         g = n(2),
         E = n(12),
         y = {},
-        L = {},
+        O = {},
         C = [],
-        O = 0,
+        L = 0,
         j = null,
-        F = -1;
-      function N(e, t, n) {
+        N = -1;
+      function k(e, t, n) {
         var a = {
           name: e,
           callback: t,
@@ -42,41 +42,41 @@
         if (n && j) {
           var o = j;
           console.log("Catching event subscriber up to all past events.");
-          for (var r = 0; r !== F + 1; ) a.callback(o[r]), ++r;
+          for (var r = 0; r !== N + 1; ) a.callback(o[r]), ++r;
           a.hasBeenCalled = !0;
         }
         C.push(a);
       }
-      function k(e) {
+      function w(e) {
         C = C.filter(function(t) {
           return t.name !== e;
         });
       }
-      function w(e, t) {
+      function F(e, t) {
         if (e.length < t) return e;
         var n = e[0];
         for (e = e.slice(2); e.length > t; ) e = e.slice(1);
         return [n].concat(Object(E.a)(e));
       }
-      function S(e, t) {
-        if ((e in L ? L[e].push(t) : (L[e] = [t]), e in y)) return y[e];
+      function x(e, t) {
+        if ((e in O ? O[e].push(t) : (O[e] = [t]), e in y)) return y[e];
       }
-      function P(e, t, n) {
-        e in L &&
+      function S(e, t, n) {
+        e in O &&
           (0 ===
-            L[e].filter(function(e) {
+            O[e].filter(function(e) {
               return e !== t;
-            }).length && delete L[e],
+            }).length && delete O[e],
           null != n && (y[e] = n));
       }
-      var R = (function(e) {
+      var P = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { interval: null }),
@@ -85,7 +85,7 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "dataFetcher",
                 value: function() {
@@ -98,9 +98,9 @@
                       return (function(e) {
                         var t = e.onvm_nf_stats,
                           n = function(e) {
-                            if (e in L)
-                              L[e].forEach(function(n) {
-                                return n(t[e], O);
+                            if (e in O)
+                              O[e].forEach(function(n) {
+                                return n(t[e], L);
                               });
                             else if (
                               (console.log(
@@ -110,12 +110,12 @@
                             ) {
                               var n = t[e],
                                 a = y[e];
-                              a[0].push(O),
-                                (a[0] = w(a[0], 40)),
+                              a[0].push(L),
+                                (a[0] = F(a[0], 40)),
                                 a[1].push(n.TX),
-                                (a[1] = w(a[1], 40)),
+                                (a[1] = F(a[1], 40)),
                                 a[2].push(n.RX),
-                                (a[2] = w(a[2], 40));
+                                (a[2] = F(a[2], 40));
                             } else
                               console.error(
                                 "No NF Restore state for label: " + e
@@ -124,9 +124,9 @@
                         for (var a in t) n(a);
                         var o = e.onvm_port_stats,
                           r = function(e) {
-                            if (e in L)
-                              L[e].forEach(function(t) {
-                                return t(o[e], O);
+                            if (e in O)
+                              O[e].forEach(function(t) {
+                                return t(o[e], L);
                               });
                             else if (
                               (console.log(
@@ -136,19 +136,19 @@
                             ) {
                               var t = o[e],
                                 n = y[e];
-                              n[0].push(O),
-                                (n[0] = w(n[0], 40)),
+                              n[0].push(L),
+                                (n[0] = F(n[0], 40)),
                                 n[1].push(t.TX),
-                                (n[1] = w(n[1], 40)),
+                                (n[1] = F(n[1], 40)),
                                 n[2].push(t.RX),
-                                (n[2] = w(n[2], 40));
+                                (n[2] = F(n[2], 40));
                             } else
                               console.error(
                                 "No NF Restore state for label: " + e
                               );
                           };
                         for (var l in o) r(l);
-                        ++O;
+                        ++L;
                       })(e);
                     })
                     .catch(function(e) {
@@ -162,13 +162,13 @@
                         return (function(e) {
                           for (
                             var t = function() {
-                              var t = e[++F];
+                              var t = e[++N];
                               t &&
                                 C.forEach(function(e) {
                                   return e.callback(t);
                                 });
                             };
-                            F < e.length - 1;
+                            N < e.length - 1;
 
                           )
                             t();
@@ -219,6 +219,12 @@
                           LinkComponent: Object(b.a)(v.a)
                         },
                         {
+                          value: "Grafana Page",
+                          to: "/grafana",
+                          icon: "home",
+                          LinkComponent: Object(b.a)(v.a)
+                        },
+                        {
                           value: "NF Chain Launch",
                           to: "/nf-chain",
                           icon: "ports",
@@ -245,21 +251,21 @@
             t
           );
         })(a.PureComponent),
-        D = n(14),
-        x = n(30),
-        A = n.n(x),
-        I = {
+        R = n(14),
+        D = n(30),
+        _ = n.n(D),
+        A = {
           x: { label: { text: "X Axis", position: "outer-center" } },
           y: { label: { text: "Y Axis", position: "outer-middle" } }
         },
-        _ = (function(e) {
+        M = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = {
@@ -278,7 +284,7 @@
                 }
               }),
               (n.dataCallback = function(e, t) {
-                var a = Object(D.a)({}, n.state.graphData),
+                var a = Object(R.a)({}, n.state.graphData),
                   o = a.columns;
                 o[0].push(t),
                   (o[0] = n.trimToSize(o[0], 40)),
@@ -299,7 +305,7 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
@@ -307,10 +313,10 @@
                   var e = "NF ".concat(this.props.nfLabel.split(" - ")[1]);
                   "Port" === this.props.nfLabel.substring(0, 4) &&
                     (e = this.props.nfLabel);
-                  var t = S(e, this.dataCallback);
+                  var t = x(e, this.dataCallback);
                   if (t) {
                     console.log("Graph Restore: " + this.props.nfLabel);
-                    var n = Object(D.a)({}, this.state.graphData);
+                    var n = Object(R.a)({}, this.state.graphData);
                     (n.columns = t), this.setState({ graphData: n });
                   }
                 }
@@ -322,7 +328,7 @@
                   var e = "NF ".concat(this.props.nfLabel.split(" - ")[1]);
                   "Port" === this.props.nfLabel.substring(0, 4) &&
                     (e = this.props.nfLabel),
-                    P(e, this.dataCallback, this.state.graphData.columns);
+                    S(e, this.dataCallback, this.state.graphData.columns);
                 }
               },
               {
@@ -368,9 +374,9 @@
                     a.createElement(
                       g.c.Body,
                       null,
-                      a.createElement(A.a, {
+                      a.createElement(_.a, {
                         data: this.state.graphData,
-                        axis: I,
+                        axis: A,
                         legend: { show: !0 },
                         padding: { bottom: 0, top: 0 }
                       }),
@@ -383,14 +389,14 @@
             t
           );
         })(a.PureComponent),
-        M = (function(e) {
+        I = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { nfLabelList: [] }),
@@ -426,17 +432,17 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
-                  N("NF DASHBOARD PAGE", this.eventHandler, !0);
+                  k("NF DASHBOARD PAGE", this.eventHandler, !0);
                 }
               },
               {
                 key: "componentWillUnmount",
                 value: function() {
-                  k("NF DASHBOARD PAGE");
+                  w("NF DASHBOARD PAGE");
                 }
               },
               {
@@ -454,7 +460,7 @@
                         return a.createElement(
                           g.d.Col,
                           { md: 6, xl: 4, key: t },
-                          a.createElement(_, { nfLabel: t, history: e })
+                          a.createElement(M, { nfLabel: t, history: e })
                         );
                       }),
                       0 === t.length && "No Running NFS to Display!"
@@ -473,7 +479,7 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { portList: [] }),
@@ -493,17 +499,17 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
-                  N("PORT DASHBOARD PAGE", this.eventHandler, !0);
+                  k("PORT DASHBOARD PAGE", this.eventHandler, !0);
                 }
               },
               {
                 key: "componentWillUnmount",
                 value: function() {
-                  k("PORT DASHBOARD PAGE");
+                  w("PORT DASHBOARD PAGE");
                 }
               },
               {
@@ -521,7 +527,7 @@
                         return a.createElement(
                           g.d.Col,
                           { md: 6, xl: 4, key: e },
-                          a.createElement(_, {
+                          a.createElement(M, {
                             nfLabel: e,
                             history: t,
                             showMoreInfoButton: !1
@@ -537,7 +543,7 @@
             t
           );
         })(a.PureComponent);
-      var B = function(e) {
+      var T = function(e) {
           return a.createElement(
             g.g,
             {
@@ -570,14 +576,14 @@
             )
           );
         },
-        T = (function(e) {
+        B = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { instanceId: null, serviceId: null, core: null }),
@@ -593,12 +599,12 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
                   console.log("NF Info Mount: " + this.props.nfLabel),
-                    S(
+                    x(
                       "NF ".concat(this.props.nfLabel.split(" - ")[1]),
                       this.dataCallback
                     );
@@ -608,7 +614,7 @@
                 key: "componentWillUnmount",
                 value: function() {
                   console.log("NF Info Unmount: " + this.props.nfLabel),
-                    P(
+                    S(
                       "NF ".concat(this.props.nfLabel.split(" - ")[1]),
                       this.dataCallback,
                       null
@@ -673,7 +679,7 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = {
@@ -695,11 +701,11 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
-                  N(
+                  k(
                     "SINGLE NF PAGE ".concat(this.state.nfLabel),
                     this.eventHandler,
                     !0
@@ -709,7 +715,7 @@
               {
                 key: "componentWillUnmount",
                 value: function() {
-                  k("SINGLE NF PAGE ".concat(this.state.nfLabel));
+                  w("SINGLE NF PAGE ".concat(this.state.nfLabel));
                 }
               },
               {
@@ -724,10 +730,10 @@
                       a.createElement(
                         g.d.Col,
                         { md: 8, xl: 8 },
-                        a.createElement(_, {
+                        a.createElement(M, {
                           nfLabel: this.state.nfLabel,
                           showMoreInfoButton: !1,
-                          extraContent: a.createElement(B, {
+                          extraContent: a.createElement(T, {
                             events: this.state.eventList
                           })
                         })
@@ -735,7 +741,7 @@
                       a.createElement(
                         g.d.Col,
                         { sm: 4, lg: 4 },
-                        a.createElement(T, { nfLabel: this.state.nfLabel })
+                        a.createElement(B, { nfLabel: this.state.nfLabel })
                       )
                     )
                   );
@@ -820,7 +826,7 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
                 (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { coreList: {} }),
@@ -828,7 +834,7 @@
                 var t = e.source;
                 ("NF Ready" === e.message || e.message.includes("Start")) &&
                   n.setState(function(n) {
-                    var a = Object(D.a)({}, n.coreList),
+                    var a = Object(R.a)({}, n.coreList),
                       o = t.core;
                     if (((t.msg = e.message), o in a && a[o].length)) {
                       var r = t.instance_id;
@@ -839,7 +845,7 @@
                   ("NF Stopping" === e.message || e.message.includes("End")) &&
                     n.setState(function(t) {
                       var n,
-                        a = Object(D.a)({}, t.coreList),
+                        a = Object(R.a)({}, t.coreList),
                         o = e.source.instance_id,
                         r = !1;
                       for (n in a)
@@ -863,17 +869,17 @@
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "componentDidMount",
                 value: function() {
-                  N("CORE MAPPINGS PAGE", this.eventHandler, !0);
+                  k("CORE MAPPINGS PAGE", this.eventHandler, !0);
                 }
               },
               {
                 key: "componentWillUnmount",
                 value: function() {
-                  k("CORE MAPPINGS PAGE");
+                  w("CORE MAPPINGS PAGE");
                 }
               },
               {
@@ -918,32 +924,67 @@
       var z = function(e) {
           return "Error404";
         },
+        V = window.location.hostname,
+        q = (function(e) {
+          function t(e) {
+            var n;
+            return (
+              Object(p.a)(this, t),
+              ((n = Object(m.a)(
+                this,
+                Object(h.a)(t).call(this)
+              )).state = Object(R.a)({}, e)),
+              n
+            );
+          }
+          return (
+            Object(d.a)(t, e),
+            Object(f.a)(t, [
+              {
+                key: "componentWillMount",
+                value: function() {
+                  window.open("http://".concat(V, ":3000"));
+                }
+              },
+              {
+                key: "render",
+                value: function() {
+                  return a.createElement("section", null, "...");
+                }
+              }
+            ]),
+            t
+          );
+        })(a.Component),
         J = n(18),
-        V = n.n(J),
-        q = window.location.hostname,
-        Y = (function(e) {
+        Y = n.n(J),
+        $ = window.location.hostname,
+        K = (function(e) {
           function t() {
             var e, n;
             Object(p.a)(this, t);
-            for (var a = arguments.length, r = new Array(a), l = 0; l < a; l++)
-              r[l] = arguments[l];
+            for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
+              o[r] = arguments[r];
             return (
-              ((n = Object(f.a)(
+              ((n = Object(m.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(r))
+                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
               )).state = { selectedFile: null }),
               (n.onFileChange = function(e) {
                 n.setState({ selectedFile: e.target.files[0], launch: 0 });
               }),
-              (n.submitHandler = function(e) {
+              (n.OnStopHandler = function(e) {
                 (n.state = { request_type: "stop" }),
-                  V.a
-                    .post("http://".concat(q, ":8000"), n.state)
+                  Y.a
+                    .post("http://".concat($, ":8000"), n.state)
                     .then(function(e) {
-                      console.log(e);
+                      console.log(e),
+                        alert(
+                          "Post request succeeded. Status: " + e.statusText
+                        );
                     })
                     .catch(function(e) {
-                      console.log(e);
+                      console.log(e), alert(e);
                     }),
                   n.setState({ launch: 0 });
               }),
@@ -955,88 +996,91 @@
                   n.state.selectedFile.name
                 );
                 console.log(n.state.selectedFile),
-                  V.a
-                    .post("http://".concat(q, ":8000"), e, {
+                  Y.a
+                    .post("http://".concat($, ":8000"), e, {
                       headers: { "Content-Type": "multipart/form-data" }
                     })
                     .then(function(e) {
-                      console.log(e);
+                      console.log(e),
+                        alert(
+                          "Post request succeeded. Status: " + e.statusText
+                        );
                     })
                     .catch(function(e) {
-                      console.log(e);
+                      console.log(e), alert(e);
                     });
               }),
               (n.onLaunchChain = function() {
                 (n.state = { request_type: "start" }),
-                  V.a
-                    .post("http://".concat(q, ":8000"), n.state)
+                  Y.a
+                    .post("http://".concat($, ":8000"), n.state)
                     .then(function(e) {
-                      console.log(e);
+                      console.log(e),
+                        alert(
+                          "Post request succeeded. Status: " + e.statusText
+                        );
                     })
                     .catch(function(e) {
-                      console.log(e);
+                      console.log(e), alert(e);
                     }),
                   n.setState({ launch: 1 });
-              }),
-              (n.fileData = function() {
-                return n.state.selectedFile
-                  ? o.a.createElement(
-                      "div",
-                      null,
-                      o.a.createElement("h2", null, "Selected Config File:"),
-                      o.a.createElement(
-                        "p",
-                        null,
-                        "File Name: ",
-                        n.state.selectedFile.name
-                      ),
-                      o.a.createElement(
-                        "p",
-                        null,
-                        "File Type: ",
-                        n.state.selectedFile.type
-                      )
-                    )
-                  : o.a.createElement(
-                      "div",
-                      null,
-                      o.a.createElement("br", null),
-                      o.a.createElement("h3", null, "Select JSON Config File")
-                    );
-              }),
-              (n.terminateButotn = function() {
-                if (n.state.launch)
-                  return o.a.createElement(
-                    "div",
-                    null,
-                    o.a.createElement(
-                      "form",
-                      { ref: "form", onSubmit: n.submitHandler },
-                      o.a.createElement(
-                        "button",
-                        { type: "submit" },
-                        "Terminate"
-                      )
-                    )
-                  );
               }),
               n
             );
           }
           return (
             Object(d.a)(t, e),
-            Object(m.a)(t, [
+            Object(f.a)(t, [
               {
                 key: "render",
                 value: function() {
                   return o.a.createElement(
                     "div",
-                    null,
-                    o.a.createElement("h1", null, "NF Chain Deployment"),
+                    { style: { marginLeft: "50px" } },
+                    o.a.createElement("br", null),
                     o.a.createElement(
-                      "h3",
+                      "h1",
+                      null,
+                      "Network Function Chain Deployment"
+                    ),
+                    o.a.createElement(
+                      "h4",
                       null,
                       "Upload a JSON Configuration File to Launch a Chain of NFs"
+                    ),
+                    o.a.createElement(
+                      "p",
+                      null,
+                      "Ensure your ONVM manager is running before uploading and launching your chain of NFs. Navigate to the various dashboards on ONVM web to observe NF behavior.",
+                      o.a.createElement("br", null),
+                      "Output from each NF will be written to the directory specified in your file or to a default timestamped directory."
+                    ),
+                    o.a.createElement(
+                      "p",
+                      null,
+                      "Follow the",
+                      " ",
+                      o.a.createElement(
+                        "a",
+                        {
+                          href:
+                            "https://github.com/catherinemeadows/openNetVM/blob/configScript/docs/NF_Dev.md"
+                        },
+                        "documentation"
+                      ),
+                      " ",
+                      "in the ONVM repository to learn more about proper formatting for your config file. See an",
+                      " ",
+                      o.a.createElement(
+                        "a",
+                        {
+                          href:
+                            "https://github.com/catherinemeadows/openNetVM/blob/configScript/examples/example_chain.json"
+                        },
+                        "example"
+                      ),
+                      " ",
+                      "config file."
                     ),
                     o.a.createElement(
                       "div",
@@ -1050,26 +1094,36 @@
                         { onClick: this.onFileUpload },
                         "Upload"
                       ),
+                      o.a.createElement("br", null),
+                      o.a.createElement("br", null),
                       o.a.createElement(
                         "button",
-                        { onClick: this.onLaunchChain },
-                        "Launch"
+                        {
+                          onClick: this.onLaunchChain,
+                          style: {
+                            backgroundColor: "#48cf7c",
+                            borderRadius: "4px",
+                            border: "none",
+                            padding: "14px 28px"
+                          }
+                        },
+                        "Launch NF Chain"
                       ),
                       o.a.createElement(
-                        "div",
-                        null,
-                        o.a.createElement(
-                          "form",
-                          { ref: "form", onSubmit: this.submitHandler },
-                          o.a.createElement(
-                            "button",
-                            { type: "submit" },
-                            "Terminate"
-                          )
-                        )
+                        "button",
+                        {
+                          onClick: this.OnStopHandler,
+                          style: {
+                            margin: "5px",
+                            backgroundColor: "#db4d5b",
+                            borderRadius: "4px",
+                            border: "none",
+                            padding: "14px 28px"
+                          }
+                        },
+                        "Terminate"
                       )
-                    ),
-                    this.fileData()
+                    )
                   );
                 }
               }
@@ -1078,12 +1132,12 @@
           );
         })(a.Component);
       n(64), n(66);
-      var $ = function(e) {
+      var Q = function(e) {
         return a.createElement(
           c.a,
           null,
           a.createElement(
-            R,
+            P,
             null,
             a.createElement(
               c.a,
@@ -1098,7 +1152,7 @@
                     return a.createElement(u.a, { to: { pathname: "/nfs" } });
                   }
                 }),
-                a.createElement(s.a, { exact: !0, path: "/nfs", component: M }),
+                a.createElement(s.a, { exact: !0, path: "/nfs", component: I }),
                 a.createElement(s.a, {
                   exact: !0,
                   path: "/nfs/:nfLabel",
@@ -1116,8 +1170,13 @@
                 }),
                 a.createElement(s.a, {
                   exact: !0,
+                  path: "/grafana",
+                  component: q
+                }),
+                a.createElement(s.a, {
+                  exact: !0,
                   path: "/nf-chain",
-                  component: Y
+                  component: K
                 }),
                 a.createElement(s.a, { component: z })
               )
@@ -1133,7 +1192,7 @@
           )
       );
       l.a.render(
-        o.a.createElement(o.a.StrictMode, null, o.a.createElement($, null)),
+        o.a.createElement(o.a.StrictMode, null, o.a.createElement(Q, null)),
         document.getElementById("root")
       ),
         "serviceWorker" in navigator &&
