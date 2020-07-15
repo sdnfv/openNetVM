@@ -124,5 +124,5 @@ sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=pr
 if [ "${stats}" = "-s web" ]
 then
     echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
-    sudo ./"$ONVM_HOME"/onvm_web/stop_web_interface.sh
+    sudo ."$ONVM_HOME"/onvm_web/stop_web_interface.sh
 fi
