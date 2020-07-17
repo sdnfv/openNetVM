@@ -148,7 +148,6 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
                 return -EPROTONOSUPPORT;
         }
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
-        memset(key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
         key->proto = ipv4_hdr->next_proto_id;
         key->src_addr = ipv4_hdr->src_addr;
         key->dst_addr = ipv4_hdr->dst_addr;

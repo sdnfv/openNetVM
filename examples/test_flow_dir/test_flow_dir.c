@@ -158,16 +158,24 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         struct onvm_flow_entry *flow_entry = NULL;
         int ret;
 
+        if (!onvm_pkt_is_ipv4(pkt)) {
+                meta->action = ONVM_NF_ACTION_DROP;
+                return 0;
+        }
+
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
+        struct onvm_ft_ipv4_5tuple key;
+        memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
+        onvm_ft_fill_key(&key, pkt);
+        ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)flow_entry);
         if (ret >= 0) {
                 meta->action = ONVM_NF_ACTION_NEXT;
         } else {
-                ret = onvm_flow_dir_add_pkt(pkt, &flow_entry);
+                ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
                 if (ret < 0) {
                         meta->action = ONVM_NF_ACTION_DROP;
                         meta->destination = 0;
@@ -176,8 +184,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                 flow_entry->sc = onvm_sc_create();
                 onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
-                meta->destination = destination;
                 meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
         }
         return 0;
 }

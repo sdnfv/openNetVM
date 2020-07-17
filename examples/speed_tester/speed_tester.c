@@ -345,6 +345,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         pmeta->action = ONVM_NF_ACTION_TONF;
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);
 
+                        memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
                         onvm_ft_fill_key(&key, pkt);
                         pkt->hash.rss = onvm_softrss(&key);
 
