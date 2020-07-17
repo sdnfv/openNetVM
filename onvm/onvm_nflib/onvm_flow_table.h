@@ -71,8 +71,8 @@ struct onvm_ft {
 struct onvm_ft_ipv4_5tuple {
         uint32_t src_addr;
         uint32_t dst_addr;
-        uint16_t src_port;
-        uint16_t dst_port;
+        uint32_t src_port;
+        uint32_t dst_port;
         uint8_t proto;
 };
 

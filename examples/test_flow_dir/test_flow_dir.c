@@ -155,7 +155,7 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct onvm_flow_entry *flow_entry = NULL;
+        struct onvm_flow_entry *flow_entry;
         int ret;
 
         if (!onvm_pkt_is_ipv4(pkt)) {
