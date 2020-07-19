@@ -71,8 +71,8 @@ struct onvm_ft {
 struct onvm_ft_ipv4_5tuple {
         uint32_t src_addr;
         uint32_t dst_addr;
-        uint32_t src_port;
-        uint32_t dst_port;
+        uint16_t src_port;
+        uint16_t dst_port;
         uint8_t proto;
 };
 
@@ -153,12 +153,12 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
         key->dst_addr = ipv4_hdr->dst_addr;
         if (key->proto == IP_PROTOCOL_TCP) {
                 tcp_hdr = onvm_pkt_tcp_hdr(pkt);
-                key->src_port = tcp_hdr->src_port;
-                key->dst_port = tcp_hdr->dst_port;
+                key->src_port = rte_cpu_to_be_16(tcp_hdr->src_port);
+                key->dst_port = rte_cpu_to_be_16(tcp_hdr->dst_port);
         } else if (key->proto == IP_PROTOCOL_UDP) {
                 udp_hdr = onvm_pkt_udp_hdr(pkt);
-                key->src_port = udp_hdr->src_port;
-                key->dst_port = udp_hdr->dst_port;
+                key->src_port = rte_cpu_to_be_16(udp_hdr->src_port);
+                key->dst_port = rte_cpu_to_be_16(udp_hdr->dst_port);
         } else {
                 key->src_port = 0;
                 key->dst_port = 0;
