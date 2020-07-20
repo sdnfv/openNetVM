@@ -44,7 +44,7 @@ if __name__ == "__main__":
                 counter = 0
                 for keys, values in nf_stats.items():
                     gauge_data.set(values['RX'])
-                    nf_name = event[5 + counter]['message']
+                    nf_name = event[5 + counter]['source']['type']
                     is_connection_failed = push_data(gateway_url, nf_name, registry_nf)
                     counter += 1
             except KeyError:
