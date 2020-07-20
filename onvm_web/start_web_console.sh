@@ -186,12 +186,14 @@ export NODE_PID=$!
 
 # Create all the log files needed for the server
 cd "$ONVM_HOME"/examples
+sudo rm nf_chain_config.json
 touch nf_chain_config.json
 
 cd "$ONVM_HOME"/onvm_web || usage
 nohup sudo python3 cors_server.py &
 export ONVM_WEB_PID=$!
 
+sudo rm log.txt
 touch log.txt
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
