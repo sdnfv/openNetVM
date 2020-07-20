@@ -40,11 +40,17 @@ if __name__ == "__main__":
             pass
         else:
             try:
+                nf_list = []
+                for nfs in event:
+                    if nfs['message'] == "NF Starting":
+                        nf_name = nfs['source']['type'] + nfs['source']['instance_id']
+                        if nf_name not in nf_list:
+                            nf_list.append(nf_name)
                 nf_stats = data['onvm_nf_stats']
                 counter = 0
                 for keys, values in nf_stats.items():
                     gauge_data.set(values['RX'])
-                    nf_name = event[5 + counter]['source']['type']
+                    nf_name = nf_list[counter]
                     is_connection_failed = push_data(gateway_url, nf_name, registry_nf)
                     counter += 1
             except KeyError:
