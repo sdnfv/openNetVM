@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 event = json.load(events_f)
         except:
             continue
-        last_update_time = time.mktime(time.strftime(data['last_updated'], "%a %b %d %H:%M:%S %Y\n"))
+        last_update_time = time.mktime(time.strptime(data['last_updated'], "%a %b %d %H:%M:%S %Y\n"))
         current_time = time.time()
         if current_time - last_update_time > 5:
             pass
