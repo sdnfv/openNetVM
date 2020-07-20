@@ -106,7 +106,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname, struct state_info *stats) {
         int c;
 
-        while ((c = getopt(argc, argv, "p:n:m")) != -1) {
+        while ((c = getopt(argc, argv, "p:nm")) != -1) {
                 switch (c) {
                         case 'p':
                                 stats->print_delay = strtoul(optarg, NULL, 10);
