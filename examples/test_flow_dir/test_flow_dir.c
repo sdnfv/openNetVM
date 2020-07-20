@@ -66,7 +66,7 @@
 
 #define NF_TAG "test_flow_dir"
 
-/* number of package between each print */
+/* Number of packets between each print. */
 static uint32_t print_delay = 1000000;
 
 static uint32_t destination;
@@ -74,6 +74,7 @@ static uint32_t destination;
 /* Populate flow disabled by default */
 static int populate_flow = 0;
 
+static struct onvm_flow_entry *flow_entry = NULL;
 /*
  * Print a usage message
  */
@@ -85,6 +86,8 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-f : Enable populating sdn flow table. \n");
+
 }
 
 /*
@@ -177,8 +180,6 @@ populate_ipv4_flow_table(void) {
         };
 
         uint32_t num_keys = RTE_DIM(keys);
-        struct onvm_flow_entry *flow_entry = NULL;
-        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
         for (uint32_t i = 0; i < num_keys; i++) {
                 struct onvm_ft_ipv4_5tuple key;
                 memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
@@ -203,20 +204,20 @@ populate_ipv4_flow_table(void) {
                         }
                 }
         }
-        flow_entry = NULL;
-        rte_free(flow_entry);
+}
+
+static void
+nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
+        if (flow_entry == NULL) {
+                rte_exit(EXIT_FAILURE, "Unable to allocate flow entry\n");
+        }
 }
 
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct onvm_flow_entry *flow_entry = NULL;
-        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
-        if (flow_entry == NULL) {
-                printf("Unable to allocate flow entry");
-                return -1;
-        }
         int ret;
 
         if (!onvm_pkt_is_ipv4(pkt)) {
@@ -240,7 +241,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 if (ret < 0) {
                         meta->action = ONVM_NF_ACTION_DROP;
                         meta->destination = 0;
-                        rte_free(flow_entry);
                         return 0;
                 }
                 flow_entry->sc = onvm_sc_create();
@@ -248,8 +248,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
         }
-        flow_entry = NULL;
-        rte_free(flow_entry);
         return 0;
 }
 
@@ -265,6 +263,7 @@ main(int argc, char *argv[]) {
 
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
@@ -294,6 +293,7 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+        rte_free(flow_entry);
         printf("If we reach here, program is ending\n");
         return 0;
 }
