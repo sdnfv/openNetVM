@@ -126,10 +126,10 @@ onvm_ft_free(struct onvm_ft *table);
 
 static inline void
 _onvm_ft_print_key(struct onvm_ft_ipv4_5tuple *key) {
-        printf("IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8, (key->src_addr >> 24) & 0xFF, (key->src_addr >> 16) & 0xFF,
-               (key->src_addr >> 8) & 0xFF, key->src_addr & 0xFF);
-        printf("-%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (key->dst_addr >> 24) & 0xFF, (key->dst_addr >> 16) & 0xFF,
-               (key->dst_addr >> 8) & 0xFF, key->dst_addr & 0xFF);
+        printf("IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8, (key->src_addr >> 24) & 0xFF,
+                (key->src_addr >> 16) & 0xFF, (key->src_addr >> 8) & 0xFF, key->src_addr & 0xFF);
+        printf("-%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (key->dst_addr >> 24) & 0xFF,
+                (key->dst_addr >> 16) & 0xFF, (key->dst_addr >> 8) & 0xFF, key->dst_addr & 0xFF);
         printf("Port: %d %d Proto: %d\n", key->src_port, key->dst_port, key->proto);
 }
 

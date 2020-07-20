@@ -164,7 +164,7 @@ do_stats_display(struct rte_mbuf *pkt) {
  */
 
 static void
-populate_ipv4_flow_table(void){
+populate_ipv4_flow_table(void) {
         struct test_add_key {
                 struct onvm_ft_ipv4_5tuple key;
                 uint8_t destinations[ONVM_MAX_CHAIN_LENGTH];
@@ -179,7 +179,7 @@ populate_ipv4_flow_table(void){
         uint32_t num_keys = RTE_DIM(keys);
         struct onvm_flow_entry *flow_entry = NULL;
         flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
-        for (uint32_t i = 0; i < num_keys; i++){
+        for (uint32_t i = 0; i < num_keys; i++) {
                 struct onvm_ft_ipv4_5tuple key;
                 memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
                 key = keys[i].key;
