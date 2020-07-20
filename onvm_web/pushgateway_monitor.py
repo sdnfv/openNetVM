@@ -7,7 +7,7 @@ from urllib import error
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 def create_collector(name, documentation):
-    registry = CollectorRegistry
+    registry = CollectorRegistry()
     g = Gauge(name, documentation, registry=registry)
     return registry, g
 
