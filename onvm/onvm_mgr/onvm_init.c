@@ -251,7 +251,7 @@ init(int argc, char *argv[]) {
                 printf("Chain length can not be larger than the maximum chain length\n");
                 exit(1);
         }
-        printf("Default service chain: send to sdn NF\n");
+        printf("Default service chain: send to NF with service ID 1\n");
 
         /* set up service chain pointer shared to NFs*/
         mz_scp = rte_memzone_reserve(MZ_SCP_INFO, sizeof(struct onvm_service_chain *), rte_socket_id(), NO_FLAGS);
