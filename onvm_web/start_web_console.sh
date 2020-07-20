@@ -66,7 +66,7 @@ done
 # Get localhost IP address
 # This might need to change depending on the host address
 host_ip=$(ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}')
-echo $host_ip
+echo "$host_ip"
 
 # Start ONVM web stats console at http://localhost:<port num>
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
