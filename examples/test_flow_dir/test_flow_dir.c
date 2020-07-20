@@ -71,6 +71,9 @@ static uint32_t print_delay = 1000000;
 
 static uint32_t destination;
 
+/* Populate flow disabled by default */
+static int populate_flow = 0;
+
 /*
  * Print a usage message
  */
@@ -91,13 +94,16 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt(argc, argv, "d:p:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:f")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
                                 break;
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case 'f':
+                                populate_flow = 1;
                                 break;
                         case '?':
                                 usage(progname);
@@ -151,11 +157,66 @@ do_stats_display(struct rte_mbuf *pkt) {
         }
 }
 
+/*
+ * This function populates a set of flows to the sdn flow table.
+ * For each new flow a service chain is created and appended.
+ * Each service chain is of max 4 length. This function is not enabled by default.
+ */
+
+static void
+populate_ipv4_flow_table(void){
+        struct test_add_key {
+                struct onvm_ft_ipv4_5tuple key;
+                uint8_t destinations[ONVM_MAX_CHAIN_LENGTH];
+        };
+
+        struct test_add_key keys[] = {
+                {{IPv4(101, 0, 0, 0), IPv4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, {0,1,2,3}},
+                {{IPv4(102, 0, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {3,2,1,0}},
+                {{IPv4(103, 0, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
+        };
+
+        uint32_t num_keys = RTE_DIM(keys);
+        struct onvm_flow_entry *flow_entry = NULL;
+        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
+        for (uint32_t i = 0; i < num_keys; i++){
+                struct onvm_ft_ipv4_5tuple key;
+                memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
+                key = keys[i].key;
+                int ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)flow_entry);
+                if (ret >= 0) {
+                        continue;
+                } else {
+                        printf("\nAdding Key: ");
+                        _onvm_ft_print_key(&key);
+                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
+                        if (ret < 0) {
+                                printf("Unable to add key.");
+                                continue;
+                        }
+                        printf("Creating new service chain.\n");
+                        flow_entry->sc = onvm_sc_create();
+                        uint32_t num_dest = RTE_DIM(keys[i].destinations);
+                        for (uint32_t j = 0; j < num_dest; j++) {
+                                printf("Appending Destination: %d \n", keys[i].destinations[j]);
+                                onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, keys[i].destinations[j]);
+                        }
+                }
+        }
+        flow_entry = NULL;
+        rte_free(flow_entry);
+}
+
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct onvm_flow_entry *flow_entry;
+        struct onvm_flow_entry *flow_entry = NULL;
+        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
+        if (flow_entry == NULL) {
+                printf("Unable to allocate flow entry");
+                return -1;
+        }
         int ret;
 
         if (!onvm_pkt_is_ipv4(pkt)) {
@@ -179,14 +240,16 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 if (ret < 0) {
                         meta->action = ONVM_NF_ACTION_DROP;
                         meta->destination = 0;
+                        rte_free(flow_entry);
                         return 0;
                 }
-                memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                 flow_entry->sc = onvm_sc_create();
                 onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
         }
+        flow_entry = NULL;
+        rte_free(flow_entry);
         return 0;
 }
 
@@ -222,6 +285,11 @@ main(int argc, char *argv[]) {
 
         /* Map the sdn_ft table */
         onvm_flow_dir_nf_init();
+
+        if (populate_flow) {
+                printf("Populating flow table. \n");
+                populate_ipv4_flow_table();
+        }
 
         onvm_nflib_run(nf_local_ctx);
 

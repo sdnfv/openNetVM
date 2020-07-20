@@ -126,10 +126,10 @@ onvm_ft_free(struct onvm_ft *table);
 
 static inline void
 _onvm_ft_print_key(struct onvm_ft_ipv4_5tuple *key) {
-        printf("IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8, key->src_addr & 0xFF, (key->src_addr >> 8) & 0xFF,
-               (key->src_addr >> 16) & 0xFF, (key->src_addr >> 24) & 0xFF);
-        printf("-%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", key->dst_addr & 0xFF, (key->dst_addr >> 8) & 0xFF,
-               (key->dst_addr >> 16) & 0xFF, (key->dst_addr >> 24) & 0xFF);
+        printf("IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8, (key->src_addr >> 24) & 0xFF, (key->src_addr >> 16) & 0xFF,
+               (key->src_addr >> 8) & 0xFF, key->src_addr & 0xFF);
+        printf("-%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (key->dst_addr >> 24) & 0xFF, (key->dst_addr >> 16) & 0xFF,
+               (key->dst_addr >> 8) & 0xFF, key->dst_addr & 0xFF);
         printf("Port: %d %d Proto: %d\n", key->src_port, key->dst_port, key->proto);
 }
 
@@ -149,8 +149,8 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
         }
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         key->proto = ipv4_hdr->next_proto_id;
-        key->src_addr = ipv4_hdr->src_addr;
-        key->dst_addr = ipv4_hdr->dst_addr;
+        key->src_addr = rte_cpu_to_be_32(ipv4_hdr->src_addr);
+        key->dst_addr = rte_cpu_to_be_32(ipv4_hdr->dst_addr);
         if (key->proto == IP_PROTOCOL_TCP) {
                 tcp_hdr = onvm_pkt_tcp_hdr(pkt);
                 key->src_port = rte_cpu_to_be_16(tcp_hdr->src_port);
