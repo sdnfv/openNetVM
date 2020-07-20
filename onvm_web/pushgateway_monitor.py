@@ -43,7 +43,7 @@ if __name__ == "__main__":
                 nf_list = []
                 for nfs in event:
                     if nfs['message'] == "NF Starting":
-                        nf_name = nfs['source']['type'] + nfs['source']['instance_id']
+                        nf_name = str(nfs['source']['type']) + str(nfs['source']['instance_id'])
                         if nf_name not in nf_list:
                             nf_list.append(nf_name)
                 nf_stats = data['onvm_nf_stats']
