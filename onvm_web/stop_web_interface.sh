@@ -67,11 +67,18 @@ then
   sudo docker stop prometheus
 fi
 
-# stop influxdb docker container
-is_influxdb_running=$(sudo docker container ls | grep influxdb)
-if [[ "$is_influxdb_running" != "" ]]
+# # stop influxdb docker container
+# is_influxdb_running=$(sudo docker container ls | grep influxdb)
+# if [[ "$is_influxdb_running" != "" ]]
+# then
+#   sudo docker stop influxdb
+# fi
+
+# stop pushgateway docker container
+is_pushgateway_running=$(sudo docker container ls | grep pushgateway)
+if [[ "$is_pushgateway_running" != "" ]]
 then
-  sudo docker stop influxdb
+  sudo docker stop pushgateway
 fi
 
 # remove grafana image

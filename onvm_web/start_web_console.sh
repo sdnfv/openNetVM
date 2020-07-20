@@ -132,6 +132,17 @@ then
   exit 1
 fi
 
+# start pushgateway server at http://localhost:9091
+echo "Starting pushgateway server at http://localhost:9091"
+is_pushgateway_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9091")
+if [[ "$is_pushgateway_port_in_use" != "" ]]
+then
+  echo "[ERROR] Pushgateway port 9091 is in use"
+  echo "$is_pushgateway_port_in_use"
+  echo "[ERROR] Pushgateway server failed to start"
+  exit 1
+fi
+
 is_grafana_started=$(sudo docker ps -a | grep grafana)
 if [[ "$is_grafana_started" == "" ]]
 then
@@ -152,13 +163,21 @@ else
   sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
 fi
 
-is_influxdb_started=$(sudo docker ps -a | grep influxdb)
-if [[ "$is_influxdb_started" == "" ]]
+is_pushgateway_started=$(sudo docker ps -a | grep pushgateway)
+if [[ "$is_pushgateway_started" == "" ]]
 then
-  sudo docker run -d -p 8086:8086 --name influxdb -v "$ONVM_HOME"/onvm_web/influxdb_data:/var/lib/influxdb influxdb
+  sudo docker run -d -p 9091:9091 --name=pushgateway prom/pushgateway
 else
-  sudo docker start influxdb
+  sudo docker start pushgateway
 fi
+
+# is_influxdb_started=$(sudo docker ps -a | grep influxdb)
+# if [[ "$is_influxdb_started" == "" ]]
+# then
+#   sudo docker run -d -p 8086:8086 --name influxdb -v "$ONVM_HOME"/onvm_web/influxdb_data:/var/lib/influxdb influxdb
+# else
+#   sudo docker start influxdb
+# fi
 
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage
 sudo chmod a+x node_exporter
