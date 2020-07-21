@@ -174,8 +174,8 @@ populate_ipv4_flow_table(void) {
         };
 
         struct test_add_key keys[] = {
-                {{IPv4(101, 0, 0, 0), IPv4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, {0,1,2,3}},
-                {{IPv4(102, 0, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {3,2,1,0}},
+                {{IPv4(101, 0, 0, 0), IPv4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, {1,2,3,4}},
+                {{IPv4(102, 0, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
                 {{IPv4(103, 0, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
         };
 
@@ -199,6 +199,9 @@ populate_ipv4_flow_table(void) {
                         flow_entry->sc = onvm_sc_create();
                         uint32_t num_dest = RTE_DIM(keys[i].destinations);
                         for (uint32_t j = 0; j < num_dest; j++) {
+                                if (keys[i].destinations[j] == 0) {
+                                        continue;
+                                }
                                 printf("Appending Destination: %d \n", keys[i].destinations[j]);
                                 onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, keys[i].destinations[j]);
                         }
