@@ -198,7 +198,7 @@ if __name__ == '__main__':
         os.chdir(cwd)
     
     for nf in nf_list:
-        if pid_dict.get(nf) is not None:
+        if pid_dict.get(nf) is None:
             try:
                 command = "ps -ef | grep sudo | grep " + nf + " | grep -v 'grep' | awk '{print $2}'"
                 pids = os.popen(command)
@@ -214,5 +214,5 @@ if __name__ == '__main__':
                 pass
     for pid_list in pid_dict:
         for _pid in pid_list:
-            print("pid %d" % (_pid), flush=True)
+            print("pid %s" % (_pid), flush=True)
     running_services()
