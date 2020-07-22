@@ -117,6 +117,3 @@ if [[ "$node_pid" != "" ]]
 then
   kill ${node_pid}
 fi
-
-cd ../examples
-find ./ -name "[0-9]*" -exec rm -rf {} \;
