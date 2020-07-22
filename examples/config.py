@@ -96,10 +96,10 @@ def on_timeout():
     pid_list = pid_list.read().split("\n")[:-2]
     for i in pid_list:
         i = i.replace(str(script_pid), "")
-        _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
-        _pid_for_nf = _pid_for_nf.read().replace(str(i), "").replace("\n", "")
-        _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + _pid_for_nf + ") print $2 " " $3}'")
-        _pid_for_nf = _pid_for_nf.read().replace(str(i), "").replace("\n", "")
+        temp = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
+        temp = temp.read().replace(str(i), "").replace("\n", "")
+        _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
+        _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
         print(_pid_for_nf)
     print("Exiting...")
     sys.exit(0)
