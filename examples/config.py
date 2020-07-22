@@ -91,11 +91,13 @@ def on_timeout():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in procs_list:
-        try:
-            os.system("sudo pkill -P" + n.pid)
-        except OSError:
-            pass
+    script_pid = os.getpid()
+    pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + " print $2 " " $3)}'")
+    pid_list = pid_list.split("\n")
+    print(pid_list)
+    for i in pid_list:
+        i = i.replace(script_pid, "")
+        print(i)
     print("Exiting...")
     sys.exit(0)
 
