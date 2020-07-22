@@ -1,4 +1,3 @@
-  
 #!/usr/bin/env python3
 
 #                        openNetVM
@@ -73,13 +72,18 @@ def on_failure():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for pid_list in pid_dict.values():
-        # try:
-        #     os.system("sudo killall" + n)
-        # except OSError:
-        #     pass
-        for _pid in pid_list:
-            os.kill(int(_pid), signal.SIGKILL)
+    script_pid = os.getpid()
+    pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + " print $2 " " $3)}'")
+    pid_list = pid_list.split("\n")
+    print(pid_list)
+    for i in pid_list:
+        i = i.replace(script_pid, "")
+        print(i)
+    # for n in procs_list:
+    #     try:
+    #         os.system("sudo pkill -P" + n.pid)
+    #     except OSError:
+    #         pass
     print("Error occurred. Exiting...")
     sys.exit(1)
 
@@ -87,9 +91,9 @@ def on_timeout():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in nf_list:
+    for n in procs_list:
         try:
-            os.system("sudo pkill -P " + n)
+            os.system("sudo pkill -P" + n.pid)
         except OSError:
             pass
     print("Exiting...")
@@ -123,7 +127,6 @@ procs_list = []
 nf_list = []
 cmds_list = []
 log_files = []
-pid_dict = {}
 timeout = 0
 if __name__ == '__main__':
     signal(SIGINT, handler)
@@ -196,23 +199,5 @@ if __name__ == '__main__':
         except OSError:
             pass
         os.chdir(cwd)
-    
-    for nf in nf_list:
-        if pid_dict.get(nf) is None:
-            try:
-                command = "ps -ef | grep sudo | grep " + nf + " | grep -v 'grep' | awk '{print $2}'"
-                pids = os.popen(command)
-                process_ids = pids.read()
-                if process_ids != "":
-                    process_ids = process_ids.split('\n')
-                    num_of_nf = len(process_ids) - nf_list.count(nf)
-                    if num_of_nf != 0:
-                        pid_dict[nf] = process_ids[num_of_nf:]
-                    else:
-                        pid_dict[nf] = process_ids
-            except:
-                pass
-    for pid_list in pid_dict:
-        for _pid in pid_list:
-            print("pid %s" % (_pid), flush=True)
+
     running_services()

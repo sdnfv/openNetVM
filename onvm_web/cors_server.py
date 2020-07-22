@@ -148,9 +148,6 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                                 if i != "":
                                     os.kill(int(i), signal.SIGKILL)
                     log = log_file.readline()
-            # for pid in pids:
-            #     command = ['sudo', 'kill', '-TERM', str(pid)]
-            #     subprocess.Popen(command)
             # reset is_running
             is_running = -1
             response_code = 200
