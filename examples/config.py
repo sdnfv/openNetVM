@@ -83,7 +83,7 @@ def on_failure():
         if temp != "":
             _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
             _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
-            print(_pid_for_nf)
+            os.kill(int(temp), SIGKILL)
             os.kill(int(_pid_for_nf), SIGKILL)
     # for n in procs_list:
     #     try:
@@ -104,10 +104,11 @@ def on_timeout():
         i = i.replace(str(script_pid), "")
         temp = os.popen("ps -ef | awk '{if($3 == " + i + ") print $2 " " $3}'")
         temp = temp.read().replace(str(i), "").replace("\n", "")
-        _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
-        _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
-        os.kill(int(_pid_for_nf), SIGKILL)
-        print(_pid_for_nf)
+        if temp != "":
+            _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
+            _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
+            os.kill(int(temp), SIGKILL)
+            os.kill(int(_pid_for_nf), SIGKILL)
     print("Exiting...")
     sys.exit(0)
 
