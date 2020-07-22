@@ -83,9 +83,7 @@ def on_failure():
         if temp != "":
             _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
             _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
-            os.kill(int(i), SIGKILL)
-            os.kill(int(temp), SIGKILL)
-            os.kill(int(_pid_for_nf), SIGKILL)
+            os.system("sudo kill " + _pid_for_nf)
     # for n in procs_list:
     #     try:
     #         os.system("sudo pkill -P" + n.pid)
@@ -108,8 +106,6 @@ def on_timeout():
         if temp != "":
             _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
             _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
-            os.system("sudo kill " + str(i))
-            os.system("sudo kill " + temp)
             os.system("sudo kill " + _pid_for_nf)
     print("Exiting...")
     sys.exit(0)
