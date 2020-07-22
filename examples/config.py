@@ -73,9 +73,15 @@ def on_failure():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in nf_list:
+    # for n in nf_list:
+    #     try:
+    #         os.system("sudo" + n)
+    #     except OSError:
+    #         pass
+    for p in procs_list:
         try:
-            os.system("sudo pkill " + n)
+            command = ["sudo", "kill", "-TERM", str(p.pid)]
+            Popen(command)
         except OSError:
             pass
     print("Error occurred. Exiting...")

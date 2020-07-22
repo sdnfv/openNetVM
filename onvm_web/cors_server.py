@@ -11,9 +11,9 @@ import cgi
 # use this variable to track if the nf is still running
 # if the nf chain is running, 1
 # if the nf chain is not running, -1
-global is_running
+global is_running, pids
 is_running = -1
-
+pids = []
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     # CORS setup
@@ -78,7 +78,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
     # handle start NF chain event
     def start_nf_chain(self):
-        global is_running
+        global is_running, pids
 
         # test if the config file have been uploaded
         if not os.path.getsize("../examples/nf_chain_config.json"):
@@ -106,6 +106,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             response_code = 200
             response = json.dumps(
                 {'status': '200', 'message': 'start nfs successed', 'pid': str(p.pid)})
+            pids.append(p.pid)
             # change back to web dir for correct output
             os.chdir('../onvm_web/')
         except OSError:
@@ -118,7 +119,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
     # handle stop nf request
     def stop_nf_chain(self):
-        global is_running
+        global is_running, pids
         try:
             # check if the process is already stopped
             is_running = self.check_is_running()
@@ -128,23 +129,26 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 self.send_message(500, response)
                 return None
             # open the log file to read the process name of the nfs
-            with open('./log.txt', 'r') as log_file:
-                log = log_file.readline()
-                while log is not None and log != "":
-                    log_info = log.split(" ")
-                    if log_info[0] == "Starting":
-                        # get the pids of the nfs
-                        command = "ps -ef | grep sudo | grep " + \
-                            log_info[1] + \
-                            " | grep -v 'grep' | awk '{print $2}'"
-                        pids = os.popen(command)
-                        pid_processes = pids.read()
-                        if pid_processes != "":
-                            pid_processes = pid_processes.split("\n")
-                            for i in pid_processes:
-                                if i != "":
-                                    os.kill(int(i), signal.SIGKILL)
-                    log = log_file.readline()
+            # with open('./log.txt', 'r') as log_file:
+            #     log = log_file.readline()
+            #     while log is not None and log != "":
+            #         log_info = log.split(" ")
+            #         if log_info[0] == "Starting":
+            #             # get the pids of the nfs
+            #             command = "ps -ef | grep sudo | grep " + \
+            #                 log_info[1] + \
+            #                 " | grep -v 'grep' | awk '{print $2}'"
+            #             pids = os.popen(command)
+            #             pid_processes = pids.read()
+            #             if pid_processes != "":
+            #                 pid_processes = pid_processes.split("\n")
+            #                 for i in pid_processes:
+            #                     if i != "":
+            #                         os.kill(int(i), signal.SIGKILL)
+            #         log = log_file.readline()
+            for pid in pids:
+                command = ['sudo', 'kill', '-TERM', str(pid)]
+                subprocess.Popen(command)
             # reset is_running
             is_running = -1
             response_code = 200
