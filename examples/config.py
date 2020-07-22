@@ -74,7 +74,7 @@ def on_failure():
         lf.close()
     script_pid = os.getpid()
     pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + " print $2 " " $3)}'")
-    pid_list = pid_list.split("\n")
+    pid_list = pid_list.read().split("\n")
     print(pid_list)
     for i in pid_list:
         i = i.replace(script_pid, "")
@@ -93,7 +93,7 @@ def on_timeout():
         lf.close()
     script_pid = os.getpid()
     pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + " print $2 " " $3)}'")
-    pid_list = pid_list.split("\n")
+    pid_list = pid_list.read().split("\n")
     print(pid_list)
     for i in pid_list:
         i = i.replace(script_pid, "")
