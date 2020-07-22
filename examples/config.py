@@ -95,7 +95,7 @@ def on_timeout():
     script_pid = os.getpid()
     pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + ") print $2 " " $3}'")
     pid_list = pid_list.read().split("\n")
-    pid_list = pid_list[:-3]
+    pid_list = pid_list[:-2]
     print(pid_list)
     for i in pid_list:
         i = i.replace(str(script_pid), "")
