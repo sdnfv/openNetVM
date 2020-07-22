@@ -83,6 +83,7 @@ def on_failure():
             command = ["sudo", "kill", "-TERM", str(p.pid)]
             Popen(command)
         except OSError:
+            print("OSError")
             pass
     print("Error occurred. Exiting...")
     sys.exit(1)
