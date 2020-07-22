@@ -44,7 +44,7 @@ import json
 import os
 import shlex
 import time
-from signal import signal, SIGINT
+from signal import signal, SIGINT, SIGKILL
 from subprocess import Popen
 from datetime import datetime
 
@@ -98,6 +98,7 @@ def on_timeout():
         i = i.replace(str(script_pid), "")
         _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
         _pid_for_nf = _pid_for_nf.read().replace(str(i), "").replace("\n", "")
+        os.kill(int(_pid_for_nf), SIGKILL)
         print(_pid_for_nf)
     print("Exiting...")
     sys.exit(0)
