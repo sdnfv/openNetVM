@@ -87,6 +87,7 @@ onvm_ft_create(int cnt, int entry_size) {
                 hash = rte_hash_find_existing(name);
         }
 
+        rte_free(name);
         if (!hash) {
                 return NULL;
         }
@@ -238,4 +239,6 @@ void
 onvm_ft_free(struct onvm_ft *table) {
         rte_hash_reset(table->hash);
         rte_hash_free(table->hash);
+        rte_free(table->data);
+        rte_free(table);
 }
