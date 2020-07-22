@@ -109,8 +109,8 @@ def on_timeout():
             _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
             _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
             os.system("sudo kill " + str(i))
-            os.kill("sudo kill " + temp)
-            os.kill("sudo kill " + _pid_for_nf)
+            os.system("sudo kill " + temp)
+            os.system("sudo kill " + _pid_for_nf)
     print("Exiting...")
     sys.exit(0)
 
