@@ -77,7 +77,7 @@ def on_failure():
     pid_list = pid_list.read().split("\n")
     print(pid_list)
     for i in pid_list:
-        i = i.replace(script_pid, "")
+        i = i.replace(str(script_pid), "")
         print(i)
     # for n in procs_list:
     #     try:
@@ -96,7 +96,7 @@ def on_timeout():
     pid_list = pid_list.read().split("\n")
     print(pid_list)
     for i in pid_list:
-        i = i.replace(script_pid, "")
+        i = i.replace(str(script_pid), "")
         print(i)
     print("Exiting...")
     sys.exit(0)
