@@ -84,7 +84,6 @@ def on_failure():
             Popen(command)
         except OSError:
             print("OSError")
-            pass
     print("Error occurred. Exiting...")
     sys.exit(1)
 
