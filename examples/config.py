@@ -92,7 +92,7 @@ def on_timeout():
     for lf in log_files:
         lf.close()
     script_pid = os.getpid()
-    pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + " print $2 " " $3)}'")
+    pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + ") print $2 " " $3}'")
     pid_list = pid_list.read().split("\n")
     print(pid_list)
     for i in pid_list:
