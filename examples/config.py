@@ -78,9 +78,9 @@ def on_failure():
     #         os.system("sudo" + n)
     #     except OSError:
     #         pass
-    for p in procs_list:
+    for process in procs_list:
         try:
-            command = ["sudo", "kill", "-TERM", str(p.pid)]
+            command = ["sudo", "kill", "-TERM", str(process.pid)]
             Popen(command)
         except OSError:
             print("OSError")
