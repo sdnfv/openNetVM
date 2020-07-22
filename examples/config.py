@@ -78,12 +78,13 @@ def on_failure():
     print(pid_list)
     for i in pid_list:
         i = i.replace(str(script_pid), "")
-        temp = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
+        temp = os.popen("ps -ef | awk '{if($3 == " + i + ") print $2 " " $3}'")
         temp = temp.read().replace(str(i), "").replace("\n", "")
-        _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
-        _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
-        print(_pid_for_nf)
-        os.kill(int(_pid_for_nf), SIGKILL)
+        if temp != "":
+            _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
+            _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
+            print(_pid_for_nf)
+            os.kill(int(_pid_for_nf), SIGKILL)
     # for n in procs_list:
     #     try:
     #         os.system("sudo pkill -P" + n.pid)
@@ -101,7 +102,7 @@ def on_timeout():
     pid_list = pid_list.read().split("\n")[:-2]
     for i in pid_list:
         i = i.replace(str(script_pid), "")
-        temp = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
+        temp = os.popen("ps -ef | awk '{if($3 == " + i + ") print $2 " " $3}'")
         temp = temp.read().replace(str(i), "").replace("\n", "")
         _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
         _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
