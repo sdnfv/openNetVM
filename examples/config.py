@@ -97,7 +97,7 @@ def on_timeout():
     for i in pid_list:
         i = i.replace(str(script_pid), "")
         _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + str(i) + ") print $2 " " $3}'")
-        _pid_for_nf = _pid_for_nf.read()
+        _pid_for_nf = _pid_for_nf.read().replace(str(i), "").replace("\n", "")
         print(_pid_for_nf)
     print("Exiting...")
     sys.exit(0)
