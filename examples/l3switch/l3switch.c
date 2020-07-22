@@ -182,7 +182,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 }
 #endif
                 if (stats->l3fwd_lpm_on) {
-                        dst_port = lpm_get_ipv4_dst_port(ipv4_hdr, pkt->port, stats->lpm_tbl);
+                        dst_port = lpm_get_ipv4_dst_port(ipv4_hdr, pkt->port);
                 } else {
                         dst_port = em_get_ipv4_dst_port(pkt, stats);
                 }
@@ -247,12 +247,12 @@ l3fwd_initialize_dst(struct state_info *stats) {
 
 /* This function frees all allocated data structures and hash tables. */
 static void
-free_tables(struct state_info *stats) {
-        if (stats->l3fwd_lpm_on) {
-                rte_free(stats->l3switch_req);
-                rte_lpm_free(stats->lpm_tbl);
-        } else {
-                onvm_ft_free(stats->em_tbl);
+free_tables(void) {
+        if (lpm_tbl != NULL) {
+                rte_lpm_free(lpm_tbl);
+        }
+        if (em_tbl != NULL) {
+                onvm_ft_free(em_tbl);
         }
 }
 
@@ -318,7 +318,7 @@ main(int argc, char *argv[]) {
          * and hash entry number.
          */
         struct onvm_nf *nf = nf_local_ctx->nf;
-        struct state_info *stats = rte_calloc("state", 1, sizeof(struct state_info), 0);
+        struct state_info *stats = rte_calloc("state", 1, sizeof(struct state_info), 0); // Will be freed my manager.
         if (stats == NULL) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Unable to initialize NF stats.");
@@ -341,8 +341,8 @@ main(int argc, char *argv[]) {
         }
         onvm_nflib_run(nf_local_ctx);
 
-        free_tables(stats);
         onvm_nflib_stop(nf_local_ctx);
+        free_tables();
         printf("If we reach here, program is ending\n");
         return 0;
 }

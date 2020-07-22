@@ -74,10 +74,11 @@ setup_lpm(struct state_info *stats) {
                 printf("Cannot get lpm region for l3switch\n");
                 return -1;
         }
+        rte_free(stats->l3switch_req);
 
-        stats->lpm_tbl = rte_lpm_find_existing(name);
+        lpm_tbl = rte_lpm_find_existing(name);
 
-        if (stats->lpm_tbl == NULL) {
+        if (lpm_tbl == NULL) {
                 printf("No existing LPM_TBL\n");
                 return -1;
         }
@@ -88,7 +89,7 @@ setup_lpm(struct state_info *stats) {
                 if (get_initialized_ports(ipv4_l3fwd_lpm_route_array[i].if_out) == 0)
                         continue;
 
-                ret = rte_lpm_add(stats->lpm_tbl,
+                ret = rte_lpm_add(lpm_tbl,
                         ipv4_l3fwd_lpm_route_array[i].ip,
                         ipv4_l3fwd_lpm_route_array[i].depth,
                         ipv4_l3fwd_lpm_route_array[i].if_out);
@@ -110,11 +111,9 @@ setup_lpm(struct state_info *stats) {
 }
 
 uint16_t
-lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid, void *lookup_struct) {
+lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid) {
         uint32_t next_hop;
-        struct rte_lpm *ipv4_l3fwd_lookup_struct =
-                (struct rte_lpm *)lookup_struct;
-        return (uint16_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
+        return (uint16_t) ((rte_lpm_lookup(lpm_tbl,
                 rte_be_to_cpu_32(((struct ipv4_hdr *)ipv4_hdr)->dst_addr),
                 &next_hop) == 0) ? next_hop : portid);
 }
