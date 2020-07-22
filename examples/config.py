@@ -73,17 +73,13 @@ def on_failure():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    # for n in nf_list:
-    #     try:
-    #         os.system("sudo" + n)
-    #     except OSError:
-    #         pass
-    for process in procs_list:
-        try:
-            command = ["sudo", "kill", "-TERM", str(process.pid)]
-            Popen(command)
-        except OSError:
-            print("OSError")
+    for pid_list in pid_dict.values():
+        # try:
+        #     os.system("sudo killall" + n)
+        # except OSError:
+        #     pass
+        for _pid in pid_list:
+            os.kill(int(_pid), signal.SIGKILL)
     print("Error occurred. Exiting...")
     sys.exit(1)
 
@@ -127,6 +123,7 @@ procs_list = []
 nf_list = []
 cmds_list = []
 log_files = []
+pid_dict = {}
 timeout = 0
 if __name__ == '__main__':
     signal(SIGINT, handler)
@@ -199,5 +196,23 @@ if __name__ == '__main__':
         except OSError:
             pass
         os.chdir(cwd)
-
+    
+    for nf in nf_list:
+        if pid_dict.get(nf) is not None:
+            try:
+                command = "ps -ef | grep sudo | grep " + nf + " | grep -v 'grep' | awk '{print $2}'"
+                pids = os.popen(command)
+                process_ids = pids.read()
+                if process_ids != "":
+                    process_ids = process_ids.split('\n')
+                    num_of_nf = len(process_ids) - nf_list.count(nf)
+                    if num_of_nf != 0:
+                        pid_dict[nf] = process_ids[num_of_nf:]
+                    else:
+                        pid_dict[nf] = process_ids
+            except:
+                pass
+    for pid_list in pid_dict:
+        for _pid in pid_list:
+            print("pid %d" % (_pid), flush=True)
     running_services()

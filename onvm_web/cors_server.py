@@ -16,8 +16,9 @@ is_running = -1
 pids = []
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
-    # CORS setup
+    """HTTP server to process onvm request"""
     def end_headers(self):
+        """Handle CORS request"""
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods',
                          'GET,PUT,POST,DELETE,OPTIONS')
@@ -25,8 +26,8 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                          'Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization')
         SimpleHTTPRequestHandler.end_headers(self)
 
-    # handle post event
     def do_POST(self):
+        """Handle post request"""
         # if request type is form-data
         if self.headers.get('content-type').split(";")[0] == 'multipart/form-data':
             form = cgi.FieldStorage(
@@ -44,7 +45,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 with open("../examples/nf_chain_config.json", 'w+') as f:
                     f.write(str(filevalue, 'utf-8'))
             self.send_message(200)
-            return None
+            return
 
         # get request body and parse it into json format
         post_body = self.rfile.read(int(self.headers.get('content-length')))
@@ -58,7 +59,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             response = json.dumps(
                 {'status': '500', 'message': 'missing request type'})
             self.send_message(500, response)
-            return None
+            return
 
         # handle start nf chain requests
         if request_type == "start":
@@ -71,13 +72,13 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 {'status': '403', 'message': 'unknown request'})
             self.send_message(403, response)
 
-    # handle options request
     def do_OPTIONS(self):
+        """Handle option request"""
         self.send_response(200)
         self.end_headers()
 
-    # handle start NF chain event
     def start_nf_chain(self):
+        """Handle start NF chain event"""
         global is_running, pids
 
         # test if the config file have been uploaded
@@ -119,6 +120,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
     # handle stop nf request
     def stop_nf_chain(self):
+        """"Handle stop nf request"""
         global is_running, pids
         try:
             # check if the process is already stopped
@@ -129,26 +131,26 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 self.send_message(500, response)
                 return None
             # open the log file to read the process name of the nfs
-            # with open('./log.txt', 'r') as log_file:
-            #     log = log_file.readline()
-            #     while log is not None and log != "":
-            #         log_info = log.split(" ")
-            #         if log_info[0] == "Starting":
-            #             # get the pids of the nfs
-            #             command = "ps -ef | grep sudo | grep " + \
-            #                 log_info[1] + \
-            #                 " | grep -v 'grep' | awk '{print $2}'"
-            #             pids = os.popen(command)
-            #             pid_processes = pids.read()
-            #             if pid_processes != "":
-            #                 pid_processes = pid_processes.split("\n")
-            #                 for i in pid_processes:
-            #                     if i != "":
-            #                         os.kill(int(i), signal.SIGKILL)
-            #         log = log_file.readline()
-            for pid in pids:
-                command = ['sudo', 'kill', '-TERM', str(pid)]
-                subprocess.Popen(command)
+            with open('./log.txt', 'r') as log_file:
+                log = log_file.readline()
+                while log is not None and log != "":
+                    log_info = log.split(" ")
+                    if log_info[0] == "Starting":
+                        # get the pids of the nfs
+                        command = "ps -ef | grep sudo | grep " + \
+                            log_info[1] + \
+                            " | grep -v 'grep' | awk '{print $2}'"
+                        pids = os.popen(command)
+                        pid_processes = pids.read()
+                        if pid_processes != "":
+                            pid_processes = pid_processes.split("\n")
+                            for i in pid_processes:
+                                if i != "":
+                                    os.kill(int(i), signal.SIGKILL)
+                    log = log_file.readline()
+            # for pid in pids:
+            #     command = ['sudo', 'kill', '-TERM', str(pid)]
+            #     subprocess.Popen(command)
             # reset is_running
             is_running = -1
             response_code = 200
@@ -163,15 +165,15 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         finally:
             self.clear_log()
 
-    # send response message
     def send_message(self, response_code, message=None):
+        """"Send response message"""
         self.send_response(response_code)
         self.end_headers()
         if message is not None:
             self.wfile.write(str.encode(message))
 
-    # check if the nf is running
     def check_is_running(self):
+        """Check if the nf is running"""
         with open('./log.txt', 'r+') as log_file:
             log = log_file.readline()
             if log is None or log == "":
@@ -184,8 +186,8 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 log = log_file.readline()
         return 1
 
-    # clear output log
     def clear_log(self):
+        """Clear output log"""
         os.remove('./log.txt')
         log_file = open('./log.txt', 'w+')
         log_file.close()
