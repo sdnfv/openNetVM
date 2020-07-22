@@ -168,7 +168,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 
 static void
 populate_ipv4_flow_table(void) {
-        struct onvm_flow_entry *flow_entry = (struct onvm_flow_entry *) 
+        struct onvm_flow_entry *flow_entry = (struct onvm_flow_entry *)
                 rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
         if (flow_entry == NULL) {
                 rte_exit(EXIT_FAILURE, "Unable to populate flow.\n");
