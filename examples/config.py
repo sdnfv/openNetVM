@@ -72,24 +72,42 @@ def on_failure():
     """Handles shutdown on error"""
     for lf in log_files:
         lf.close()
-    for n in procs_list:
-        try:
-            os.system("sudo pkill -P" + n.pid)
-        except OSError:
-            pass
+    try:
+        script_pid = os.getpid()
+        pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + ") print $2 " " $3}'")
+        pid_list = pid_list.read().split("\n")[:-2]
+        for pd in pid_list:
+            pd = pd.replace(str(script_pid), "")
+            temp = os.popen("ps -ef | awk '{if($3 == " + pd + ") print $2 " " $3}'")
+            temp = temp.read().replace(str(pd), "").replace("\n", "")
+            if temp != "":
+                _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
+                _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
+                os.system("sudo kill " + _pid_for_nf)
+    except:
+        pass
     print("Error occurred. Exiting...")
     sys.exit(1)
 
 def on_timeout():
-    """Handles shutdown on error"""
+    """Handles shutdown on timeout"""
     for lf in log_files:
         lf.close()
-    for n in procs_list:
-        try:
-            os.system("sudo pkill -P" + n.pid)
-        except OSError:
-            pass
-    print("Exiting...")
+    try:
+        script_pid = os.getpid()
+        pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(script_pid) + ") print $2 " " $3}'")
+        pid_list = pid_list.read().split("\n")[:-2]
+        for pd in pid_list:
+            pd = pd.replace(str(script_pid), "")
+            temp = os.popen("ps -ef | awk '{if($3 == " + pd + ") print $2 " " $3}'")
+            temp = temp.read().replace(str(pd), "").replace("\n", "")
+            if temp != "":
+                _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2 " " $3}'")
+                _pid_for_nf = _pid_for_nf.read().replace(temp, "").replace("\n", "")
+                os.system("sudo kill " + _pid_for_nf)
+    except:
+        pass
+    print("Exiting on timeout...")
     sys.exit(0)
 
 def running_services():
