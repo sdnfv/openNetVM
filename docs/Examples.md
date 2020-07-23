@@ -12,7 +12,7 @@ command line. The general structure for launching an NF from a config file is
 Any args specified in `<DPDK args>` or `<ONVM ARGS>` will replace the
 corresponding args in the config file. **An important note:** If no DPDK
 or ONVM args are passed, **but** NF args are required, the `-- --` is
-still required. Additionally, launching circular or linear chains with different example NFs from a JSON config file, is supported. 
+still required. Additionally, launching multiple network functions at once, including circular or linear chains, from a JSON config file is supported. 
 For documentation on developing with config files, see
 [NF_Dev](NF_Dev.md)
 
