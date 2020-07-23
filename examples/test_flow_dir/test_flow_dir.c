@@ -75,6 +75,9 @@ static uint32_t destination;
 static int populate_flow = 0;
 
 static struct onvm_flow_entry *flow_entry = NULL;
+
+/* Pointer to the manager flow table */
+extern struct onvm_ft* sdn_ft;
 /*
  * Print a usage message
  */
@@ -86,7 +89,7 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
-        printf(" - `-f : Enable populating sdn flow table. \n");
+        printf(" -  -s : Prepopulate sample flow table rules. \n");
 
 }
 
@@ -97,7 +100,7 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt(argc, argv, "d:p:f")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:s")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
@@ -105,7 +108,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
-                        case 'f':
+                        case 's':
                                 populate_flow = 1;
                                 break;
                         case '?':
@@ -164,10 +167,11 @@ do_stats_display(struct rte_mbuf *pkt) {
  * This function populates a set of flows to the sdn flow table.
  * For each new flow a service chain is created and appended.
  * Each service chain is of max 4 length. This function is not enabled by default.
+ * Users may update the predefined struct with their own rules here.
  */
 
 static void
-populate_ipv4_flow_table(void) {
+populate_sample_ipv4(void) {
         struct onvm_flow_entry *flow_entry = (struct onvm_flow_entry *)
                 rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
         if (flow_entry == NULL) {
@@ -194,7 +198,7 @@ populate_ipv4_flow_table(void) {
                 } else {
                         printf("\nAdding Key: ");
                         _onvm_ft_print_key(&key);
-                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
+                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)flow_entry);
                         if (ret < 0) {
                                 printf("Unable to add key.");
                                 continue;
@@ -296,7 +300,7 @@ main(int argc, char *argv[]) {
 
         if (populate_flow) {
                 printf("Populating flow table. \n");
-                populate_ipv4_flow_table();
+                populate_sample_ipv4();
         }
 
         onvm_nflib_run(nf_local_ctx);

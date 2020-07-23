@@ -305,12 +305,10 @@ onvm_pkt_print_ipv4(struct ipv4_hdr* hdr) {
         printf("\n");
 
         printf("Header Checksum: %" PRIu16 "\n", hdr->hdr_checksum);
-        printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->src_addr,
-               hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF,
-               (hdr->src_addr >> 24) & 0xFF);
-        printf("Destination IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\n", hdr->dst_addr,
-               hdr->dst_addr & 0xFF, (hdr->dst_addr >> 8) & 0xFF, (hdr->dst_addr >> 16) & 0xFF,
-               (hdr->dst_addr >> 24) & 0xFF);
+        printf("Source IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "\n", (hdr->src_addr >> 24) & 0xFF,
+                (hdr->src_addr >> 16) & 0xFF, (hdr->src_addr >> 8) & 0xFF, hdr->src_addr & 0xFF);
+        printf("Destination IP: %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "\n", (hdr->dst_addr >> 24) & 0xFF,
+                (hdr->dst_addr >> 16) & 0xFF, (hdr->dst_addr >> 8) & 0xFF, hdr->dst_addr & 0xFF);
 }
 
 void

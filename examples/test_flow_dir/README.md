@@ -3,7 +3,7 @@ Flow Director Test
 
 This NF demonstrates how to use ONVM's Flow Director. When a packet arrives the NF checks whether it is from a flow that already has a service chain rule. If not, it creates a new rule so the packet will be sent to the destination NF indicated on the command line. Packets that match a rule are processed with the ONVM_NF_ACTION_NEXT action.
 
-This NF demonstrates how to populate the SDN flow table as well as how to create service chain rules for specific flows. To enable this functionality use the -f flag.
+This NF demonstrates how to populate the Manager's flow table as well as how to create service chain rules for specific flows. To enable this functionality use the -s flag.
 
 Compilation and Execution
 --
@@ -26,7 +26,7 @@ App Specific Arguments
 --
   - `-d <dst>`: destination service ID to foward to
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
-  - `f`: populate ONVM's flow director table with predefined flows.
+  - `s`: Prepopulate sample flow table rules.
 
 Config File Support
 --
