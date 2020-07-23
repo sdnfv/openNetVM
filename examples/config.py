@@ -155,8 +155,9 @@ if __name__ == '__main__':
             sys.exit(1)
 
     is_dir = 0
+    prefix = ""
     for k, v in data.items():
-        if k == "objects":
+        if k == "globals":
             for item in v:
                 if "directory" in item:
                     if is_dir == 0:
@@ -172,8 +173,11 @@ if __name__ == '__main__':
                         else:
                             print("Outputting log files to %s" % (log_dir))
                             is_dir = 1
+                if "directory-prefix" in item:
+                    prefix = item['directory-prefix']
                 if "TTL" in item:
                     timeout = item["TTL"]
+
         else:
             for item in v:
                 nf_list.append(k)
@@ -181,7 +185,7 @@ if __name__ == '__main__':
 
     if is_dir == 0:
         time_obj = datetime.now().time()
-        log_dir = time_obj.strftime("%H:%M:%S")
+        log_dir = prefix + time_obj.strftime("%H:%M:%S")
         os.mkdir(log_dir)
         print("Creating directory %s" % (log_dir))
         is_dir = 1
