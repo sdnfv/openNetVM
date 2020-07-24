@@ -1,7 +1,6 @@
 // @flow
 import axios from "axios";
 import React, { Component } from "react";
-
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
@@ -122,22 +121,22 @@ class LaunchNFChainPage extends Component {
           Ensure your ONVM manager is running before uploading and launching
           your chain of NFs. Navigate to the various dashboards on ONVM web to
           observe NF behavior.
-          <br />
-          Output from each NF will be written to the directory specified in your
-          file or to a default timestamped directory.
-        </p>
+            <br />
+            Output from each NF will be written to the directory specified in your
+            file or to a default timestamped directory.
+          </p>
         <p>
           Follow the{" "}
           <a href="https://github.com/catherinemeadows/openNetVM/blob/configScript/docs/NF_Dev.md">
             documentation
-          </a>{" "}
-          in the ONVM repository to learn more about proper formatting for your
-          config file. See an{" "}
+            </a>{" "}
+            in the ONVM repository to learn more about proper formatting for your
+            config file. See an{" "}
           <a href="https://github.com/catherinemeadows/openNetVM/blob/configScript/examples/example_chain.json">
             example
-          </a>{" "}
-          config file.
-        </p>
+            </a>{" "}
+            config file.
+          </p>
         <div>
           <input type="file" onChange={this.onFileChange} />
           <button onClick={this.onFileUpload}>Upload</button>
@@ -153,10 +152,9 @@ class LaunchNFChainPage extends Component {
             }}
           >
             Launch NF Chain
-          </button>
+            </button>
           <button
-            type="submit"
-            onSubmit={this.submitHandler}
+            onClick={this.OnStopHandler}
             style={{
               margin: "5px",
               backgroundColor: "#db4d5b",
@@ -166,11 +164,11 @@ class LaunchNFChainPage extends Component {
             }}
           >
             Terminate
-          </button>
+            </button>
         </div>
-        {this.fileData()}
       </div>
     );
   }
 }
+
 export default LaunchNFChainPage;
