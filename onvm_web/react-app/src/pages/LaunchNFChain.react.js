@@ -120,7 +120,7 @@ class LaunchNFChainPage extends PureComponent<Props> {
   };
 
   render(): React.Node {
-    const { nf_list } = this.props
+    const { nf_list } = this.props.nf_list
     return (
       <Page.content>
         <div
@@ -182,8 +182,8 @@ class LaunchNFChainPage extends PureComponent<Props> {
           </div>
         </div>
         <Grid.col>
-          {nf_list.map(label => (
-            <Grid.row key={label}>
+          {nf_list.map(nf => (
+            <Grid.row>
               Data
             </Grid.row>
           ))}
