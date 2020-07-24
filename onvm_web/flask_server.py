@@ -41,7 +41,7 @@ def handle_start_nf():
         command = ['python3', '../examples/config.py',
                    '../examples/nf_chain_config.json']
         # start the process
-        with open('./nf-chain-logs/log' + chain_counter + '.txt', 'w+') as log_file:
+        with open('./nf-chain-logs/log' + str(chain_counter) + '.txt', 'w+') as log_file:
             os.chdir('../examples/')
             p = subprocess.Popen(command, stdout=log_file,
                                  stderr=log_file, universal_newlines=True)
