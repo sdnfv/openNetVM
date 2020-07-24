@@ -183,22 +183,23 @@ populate_sample_ipv4(void) {
         };
 
         struct test_add_key keys[] = {
-                {{IPv4(101, 0, 0, 0), IPv4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, {1,2,3,4}},
-                {{IPv4(102, 0, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
-                {{IPv4(103, 0, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
+                {{IPv4(100, 10, 0, 0), IPv4(100, 10, 0, 0),  1, 1, IPPROTO_TCP}, {2,3}},
+                {{IPv4(102, 10, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
+                {{IPv4(103, 10, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
         };
 
         uint32_t num_keys = RTE_DIM(keys);
         for (uint32_t i = 0; i < num_keys; i++) {
                 struct onvm_ft_ipv4_5tuple key;
+                memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
                 key = keys[i].key;
-                int ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)flow_entry);
+                int ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
                 if (ret >= 0) {
                         continue;
                 } else {
                         printf("\nAdding Key: ");
                         _onvm_ft_print_key(&key);
-                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)flow_entry);
+                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
                         if (ret < 0) {
                                 printf("Unable to add key.");
                                 continue;
@@ -246,7 +247,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         struct onvm_ft_ipv4_5tuple key;
         memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
         onvm_ft_fill_key(&key, pkt);
-        ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)flow_entry);
+        ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
         if (ret >= 0) {
                 meta->action = ONVM_NF_ACTION_NEXT;
         } else {
@@ -306,6 +307,7 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+        flow_entry = NULL;
         rte_free(flow_entry);
         printf("If we reach here, program is ending\n");
         return 0;

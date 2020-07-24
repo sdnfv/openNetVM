@@ -149,16 +149,16 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
         }
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
         key->proto = ipv4_hdr->next_proto_id;
-        key->src_addr = rte_cpu_to_be_32(ipv4_hdr->src_addr);
-        key->dst_addr = rte_cpu_to_be_32(ipv4_hdr->dst_addr);
+        key->src_addr = rte_be_to_cpu_32(ipv4_hdr->src_addr);
+        key->dst_addr = rte_be_to_cpu_32(ipv4_hdr->dst_addr);
         if (key->proto == IP_PROTOCOL_TCP) {
                 tcp_hdr = onvm_pkt_tcp_hdr(pkt);
-                key->src_port = rte_cpu_to_be_16(tcp_hdr->src_port);
-                key->dst_port = rte_cpu_to_be_16(tcp_hdr->dst_port);
+                key->src_port = rte_be_to_cpu_16(tcp_hdr->src_port);
+                key->dst_port = rte_be_to_cpu_16(tcp_hdr->dst_port);
         } else if (key->proto == IP_PROTOCOL_UDP) {
                 udp_hdr = onvm_pkt_udp_hdr(pkt);
-                key->src_port = rte_cpu_to_be_16(udp_hdr->src_port);
-                key->dst_port = rte_cpu_to_be_16(udp_hdr->dst_port);
+                key->src_port = rte_be_to_cpu_16(udp_hdr->src_port);
+                key->dst_port = rte_be_to_cpu_16(udp_hdr->dst_port);
         } else {
                 key->src_port = 0;
                 key->dst_port = 0;
