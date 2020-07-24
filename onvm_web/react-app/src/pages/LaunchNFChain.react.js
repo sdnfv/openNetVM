@@ -1,17 +1,16 @@
 // @flow
 import axios from "axios";
 import React, { Component } from "react";
-import {Page, Grid} from "tabler-react" 
-
+import {Page, Grid} from "tabler-react";
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
-  props = {
-    nf_list: Array<int>()
-  }
+  type State = {|
+    nf_list: Array<string>
+  |};
   nf_counter = 0
 
   // unloadHandler = (event) => {
