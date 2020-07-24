@@ -5,12 +5,12 @@ import {Page, Grid} from "tabler-react";
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
+  props = {
+    nf_list: Array<int>()
+  }
   state = {
     selectedFile: null
   };
-  type State = {|
-    nf_list: Array<string>
-  |};
   nf_counter = 0
 
   // unloadHandler = (event) => {
