@@ -7,7 +7,7 @@ import os
 import subprocess
 
 app = Flask(__name__)
-CORS(app)
+cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*"}})
 
 # pylint: disable=global-at-module-level
 global chain_pid_dict, chain_counter
