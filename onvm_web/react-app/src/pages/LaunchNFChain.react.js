@@ -10,6 +10,7 @@ class LaunchNFChainPage extends Component {
     selectedFile: null
   };
   nf_counter = 0
+  nf_list = []
 
   // unloadHandler = (event) => {
   //     event.preventDefault();
@@ -95,9 +96,6 @@ class LaunchNFChainPage extends Component {
     this.state = {
       request_type: "start"
     };
-    this.props = {
-      nf_list: []
-    }
     axios
       .post(`http://${hostName}:8000/start-nf`, this.state)
       .then(response => {
