@@ -14,7 +14,7 @@ global chain_pid_dict, chain_counter
 chain_pid_dict = {}
 chain_counter = 1
 
-@app.route('/upload-file', method=['POST'])
+@app.route('/upload-file', methods=['POST'])
 def handle_upload_file():
     """Handle upload file"""
     try:
@@ -24,7 +24,7 @@ def handle_upload_file():
     except KeyError:
         return "upload file failed", 400
 
-@app.route('/start-nf', method=['POST'])
+@app.route('/start-nf', methods=['POST'])
 def handle_start_nf():
     """Handle start nf"""
     global chain_counter, chain_pid_dict
@@ -48,7 +48,7 @@ def handle_start_nf():
     except OSError:
         return "start nf chain failed", 500
 
-@app.route('/stop-nf', method=['POST'])
+@app.route('/stop-nf', methods=['POST'])
 def handle_stop_nf():
     """Handle stop nf"""
     global chain_pid_dict
