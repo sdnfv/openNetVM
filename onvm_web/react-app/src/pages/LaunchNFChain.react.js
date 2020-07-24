@@ -1,15 +1,13 @@
 // @flow
 import axios from "axios";
 import React, { Component } from "react";
-import {Page} from "tabler-react";
+
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
-  nf_list = []
-  nf_counter = 0
 
   // unloadHandler = (event) => {
   //     event.preventDefault();
@@ -100,9 +98,6 @@ class LaunchNFChainPage extends Component {
       .then(response => {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
-        this.nf_counter += 1
-        this.nf_list.push(this.nf_counter)
-        console.log(this.nf_list.toString())
       })
       .catch(error => {
         console.log(error);
@@ -115,7 +110,6 @@ class LaunchNFChainPage extends Component {
 
   render() {
     return (
-      <Page.content>
         <div
           style={{
             marginLeft: "50px"
@@ -174,7 +168,6 @@ class LaunchNFChainPage extends Component {
             </button>
           </div>
         </div>
-      </Page.content>
     );
   }
 }
