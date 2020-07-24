@@ -1,12 +1,16 @@
 // @flow
 import axios from "axios";
-import React, { Component } from "react";
+import React, { PureComponent } from "react";
 import {Page, Grid} from "tabler-react";
 const hostName = window.location.hostname;
 
-class LaunchNFChainPage extends Component {
+type Props = {|
+  nf_list: Array<int>
+|};
+
+class LaunchNFChainPage extends PureComponent<Props> {
   props = {
-    nf_list: Array<int>()
+    nf_list: []
   }
   state = {
     selectedFile: null
