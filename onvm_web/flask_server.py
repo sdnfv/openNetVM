@@ -14,6 +14,10 @@ global chain_pid_dict, chain_counter
 chain_pid_dict = {}
 chain_counter = 1
 
+@app.route('/', methods=['GET'])
+def handle_get_data():
+    return "success", 200
+
 @app.route('/upload-file', methods=['POST'])
 def handle_upload_file():
     """Handle upload file"""
