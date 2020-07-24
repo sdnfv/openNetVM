@@ -1,7 +1,7 @@
 // @flow
 import axios from "axios";
-
 import React, { Component } from "react";
+import {Page, Grid} from "tabler-react" 
 
 const hostName = window.location.hostname;
 
@@ -9,30 +9,28 @@ class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
+  nf_counter = 0
 
-//   unloadHandler = (event) => {
-//       event.preventDefault();
-//       event.returnValue = "";
-//       this.OnStopHandler();
-//   }
-
-//   componentDidMount() {
-//     window.addEventListener('beforeunload', (this.unloadHandler)); 
-//     // => {
-//     //     event.preventDefault();
-//     //     event.returnValue = "Closing this tab will also close the nf chain, are you sure you want to leave?";
-//     //     return this.OnStopHandler();
-//     // });
-//   }
-
-//   componentWillUnmount() {
-//     // window.removeEventListener('beforeunload', (event) => {
-//     //     return NaN
-//     // });
-//     window.removeEventListener('beforeunload', (this.unloadHandler)); 
-//   }
-
-  // https://stackoverflow.com/questions/36355093/reactjs-browser-tab-close-event
+  // unloadHandler = (event) => {
+  //     event.preventDefault();
+  //     event.returnValue = "";
+  //     this.OnStopHandler();
+  // }
+  // 
+  // componentDidMount() {
+  //   window.addEventListener('beforeunload', (this.unloadHandler)); 
+  //   // => {
+  //   //     event.preventDefault();
+  //   //     event.returnValue = "Closing this tab will also close the nf chain, are you sure you want to leave?";
+  //   //     return this.OnStopHandler();
+  //   // });
+  // }
+  // componentWillUnmount() {
+  //   // window.removeEventListener('beforeunload', (event) => {
+  //   //     return NaN
+  //   // });
+  //   window.removeEventListener('beforeunload', (this.unloadHandler)); 
+  // }
 
   // handle file change
   onFileChange = event => {
@@ -45,11 +43,11 @@ class LaunchNFChainPage extends Component {
   // handle submit event
   OnStopHandler = event => {
     this.state = {
-      request_type: "stop"
+      chain_id: 0
     };
 
     axios
-      .post(`http://${hostName}:8000`, this.state)
+      .post(`http://${hostName}:8000/stop-nf`, this.state)
       .then(response => {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
@@ -81,7 +79,7 @@ class LaunchNFChainPage extends Component {
     console.log(this.state.selectedFile);
 
     axios
-      .post(`http://${hostName}:8000`, formData, config)
+      .post(`http://${hostName}:8000/upload-file`, formData, config)
       .then(response => {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
@@ -97,11 +95,17 @@ class LaunchNFChainPage extends Component {
     this.state = {
       request_type: "start"
     };
+    this.props = {
+      nf_list: []
+    }
     axios
-      .post(`http://${hostName}:8000`, this.state)
+      .post(`http://${hostName}:8000/start-nf`, this.state)
       .then(response => {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
+        this.nf_counter += 1
+        nf_list.append(this.nf_counter)
+        console.log(this.props)
       })
       .catch(error => {
         console.log(error);
@@ -112,7 +116,7 @@ class LaunchNFChainPage extends Component {
     });
   };
 
-  render() {
+  render(): React.Node {
     return (
       <div
         style={{
