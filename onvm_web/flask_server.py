@@ -1,10 +1,11 @@
 #!usr/bin/env python3
 """This is the python server that handles onvm web request"""
 
-from flask import Flask, request
-from flask_cors import CORS
 import os
 import subprocess
+import socket
+from flask import Flask, request
+from flask_cors import CORS
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*"}})
@@ -120,4 +121,6 @@ def clear_log(chain_id):
     os.remove(file_name)
 
 if __name__ == "__main__":
-    app.run(host='localhost', port=8000, debug=False)
+    host_name = socket.gethostname()
+    host_ip = socket.gethostbyname(host_name)
+    app.run(host=host_ip, port=8000, debug=False)
