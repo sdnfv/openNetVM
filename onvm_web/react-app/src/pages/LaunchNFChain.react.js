@@ -1,7 +1,7 @@
 // @flow
 import axios from "axios";
 import React, { Component } from "react";
-import {Page, Grid} from "tabler-react";
+import {Page} from "tabler-react";
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
@@ -113,7 +113,7 @@ class LaunchNFChainPage extends Component {
     });
   };
 
-  render(): React.Node {
+  render() {
     return (
       <Page.content>
         <div
