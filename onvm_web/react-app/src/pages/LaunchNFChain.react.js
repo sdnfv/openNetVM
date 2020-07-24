@@ -8,7 +8,7 @@ class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
-  nf_list = Array<int>()
+  nf_list = []
   nf_counter = 0
 
   // unloadHandler = (event) => {
