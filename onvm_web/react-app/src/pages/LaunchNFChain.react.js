@@ -103,7 +103,7 @@ class LaunchNFChainPage extends Component {
         alert("Post request succeeded. Status: " + response.statusText);
         this.nf_counter += 1
         this.nf_list.push(this.nf_counter)
-        console.log(this.props)
+        console.log(this.nf_list)
       })
       .catch(error => {
         console.log(error);
