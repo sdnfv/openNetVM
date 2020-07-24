@@ -1,20 +1,14 @@
 // @flow
 import axios from "axios";
-import React, { PureComponent } from "react";
+import React, { Component } from "react";
 import {Page, Grid} from "tabler-react";
 const hostName = window.location.hostname;
 
-type Props = {|
-  nf_list: Array<int>
-|};
-
-class LaunchNFChainPage extends PureComponent<Props> {
-  props = {
-    nf_list: []
-  }
+class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
+  nf_list = Array<int>()
   nf_counter = 0
 
   // unloadHandler = (event) => {
@@ -107,7 +101,7 @@ class LaunchNFChainPage extends PureComponent<Props> {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
         this.nf_counter += 1
-        this.props.nf_list.push(this.nf_counter)
+        this.nf_list.push(this.nf_counter)
         console.log(this.nf_list.toString())
       })
       .catch(error => {
@@ -120,7 +114,6 @@ class LaunchNFChainPage extends PureComponent<Props> {
   };
 
   render(): React.Node {
-    const { nf_list } = this.props.nf_list
     return (
       <Page.content>
         <div
@@ -182,12 +175,12 @@ class LaunchNFChainPage extends PureComponent<Props> {
           </div>
         </div>
         <Grid.col>
-          {nf_list.map(nf => (
+          {this.nf_list.map(nf => (
             <Grid.row>
               Data
             </Grid.row>
           ))}
-          {nf_list.length === 0 && "No nf chain started"}
+          {this.nf_list.length === 0 && "No nf chain started"}
         </Grid.col>
       </Page.content>
     );
