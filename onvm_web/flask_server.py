@@ -104,7 +104,7 @@ def stop_nf_chain(chain_id):
 
 def check_is_running(chain_id):
     """Check is the process running"""
-    with open('./nf-chain-logs/log' + chain_id + '.txt', 'r') as log_file:
+    with open('./nf-chain-logs/log' + str(chain_id) + '.txt', 'w+') as log_file:
         log = log_file.readline()
         if log is None or log == "":
             return 0
@@ -117,7 +117,7 @@ def check_is_running(chain_id):
 
 def clear_log(chain_id):
     """Clear the log with the input chain id"""
-    file_name = './nf-chain-logs/log' + chain_id + '.txt'
+    file_name = './nf-chain-logs/log' + str(chain_id) + '.txt'
     os.remove(file_name)
 
 if __name__ == "__main__":
