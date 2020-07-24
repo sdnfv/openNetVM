@@ -9,6 +9,9 @@ class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
+  props = {
+    nf_list: Array<int>
+  }
   nf_counter = 0
   nf_list = []
 
@@ -102,7 +105,7 @@ class LaunchNFChainPage extends Component {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
         this.nf_counter += 1
-        this.nf_list.push(this.nf_counter)
+        this.props.nf_list.push(this.nf_counter)
         console.log(this.nf_list.toString())
       })
       .catch(error => {
@@ -115,7 +118,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
-    const {nf_list} = this.nf_list
+    const { nf_list } = this.props
     return (
       <Page.content>
         <div
@@ -182,6 +185,7 @@ class LaunchNFChainPage extends Component {
               Data
             </Grid.row>
           ))}
+          {nf_list.length === 0 && "No nf chain started"}
         </Grid.col>
       </Page.content>
     );
