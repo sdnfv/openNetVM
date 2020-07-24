@@ -10,7 +10,7 @@ class LaunchNFChainPage extends Component {
     selectedFile: null
   };
   props = {
-    nf_list: Array<int>();
+    nf_list: Array<int>()
   }
   nf_counter = 0
 
