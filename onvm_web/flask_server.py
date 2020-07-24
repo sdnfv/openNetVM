@@ -23,7 +23,7 @@ def handle_get_data():
 def handle_upload_file():
     """Handle upload file"""
     try:
-        file_data = request.file['configFile']
+        file_data = request.files['configFile']
         file_data.save("../examples/nf_chain_config.json")
         return "upload file success", 200
     except KeyError:
