@@ -174,14 +174,14 @@ class LaunchNFChainPage extends Component {
             </button>
           </div>
         </div>
-        <Grid.col>
+        {/* <Grid.col>
           {this.nf_list.map(nf => (
             <Grid.row>
               Data
             </Grid.row>
           ))}
           {this.nf_list.length === 0 && "No nf chain started"}
-        </Grid.col>
+        </Grid.col> */}
       </Page.content>
     );
   }
