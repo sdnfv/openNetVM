@@ -121,15 +121,12 @@ onvm_ft_add_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int err;
-        uint32_t softrss;
 
         err = onvm_ft_fill_key(&key, pkt);
         if (err < 0) {
                 return err;
         }
-
-        softrss = onvm_softrss(&key);
-        tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)&key, softrss);
+        tbl_index = rte_hash_add_key_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
         if (tbl_index >= 0) {
                 *data = &table->data[tbl_index * table->entry_size];
         }
@@ -147,15 +144,12 @@ onvm_ft_lookup_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data) {
         int32_t tbl_index;
         struct onvm_ft_ipv4_5tuple key;
         int ret;
-        uint32_t softrss;
 
         ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0) {
                 return ret;
         }
-
-        softrss = onvm_softrss(&key);
-        tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)&key, softrss);
+        tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
         if (tbl_index >= 0) {
                 *data = onvm_ft_get_data(table, tbl_index);
         }
@@ -173,16 +167,12 @@ int32_t
 onvm_ft_remove_pkt(struct onvm_ft *table, struct rte_mbuf *pkt) {
         struct onvm_ft_ipv4_5tuple key;
         int ret;
-        uint32_t softrss;
 
         ret = onvm_ft_fill_key(&key, pkt);
         if (ret < 0) {
                 return ret;
         }
-
-        softrss = onvm_softrss(&key);
-
-        return rte_hash_del_key_with_hash(table->hash, (const void *)&key, softrss);
+        return rte_hash_del_key_with_hash(table->hash, (const void *)&key, pkt->hash.rss);
 }
 
 int
