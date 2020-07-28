@@ -153,7 +153,7 @@ onvm_ft_lookup_pkt(struct onvm_ft *table, struct rte_mbuf *pkt, char **data) {
         if (ret < 0) {
                 return ret;
         }
-        
+
         softrss = onvm_softrss(&key);
         tbl_index = rte_hash_lookup_with_hash(table->hash, (const void *)&key, softrss);
         if (tbl_index >= 0) {

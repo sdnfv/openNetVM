@@ -456,7 +456,6 @@ table_lookup_entry(struct rte_mbuf *pkt, struct flow_info **flow) {
                 return -1;
         }
 
-        memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
         int ret = onvm_ft_fill_key_symmetric(&key, pkt);
         if (ret < 0)
                 return -1;
