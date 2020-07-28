@@ -66,6 +66,9 @@ done
 # Get localhost IP address
 # This might need to change depending on the host address
 host_ip=$(ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}')
+if [[ "$host_ip" == "" ]]
+  host_ip=$(ifconfig | grep inet | grep -v int6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}')
+fi
 echo "$host_ip"
 
 # Start ONVM web stats console at http://localhost:<port num>
@@ -171,14 +174,6 @@ else
   sudo docker start pushgateway
 fi
 
-# is_influxdb_started=$(sudo docker ps -a | grep influxdb)
-# if [[ "$is_influxdb_started" == "" ]]
-# then
-#   sudo docker run -d -p 8086:8086 --name influxdb -v "$ONVM_HOME"/onvm_web/influxdb_data:/var/lib/influxdb influxdb
-# else
-#   sudo docker start influxdb
-# fi
-
 cd "$ONVM_HOME"/onvm_web/node_exporter || usage
 sudo chmod a+x node_exporter
 sudo nohup ./node_exporter &
@@ -190,11 +185,12 @@ sudo rm nf_chain_config.json
 touch nf_chain_config.json
 
 cd "$ONVM_HOME"/onvm_web || usage
-nohup sudo python3 cors_server.py &
+nohup sudo python3 flask_server.py &
 export ONVM_WEB_PID=$!
 
 sudo rm log.txt
 touch log.txt
+mkdir log
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &

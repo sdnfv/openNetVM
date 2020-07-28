@@ -67,13 +67,6 @@ then
   sudo docker stop prometheus
 fi
 
-# # stop influxdb docker container
-# is_influxdb_running=$(sudo docker container ls | grep influxdb)
-# if [[ "$is_influxdb_running" != "" ]]
-# then
-#   sudo docker stop influxdb
-# fi
-
 # stop pushgateway docker container
 is_pushgateway_running=$(sudo docker container ls | grep pushgateway)
 if [[ "$is_pushgateway_running" != "" ]]
@@ -98,6 +91,8 @@ then
   sudo docker rm prometheus
   sudo docker rmi prom/prometheus
 fi
+
+rmdir log
 
 onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
