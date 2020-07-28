@@ -24,6 +24,8 @@ Each NF needs to have a packet handler function.  It must match this specificati
   - `ONVM_NF_ACTION_NEXT`: Forward the packet using the rule from the SDN controller stored in the flow table
   - `ONVM_NF_ACTION_TONF`: Forward the packet to the specified NF
   - `ONVM_NF_ACTION_OUT`: Forward the packet to the specified NIC port
+  
+NFs that set destination ID to 255 will be forwarded with the `ONVM_NF_ACTION_NEXT` action.
 
 NF Library
 --
