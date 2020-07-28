@@ -1,9 +1,15 @@
 // @flow
 import axios from "axios";
 import React, { Component } from "react";
+import {Page, Grid} from 'tabler-react';
+
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
+
+  nf_chain_list = [];
+  nf_chain_counter = 0;
+
   state = {
     selectedFile: null
   };
@@ -47,6 +53,8 @@ class LaunchNFChainPage extends Component {
       .post(`http://${hostName}:8000/stop-nf`, this.state)
       .then(response => {
         console.log(response);
+        this.nf_chain_counter ++;
+        this.nf_chain_list.push(this.nf_chain_counter);
         alert("Post request succeeded. Status: " + response.statusText);
       })
       .catch(error => {
@@ -89,9 +97,6 @@ class LaunchNFChainPage extends Component {
 
   // handle launch nf chain
   onLaunchChain = () => {
-    this.state = {
-      request_type: "start"
-    };
     axios
       .post(`http://${hostName}:8000/start-nf`, this.state)
       .then(response => {
