@@ -148,6 +148,7 @@ onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
                 return -EPROTONOSUPPORT;
         }
         ipv4_hdr = onvm_pkt_ipv4_hdr(pkt);
+        memset(key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
         key->proto = ipv4_hdr->next_proto_id;
         key->src_addr = rte_be_to_cpu_32(ipv4_hdr->src_addr);
         key->dst_addr = rte_be_to_cpu_32(ipv4_hdr->dst_addr);
@@ -223,10 +224,10 @@ onvm_softrss(struct onvm_ft_ipv4_5tuple *key) {
 
         rte_convert_rss_key((uint32_t *)rss_symmetric_key, (uint32_t *)rss_key_be, RTE_DIM(rss_symmetric_key));
 
-        tuple.v4.src_addr = rte_be_to_cpu_32(key->src_addr);
-        tuple.v4.dst_addr = rte_be_to_cpu_32(key->dst_addr);
-        tuple.v4.sport = rte_be_to_cpu_16(key->src_port);
-        tuple.v4.dport = rte_be_to_cpu_16(key->dst_port);
+        tuple.v4.src_addr = key->src_addr;
+        tuple.v4.dst_addr = key->dst_addr;
+        tuple.v4.sport = key->src_port;
+        tuple.v4.dport = key->dst_port;
 
         rss_l3l4 = rte_softrss_be((uint32_t *)&tuple, RTE_THASH_V4_L4_LEN, rss_key_be);
 

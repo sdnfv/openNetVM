@@ -186,12 +186,12 @@ populate_sample_ipv4(void) {
                 {{IPv4(100, 10, 0, 0), IPv4(100, 10, 0, 0),  1, 1, IPPROTO_TCP}, {2,3}},
                 {{IPv4(102, 10, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
                 {{IPv4(103, 10, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
+                {{IPv4(10, 11, 1, 17), IPv4(10, 11, 1, 17),  1234, 1234, IPPROTO_UDP}, {4,3,2}},
         };
 
         uint32_t num_keys = RTE_DIM(keys);
         for (uint32_t i = 0; i < num_keys; i++) {
                 struct onvm_ft_ipv4_5tuple key;
-                memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
                 key = keys[i].key;
                 int ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
                 if (ret >= 0) {
@@ -245,7 +245,6 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         }
 
         struct onvm_ft_ipv4_5tuple key;
-        memset(&key, 0, sizeof(struct onvm_ft_ipv4_5tuple));
         onvm_ft_fill_key(&key, pkt);
         ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
         if (ret >= 0) {
