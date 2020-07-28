@@ -555,6 +555,9 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 
 int
 onvm_nflib_run(struct onvm_nf_local_ctx *nf_local_ctx) {
+        /* Map the sdn_ft table */
+        onvm_flow_dir_nf_init();
+
         int ret;
 
         pthread_t main_loop_thread;

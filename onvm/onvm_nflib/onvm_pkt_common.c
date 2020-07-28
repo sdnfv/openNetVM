@@ -102,7 +102,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                         // and !<return value> is 1.
                         nf->stats.act_drop++;
                         nf->stats.tx += !onvm_pkt_drop(pkts[i]);
-                } else if (meta->action == ONVM_NF_ACTION_NEXT) {
+                } else if (meta->action == ONVM_NF_ACTION_NEXT || meta->destination == 255) {
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         nf->stats.act_next++;
