@@ -103,8 +103,17 @@ values.
 }
 ```
 
-Additionally, a developer can run the [config python script](../examples/config.py) to deploy multiple network functions, including linear or circular chains of multiple NFs, from a JSON config file. An example config file can be found [here](../examples/example_nf_deploy.json). In the config file, a user can specify a number of seconds for the NFs to run before shutdown with the global "TTL". If no timeout is specified, the NFs will run until a raised error or a manual shutdown (Ctrl + C).
-When the NFs are launched, if the user specifies a directory name with the global "directory", a directory will be created (if it does not already exist) with the user-specified name. If a global "directory-prefix" is specified, a directory will be created with the specified prefix + timestamp. If no directory name or prefix is specified, the default name of the created directory will the be the timestamp. Output from each NF will be continuously written to the corresponding log text file within the created or pre-existing directory. Format of the log file name is as follows: "log-NF name-instance ID". To track the output of a NF:
+## Running Groups of NFs
+
+Additionally, a developer can run the [run group script](../examples/run_group.py) to deploy multiple network functions, including linear or circular chains of multiple NFs, from a JSON config file. An example config file can be found [here](../examples/example_nf_deploy.json). "NF Name" indicates the example NF to be run and must be the name of the NF folder in the [examples folder](../examples).
+
+Optional "globals" in the config file include: 
+- "TTL": specifies number of seconds for the NFs to run before shutdown. If no timeout is specified, the NFs will run until a raised error or a manual shutdown (Ctrl + C).
+- "directory": specifies a directory name. A directory will be created (if it does not already exist) for the output log files. 
+- "directory-prefix": a directory will be created with the prefix + timestamp
+	- If no directory name or directory-prefix is specified, the default name of the created directory will the be the timestamp. Output from each NF will be continuously written to the corresponding log text file within the created or pre-existing directory. Format of the log file name will be: "log-NF name-instance ID". 
+
+To track the output of a NF:
 
 ```
 tail -f <logfile name>
@@ -113,7 +122,7 @@ tail -f <logfile name>
 This script must be run within the /examples folder:
 
 ```
-python3 config.py <config file name>
+python3 run_group.py <config file name>
 ```
 
 ### JSON Config File For Deploying Multiple NFs
