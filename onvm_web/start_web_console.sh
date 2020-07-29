@@ -67,6 +67,7 @@ done
 # This might need to change depending on the host address
 host_ip=$(ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}')
 if [[ "$host_ip" == "" ]]
+then
   host_ip=$(ifconfig | grep inet | grep -v int6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}')
 fi
 echo "$host_ip"
@@ -181,16 +182,21 @@ export NODE_PID=$!
 
 # Create all the log files needed for the server
 cd "$ONVM_HOME"/examples
-sudo rm nf_chain_config.json
-touch nf_chain_config.json
+if [ -f "./nf_chain_config.json" ]
+then
+  sudo rm nf_chain_config.json
+  touch nf_chain_config.json
+fi
 
 cd "$ONVM_HOME"/onvm_web || usage
 nohup sudo python3 flask_server.py &
 export ONVM_WEB_PID=$!
 
-sudo rm log.txt
-touch log.txt
-mkdir log
+# Check if the log folder exists
+if [ ! -d "./log" ]
+then
+  mkdir log
+fi
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &

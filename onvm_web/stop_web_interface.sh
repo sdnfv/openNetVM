@@ -92,7 +92,11 @@ then
   sudo docker rmi prom/prometheus
 fi
 
-rmdir log
+# remove the log folder if it exists
+if [ -d "./log" ]
+then
+  rmdir log
+fi
 
 onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
