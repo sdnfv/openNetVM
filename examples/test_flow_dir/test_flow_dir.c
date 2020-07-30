@@ -183,10 +183,10 @@ populate_sample_ipv4(void) {
         };
 
         struct test_add_key keys[] = {
-                {{IPv4(100, 10, 0, 0), IPv4(100, 10, 0, 0),  1, 1, IPPROTO_TCP}, {2,3}},
-                {{IPv4(102, 10, 0, 0), IPv4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
-                {{IPv4(103, 10, 0, 0), IPv4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
-                {{IPv4(10, 11, 1, 17), IPv4(10, 11, 1, 17),  1234, 1234, IPPROTO_UDP}, {4,3,2}},
+                {{RTE_IPV4(100, 10, 0, 0), RTE_IPV4(100, 10, 0, 0),  1, 1, IPPROTO_TCP}, {2,3}},
+                {{RTE_IPV4(102, 10, 0, 0), RTE_IPV4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
+                {{RTE_IPV4(103, 10, 0, 0), RTE_IPV4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
+                {{RTE_IPV4(10, 11, 1, 17), RTE_IPV4(10, 11, 1, 17),  1234, 1234, IPPROTO_UDP}, {4,3,2}},
         };
 
         uint32_t num_keys = RTE_DIM(keys);
