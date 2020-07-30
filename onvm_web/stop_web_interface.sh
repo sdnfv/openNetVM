@@ -98,7 +98,7 @@ then
   rmdir log
 fi
 
-onvm_web_pid=$(ps -ef | grep cors | grep -v "grep" | awk '{print $2}')
+onvm_web_pid=$(ps -ef | grep flask | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
 
