@@ -28,10 +28,10 @@ struct ipv4_l3fwd_em_route {
 
 // src_addr, dst_addr, src_port, dst_port, proto
 struct ipv4_l3fwd_em_route ipv4_l3fwd_em_route_array[] = {
-    {{IPv4(101, 0, 0, 0), IPv4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, 0},
-    {{IPv4(201, 0, 0, 0), IPv4(200, 20, 0, 1),  1, 0, IPPROTO_TCP}, 1},
-    {{IPv4(111, 0, 0, 0), IPv4(100, 30, 0, 1),  0, 2, IPPROTO_TCP}, 2},
-    {{IPv4(211, 0, 0, 0), IPv4(200, 40, 0, 1),  2, 0, IPPROTO_TCP}, 3},
+    {{RTE_IPV4(101, 0, 0, 0), RTE_IPV4(100, 10, 0, 1),  0, 1, IPPROTO_TCP}, 0},
+    {{RTE_IPV4(201, 0, 0, 0), RTE_IPV4(200, 20, 0, 1),  1, 0, IPPROTO_TCP}, 1},
+    {{RTE_IPV4(111, 0, 0, 0), RTE_IPV4(100, 30, 0, 1),  0, 2, IPPROTO_TCP}, 2},
+    {{RTE_IPV4(211, 0, 0, 0), RTE_IPV4(200, 40, 0, 1),  2, 0, IPPROTO_TCP}, 3},
 };
 
 /* Struct that holds info about each flow, and is stored at each flow table entry. */
@@ -85,19 +85,19 @@ populate_ipv4_many_flow_into_table(struct onvm_ft *h, unsigned int nr_flow) {
         switch (i & (NUMBER_PORT_USED - 1)) {
         case 0:
             entry = ipv4_l3fwd_em_route_array[0];
-            entry.key.dst_addr = IPv4(101, c, b, a);
+            entry.key.dst_addr = RTE_IPV4(101, c, b, a);
             break;
         case 1:
             entry = ipv4_l3fwd_em_route_array[1];
-            entry.key.dst_addr = IPv4(201, c, b, a);
+            entry.key.dst_addr = RTE_IPV4(201, c, b, a);
             break;
         case 2:
             entry = ipv4_l3fwd_em_route_array[2];
-            entry.key.dst_addr = IPv4(111, c, b, a);
+            entry.key.dst_addr = RTE_IPV4(111, c, b, a);
             break;
         case 3:
             entry = ipv4_l3fwd_em_route_array[3];
-            entry.key.dst_addr = IPv4(211, c, b, a);
+            entry.key.dst_addr = RTE_IPV4(211, c, b, a);
             break;
         }
         struct data *data = NULL;

@@ -36,14 +36,14 @@ struct ipv4_l3fwd_lpm_route {
 };
 
 static struct ipv4_l3fwd_lpm_route ipv4_l3fwd_lpm_route_array[] = {
-        {IPv4(1, 1, 1, 0), 24, 0},
-        {IPv4(2, 1, 1, 0), 24, 1},
-        {IPv4(3, 1, 1, 0), 24, 2},
-        {IPv4(4, 1, 1, 0), 24, 3},
-        {IPv4(5, 1, 1, 0), 24, 4},
-        {IPv4(6, 1, 1, 0), 24, 5},
-        {IPv4(7, 1, 1, 0), 24, 6},
-        {IPv4(8, 1, 1, 0), 24, 7},
+        {RTE_IPV4(1, 1, 1, 0), 24, 0},
+        {RTE_IPV4(2, 1, 1, 0), 24, 1},
+        {RTE_IPV4(3, 1, 1, 0), 24, 2},
+        {RTE_IPV4(4, 1, 1, 0), 24, 3},
+        {RTE_IPV4(5, 1, 1, 0), 24, 4},
+        {RTE_IPV4(6, 1, 1, 0), 24, 5},
+        {RTE_IPV4(7, 1, 1, 0), 24, 6},
+        {RTE_IPV4(8, 1, 1, 0), 24, 7},
 };
 
 #define IPV4_L3FWD_LPM_NUM_ROUTES \
@@ -114,7 +114,7 @@ uint16_t
 lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid) {
         uint32_t next_hop;
         return (uint16_t) ((rte_lpm_lookup(lpm_tbl,
-                rte_be_to_cpu_32(((struct ipv4_hdr *)ipv4_hdr)->dst_addr),
+                rte_be_to_cpu_32(((struct rte_ipv4_hdr *)ipv4_hdr)->dst_addr),
                 &next_hop) == 0) ? next_hop : portid);
 }
 

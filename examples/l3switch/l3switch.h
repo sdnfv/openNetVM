@@ -58,7 +58,7 @@
 /*Struct that holds all NF state information */
 struct state_info {
         struct lpm_request *l3switch_req;
-        struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
+        struct rte_ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
         uint64_t port_statistics[RTE_MAX_ETHPORTS];
         xmm_t val_eth[RTE_MAX_ETHPORTS];
         uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];

@@ -163,15 +163,15 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                print_stats(nf_local_ctx);
                counter = 0;
         }
-        struct ether_hdr *eth_hdr;
+        struct rte_ether_hdr *eth_hdr;
         struct ipv4_hdr *ipv4_hdr;
         uint16_t dst_port;
 
-        eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+        eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
         if (onvm_pkt_is_ipv4(pkt)) {
                 /* Handle IPv4 headers.*/
                 ipv4_hdr = rte_pktmbuf_mtod_offset(pkt, struct ipv4_hdr *,
-                                                   sizeof(struct ether_hdr));
+                                                   sizeof(struct rte_ether_hdr));
 
 #ifdef DO_RFC_1812_CHECKS
                 /* Check to make sure the packet is valid (RFC1812) */
@@ -199,7 +199,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 *(uint64_t *)&eth_hdr->d_addr = stats->dest_eth_addr[dst_port];
 
                 /* src addr */
-                ether_addr_copy(&stats->ports_eth_addr[dst_port], &eth_hdr->s_addr);
+                rte_ether_addr_copy(&stats->ports_eth_addr[dst_port], &eth_hdr->s_addr);
 
                 meta->destination = dst_port;
                 stats->port_statistics[dst_port]++;
@@ -240,7 +240,7 @@ l3fwd_initialize_dst(struct state_info *stats) {
         uint16_t i;
         for (i = 0; i < ports->num_ports; i++) {
                 stats->dest_eth_addr[ports->id[i]] =
-                        ETHER_LOCAL_ADMIN_ADDR + ((uint64_t)ports->id[i] << 40);
+                        RTE_ETHER_LOCAL_ADMIN_ADDR + ((uint64_t)ports->id[i] << 40);
                 *(uint64_t *)(stats->val_eth + ports->id[i]) = stats->dest_eth_addr[ports->id[i]];
         }
 }
