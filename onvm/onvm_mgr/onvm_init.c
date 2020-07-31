@@ -116,7 +116,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask);
 static const struct rte_eth_conf port_conf = {
     .rxmode = {
             .mq_mode = ETH_MQ_RX_RSS,
-            .max_rx_pkt_len = ETHER_MAX_LEN,
+            .max_rx_pkt_len = RTE_ETHER_MAX_LEN,
             .split_hdr_size = 0,
             .offloads = DEV_RX_OFFLOAD_CHECKSUM,
         },
@@ -151,7 +151,7 @@ init(int argc, char *argv[]) {
         argv += retval;
 
 #ifdef RTE_LIBRTE_PDUMP
-        rte_pdump_init(NULL);
+        rte_pdump_init();
 #endif
 
         /* get total number of ports */
