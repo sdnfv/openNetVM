@@ -85,8 +85,8 @@ static uint16_t destination;
 /*user defined packet size and destination mac address
 *size defaults to ethernet header length
 */
-static uint16_t packet_size = RTE_ETHER_HDR_LEN;
-static uint8_t d_addr_bytes[RTE_ETHER_ADDR_LEN];
+static uint16_t packet_size = ETHER_HDR_LEN;
+static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
 
 /*  track the -c option to see if it has been filled */
 static uint8_t use_custom_pkt_count = 0;
@@ -142,7 +142,7 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
-        int values[RTE_ETHER_ADDR_LEN];
+        int values[ETHER_ADDR_LEN];
 
         while ((c = getopt(argc, argv, "d:p:s:m:o:c:l")) != -1) {
                 switch (c) {
@@ -159,8 +159,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'm':
                                 count = sscanf(optarg, "%x:%x:%x:%x:%x:%x", &values[0], &values[1], &values[2],
                                                &values[3], &values[4], &values[5]);
-                                if (count == RTE_ETHER_ADDR_LEN) {
-                                        for (i = 0; i < RTE_ETHER_ADDR_LEN; ++i) {
+                                if (count == ETHER_ADDR_LEN) {
+                                        for (i = 0; i < ETHER_ADDR_LEN; ++i) {
                                                 d_addr_bytes[i] = (uint8_t)values[i];
                                         }
                                 } else {
@@ -363,7 +363,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 for (i = 0; i < packet_number; ++i) {
                         struct onvm_pkt_meta *pmeta;
-                        struct rte_ether_hdr *ehdr;
+                        struct ether_hdr *ehdr;
                         int j;
 
                         struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
@@ -373,7 +373,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         }
 
                         /*set up ether header and set new packet size*/
-                        ehdr = (struct rte_ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
+                        ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
                         /*using manager mac addr for source
                         *using input string for dest addr
@@ -382,7 +382,7 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                                 RTE_LOG(INFO, APP, "Using fake MAC address\n");
                                 onvm_get_fake_macaddr(&ehdr->s_addr);
                         }
-                        for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
+                        for (j = 0; j < ETHER_ADDR_LEN; ++j) {
                                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                         }
                         ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;

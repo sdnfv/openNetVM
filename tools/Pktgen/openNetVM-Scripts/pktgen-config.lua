@@ -60,8 +60,7 @@ printf("Total port Count %d\n", pktgen.totalPorts());
 --
 -- Please update this part with the destination mac address, source and destination ip address you would like to sent packets to 
 
-pktgen.set_mac("0", "src", "90:e2:ba:5e:73:6c");
-pktgen.set_mac("1", "dst", "90:e2:ba:5e:73:6d");
+pktgen.set_mac("0", "90:e2:ba:5e:73:6c"); 
 pktgen.set_ipaddr("0", "dst", "10.11.1.17");
 pktgen.set_ipaddr("0", "src", "10.11.1.16");
 

@@ -7,5 +7,4 @@
         path = tools/Pktgen/pktgen-dpdk
         url = http://dpdk.org/git/apps/pktgen-dpdk
         branch = master
-        commit = 807b4d2cfcc8ded46ece85353cefe5d655674de3
-
+        commit = 4199555481cd08fe08e32986c94e59836ca1cd4f 

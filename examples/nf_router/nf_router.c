@@ -186,7 +186,7 @@ do_stats_display(struct rte_mbuf *pkt) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct rte_ipv4_hdr *ip;
+        struct ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -212,9 +212,9 @@ static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct rte_ether_hdr *eth_hdr;
-        struct rte_arp_hdr *in_arp_hdr;
-        struct rte_ipv4_hdr *ip;
+        struct ether_hdr *eth_hdr;
+        struct arp_hdr *in_arp_hdr;
+        struct ipv4_hdr *ip;
         int i;
 
         ip = onvm_pkt_ipv4_hdr(pkt);
@@ -222,8 +222,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         /* If the packet doesn't have an IP header check if its an ARP, if so fwd it to the matched NF */
         if (ip == NULL) {
                 eth_hdr = onvm_pkt_ether_hdr(pkt);
-                if (rte_cpu_to_be_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_ARP) {
-                        in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct rte_arp_hdr *, sizeof(struct rte_ether_hdr));
+                if (rte_cpu_to_be_16(eth_hdr->ether_type) == ETHER_TYPE_ARP) {
+                        in_arp_hdr = rte_pktmbuf_mtod_offset(pkt, struct arp_hdr *, sizeof(struct ether_hdr));
                         for (i = 0; i < nf_count; i++) {
                                 if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) == fwd_nf[i].ip) {
                                         meta->destination = fwd_nf[i].dest;
