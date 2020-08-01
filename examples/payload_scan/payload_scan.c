@@ -203,11 +203,11 @@ static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, stru
         }
 
         if (udp_pkt) {
-                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
-                                                                    sizeof(struct rte_udp_hdr));
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct rte_ether_hdr) +
+                                                   sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr));
         } else {
-                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
-                                                                    sizeof(struct rte_tcp_hdr));
+                pkt_data = rte_pktmbuf_mtod_offset(pkt, uint8_t * , sizeof(struct rte_ether_hdr) +
+                                                   sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_tcp_hdr));
         }
 
         search_match = strstr((const char *) pkt_data, search_term) != NULL;

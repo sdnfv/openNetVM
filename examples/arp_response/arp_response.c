@@ -298,7 +298,8 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                         default:
                                 if (state_info->print_flag) {
                                         printf("ARP with opcode %d, port %d (ID %d) DROPPED\n",
-                                               rte_cpu_to_be_16(in_arp_hdr->arp_opcode), pkt->port, ports->id[pkt->port]);
+                                                rte_cpu_to_be_16(in_arp_hdr->arp_opcode),
+                                                pkt->port, ports->id[pkt->port]);
                                 }
                 }
         }

@@ -196,7 +196,7 @@ onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len, uint32_t
         const uint32_t *p;
 
         k = (union ipv4_5tuple_host*) malloc(sizeof(union ipv4_5tuple_host));
-        memcpy(k, data, sizeof(union ipv4_5tuple_host));  
+        memcpy(k, data, sizeof(union ipv4_5tuple_host));
 
         t = k->proto;
         p = (const uint32_t *)&k->port_src;

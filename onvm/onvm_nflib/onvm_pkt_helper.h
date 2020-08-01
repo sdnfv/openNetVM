@@ -190,7 +190,8 @@ onvm_pkt_fill_ipv4(struct rte_ipv4_hdr* iph, uint32_t src, uint32_t dst, uint8_t
  * Fill the ether header
  */
 int
-onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_addr* dst_mac_addr, struct port_info* ports);
+onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_addr* dst_mac_addr,
+                    struct port_info* ports);
 
 /**
  * Swap the ether header values
