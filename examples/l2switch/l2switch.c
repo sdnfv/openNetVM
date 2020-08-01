@@ -77,7 +77,7 @@ struct state_info {
        /* List of enabled ports. */
        uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
        /* Ethernet addresses of ports. */
-       struct ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+       struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
        struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
        /* MAC updating enabled by default */
        int mac_updating;
@@ -204,14 +204,14 @@ l2fwd_initialize_ports(struct state_info *stats) {
 /* The destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID */
 static void
 l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid, struct state_info *stats) {
-        struct ether_hdr *eth;
+        struct rte_ether_hdr *eth;
         void *tmp;
-        eth = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+        eth = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
 
         /* 02:00:00:00:00:xx */
         tmp = &eth->d_addr.addr_bytes[0];
         *((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
-        ether_addr_copy(tmp, &eth->s_addr);
+        rte_ether_addr_copy(tmp, &eth->s_addr);
 
         if (stats->print_mac) {
                 printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
@@ -224,7 +224,7 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid, struct state_info
         }
 }
 
-/* The destination port is the adjacent port from the enabled portmask, that is, 
+/* The destination port is the adjacent port from the enabled portmask, that is,
  * if the first four ports are enabled (portmask 0xf),
  * ports 1 and 2 forward into each other, and ports 3 and 4 forward into each other.
 */
