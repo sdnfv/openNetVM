@@ -26,7 +26,9 @@ def handle_get_json_stats():
 @app.route('/onvm_json_events.json', methods=['GET'])
 def handle_get_json_events():
     with open("./onvm_json_events.json", 'r') as events_f:
-        event = json.load(events_f)
+        data = events_f.read()
+        data = data[1:][:-1]
+        event = json.loads(data)
     resp = make_response(event)
     return resp, 200
 
