@@ -19,18 +19,18 @@ chain_counter = 1
 @app.route('/onvm_json_stats.json', methods=['GET'])
 def handle_get_json_stats():
     with open("./onvm_json_stats.json", 'r') as data_f:
-        data = json.load(data_f)
-    resp = make_response(data)
+        data = data_f.read()
+    resp = make_response()
+    resp.data = data
     return resp, 200
 
 @app.route('/onvm_json_events.json', methods=['GET'])
 def handle_get_json_events():
     with open("./onvm_json_events.json", 'r') as events_f:
-        data = events_f.read()
-        data = data[1:][:-1]
-        event = json.loads(data)
-    resp = make_response(event)
-    return resp, 200
+        event = events_f.read()
+    resp = make_response()
+    resp.data = event
+    return resp
 
 @app.route('/upload-file', methods=['POST'])
 def handle_upload_file():
@@ -90,7 +90,7 @@ def handle_stop_nf():
         result = 1
         for key in chain_pid_dict:
             if check_is_running(key) != 0:
-                if stop_nf_chain(key) == 0:
+                if stop_nf_chain(chain_pid_dict[key][0]) == 0:
                     result = 0
         chain_pid_dict.clear()
         if result == 0:
@@ -112,17 +112,18 @@ def stop_nf_chain(chain_id):
                 _pid_for_nf = os.popen(
                     "ps -ef | awk '{if($3 == " + temp + ") print $2}'")
                 _pid_for_nf = _pid_for_nf.read().replace("\n", "")
+                print(_pid_for_nf)
                 os.system("sudo kill " + _pid_for_nf)
         clear_log(chain_id)
         return 1
     except OSError:
         return 0
 
-
 def check_is_running(chain_id):
     """Check is the process running"""
-    with open('./nf-chain-logs/log' + str(chain_id) + '.txt', 'w+') as log_file:
+    with open('./nf-chain-logs/log' + str(chain_id) + '.txt', 'r') as log_file:
         log = log_file.readline()
+        print(log)
         if log is None or log == "":
             return 0
         while log is not None and log != "":

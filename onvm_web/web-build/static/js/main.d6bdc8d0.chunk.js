@@ -19,8 +19,8 @@
         u = n(70),
         p = n(3),
         f = n(4),
-        m = n(6),
-        h = n(5),
+        h = n(6),
+        m = n(5),
         d = n(7),
         b = n(71),
         v = n(72),
@@ -76,9 +76,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = { interval: null }),
               n
             );
@@ -251,9 +251,9 @@
             t
           );
         })(a.PureComponent),
-        R = n(14),
-        D = n(30),
-        _ = n.n(D),
+        _ = n(14),
+        R = n(30),
+        D = n.n(R),
         A = {
           x: { label: { text: "X Axis", position: "outer-center" } },
           y: { label: { text: "Y Axis", position: "outer-middle" } }
@@ -265,9 +265,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = {
                 graphData: {
                   xs: {
@@ -284,7 +284,7 @@
                 }
               }),
               (n.dataCallback = function(e, t) {
-                var a = Object(R.a)({}, n.state.graphData),
+                var a = Object(_.a)({}, n.state.graphData),
                   o = a.columns;
                 o[0].push(t),
                   (o[0] = n.trimToSize(o[0], 40)),
@@ -316,7 +316,7 @@
                   var t = x(e, this.dataCallback);
                   if (t) {
                     console.log("Graph Restore: " + this.props.nfLabel);
-                    var n = Object(R.a)({}, this.state.graphData);
+                    var n = Object(_.a)({}, this.state.graphData);
                     (n.columns = t), this.setState({ graphData: n });
                   }
                 }
@@ -374,7 +374,7 @@
                     a.createElement(
                       g.c.Body,
                       null,
-                      a.createElement(_.a, {
+                      a.createElement(D.a, {
                         data: this.state.graphData,
                         axis: A,
                         legend: { show: !0 },
@@ -396,9 +396,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = { nfLabelList: [] }),
               (n.eventHandler = function(e) {
                 var t;
@@ -479,9 +479,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = { portList: [] }),
               (n.eventHandler = function(e) {
                 if (
@@ -583,9 +583,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = { instanceId: null, serviceId: null, core: null }),
               (n.dataCallback = function(e, t) {
                 n.setState({
@@ -679,9 +679,9 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = {
                 nfLabel: n.props.match.params.nfLabel,
                 eventList: []
@@ -826,15 +826,15 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
               )).state = { coreList: {} }),
               (n.eventHandler = function(e) {
                 var t = e.source;
                 ("NF Ready" === e.message || e.message.includes("Start")) &&
                   n.setState(function(n) {
-                    var a = Object(R.a)({}, n.coreList),
+                    var a = Object(_.a)({}, n.coreList),
                       o = t.core;
                     if (((t.msg = e.message), o in a && a[o].length)) {
                       var r = t.instance_id;
@@ -845,7 +845,7 @@
                   ("NF Stopping" === e.message || e.message.includes("End")) &&
                     n.setState(function(t) {
                       var n,
-                        a = Object(R.a)({}, t.coreList),
+                        a = Object(_.a)({}, t.coreList),
                         o = e.source.instance_id,
                         r = !1;
                       for (n in a)
@@ -930,10 +930,10 @@
             var n;
             return (
               Object(p.a)(this, t),
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                Object(h.a)(t).call(this)
-              )).state = Object(R.a)({}, e)),
+                Object(m.a)(t).call(this)
+              )).state = Object(_.a)({}, e)),
               n
             );
           }
@@ -966,17 +966,19 @@
             for (var a = arguments.length, o = new Array(a), r = 0; r < a; r++)
               o[r] = arguments[r];
             return (
-              ((n = Object(m.a)(
+              ((n = Object(h.a)(
                 this,
-                (e = Object(h.a)(t)).call.apply(e, [this].concat(o))
-              )).state = { selectedFile: null }),
+                (e = Object(m.a)(t)).call.apply(e, [this].concat(o))
+              )).nf_chain_list = []),
+              (n.nf_chain_counter = 0),
+              (n.state = { selectedFile: null }),
               (n.onFileChange = function(e) {
                 n.setState({ selectedFile: e.target.files[0], launch: 0 });
               }),
               (n.OnStopHandler = function(e) {
-                (n.state = { request_type: "stop" }),
+                (n.state = { chain_id: 0 }),
                   Y.a
-                    .post("http://".concat($, ":8000"), n.state)
+                    .post("http://".concat($, ":8000/stop-nf"), n.state)
                     .then(function(e) {
                       console.log(e),
                         alert(
@@ -997,7 +999,7 @@
                 );
                 console.log(n.state.selectedFile),
                   Y.a
-                    .post("http://".concat($, ":8000"), e, {
+                    .post("http://".concat($, ":8000/upload-file"), e, {
                       headers: { "Content-Type": "multipart/form-data" }
                     })
                     .then(function(e) {
@@ -1011,18 +1013,17 @@
                     });
               }),
               (n.onLaunchChain = function() {
-                (n.state = { request_type: "start" }),
-                  Y.a
-                    .post("http://".concat($, ":8000"), n.state)
-                    .then(function(e) {
-                      console.log(e),
-                        alert(
-                          "Post request succeeded. Status: " + e.statusText
-                        );
-                    })
-                    .catch(function(e) {
-                      console.log(e), alert(e);
-                    }),
+                Y.a
+                  .post("http://".concat($, ":8000/start-nf"), n.state)
+                  .then(function(e) {
+                    console.log(e),
+                      (n.nf_chain_counter += 1),
+                      n.nf_chain_list.push(n.nf_chain_counter),
+                      alert("Post request succeeded. Status: " + e.statusText);
+                  })
+                  .catch(function(e) {
+                    console.log(e), alert(e);
+                  }),
                   n.setState({ launch: 1 });
               }),
               n
@@ -1035,93 +1036,97 @@
                 key: "render",
                 value: function() {
                   return o.a.createElement(
-                    "div",
-                    { style: { marginLeft: "50px" } },
-                    o.a.createElement("br", null),
-                    o.a.createElement(
-                      "h1",
-                      null,
-                      "Network Function Chain Deployment"
-                    ),
-                    o.a.createElement(
-                      "h4",
-                      null,
-                      "Upload a JSON Configuration File to Launch a Chain of NFs"
-                    ),
-                    o.a.createElement(
-                      "p",
-                      null,
-                      "Ensure your ONVM manager is running before uploading and launching your chain of NFs. Navigate to the various dashboards on ONVM web to observe NF behavior.",
-                      o.a.createElement("br", null),
-                      "Output from each NF will be written to the directory specified in your file or to a default timestamped directory."
-                    ),
-                    o.a.createElement(
-                      "p",
-                      null,
-                      "Follow the",
-                      " ",
-                      o.a.createElement(
-                        "a",
-                        {
-                          href:
-                            "https://github.com/catherinemeadows/openNetVM/blob/configScript/docs/NF_Dev.md"
-                        },
-                        "documentation"
-                      ),
-                      " ",
-                      "in the ONVM repository to learn more about proper formatting for your config file. See an",
-                      " ",
-                      o.a.createElement(
-                        "a",
-                        {
-                          href:
-                            "https://github.com/catherinemeadows/openNetVM/blob/configScript/examples/example_chain.json"
-                        },
-                        "example"
-                      ),
-                      " ",
-                      "config file."
-                    ),
+                    g.e.Content,
+                    null,
                     o.a.createElement(
                       "div",
-                      null,
-                      o.a.createElement("input", {
-                        type: "file",
-                        onChange: this.onFileChange
-                      }),
-                      o.a.createElement(
-                        "button",
-                        { onClick: this.onFileUpload },
-                        "Upload"
-                      ),
-                      o.a.createElement("br", null),
+                      { style: { marginLeft: "50px" } },
                       o.a.createElement("br", null),
                       o.a.createElement(
-                        "button",
-                        {
-                          onClick: this.onLaunchChain,
-                          style: {
-                            backgroundColor: "#48cf7c",
-                            borderRadius: "4px",
-                            border: "none",
-                            padding: "14px 28px"
-                          }
-                        },
-                        "Launch NF Chain"
+                        "h1",
+                        null,
+                        "Network Function Chain Deployment"
                       ),
                       o.a.createElement(
-                        "button",
-                        {
-                          onClick: this.OnStopHandler,
-                          style: {
-                            margin: "5px",
-                            backgroundColor: "#db4d5b",
-                            borderRadius: "4px",
-                            border: "none",
-                            padding: "14px 28px"
-                          }
-                        },
-                        "Terminate"
+                        "h4",
+                        null,
+                        "Upload a JSON Configuration File to Launch a Chain of NFs"
+                      ),
+                      o.a.createElement(
+                        "p",
+                        null,
+                        "Ensure your ONVM manager is running before uploading and launching your chain of NFs. Navigate to the various dashboards on ONVM web to observe NF behavior.",
+                        o.a.createElement("br", null),
+                        "Output from each NF will be written to the directory specified in your file or to a default timestamped directory."
+                      ),
+                      o.a.createElement(
+                        "p",
+                        null,
+                        "Follow the",
+                        " ",
+                        o.a.createElement(
+                          "a",
+                          {
+                            href:
+                              "https://github.com/catherinemeadows/openNetVM/blob/configScript/docs/NF_Dev.md"
+                          },
+                          "documentation"
+                        ),
+                        " ",
+                        "in the ONVM repository to learn more about proper formatting for your config file. See an",
+                        " ",
+                        o.a.createElement(
+                          "a",
+                          {
+                            href:
+                              "https://github.com/catherinemeadows/openNetVM/blob/configScript/examples/example_chain.json"
+                          },
+                          "example"
+                        ),
+                        " ",
+                        "config file."
+                      ),
+                      o.a.createElement(
+                        "div",
+                        null,
+                        o.a.createElement("input", {
+                          type: "file",
+                          onChange: this.onFileChange
+                        }),
+                        o.a.createElement(
+                          "button",
+                          { onClick: this.onFileUpload },
+                          "Upload"
+                        ),
+                        o.a.createElement("br", null),
+                        o.a.createElement("br", null),
+                        o.a.createElement(
+                          "button",
+                          {
+                            onClick: this.onLaunchChain,
+                            style: {
+                              backgroundColor: "#48cf7c",
+                              borderRadius: "4px",
+                              border: "none",
+                              padding: "14px 28px"
+                            }
+                          },
+                          "Launch NF Chain"
+                        ),
+                        o.a.createElement(
+                          "button",
+                          {
+                            onClick: this.OnStopHandler,
+                            style: {
+                              margin: "5px",
+                              backgroundColor: "#db4d5b",
+                              borderRadius: "4px",
+                              border: "none",
+                              padding: "14px 28px"
+                            }
+                          },
+                          "Terminate"
+                        )
                       )
                     )
                   );
