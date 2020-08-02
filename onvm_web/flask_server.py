@@ -4,7 +4,8 @@
 import os
 import subprocess
 import socket
-from flask import Flask, request
+import json
+from flask import Flask, request, make_response
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -14,6 +15,20 @@ cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*"}})
 global chain_pid_dict, chain_counter
 chain_pid_dict = {}
 chain_counter = 1
+
+@app.route('/onvm_json_stats.json', methods=['GET'])
+def handle_get_json_stats():
+    with open("./onvm_json_stats.json", 'r') as data_f:
+        data = json.load(data_f)
+    resp = make_response(data)
+    return resp, 200
+
+@app.route('/onvm_json_events.json', methods=['GET'])
+def handle_get_json_events():
+    with open("./onvm_json_events.json", 'r') as events_f:
+        event = json.load(events_f)
+    resp = make_response(event)
+    return resp, 200
 
 @app.route('/upload-file', methods=['POST'])
 def handle_upload_file():
@@ -48,6 +63,7 @@ def handle_start_nf():
         return "start nf chain success", 200
     except OSError:
         return "start nf chain failed", 500
+
 
 @app.route('/stop-nf', methods=['POST'])
 def handle_stop_nf():
@@ -84,19 +100,22 @@ def handle_stop_nf():
 def stop_nf_chain(chain_id):
     """Stop the chain with the id"""
     try:
-        pid_list = os.popen("ps -ef | awk '{if ($3 == " + str(chain_id) + ") print $2}'")
+        pid_list = os.popen(
+            "ps -ef | awk '{if ($3 == " + str(chain_id) + ") print $2}'")
         pid_list = pid_list.read().split("\n")[:-2]
         for pd in pid_list:
             temp = os.popen("ps -ef | awk '{if($3 == " + pd + ") print $2}'")
             temp = temp.read().replace("\n", "")
             if temp != "":
-                _pid_for_nf = os.popen("ps -ef | awk '{if($3 == " + temp + ") print $2}'")
+                _pid_for_nf = os.popen(
+                    "ps -ef | awk '{if($3 == " + temp + ") print $2}'")
                 _pid_for_nf = _pid_for_nf.read().replace("\n", "")
                 os.system("sudo kill " + _pid_for_nf)
         clear_log(chain_id)
         return 1
     except OSError:
         return 0
+
 
 def check_is_running(chain_id):
     """Check is the process running"""
@@ -111,10 +130,12 @@ def check_is_running(chain_id):
             log = log_file.readline()
     return 1
 
+
 def clear_log(chain_id):
     """Clear the log with the input chain id"""
     file_name = './nf-chain-logs/log' + str(chain_id) + '.txt'
     os.remove(file_name)
+
 
 if __name__ == "__main__":
     host_name = socket.gethostname()
