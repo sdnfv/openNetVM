@@ -82,7 +82,7 @@ onvm_config_parse_file(const char* filename) {
 
         while ((line = fgets(temp_buf, file_length, fp)) != NULL) {
                 str_len = (int)strlen(line);
-                strncpy(tmp, line, str_len);
+                memcpy(tmp, line, str_len);
                 tmp += str_len;
         }
 
@@ -303,7 +303,7 @@ onvm_config_create_nf_arg_list(cJSON* config, int* argc, char** argv[]) {
         }
 
         /* Copy the program name */
-        strncpy(new_argv[0], (*argv)[0], strlen((*argv)[0]));
+        memcpy(new_argv[0], (*argv)[0], strlen((*argv)[0]));
 
         /*First arg has been filled in, so offset by that */
         offset = 1;
@@ -428,7 +428,7 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
                 return -1;
         }
 
-        strncpy((*onvm_argv)[0], FLAG_R, strlen(FLAG_R));
+        memcpy((*onvm_argv)[0], FLAG_R, strlen(FLAG_R));
 
         snprintf(service_id_string, sizeof(char) * MAX_SERVICE_ID_SIZE, "%d", service_id);
         (*onvm_argv)[1] = service_id_string;
@@ -452,7 +452,7 @@ onvm_config_create_onvm_args(cJSON* onvm_config, int* onvm_argc, char** onvm_arg
                         free((*onvm_argv)[0]);
                         return -1;
                 }
-                strncpy((*onvm_argv)[2], FLAG_N, strlen(FLAG_N));
+                memcpy((*onvm_argv)[2], FLAG_N, strlen(FLAG_N));
                 snprintf(instance_id_string, sizeof(char) * MAX_SERVICE_ID_SIZE, "%d", instance_id);
                 (*onvm_argv)[3] = instance_id_string;
         }
@@ -547,12 +547,12 @@ onvm_config_create_dpdk_args(cJSON* dpdk_config, int* dpdk_argc, char** dpdk_arg
                 }
         }
 
-        strncpy((*dpdk_argv)[0], FLAG_L, arg_size[0]);
-        strncpy((*dpdk_argv)[1], core_string, arg_size[1]);
-        strncpy((*dpdk_argv)[2], FLAG_N, arg_size[2]);
-        strncpy((*dpdk_argv)[3], mem_channels_string, arg_size[3]);
-        strncpy((*dpdk_argv)[4], PROC_TYPE_SECONDARY, arg_size[4]);
-        strncpy((*dpdk_argv)[5], FLAG_DASH, arg_size[5]);
+        memcpy((*dpdk_argv)[0], FLAG_L, arg_size[0]);
+        memcpy((*dpdk_argv)[1], core_string, arg_size[1]);
+        memcpy((*dpdk_argv)[2], FLAG_N, arg_size[2]);
+        memcpy((*dpdk_argv)[3], mem_channels_string, arg_size[3]);
+        memcpy((*dpdk_argv)[4], PROC_TYPE_SECONDARY, arg_size[4]);
+        memcpy((*dpdk_argv)[5], FLAG_DASH, arg_size[5]);
 
         free(arg_size);
         free(core_string);
