@@ -14,7 +14,7 @@
 #include <rte_ip.h>
 #include <rte_mbuf.h>
 
-#include "l3switch.h"
+#include "l3fwd.h"
 #include "onvm_flow_table.h"
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"

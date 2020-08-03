@@ -59,7 +59,7 @@
 #include "onvm_nflib.h"
 #include "onvm_flow_table.h"
 #include "onvm_pkt_helper.h"
-#include "l3switch.h"
+#include "l3fwd.h"
 
 #define NF_TAG "l3switch"
 

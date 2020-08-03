@@ -24,7 +24,7 @@
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
-#include "l3switch.h"
+#include "l3fwd.h"
 
 /* Shared data structure containing host port info. */
 extern struct port_info *ports;
