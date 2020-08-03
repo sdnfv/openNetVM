@@ -47,9 +47,9 @@
 
 struct port_info;
 struct rte_mbuf;
-struct tcp_hdr;
-struct udp_hdr;
-struct ipv4_hdr;
+struct rte_tcp_hdr;
+struct rte_udp_hdr;
+struct rte_ipv4_hdr;
 
 #define IP_PROTOCOL_TCP 6
 #define IP_PROTOCOL_UDP 17
@@ -63,8 +63,8 @@ struct ipv4_hdr;
 #define IPV4_TTL 64
 #define UDP_SAMPLE_SRC_PORT 12345
 #define UDP_SAMPLE_DST_PORT 54321
-#define IPV4_SAMPLE_SRC (uint32_t) IPv4(10, 0, 0, 1)
-#define IPV4_SAMPLE_DST (uint32_t) IPv4(10, 0, 0, 2)
+#define IPV4_SAMPLE_SRC (uint32_t) RTE_IPV4(10, 0, 0, 1)
+#define IPV4_SAMPLE_DST (uint32_t) RTE_IPV4(10, 0, 0, 2)
 #define SAMPLE_NIC_PORT 0
 
 /* Returns the bitflags in the tcp header */
@@ -102,16 +102,16 @@ onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct po
 /**
  * Return a pointer to the tcp/udp/ip header in the packet, or NULL if not a TCP packet
  */
-struct tcp_hdr*
+struct rte_tcp_hdr*
 onvm_pkt_tcp_hdr(struct rte_mbuf* pkt);
 
-struct ether_hdr*
+struct rte_ether_hdr*
 onvm_pkt_ether_hdr(struct rte_mbuf* pkt);
 
-struct udp_hdr*
+struct rte_udp_hdr*
 onvm_pkt_udp_hdr(struct rte_mbuf* pkt);
 
-struct ipv4_hdr*
+struct rte_ipv4_hdr*
 onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt);
 
 /**
@@ -133,16 +133,16 @@ void
 onvm_pkt_print(struct rte_mbuf* pkt);  // calls the funcs below
 
 void
-onvm_pkt_print_tcp(struct tcp_hdr* hdr);
+onvm_pkt_print_tcp(struct rte_tcp_hdr* hdr);
 
 void
-onvm_pkt_print_udp(struct udp_hdr* hdr);
+onvm_pkt_print_udp(struct rte_udp_hdr* hdr);
 
 void
-onvm_pkt_print_ipv4(struct ipv4_hdr* hdr);
+onvm_pkt_print_ipv4(struct rte_ipv4_hdr* hdr);
 
 void
-onvm_pkt_print_ether(struct ether_hdr* hdr);
+onvm_pkt_print_ether(struct rte_ether_hdr* hdr);
 
 /**
  * Parsing ip addr of form X.X.X.X into decimal form
@@ -178,52 +178,53 @@ onvm_pkt_set_checksums(struct rte_mbuf* pkt);
  * Fill the packet UDP header
  */
 int
-onvm_pkt_fill_udp(struct udp_hdr* udp_hdr, uint16_t src_port, uint16_t dst_port, uint16_t payload_len);
+onvm_pkt_fill_udp(struct rte_udp_hdr* udp_hdr, uint16_t src_port, uint16_t dst_port, uint16_t payload_len);
 
 /**
  * Fill the packet IP header
  */
 int
-onvm_pkt_fill_ipv4(struct ipv4_hdr* iph, uint32_t src, uint32_t dst, uint8_t l4_proto);
+onvm_pkt_fill_ipv4(struct rte_ipv4_hdr* iph, uint32_t src, uint32_t dst, uint8_t l4_proto);
 
 /**
  * Fill the ether header
  */
 int
-onvm_pkt_fill_ether(struct ether_hdr* eth_hdr, int port, struct ether_addr* dst_mac_addr, struct port_info* ports);
+onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_addr* dst_mac_addr,
+                    struct port_info* ports);
 
 /**
  * Swap the ether header values
  */
 int
-onvm_pkt_swap_ether_hdr(struct ether_hdr* ether_hdr);
+onvm_pkt_swap_ether_hdr(struct rte_ether_hdr* ether_hdr);
 
 /**
  * Generates a UDP packet with the provided values
  */
 int
-onvm_pkt_swap_ip_hdr(struct ipv4_hdr* ip_hdr);
+onvm_pkt_swap_ip_hdr(struct rte_ipv4_hdr* ip_hdr);
 
 /**
  * Generates a TCP packet with the provided values
  */
 int
-onvm_pkt_swap_tcp_hdr(struct tcp_hdr* tcp_hdr);
+onvm_pkt_swap_tcp_hdr(struct rte_tcp_hdr* tcp_hdr);
 
 /**
  * Generates a UDP packet with the provided values
  */
 struct rte_mbuf*
-onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct tcp_hdr* tcp_hdr, struct ipv4_hdr* iph,
-                      struct ether_hdr* eth_hdr, uint8_t* options, size_t option_len, uint8_t* payload,
+onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct rte_tcp_hdr* tcp_hdr, struct rte_ipv4_hdr* iph,
+                      struct rte_ether_hdr* eth_hdr, uint8_t* options, size_t option_len, uint8_t* payload,
                       size_t payload_len);
 
 /**
  * Generates a UDP packet with the provided values
  */
 struct rte_mbuf*
-onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct udp_hdr* udp_hdr, struct ipv4_hdr* iph,
-                      struct ether_hdr* eth_hdr, uint8_t* payload, size_t payload_len);
+onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_hdr, struct rte_ipv4_hdr* iph,
+                      struct rte_ether_hdr* eth_hdr, uint8_t* payload, size_t payload_len);
 
 /**
  * Generates a sample UDP packet
