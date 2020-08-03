@@ -155,7 +155,8 @@ onvm_pkt_tcp_hdr(struct rte_mbuf* pkt) {
                 return NULL;
         }
 
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr);
+        uint8_t* pkt_data =
+                rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr);
         return (struct rte_tcp_hdr*)pkt_data;
 }
 
@@ -173,13 +174,15 @@ onvm_pkt_udp_hdr(struct rte_mbuf* pkt) {
                 return NULL;
         }
 
-        uint8_t* pkt_data = rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr);
+        uint8_t* pkt_data =
+                rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr);
         return (struct rte_udp_hdr*)pkt_data;
 }
 
 struct rte_ipv4_hdr*
 onvm_pkt_ipv4_hdr(struct rte_mbuf* pkt) {
-        struct rte_ipv4_hdr* ipv4 = (struct rte_ipv4_hdr*)(rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr));
+        struct rte_ipv4_hdr* ipv4 =
+                (struct rte_ipv4_hdr*)(rte_pktmbuf_mtod(pkt, uint8_t*) + sizeof(struct rte_ether_hdr));
 
         /* In an IP packet, the first 4 bits determine the version.
          * The next 4 bits are called the Internet Header Length, or IHL.
@@ -624,7 +627,8 @@ onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct rte_tcp_hdr* tcp_
         iph->total_length = rte_cpu_to_be_16(payload_len + option_len + sizeof(struct rte_tcp_hdr) +
                                              sizeof(struct rte_ipv4_hdr) - sizeof(struct rte_ether_hdr));
         printf("Pkt len %d, total iph len %lu\n", pkt->pkt_len,
-               payload_len + option_len + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) - sizeof(struct rte_ether_hdr));
+               payload_len + option_len + sizeof(struct rte_tcp_hdr) +
+               sizeof(struct rte_ipv4_hdr) - sizeof(struct rte_ether_hdr));
 
         /* Handle checksuming */
         onvm_pkt_set_checksums(pkt);
@@ -655,7 +659,8 @@ onvm_pkt_fill_ipv4(struct rte_ipv4_hdr* iph, uint32_t src, uint32_t dst, uint8_t
 }
 
 int
-onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_addr* dst_mac_addr, struct port_info* ports) {
+onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_addr* dst_mac_addr,
+                    struct port_info* ports) {
         int i;
 
         /* Set ether header */
@@ -720,7 +725,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_payload, payload, payload_len);
+        rte_memcpy(pkt_payload, payload, payload_len);
 
         /* Set udp hdr */
         pkt_udp_hdr = (struct rte_udp_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*udp_hdr));
@@ -728,7 +733,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_udp_hdr, udp_hdr, sizeof(*udp_hdr));
+        rte_memcpy(pkt_udp_hdr, udp_hdr, sizeof(*udp_hdr));
 
         /* Set ip hdr */
         pkt_iph = (struct rte_ipv4_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*iph));
@@ -736,7 +741,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_iph, iph, sizeof(*iph));
+        rte_memcpy(pkt_iph, iph, sizeof(*iph));
 
         /* Set eth hdr */
         pkt_eth_hdr = (struct rte_ether_hdr*)rte_pktmbuf_prepend(pkt, sizeof(*eth_hdr));
@@ -744,7 +749,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
                 printf("Failed to prepend data. Consider splitting up the packet.\n");
                 return NULL;
         }
-        memcpy(pkt_eth_hdr, eth_hdr, sizeof(*eth_hdr));
+        rte_memcpy(pkt_eth_hdr, eth_hdr, sizeof(*eth_hdr));
 
         pkt->pkt_len = pkt->data_len;
         iph->total_length = rte_cpu_to_be_16(pkt->pkt_len - sizeof(struct rte_ether_hdr));
