@@ -593,7 +593,7 @@ onvm_stats_print_MAC(uint8_t port) {
                 return err_address;
 
         if (unlikely(addresses[port][0] == '\0')) {
-                struct ether_addr mac;
+                struct rte_ether_addr mac;
                 rte_eth_macaddr_get(port, &mac);
                 snprintf(addresses[port], sizeof(addresses[port]), "%02x:%02x:%02x:%02x:%02x:%02x\n", mac.addr_bytes[0],
                          mac.addr_bytes[1], mac.addr_bytes[2], mac.addr_bytes[3], mac.addr_bytes[4], mac.addr_bytes[5]);
