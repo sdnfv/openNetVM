@@ -163,9 +163,9 @@ Make and test openNetVM
     make
 	cd ..
     ```
-    *Note:* You may see the errors below upon compilation. Please ignore.
+    Note: You may see the errors below upon compilation. Please ignore.
     ```
-    cat: ../openNetVM/onvm/onvm/lib/ABI_VERSION: No such file or directory found
+    cat: ../openNetVM/onvm/lib/ABI_VERSION: No such file or directory found
     cat: ../openNetVM/onvm/onvm_nflib/ABI_VERSION: No such file or directory found
     ```
 
