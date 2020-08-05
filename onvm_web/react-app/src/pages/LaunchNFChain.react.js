@@ -174,11 +174,11 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {nf_list.map(nf => {
+        {nf_list.map(nf => (
           <div>
             {nf}
           </div>
-        })}
+        ))}
       </Grid.col>
       </Page.Content>
     );
