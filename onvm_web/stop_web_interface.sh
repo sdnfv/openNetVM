@@ -95,10 +95,10 @@ fi
 # remove the log folder if it exists
 if [ -d "./nf-chain-logs" ]
 then
-  rmdir nf-chain-logs
+  rm -rf nf-chain-logs
 fi
 
-onvm_web_pid=$(ps -ef | grep flask | grep -v "grep" | awk '{print $2}')
+onvm_web_pid=$(ps -ef | grep flask | grep sudo | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
 
