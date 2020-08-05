@@ -6,6 +6,9 @@ import {Page, Grid} from 'tabler-react';
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
+  props = {
+    nf_chain_list: []
+  }
   nf_chain_list = [];
   nf_chain_counter = 0;
 
@@ -99,7 +102,7 @@ class LaunchNFChainPage extends Component {
       .then(response => {
         console.log(response);
         this.nf_chain_counter += 1;
-        this.nf_chain_list.push(this.nf_chain_counter);
+        this.props.nf_chain_list.push(this.nf_chain_counter);
         alert("Post request succeeded. Status: " + response.statusText);
       })
       .catch(error => {
@@ -112,7 +115,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
-    const {nf_list} = this.nf_chain_list
+    const {nf_chain_list} = this.props
     return (
       <Page.Content>
       <div
@@ -174,10 +177,10 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {this.nf_chain_list.map(nf => (
-          <div>
+        {nf_chain_list.map(nf => (
+          <Grid.row>
             {nf}
-          </div>
+          </Grid.row>
         ))}
       </Grid.col>
       </Page.Content>
