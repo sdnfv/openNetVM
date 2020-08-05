@@ -7,7 +7,7 @@ const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
   props = {
-    nf_chain_list: []
+    nf_chain_list: Array<int>()
   }
   nf_chain_list = [];
   nf_chain_counter = 0;
