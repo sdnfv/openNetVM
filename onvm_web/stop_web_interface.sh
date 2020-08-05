@@ -93,9 +93,9 @@ then
 fi
 
 # remove the log folder if it exists
-if [ -d "./log" ]
+if [ -d "./nf-chain-logs" ]
 then
-  rmdir log
+  rmdir nf-chain-logs
 fi
 
 onvm_web_pid=$(ps -ef | grep flask | grep -v "grep" | awk '{print $2}')

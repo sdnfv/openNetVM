@@ -112,6 +112,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
+    const {nf_list} = this.nf_chain_list
     return (
       <Page.Content>
       <div

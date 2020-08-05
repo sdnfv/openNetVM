@@ -193,9 +193,9 @@ nohup sudo python3 flask_server.py &
 export ONVM_WEB_PID=$!
 
 # Check if the log folder exists
-if [ ! -d "./log" ]
+if [ ! -d "./nf-chain-logs" ]
 then
-  mkdir log
+  mkdir nf-chain-logs
 fi
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
