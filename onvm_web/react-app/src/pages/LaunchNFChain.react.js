@@ -173,6 +173,13 @@ class LaunchNFChainPage extends Component {
             </button>
         </div>
       </div>
+      <Grid.col>
+        {nf_list.map(nf => {
+          <div>
+            {nf}
+          </div>
+        })}
+      </Grid.col>
       </Page.Content>
     );
   }
