@@ -113,6 +113,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
+    const {nf_chain_list} = this.props;
     return (
       <Page.Content>
       <div
@@ -174,7 +175,7 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {this.props.nf_chain_list && this.props.nf_chain_list.map((nf) => (
+        {props.nf_chain_list && props.nf_chain_list.map((nf) => (
           <div key={nf}>hello</div>
         ))}
       </Grid.col>
