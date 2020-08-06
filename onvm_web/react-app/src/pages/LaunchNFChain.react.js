@@ -177,8 +177,8 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {this.props.nf_chain_list.map(nf => (
-          <Grid.row key={nf}>
+        {this.props.nf_chain_list.map((nf,index) => (
+          <Grid.row key={index}>
             hello
           </Grid.row>
         ))}
