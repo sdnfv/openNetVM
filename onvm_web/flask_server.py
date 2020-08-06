@@ -15,21 +15,26 @@ global chain_pid_dict, chain_counter
 chain_pid_dict = {}
 chain_counter = 1
 
+
 @app.route('/onvm_json_stats.json', methods=['GET'])
 def handle_get_json_stats():
+    """handle upload stats json file"""
     with open("./onvm_json_stats.json", 'r') as data_f:
         data = data_f.read()
     resp = make_response()
     resp.data = data
     return resp, 200
 
+
 @app.route('/onvm_json_events.json', methods=['GET'])
 def handle_get_json_events():
+    """handle upload events json file"""
     with open("./onvm_json_events.json", 'r') as events_f:
         event = events_f.read()
     resp = make_response()
     resp.data = event
     return resp
+
 
 @app.route('/upload-file', methods=['POST'])
 def handle_upload_file():
@@ -40,6 +45,7 @@ def handle_upload_file():
         return "upload file success", 200
     except KeyError:
         return "upload file failed", 400
+
 
 @app.route('/start-nf', methods=['POST'])
 def handle_start_nf():
@@ -98,25 +104,27 @@ def handle_stop_nf():
     except KeyError:
         return "failed to find the key", 400
 
+
 def stop_nf_chain(chain_id):
     """Stop the chain with the id"""
     try:
         pid_list = os.popen(
             "ps -ef | awk '{if ($3 == " + str(chain_id) + ") print $2}'")
         pid_list = pid_list.read().split("\n")[:-2]
-        for pd in pid_list:
-            temp = os.popen("ps -ef | awk '{if($3 == " + pd + ") print $2}'")
-            temp = temp.read().replace("\n", "")
-            if temp != "":
-                _pid_for_nf = os.popen(
-                    "ps -ef | awk '{if($3 == " + temp + ") print $2}'")
-                _pid_for_nf = _pid_for_nf.read().replace("\n", "")
-                print(_pid_for_nf)
-                os.system("sudo kill " + _pid_for_nf)
+        pd = pid_list[0]
+        temp = os.popen("ps -ef | awk '{if($3 == " + pd + ") print $2}'")
+        temp = temp.read().replace("\n", "")
+        if temp != "":
+            _pid_for_nf = os.popen(
+                "ps -ef | awk '{if($3 == " + temp + ") print $2}'")
+            _pid_for_nf = _pid_for_nf.read().replace("\n", "")
+            print(_pid_for_nf)
+            os.system("sudo kill " + _pid_for_nf)
         clear_log(chain_id)
         return 1
     except OSError:
         return 0
+
 
 def check_is_running(chain_id):
     """Check is the process running"""
