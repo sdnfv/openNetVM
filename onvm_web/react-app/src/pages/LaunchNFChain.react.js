@@ -47,9 +47,7 @@ class LaunchNFChainPage extends Component {
 
   // handle submit event
   OnStopHandler = event => {
-    this.state = {
-      chain_id: 0
-    };
+    this.setState({chain_id: 0})
 
     axios
       .post(`http://${hostName}:8000/stop-nf`, this.state)
@@ -115,6 +113,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
+    this.props.nf_chain_list=[1]
     const nf_chain_list = this.props.nf_chain_list
     return (
       <Page.Content>
