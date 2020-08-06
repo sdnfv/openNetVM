@@ -179,11 +179,9 @@ class LaunchNFChainPage extends Component {
             </button>
         </div>
       </div>
-      <Grid.col>
-        {nf_chain_list!=undefined && nf_chain_list.map((nf) => (
-          <br />
-        ))}
-      </Grid.col>
+      {nf_chain_list!=undefined && nf_chain_list.map((nf) => (
+        <br />
+      ))}
       </Page.Content>
     );
   }
