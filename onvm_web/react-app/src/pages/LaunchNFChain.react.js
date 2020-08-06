@@ -8,7 +8,7 @@ const hostName = window.location.hostname;
 class LaunchNFChainPage extends Component {
   props = {
     nf_chain_list: [1]
-  }
+  };
   nf_chain_list = [];
   nf_chain_counter = 0;
 
@@ -113,8 +113,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
-    this.props.nf_chain_list=[1]
-    const nf_chain_list = this.props.nf_chain_list
+    const nf_chain_list = [1]
     return (
       <Page.Content>
       <div
