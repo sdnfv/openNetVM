@@ -6,15 +6,10 @@ import {Page, Grid} from 'tabler-react';
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
-
-  props = {
-    nf_chain_list:[]
-  }
-
   constructor(props) {
     super(props);
     this.props = {
-      nf_chain_list:[]
+      nf_chain_list: [1]
     }
   }
   nf_chain_counter = 0;
@@ -23,6 +18,12 @@ class LaunchNFChainPage extends Component {
   state = {
     selectedFile: null
   };
+
+  componentWillMount() {
+    this.props = {
+      nf_chain_list : []
+    }
+  }
 
   // unloadHandler = (event) => {
   //     event.preventDefault();
