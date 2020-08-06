@@ -9,12 +9,6 @@ class LaunchNFChainPage extends Component {
   props = {
     nf_chain_list: []
   }
-  constructor(props) {
-    super(props);
-    this.props = {
-      nf_chain_list: []
-    }
-  }
   nf_chain_counter = 0;
   nf_chain_list = []
 
