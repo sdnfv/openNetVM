@@ -108,7 +108,7 @@ class LaunchNFChainPage extends Component {
       .then(response => {
         console.log(response);
         this.nf_chain_counter += 1;
-        this.nf_chain_list.push(this.nf_chain_counter);
+        this.props.nf_chain_list.push(this.nf_chain_counter);
         alert("Post request succeeded. Status: " + response.statusText);
       })
       .catch(error => {
@@ -121,7 +121,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
-    const {nf_chain_list} = this.nf_chain_list;
+    const {nf_chain_list} = this.props.nf_chain_list;
     return (
       <Page.Content>
       <div
