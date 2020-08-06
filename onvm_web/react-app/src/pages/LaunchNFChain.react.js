@@ -180,7 +180,7 @@ class LaunchNFChainPage extends Component {
             </button>
         </div>
       </div>
-      {nf_chain_list.map((nf) => (
+      {nf_chain_list!==undefined && nf_chain_list.map((nf) => (
         <div key={nf}>
           hello
         </div>
