@@ -7,7 +7,7 @@ const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
   props = {
-    nf_chain_list: Array<int>()
+    nf_chain_list: [1]
   }
   nf_chain_list = [];
   nf_chain_counter = 0;
@@ -177,9 +177,9 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {nf_chain_list.map(nf => (
-          <Grid.row>
-            {nf}
+        {this.props.nf_chain_list.map(nf => (
+          <Grid.row key={nf}>
+            hello
           </Grid.row>
         ))}
       </Grid.col>
