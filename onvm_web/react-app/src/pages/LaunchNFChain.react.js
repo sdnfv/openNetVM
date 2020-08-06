@@ -7,14 +7,16 @@ const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
 
+  props = {
+    nf_chain_list:[]
+  }
+
   constructor(props) {
     super(props);
     this.props = {
       nf_chain_list:[]
     }
   }
-
-  nf_chain_list = [];
   nf_chain_counter = 0;
 
   state = {
@@ -179,7 +181,7 @@ class LaunchNFChainPage extends Component {
             </button>
         </div>
       </div>
-      {nf_chain_list!=undefined && nf_chain_list.map((nf) => (
+      {nf_chain_list!==undefined && nf_chain_list.map((nf) => (
         <br />
       ))}
       </Page.Content>
