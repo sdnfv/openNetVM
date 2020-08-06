@@ -95,6 +95,7 @@ class LaunchNFChainPage extends Component {
 
   // handle launch nf chain
   onLaunchChain = () => {
+    console.log(typeof this.props.nf_chain_list)
     axios
       .post(`http://${hostName}:8000/start-nf`, this.state)
       .then(response => {
