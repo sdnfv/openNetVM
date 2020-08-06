@@ -14,12 +14,6 @@ class LaunchNFChainPage extends Component {
     }
   }
 
-  componentWillMount() {
-    this.props = {
-      nf_chain_list:[]
-    }
-  }
-
   nf_chain_list = [];
   nf_chain_counter = 0;
 
@@ -187,7 +181,7 @@ class LaunchNFChainPage extends Component {
       </div>
       <Grid.col>
         {nf_chain_list.map((nf) => (
-          <div key={nf}>hello</div>
+          <br />
         ))}
       </Grid.col>
       </Page.Content>
