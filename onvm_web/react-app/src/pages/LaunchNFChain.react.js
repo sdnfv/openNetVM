@@ -16,10 +16,6 @@ class LaunchNFChainPage extends Component {
     selectedFile: null
   };
 
-  componentDidMount() {
-    this.props.nf_chain_list = [1]
-  }
-
   // unloadHandler = (event) => {
   //     event.preventDefault();
   //     event.returnValue = "";
@@ -178,7 +174,7 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {this.props.nf_chain_list.map((nf) => (
+        {this.props.nf_chain_list && this.props.nf_chain_list.map((nf) => (
           <div key={nf}>hello</div>
         ))}
       </Grid.col>
