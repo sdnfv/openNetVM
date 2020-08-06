@@ -16,6 +16,10 @@ class LaunchNFChainPage extends Component {
     selectedFile: null
   };
 
+  componentDidMount() {
+    this.props.nf_chain_list = []
+  }
+
   // unloadHandler = (event) => {
   //     event.preventDefault();
   //     event.returnValue = "";
