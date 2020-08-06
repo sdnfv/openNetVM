@@ -14,6 +14,12 @@ class LaunchNFChainPage extends Component {
     }
   }
 
+  componentWillMount() {
+    this.props = {
+      nf_chain_list:[]
+    }
+  }
+
   nf_chain_list = [];
   nf_chain_counter = 0;
 
