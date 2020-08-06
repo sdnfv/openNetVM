@@ -183,7 +183,9 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       {nf_chain_list!==undefined && nf_chain_list.map((nf) => (
-        <br />
+        <div>
+          hello
+        </div>
       ))}
       </Page.Content>
     );
