@@ -13,8 +13,7 @@ class LaunchNFChainPage extends Component {
   nf_chain_counter = 0;
 
   state = {
-    selectedFile: null,
-    nf_chain_list: [1]
+    selectedFile: null
   };
 
   // unloadHandler = (event) => {
@@ -116,7 +115,7 @@ class LaunchNFChainPage extends Component {
   };
 
   render(): React.Node {
-    const {nf_chain_list} = this.props
+    const nf_chain_list = this.props.nf_chain_list
     return (
       <Page.Content>
       <div
@@ -178,10 +177,8 @@ class LaunchNFChainPage extends Component {
         </div>
       </div>
       <Grid.col>
-        {this.state.nf_chain_list.map((nf,index) => (
-          <Grid.row key={index}>
-            hello
-          </Grid.row>
+        {nf_chain_list.map((nf) => (
+          <div key={nf}>hello</div>
         ))}
       </Grid.col>
       </Page.Content>
