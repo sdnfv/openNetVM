@@ -76,9 +76,9 @@ setup_lpm(struct state_info *stats) {
         }
         rte_free(stats->l3switch_req);
 
-        lpm_tbl = rte_lpm_find_existing(name);
+        stats->lpm_tbl = rte_lpm_find_existing(name);
 
-        if (lpm_tbl == NULL) {
+        if (stats->lpm_tbl == NULL) {
                 printf("No existing LPM_TBL\n");
                 return -1;
         }
@@ -89,7 +89,7 @@ setup_lpm(struct state_info *stats) {
                 if (get_initialized_ports(ipv4_l3fwd_lpm_route_array[i].if_out) == 0)
                         continue;
 
-                ret = rte_lpm_add(lpm_tbl,
+                ret = rte_lpm_add(stats->lpm_tbl,
                         ipv4_l3fwd_lpm_route_array[i].ip,
                         ipv4_l3fwd_lpm_route_array[i].depth,
                         ipv4_l3fwd_lpm_route_array[i].if_out);
@@ -111,9 +111,9 @@ setup_lpm(struct state_info *stats) {
 }
 
 uint16_t
-lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid) {
+lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid, struct state_info *stats) {
         uint32_t next_hop;
-        return (uint16_t) ((rte_lpm_lookup(lpm_tbl,
+        return (uint16_t) ((rte_lpm_lookup(stats->lpm_tbl,
                 rte_be_to_cpu_32(((struct rte_ipv4_hdr *)ipv4_hdr)->dst_addr),
                 &next_hop) == 0) ? next_hop : portid);
 }

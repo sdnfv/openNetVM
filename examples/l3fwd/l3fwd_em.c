@@ -122,7 +122,7 @@ em_get_ipv4_dst_port(struct rte_mbuf *pkt, struct state_info *stats) {
     if (ret < 0)
             return pkt->port;
 
-    int tbl_index = onvm_ft_lookup_key(em_tbl, &key, (char **)&data);
+    int tbl_index = onvm_ft_lookup_key(stats->em_tbl, &key, (char **)&data);
     if (tbl_index < 0)
             return 1;
     port = data->if_out;
@@ -131,8 +131,8 @@ em_get_ipv4_dst_port(struct rte_mbuf *pkt, struct state_info *stats) {
 
 int
 setup_hash(struct state_info *stats) {
-    em_tbl = onvm_ft_create(L3FWD_HASH_ENTRIES, sizeof(struct ipv4_l3fwd_em_route));
-    if (em_tbl == NULL) {
+    stats->em_tbl = onvm_ft_create(L3FWD_HASH_ENTRIES, sizeof(struct ipv4_l3fwd_em_route));
+    if (stats->em_tbl == NULL) {
             printf("Unable to create flow table");
             return -1;
     }
@@ -141,14 +141,14 @@ setup_hash(struct state_info *stats) {
          * generate millions of IP 5-tuples with an incremented dst
          * address to initialize the hash table. */
         /* populate the ipv4 hash */
-        populate_ipv4_many_flow_into_table(em_tbl, stats->hash_entry_number);
+        populate_ipv4_many_flow_into_table(stats->em_tbl, stats->hash_entry_number);
     } else {
         /*
          * Use data in ipv4/ipv6 l3fwd lookup table
          * directly to initialize the hash table.
          */
         /* populate the ipv4 hash */
-        populate_ipv4_few_flow_into_table(em_tbl);
+        populate_ipv4_few_flow_into_table(stats->em_tbl);
     }
     return 0;
 }

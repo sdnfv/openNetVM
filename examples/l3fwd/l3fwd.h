@@ -58,6 +58,8 @@
 /*Struct that holds all NF state information */
 struct state_info {
         struct lpm_request *l3switch_req;
+        struct rte_lpm *lpm_tbl;
+        struct onvm_ft *em_tbl;
         struct rte_ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
         uint64_t port_statistics[RTE_MAX_ETHPORTS];
         xmm_t val_eth[RTE_MAX_ETHPORTS];
@@ -69,8 +71,6 @@ struct state_info {
         int8_t l3fwd_em_on;
 };
 
-static struct onvm_ft *em_tbl = NULL;
-static struct rte_lpm *lpm_tbl = NULL;
 /* Function pointers for LPM or EM functionality. */
 
 int
@@ -80,7 +80,7 @@ int
 setup_hash(struct state_info *stats);
 
 uint16_t
-lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid);
+lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid, struct state_info *stats);
 
 uint16_t
 em_get_ipv4_dst_port(struct rte_mbuf *pkt, struct state_info *stats);

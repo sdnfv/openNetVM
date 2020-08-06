@@ -182,7 +182,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 }
 #endif
                 if (stats->l3fwd_lpm_on) {
-                        dst_port = lpm_get_ipv4_dst_port(ipv4_hdr, pkt->port);
+                        dst_port = lpm_get_ipv4_dst_port(ipv4_hdr, pkt->port, stats);
                 } else {
                         dst_port = em_get_ipv4_dst_port(pkt, stats);
                 }
@@ -247,12 +247,12 @@ l3fwd_initialize_dst(struct state_info *stats) {
 
 /* This function frees all allocated data structures and hash tables. */
 static void
-free_tables(void) {
-        if (lpm_tbl != NULL) {
-                rte_lpm_free(lpm_tbl);
+free_tables(struct state_info *stats) {
+        if (stats->lpm_tbl != NULL) {
+                rte_lpm_free(stats->lpm_tbl);
         }
-        if (em_tbl != NULL) {
-                onvm_ft_free(em_tbl);
+        if (stats->em_tbl != NULL) {
+                onvm_ft_free(stats->em_tbl);
         }
 }
 
@@ -341,8 +341,8 @@ main(int argc, char *argv[]) {
         }
         onvm_nflib_run(nf_local_ctx);
 
+        free_tables(stats);
         onvm_nflib_stop(nf_local_ctx);
-        free_tables();
         printf("If we reach here, program is ending\n");
         return 0;
 }
