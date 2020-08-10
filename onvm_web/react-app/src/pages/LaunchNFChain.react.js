@@ -6,6 +6,10 @@ import {Page} from 'tabler-react';
 const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
+  props = {
+    nf_chain_list: [],
+    nf_chain_counter: 0
+  }
   state = {
     selectedFile: null
   };
@@ -94,6 +98,7 @@ class LaunchNFChainPage extends Component {
       .then(response => {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
+        // push another nf chain id to the list
       })
       .catch(error => {
         console.log(error);
@@ -166,6 +171,10 @@ class LaunchNFChainPage extends Component {
             </button>
         </div>
       </div>
+      {nf_chain_list.map(nfs => (
+        <div />
+        // something here
+      ))}
       </Page.Content>
     );
   }
