@@ -196,7 +196,7 @@ Run DPDK HelloWorld Application
 
     sudo ./build/helloworld -l 0,1 -n 1
 
-If the last line of output is as such, then DPDK works
+If the last line of output is as follows, then DPDK works
 
 .. code-block:: bash
     :linenos:
