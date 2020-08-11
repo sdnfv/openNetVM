@@ -37,12 +37,12 @@ And then rebuild DPDK using the install guide or running these commands:
 
 See our release document for more information.
 
-Indices and tables
-####################################
+.. Indices and tables
+.. ####################################
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`
 
 .. toctree::
    :caption: Contents
@@ -50,3 +50,10 @@ Indices and tables
    :maxdepth: 2
 
    Installation Guide </install/index>
+   Contributing </contributing/index>
+   Debugging </debug/index>
+   Running OpenNetVM in Docker <docker/index>
+   OpenNetVM Examples <examples/index>
+   NF Development <nfdev/index>
+   Release Notes <releases/index>
+   MoonGen Installation (DPDK-2.0 Version) <moongen/index>
