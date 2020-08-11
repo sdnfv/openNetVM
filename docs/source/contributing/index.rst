@@ -39,6 +39,5 @@ Good commit messages contain both a subject and body.  The subject provides an o
     :linenos:
    
     git pull --rebase upstream develop
-   
-9. Please fill out the pull request template as best as possible and be very detailed/thorough.
 
+9. Please fill out the pull request template as best as possible and be very detailed/thorough.
