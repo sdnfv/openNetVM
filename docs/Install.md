@@ -163,6 +163,11 @@ Make and test openNetVM
     make
 	cd ..
     ```
+    Note: You may see the errors below upon compilation. Please ignore.
+    ```
+    cat: ../openNetVM/onvm/lib/ABI_VERSION: No such file or directory found
+    cat: ../openNetVM/onvm/onvm_nflib/ABI_VERSION: No such file or directory found
+    ```
 
 2. Compile example NFs
 
@@ -211,15 +216,15 @@ Troubleshooting
     
     Run `dpdk/usertools/dpdk-setup.sh` then:
     
-    - Press [15] to compile x86_64-native-linuxapp-gcc version
+    - Press [38] to compile x86_64-native-linuxapp-gcc version
 
-    - Press [18] to install igb_uio driver for Intel NICs
+    - Press [45] to install igb_uio driver for Intel NICs
 
-    - Press [22] to setup 1024 2MB hugepages
+    - Press [49] to setup 1024 2MB hugepages
 
-    - Press [24] to register the Ethernet ports
+    - Press [51] to register the Ethernet ports
 
-    - Press [35] to quit the tool
+    - Press [62] to quit the tool
     
     After these steps, it should be possible to compile and run onvm. 
 
