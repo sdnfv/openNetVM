@@ -17,20 +17,22 @@ To contribute to OpenNetVM, please follow these steps:
     git remote add upstream https://github.com/sdnfv/openNetVM
 
 4. Update the `develop` branch before starting your work:
+
 .. code-block:: bash
     :linenos:
     
     git pull upstream develop
 
 5. Create a branch off of :code:`develop` for your feature.
-      - We follow the fork/branch workflow where no commits are ever made to `develop` or `master`.  Instead, all development occurs on a separate feature branch.  Please read `this guide https://guides.github.com/introduction/flow/>`_ on the Git workflow.
+      - We follow the fork/branch workflow where no commits are ever made to `develop` or `master`.  Instead, all development occurs on a separate feature branch.  Please read `this guide <https://guides.github.com/introduction/flow/>`_ on the Git workflow.
       
 6. When contributing to documentation for ONVM, please see this `Restructured Text (reST) guide <https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html#explicit-links>`_ for formatting.
 
 7. Add your commits
-      - Good commit messages contain both a subject and body.  The subject provides an overview whereas the body answers the _what_ and _why_.  The body is usually followed by a change list that explains the _how_, and the commit ends with a _test plan_ describing how the developer verified their change.  Please read `this guide <https://chris.beams.io/posts/git-commit/>`_ for more information.
+      - Good commit messages contain both a subject and body.  The subject provides an overview whereas the body answers the *what* and *why*.  The body is usually followed by a change list that explains the *how*, and the commit ends with a *test plan* describing how the developer verified their change.  Please read `this guide <https://chris.beams.io/posts/git-commit/>`_ for more information.
       
 8. When you're ready to submit a pull request, rebase against `develop` and clean up any merge conflicts
+
 .. code-block:: bash
     :linenos:
    
