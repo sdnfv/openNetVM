@@ -15,7 +15,7 @@ For example, you may want to debug `speed tester <https://github.com/sdnfv/openN
     
     export USER_FLAGS="-g -O0"
 
-    - :code:`-g` produces debugging symbols and :code:`-O0` reduces compiler optimizations to the lowest level
+- :code:`-g` produces debugging symbols and :code:`-O0` reduces compiler optimizations to the lowest level
 - Now navigate to your debug target and run :code:`make`
 
 .. code-block:: bash
@@ -72,7 +72,7 @@ Then execute dpdk-pdump as a secondary application when the manager is running
     cd dpdk/x86_64-native-linuxapp-gcc
     sudo ./build/app/pdump/dpdk-pdump -- --pdump 'port=0,queue=*,rx-dev=/tmp/rx.pcap'
 
-Full set of options and configurations for dpdk-pdump can be found `here http://dpdk.org/doc/guides/tools/pdump.html#example>`_.
+Full set of options and configurations for dpdk-pdump can be found `here <http://dpdk.org/doc/guides/tools/pdump.html#example>`_.
 
 Possible crash reasons
 --
