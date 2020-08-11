@@ -50,7 +50,10 @@ if __name__ == "__main__":
                 counter = 0
                 for keys, values in nf_stats.items():
                     gauge_data.set(values['RX'])
-                    nf_name = nf_list[counter]
+                    nf_name = nf_list[counter] + "rx"
+                    is_connection_failed = push_data(gateway_url, nf_name, registry_nf)
+                    gauge_data.set(values['TX'])
+                    nf_name = nf_list[counter] + "tx"
                     is_connection_failed = push_data(gateway_url, nf_name, registry_nf)
                     counter += 1
             except KeyError:
