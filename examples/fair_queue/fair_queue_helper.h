@@ -127,15 +127,20 @@ setup_fairqueue(struct fairqueue_t **fairqueue, uint16_t num_queues) {
  * Free memory allocated to the fairqueue_t struct.
  */
 static int
-destroy_fairqueue(struct fairqueue_t *fairqueue) {
+destroy_fairqueue(struct fairqueue_t **fairqueue) {
         uint16_t i;
 
-        for (i = 0; i < fairqueue->num_queues; i++) {
-                rte_free(fairqueue->fq[i]->pkts);
-                rte_free(fairqueue->fq[i]);
+        if ((*fairqueue) == NULL) {
+                return 0;
         }
-        rte_free(fairqueue->fq);
-        rte_free(fairqueue);
+
+        for (i = 0; i < (*fairqueue)->num_queues; i++) {
+                rte_free((*fairqueue)->fq[i]->pkts);
+                rte_free((*fairqueue)->fq[i]);
+        }
+        rte_free((*fairqueue)->fq);
+        rte_free(*fairqueue);
+        (*fairqueue) = NULL;
         return 0;
 }
 

@@ -34,7 +34,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * fair_queue.c - Simulates fair queueing by categorizing packets based 
+ * fair_queue.c - Simulates fair queueing by categorizing packets based
  *      on IPv4 header values into separate queues and dequeue
  *      packets in a round robin fashion.
  ********************************************************************/
@@ -362,15 +362,17 @@ start_child(void *arg) {
         child_local_ctx->nf->thread_info.parent = parent->instance_id;
         child_local_ctx->nf->data = parent->data;
 
-        rx_loop(child_local_ctx);
+        tx_loop(child_local_ctx);
+
+        /* Invalidate the child data to avoid double freeing of memory */
+        child_local_ctx->nf->data = NULL;
         onvm_nflib_stop(child_local_ctx);
-        free(spawn_info);
         return NULL;
 }
 
 int
 main(int argc, char *argv[]) {
-        pthread_t rx_thread;
+        pthread_t tx_thread;
         pthread_t stats_thread;
         struct onvm_nf_local_ctx *nf_local_ctx;
         struct onvm_nf_function_table *nf_function_table;
@@ -423,19 +425,24 @@ main(int argc, char *argv[]) {
         /* Increment the children count so that stats are displayed and NF does proper cleanup */
         rte_atomic16_inc(&nf->thread_info.children_cnt);
 
-        pthread_create(&rx_thread, NULL, start_child, (void *)child_data);
+        pthread_create(&tx_thread, NULL, start_child, (void *)child_data);
         if (print_stats_flag) {
                 pthread_create(&stats_thread, NULL, do_fq_stats_display, nf->data);
         }
 
-        tx_loop(nf_local_ctx);
-        destroy_fairqueue(nf->data);
-        onvm_nflib_stop(nf_local_ctx);
-
-        pthread_join(rx_thread, NULL);
+        rx_loop(nf_local_ctx);
+        
+        pthread_join(tx_thread, NULL);
         if (print_stats_flag) {
                 pthread_join(stats_thread, NULL);
         }
+
+        /* Free data passed to the child thread */
+        free(child_data);
+
+        /* Free allocated memory for fairqueue */
+        destroy_fairqueue((struct fairqueue_t **)&nf->data);
+        onvm_nflib_stop(nf_local_ctx);
 
         printf("If we reach here, program is ending\n");
         return 0;
