@@ -21,12 +21,12 @@ To use the script, simply run it from the command line with the following option
     
     sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c COMMAND]
 
-- :code:`HUGEPAGES - A path to where the hugepage filesystem is on the host`
-- :code:`ONVM - A path to the openNetVM directory on the host filesystem`
-- :code:`NAME - A name to give the container`
-- :code:`DEVICES - An optional comma deliniated list of NIC devices to map to the container`
-- :code:`DIRECTORY - An optional additional directory to map inside the container.`
-- :code:`COMMAND - An optional command to run in the container. For example, the path to a go script or to the executable of your NF.`
+- :code:`HUGEPAGES` - A path to where the hugepage filesystem is on the host
+- :code:`ONVM` - A path to the openNetVM directory on the host filesystem
+- :code:`NAME` - A name to give the container
+- :code:`DEVICES` - An optional comma deliniated list of NIC devices to map to the container
+- :code:`DIRECTORY` - An optional additional directory to map inside the container.
+- :code:`COMMAND` - An optional command to run in the container. For example, the path to a go script or to the executable of your NF.
 
 .. code-block:: bash
     :linenos:
