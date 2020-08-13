@@ -32,6 +32,7 @@ if __name__ == "__main__":
     registry_nf, gauge_data = create_collector(
         'onvm_nf_stats', 'collected nf stats')
 
+    # keep trying to push data unless the connection failed
     is_connection_failed = 1
     while is_connection_failed != -1:
         try:
@@ -41,9 +42,11 @@ if __name__ == "__main__":
                 event = json.load(events_f)
         except:
             continue
+        # determine if the data is in a valid time interval
         last_update_time = time.mktime(time.strptime(
             data['last_updated'], "%a %b %d %H:%M:%S %Y\n"))
         current_time = time.time()
+        # for now set the time interval to be 5 seconds.
         if current_time - last_update_time > 5:
             pass
         else:
@@ -51,6 +54,7 @@ if __name__ == "__main__":
                 nf_list = []
                 for nfs in event:
                     if nfs['message'] == "NF Starting":
+                        # nf_name constitute the name and the instance id of this nf.
                         nf_name = str(nfs['source']['type']) + \
                             str(nfs['source']['instance_id'])
                         if nf_name not in nf_list:

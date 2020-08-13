@@ -58,11 +58,22 @@ This would only start the web consle and display the web status, it would not st
 
 ## Install Guide
 
-Because Prometheus is running on the official docker image, please make sure you have `docker.io` installed on your machine.
+Because Prometheus, Grafana and pushgateway api are running on their official docker image, please make sure you have `docker.io` installed on your machine.
 If not, please run following command to install it first, otherwise prometheus server may not be able to properly started.
 
 ```sh
 sudo apt install docker.io
+```
+
+You also need to install pushgateway python client in order to run pushgateway
+```sh
+sudo pip install prometheus_client
+```
+
+The python server had been updated to flask server. In order to use flask server you need to install flask and flaks CORS in order to run the server
+```sh
+sudo pip install flask
+sudo pip install -U flask_cors
 ```
 
 ## Design and Implementation

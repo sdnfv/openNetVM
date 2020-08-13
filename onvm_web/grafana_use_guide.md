@@ -40,8 +40,16 @@ You can select any of them to display them. To learn more about advanced query f
 
 The simplest way to save dashboards is click `setting` button on the top right cornor of your dashboard page. Then find JSON Model on the left, and you should see the JSON form data of your dashboard. Copy paste that to your local device or save it in [grafana_dashboard][grafana dashboards] folder.
 
+# About Prometheus
+
+## How to push data to Prometheus
+
+Edit [pushgateway_script][pushgateway_monitor.py] to push data to prometheus pushgateway api. To do that, you can either make a new collector registry or use the same one. You need to push new data to the pushgateway URL with a description. For more information on how to use pushgateway client please visit [pushgateway_website][pushgateway python client] page.
+
 [grafana_lab]: https://grafana.com/grafana/plugins
 [grafana_provision]: ./provisioning
 [start_web_sh]: ./start_web_console.sh
 [grafana_dashboard]: ./provisioning/dashboards
 [prometheus_query]: https://prometheus.io/docs/prometheus/latest/querying/basics/
+[pushgateway_script]: ./pushgateway_monitor.py
+[pushgateway_website]: https://github.com/prometheus/client_python
