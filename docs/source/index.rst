@@ -57,3 +57,9 @@ See our release document for more information.
    NF Development <nfdev/index>
    Release Notes <releases/index>
    MoonGen Installation (DPDK-2.0 Version) <moongen/index>
+   CI Development <cidev/index>
+   Development Environment <devenv/index>
+   NF API <nfapi/index.rst>
+   Frequently Asked Questions <faq/index>
+   Packet Generation Using Pktgen <pktgen/index>
+   Wireshark & Pdump for Packet Sniffing <wireshark/index>

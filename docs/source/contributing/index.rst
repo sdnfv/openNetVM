@@ -31,7 +31,7 @@ We follow the fork/branch workflow where no commits are ever made to :code:`deve
 
 7. Add your commits
 
-Good commit messages contain both a subject and body.  The subject provides an overview whereas the body answers the *what* and *why*.  The body is usually followed by a change list that explains the *how*, and the commit ends with a *test plan* describing how the developer verified their change.  Please read `this guide <https://chris.beams.io/posts/git-commit/>`_ for more information.
+Good commit messages contain both a subject and body.  The subject provides an overview whereas the body answers the *what* and *why*.  The body is usually followed by a change list that explains the *how*, and the commit ends with a *test plan* describing how the developer verified their change.  Please read `this guide <https://chris.beams.io/posts/git-commit/>`__ for more information.
 
 8. When you're ready to submit a pull request, rebase against :code:`develop` and clean up any merge conflicts
 
