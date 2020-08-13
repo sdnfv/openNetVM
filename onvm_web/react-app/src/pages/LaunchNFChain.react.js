@@ -7,11 +7,12 @@ const hostName = window.location.hostname;
 
 class LaunchNFChainPage extends Component {
   props = {
-    nf_chain_list: [],
-    nf_chain_counter: 0
+
   }
   state = {
-    selectedFile: null
+    selectedFile: null,
+    nf_chain_list: [],
+    nf_chain_counter: 0
   };
 
   // unloadHandler = (event) => {
@@ -39,7 +40,9 @@ class LaunchNFChainPage extends Component {
   onFileChange = event => {
     this.setState({
       selectedFile: event.target.files[0],
-      launch: 0
+      launch: 0,
+      nf_chain_list: nf_chain_list,
+      nf_chain_counter: nf_chain_counter
     });
   };
 
@@ -99,6 +102,7 @@ class LaunchNFChainPage extends Component {
         console.log(response);
         alert("Post request succeeded. Status: " + response.statusText);
         // push another nf chain id to the list
+        this.props.nf_chain_counter += 1;
       })
       .catch(error => {
         console.log(error);

@@ -101,6 +101,7 @@ fi
 onvm_web_pid=$(ps -ef | grep flask | grep sudo | grep -v "grep" | awk '{print $2}')
 onvm_web_pid2=$(ps -ef | grep Simple | grep -v "grep" | awk '{print $2}')
 node_pid=$(ps -ef | grep node | grep -v "grep" | awk '{print $2}')
+pushgateway_pid=$(ps -ef | grep pushgateway | grep | grep -v "grep" | awk '{print $2}')
 
 if [[ "$onvm_web_pid" != "" ]]
 then
@@ -115,4 +116,9 @@ fi
 if [[ "$node_pid" != "" ]]
 then
   kill ${node_pid}
+fi
+
+if [[ "$pushgateway_pid" != "" ]]
+then
+  kill ${pushgateway_pid}
 fi

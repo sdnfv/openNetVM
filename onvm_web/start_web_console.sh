@@ -192,6 +192,9 @@ cd "$ONVM_HOME"/onvm_web || usage
 nohup sudo python3 flask_server.py &
 export ONVM_WEB_PID=$!
 
+# Run pushgateway monitor
+nohup sudo python3 pushgateway_monitor.py
+
 # Check if the log folder exists
 if [ ! -d "./nf-chain-logs" ]
 then
