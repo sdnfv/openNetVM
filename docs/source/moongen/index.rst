@@ -8,7 +8,7 @@ Welcome to installation memo for `MoonGen <http://scholzd.github.io/MoonGen/inst
 
 Installation steps are assuming that you have already have OpenNetVM installed. If you have already have OpenNetVM installed, please following the steps below for a double check of your system.
 
-1.1 Check if you have available hugepages
+1.1. Check if you have available hugepages
 
 .. code-block:: bash
     :linenos:
@@ -17,7 +17,7 @@ Installation steps are assuming that you have already have OpenNetVM installed. 
 
 If **HugePages_Free** 's value equals to 0, which means there are no free hugepages available, you probably have to reboot your machine, by :code:`$sudo reboot` to get some released hugepages. 
 
-1.2 Check if you have available ports bound to DPDK
+1.2. Check if you have available ports bound to DPDK
 
 .. code-block:: bash
     :linenos:
@@ -40,16 +40,16 @@ if you got the follwing binding information indicating that you have the two 10-
     0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
 
-1.3 Bind the 10G ports to DPDK
+1.3. Bind the 10G ports to DPDK
 
-1.3.1 Load in your uio linux kernel module
+1.3.1. Load in your uio linux kernel module
 
 .. code-block:: bash
     :linenos:
     
     $sudo modprobe uio
 
-1.3.2 Load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc 
+1.3.2. Load in your igb_uio, which is in DPDK kernel module, e.g x86_64-native-linuxapp-gcc 
 
 .. code-block:: bash
     :linenos:
@@ -63,7 +63,7 @@ if it showed up as already bound, use :code:`$sudo rmmod igb_uio`, and then perf
     
     $sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
 
-1.3.3 Bind the 10G ports to DPDK
+1.3.3. Bind the 10G ports to DPDK
 
 .. code-block:: bash
     :linenos:
@@ -71,7 +71,7 @@ if it showed up as already bound, use :code:`$sudo rmmod igb_uio`, and then perf
     $sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0
     $sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.1
 
-1.4 Check if g++ and gcc are updated with version higher than 4.7
+1.4. Check if g++ and gcc are updated with version higher than 4.7
 
 .. code-block:: bash
     :linenos:
@@ -106,7 +106,7 @@ and then change the default compiler use update-alternatives:
 2. MoonGen Installation 
 -------------------------------------
 
-2.1 get the resource from github, and checkout the dpdk2.0 branch
+2.1. get the resource from github, and checkout the dpdk2.0 branch
 
 .. code-block:: bash
     :linenos:
@@ -116,21 +116,21 @@ and then change the default compiler use update-alternatives:
     $git checkout dpdk2.0
     $sudo git submodule update --init
 
-2.2 Build the resource
+2.2. Build the resource
 
 .. code-block:: bash
     :linenos:
     
     $sudo ./build.sh
 
-2.3 Set up hugetable
+2.3. Set up hugetable
 
 .. code-block:: bash
     :linenos:
     
     $sudo ./setup-hugetlbfs.sh
 
-2.4 Execute the test, configure the **quality-of-service-test.lua** with your destination ip address (ip address for the server you want to sent packets to) in line 60 and line 177, and your source ip address (ip address for the machine you are executing MoonGen on) in line 68 and line 165, and run with command: 
+2.4. Execute the test, configure the **quality-of-service-test.lua** with your destination ip address (ip address for the server you want to sent packets to) in line 60 and line 177, and your source ip address (ip address for the machine you are executing MoonGen on) in line 68 and line 165, and run with command: 
 
 .. code-block:: bash
     :linenos:
