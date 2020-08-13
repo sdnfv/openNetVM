@@ -2,7 +2,7 @@ Debugging Guide
 =====================================
 
 Compile with Debugging Symbols
-----------------
+--------------------------------
 
 When programming NFs or the manager, it is often neccessary to debug. 
 By default openNetVM does not compile with debugging symbols but is able to when compiler flags are set. 
@@ -35,14 +35,14 @@ For example, you may want to debug `speed tester <https://github.com/sdnfv/openN
 
 **Troubleshooting:**  
 If debugging symbols are not found verify that debugging flags are set with :code:`echo $USER_FLAGS` and also try executing the following command in gdb:
- - For onvm_mgr:
+- For onvm_mgr:
  
 .. code-block:: bash
     :linenos:
     
     file onvm_mgr/x86_64-native-linuxapp-gcc/app/onvm_mgr
-    
- - For NFs:
+
+- For NFs:
  
 .. code-block:: bash
     :linenos:
@@ -86,4 +86,4 @@ Example onvm_mgr setup:
 .. code-block:: bash
     :linenos:
     
-    ./go.sh 0,1,2,3 3 0xF0 -v 0x7f000000000 -s stdout
+    ./go.sh -k 3 -n 0xF3 -s stdout
