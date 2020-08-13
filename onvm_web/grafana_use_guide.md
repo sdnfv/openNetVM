@@ -29,3 +29,19 @@ There are other optional field you can include in your settings. They are all li
 To add new dashboard, you do not need to change the yaml file. You only need to copy the json dashboard file into [grafana_dashboard][grafana dashboards] folder. Grafana will automatically read the dashboards from that folder.
 
 To add notifiers, just follow the examples in the yaml file and fill in the required field.
+
+## Edit grafana dashboard
+
+The grafana dashboard can be created by click the `create` button on the left and then create a new dashboard. Because some of the data collected are specific to each nf, it would be better to create new panels as you start up more nfs. Click add new panel on the dashboard page, and on the bottom left conor you can select specific metrics you want to display. Click that and you should see all the data metrics collected by grafana.
+
+You can select any of them to display them. To learn more about advanced query for grafana and prometheus, visit this page [prometheus_query][prometheus query].
+
+## Save dashboard to local
+
+The simplest way to save dashboards is click `setting` button on the top right cornor of your dashboard page. Then find JSON Model on the left, and you should see the JSON form data of your dashboard. Copy paste that to your local device or save it in [grafana_dashboard][grafana dashboards] folder.
+
+[grafana_lab]: https://grafana.com/grafana/plugins
+[grafana_provision]: ./provisioning
+[start_web_sh]: ./start_web_console.sh
+[grafana_dashboard]: ./provisioning/dashboards
+[prometheus_query]: https://prometheus.io/docs/prometheus/latest/querying/basics/
