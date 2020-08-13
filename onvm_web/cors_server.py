@@ -1,4 +1,5 @@
 # Source: https://stackoverflow.com/questions/21956683/enable-access-control-on-simple-http-server
+"""This is the original CORS server, this is no longer in use in experiment version"""
 
 #!/usr/bin/env python3
 from http.server import HTTPServer, SimpleHTTPRequestHandler, test
@@ -11,6 +12,7 @@ import cgi
 # use this variable to track if the nf is still running
 # if the nf chain is running, 1
 # if the nf chain is not running, -1
+# pylint: disable=global-at-module-level
 global is_running, pids
 is_running = -1
 pids = []
