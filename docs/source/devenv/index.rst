@@ -5,12 +5,16 @@ Development Environment
 
 Getting Started
 -----------------
+
 - Download `Visual Studio Code <https://code.visualstudio.com/download)>`_ 
 - Download the Remote Development Extension Pack which includes the 'Remote-SSH', 'Remote-WSL', and 'Remote-Containers' extensions:
+
   - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_ or 
   - Launch VSCode
+
     - Click on the 'Extensions' icon on the left sidebar (:code:`Shift + Command + X`)
     - Search 'Remote Development' and install the 'Visual Studio Remote Development Extension Pack'
+
 - Reload VS Code after installation is complete 
 - Setup and install OpenSSH on your local machine if one is not already present
 - Setup your work environment with CloudLab and/or the Nimbus Cluster 
@@ -89,10 +93,14 @@ or (**Windows**) :
 
 - Select 'Remote-SSH: Connect to Host' and enter :code:`ssh -p portNum user@hostname` when prompted
 - VS Code will automatically connect and set itself up
+
   - See `Troubleshooting tips <https://code.visualstudio.com/docs/remote/troubleshooting#_troubleshooting-hanging-or-failing-connections>`_ for connection issues and `Fixing SSH file permissions <https://code.visualstudio.com/docs/remote/troubleshooting#_fixing-ssh-file-permission-errors>`_ for permissions errors
+
 - After the connection is complete, you will be in an empty window and can then navigate to any folder or workspace using **File -> Open** or **File -> WorkSpace** 
 - To initialize and run openNetVM, select **File -> Open** and navigate to :code:`/local/onvm/openNetVM/scripts`
+
   - Select **Terminal -> New Terminal** and run:
+
 .. code-block:: bash
     :linenos:
     
@@ -101,6 +109,7 @@ or (**Windows**) :
      $ ./setup_environment.sh
 
 where ethXXX is the NIC(s) you would like to bind to DPDK
+
 - To disconnect from a remote host, select **File -> Close Remote Connection** or exit VS Code 
 
 Nimbus Cluster Work Environment 
@@ -119,13 +128,13 @@ Nimbus VPN Method
 and modify the :code:`config` file to include: 
 
 .. code-block:: bash
-    :linenos:
+  :linenos:
 
-    Host nimbnodeX
-      Hostname nimbnodeX
-      Username user_name
+  Host nimbnodeX
+    Hostname nimbnodeX
+    Username user_name
 
- where 'X' is the node assigned by a Nimbus Cluster system administrator 
+where 'X' is the node assigned by a Nimbus Cluster system administrator 
 
 - Launch VS Code and click on the green icon on the lower lefthand corner to open a remote window
 - Select 'Remote-SSH: Connect to Host' and enter :code:`user@nimbus.seas.gwu.edu` when prompted
@@ -150,13 +159,13 @@ If working with macOS or Linux:
 and modify the :code:`config` file to include: 
 
 .. code-block:: bash
-    :linenos:
-    
-      Host nimbnodeX
-        Username user_name
-        ProxyCommand ssh -q user_name@nimbus.seas.gwu.edu nc -q0 %h 22
+  :linenos:
 
- where 'X' is the node assigned by a Nimbus Cluster system administrator 
+  Host nimbnodeX
+    Username user_name
+    ProxyCommand ssh -q user_name@nimbus.seas.gwu.edu nc -q0 %h 22
+
+where 'X' is the node assigned by a Nimbus Cluster system administrator 
 
 If working with Windows:
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -170,19 +179,21 @@ If working with Windows:
 and modify the :code:`config` file to include: 
 
 .. code-block:: bash
-    :linenos:
+  :linenos:
 
-    Host nimbnodeX
-      Username user_name
-      ProxyCommand C:\Windows\System32\OpenSSH\ssh.exe -q user_name@nimbus.seas.gwu.edu nc -q0 %h 22
+  Host nimbnodeX
+    Username user_name
+    ProxyCommand C:\Windows\System32\OpenSSH\ssh.exe -q user_name@nimbus.seas.gwu.edu nc -q0 %h 22
 
- where 'X' is the node assigned by a Nimbus Cluster system administrator 
+where 'X' is the node assigned by a Nimbus Cluster system administrator 
 
 **Next:**
 - Launch VS Code and click on the green icon on the lower lefthand corner to open a remote window
 - Select 'Remote-SSH: Connect to Host' and select the host you added, :code:`nimbnodeX`, when prompted
 - VSCode will automatically connect and set itself up
+
   - See `Troubleshooting tips <https://code.visualstudio.com/docs/remote/troubleshooting#_troubleshooting-hanging-or-failing-connections>`_ for connection issues and `Fixing SSH file permissions <https://code.visualstudio.com/docs/remote/troubleshooting#_fixing-ssh-file-permission-errors>`_ for permissions errors
+
 - After the connection is complete, you will be in an empty window and can then navigate to any folder or workspace using **File -> Open** or **File -> Workspace** 
 - To disconnect from a remote host, select **File -> Close Remote Connection** or exit VS Code 
 
@@ -190,38 +201,50 @@ cpplint Setup
 ---------------
 - `Linting <https://code.visualstudio.com/docs/python/linting>`_ extensions run automatically when you save a file. Issues are shown as underlines in the code editor and in the *Problems* panel   
 - Install cpplint:
+
   - From `source <https://github.com/cpplint/cpplint>`_ or
   - Mac & Linux: 
-.. code-block:: bash
-    :linenos:
-     $ sudo pip install cpplint 
+
+  .. code-block:: bash
+      :linenos:
+
+      $ sudo pip install cpplint 
      
   - Windows:
+
 .. code-block:: bash
     :linenos:
     
      $ pip install cpplint 
      
 - Install the cpplint extension
-  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=mine.cpplint&ssr=false#overview>`_ or
+
+  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=mine.cpplint&ssr=false#overview>`__ or
   - Launch VSCode
+
     - Click on the 'Extensions' icon on the left sidebar (:code:`Shift + Command + X`)
     - Search 'cpplint' and install
       
 Live Share
 ------------
+
 Visual Studio `Live Share <https://code.visualstudio.com/blogs/2017/11/15/live-share>`_ allows developers to collaboratively edit in real-time through collaboration sessions. 
 
-- Install the Live Share extension: 
-  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack>`_ or 
+- Install the Live Share extension:
+
+  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack>`__ or 
   - Launch VSCode
+  
     - Click on the 'Extensions' icon on the left sidebar (:code:`Shift + Command + X`)
     - Search 'Live Share Extension Pack' and install 
+
 - **Note**: even if you already have the Live Share extension installed in your local VSCode application, you will have to reinstall it in your remote development environment in order to host collaboration sessions while you are connected to CloudLab or the Nimbus Cluster
 - Reload VSCode after installation is complete 
 - **Note**: Linux users may need to follow extra `installation steps <https://docs.microsoft.com/en-us/visualstudio/liveshare/use/vscode>`_ to configure Live Share
 - In order to join or host collaboration sessions, you must sign into Visual Studio Live Share with a Microsoft or GitHub account 
+
   - To sign in, click on the blue 'Live Share' status bar item on the bottom of the window or press :code:`Ctrl + Shift + P/ Cmd + Shift + P` and select 'Live Share: Sign in with Browser' and proceed to sign in 
+
 - To learn about more features that Live Share provides, see the `User Guide <https://docs.microsoft.com/en-us/visualstudio/liveshare/use/vscode>`_
 
 Collaboration Sessions
@@ -229,13 +252,18 @@ Collaboration Sessions
 To edit and share your code with other collaborators in real-time, you can start or join a collaboration session
 
 - To start a session, launch VSCode and click the 'Live Share' status bar on the bottom of the window or press :code:`Ctrl + Shift + P/ Cmd + Shift + P` and select 'Live Share: Start a collaboration session (Share)'
+
   - A unique invitation link will automatically be copied to your clipboard which can be shared with others who wish to join your session
   - To access the invitation link again, click on the session state status bar icon and select 'Invite Others (Copy Link)'
+
 - Once you start your session, a pop-up message will notify you that your link has been copied to your clipboard and will allow you to select 'Make read-only' if you wish to prevent guests from editing your files
 - If 'read-only' mode is not enabled, hosts and guests both have access to co-edit all files within the development environment as well as view each others edits in real-time
+
   - Co-editing abilities may be limited, dependending on `language and platform support <https://docs.microsoft.com/en-us/visualstudio/liveshare/reference/platform-support>`_
+
 - You will be notified as guests join your session via your invitation link which will also grant you the option to remove them from the session 
 - To terminate your session, open the 'Live Share' custom tab and select 'Stop collaboration session'
+
   - After the session has ended, guests will no longer have access to any content and all temp files will be cleaned up 
 
 Troubleshooting
