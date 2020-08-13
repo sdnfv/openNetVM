@@ -122,7 +122,7 @@ do_stats_display(struct rte_mbuf *pkt) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr *ip;
+        struct rte_ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
