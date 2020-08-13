@@ -6,7 +6,7 @@ This page will serve as description and development plans for our CI system
 **Current CI maintainers: primary - @kevindweb, secondary - @koolzz**
 
 
-CI is being moved to a new repository inside :code:`sdnfv` called called:`onvm-ci` you can find it `here <https://github.com/sdnfv/onvm-ci)>`_.
+CI is being moved to a new repository inside :code:`sdnfv` called called: :code:`onvm-ci` you can find it `here <https://github.com/sdnfv/onvm-ci)>`_.
 
 Currently CI does 3 main functions:
 -------------------------------------
