@@ -713,7 +713,7 @@ Minor improvements
 ^^^^^^^^^^^^^^^^^^^^
 
 - **Return packets in bulk**: Adds support for returning packets in bulk instead of one by one by using :code:`onvm_nflib_return_pkt_bulk`. Useful for functions that buffer a group of packets before returning them for processing or for NFs that create batches of packets in the fast path. *No breaking API changes.*
-- **Updated :code:`corehelper.py` script**: Fixed the :code:`scripts/corehelper.py` file so that it correctly reports recommended core usage instructions. The script assumes a single CPU socket system and verifies that hyperthreading is disabled.
+- **Updated corehelper.py script**: Fixed the :code:`scripts/corehelper.py` file so that it correctly reports recommended core usage instructions. The script assumes a single CPU socket system and verifies that hyperthreading is disabled.
 - **Adjusted default number of TX queues**: Previously, the ONVM manager always started :code:`MAX_NFS` transmit queues on each NIC port. This is unnecessary and causes a problem with SR-IOV and NICs with limited queue support. Now the manager creates one queue per TX thread.
 - Bug fixes were made to `prevent a crash <https://github.com/sdnfv/openNetVM/commit/087891d9fea3b3ab011254dd405ef9e708d2e43d>`_ of :code:`speed_tester` during allocation of packets when there are no free mbufs and to `fix an invalid path <https://github.com/sdnfv/openNetVM/commit/a7978304914670ae9dfd2e3571af21ec7ed29013>`_ causing an error when attempting to use Pktgen with the :code:`run-pktgen.sh` script. Additionally, a few `minor documentation edits <https://github.com/sdnfv/openNetVM/commit/6005be5724552cda3f84b84e39cdc7bee846194c>`_ were made.
 
