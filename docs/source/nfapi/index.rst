@@ -27,6 +27,7 @@ This configures basic meta data the NF.
 This ensures signals will be caught to correctly shut down the NF (i.e., to notify the manager).
 
 3. Define the function table for the NF
+
 .. code-block:: c
     :linenos:
     
