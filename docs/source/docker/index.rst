@@ -102,6 +102,7 @@ Here is an example of starting a container and then running an NF inside of it:
     root@899618eaa98c:/openNetVM/examples/basic_monitor# ls
     Makefile  README.md  build  go.sh  monitor.c
     root@899618eaa98c:/openNetVM/examples/basic_monitor# ./go.sh 3 -d 1
+    ...
 
 You can also use the optional command argument to run directly the NF inside of the container, without connecting to it. Then, to stop gracefully the NF (so it has time to notify onvm manager), use the docker stop command before docker rm the container.
 The prerequisites are the same as in the case where you connect to the container.
@@ -116,6 +117,7 @@ The prerequisites are the same as in the case where you connect to the container
     speed_tester_nf
     root@nimbnode /root/openNetVM# sudo docker rm speed_tester_nf
     speed_tester_nf
+    ...
 
 Setting Up and Updating Dockerfiles
 -------------------------------------
