@@ -2,10 +2,11 @@ MoonGen Installation (DPDK-2.0 Version)
 =========================================
 
 Welcome to installation memo for `MoonGen <http://scholzd.github.io/MoonGen/install.html>`_, MoonGen is a "Scriptable High-Speed Packet Generator". 
--------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-1. Preparation steps 
--------------------
+1. Preparation steps
+----------------------
+
 Installation steps are assuming that you have already have OpenNetVM installed. If you have already have OpenNetVM installed, please following the steps below for a double check of your system.
 
 1.1 Check if you have available hugepages
@@ -56,8 +57,12 @@ if you got the follwing binding information indicating that you have the two 10-
     
     $sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
 
-if it showed up as already bound, use :code:`$sudo rmmod igb_uio`, and then perform .. code-block:: bash
-    :linenos:`$sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko`. 
+if it showed up as already bound, use :code:`$sudo rmmod igb_uio`, and then perform 
+
+.. code-block:: bash
+    :linenos:
+    
+    $sudo insmod x86_64-native-linuxapp-gcc/kmod/igb_uio.ko
 
 1.3.3 Bind the 10G ports to DPDK
 
@@ -65,7 +70,7 @@ if it showed up as already bound, use :code:`$sudo rmmod igb_uio`, and then perf
     :linenos:
     
     $sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.0
-    $sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.1`
+    $sudo ./tools/dpdk_nic_bind.py -b igb_uio 07:00.1
 
 1.4 Check if g++ and gcc are updated with version higher than 4.7
 
