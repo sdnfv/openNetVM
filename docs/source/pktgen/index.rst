@@ -22,14 +22,14 @@ Running Pktgen with 1 Port
 1. Start the manager on Node B with 1 port: :code:`./go.sh 0,1,2 1 0xF0 -s stdout`
 2. On Node A, modify :code:`/tools/Pktgen/OpenNetVM-Scripts/pktgen-config.lua` (the Lua configuration script) to indicate the correct MAC address   
     :code:`pktgen.set_mac("0", "aa:bb:cc:dd:ee:ff")`   
-    where :code:`aa:bb:cc:dd:ee:ff` is the port MAC address visible on the manager interface. 
+where :code:`aa:bb:cc:dd:ee:ff` is the port MAC address visible on the manager interface. 
 3. Run :code:`./run-pktgen.sh 1` on Node A to start up Pktgen
 4. Enter :code:`start all` in the Pktgen command line prompt to being packet transmission
 5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples)>`_ for a list of all NFs and more information).   
 ***Note:*** *If packets don't appear to be reaching the NF, try restarting the NF with a service ID of 1.*
 
 
-*To stop the transmission of packets, enter `stp` in the Pktgen command line on Node A. To quit Pktgen, use :code:`quit`.*
+*To stop the transmission of packets, enter* :code:`stp` *in the Pktgen command line on Node A. To quit Pktgen, use* :code:`quit`.
 
 Running Pktgen with 2 Ports
 ----------------------------
@@ -53,12 +53,11 @@ Running Pktgen with 2 ports is very similar to running it with just a single por
 - :code:`start 0` will only send generated packets to Port 0
 - :code:`start 1` will only send generated packets to Port 1  
 
-
-    *Once one of the above commands is enter, packet transmission will begin*
+*Once one of the above commands is enter, packet transmission will begin*
 5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands (see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples>`_ for a list of all NFs and more information).   
-***Note:*** *If packets don't appear to be reaching the NF, try restarting the NF with a service ID of 1.*
+**Note:** *If packets don't appear to be reaching the NF, try restarting the NF with a service ID of 1.*
 
- *To stop the transmission of packets, enter :code:`stp` in the Pktgen command line on Node A. To quit Pktgen, use :code:`quit`.*
+ *To stop the transmission of packets, enter* :code:`stp` *in the Pktgen command line on Node A. To quit Pktgen, use* :code:`quit`.
 
 Cloudlab Tutorial: Run Bridge NF with Pktgen using 2 Ports 
 -------------------------------------------------------------
@@ -66,7 +65,7 @@ The demo will be conducted on `CloudLab <https://www.cloudlab.us/login.php>`_ an
 
 ONVM's `Bridge NF <https://github.com/sdnfv/openNetVM/tree/master/examples/bridge>`_ is an example of a basic network bridge. The NF acts a connection between two ports as it sends packets from one port to the other.  
 
-1. Instantiate a Cloudlab experiment using the :code:`2nodes-2links` profile made available by GWCloudLab. (***Note:*** *If you do not have access to this profile, instructions on how to create it are outlined below.*)
+1. Instantiate a Cloudlab experiment using the :code:`2nodes-2links` profile made available by GWCloudLab. (**Note:** *If you do not have access to this profile, instructions on how to create it are outlined below.*)
 2. On each node, install `ONVM <https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md>`_ and `Pktgen <https://github.com/sdnfv/openNetVM-dev/blob/master/tools/Pktgen/README.md>`_ as per the instructions provided in the installation guides.    
 *Node A will be our designated Pktgen node, while Node B will run the ONVM manager and NFs*
 3. Check the NIC port status on each node to ensure that both nodes have the same two 10Gb NICs bound to DPDK. The NIC statuses on each node should look similar to this: 
@@ -114,7 +113,7 @@ If you observe the ONVM manager stats, you will notice that, with the Bridge NF,
 
 If you'd like to see the Bridge NF working more clearly, you can try sending packets to only one port with either :code:`start 0` or :code:`start 1`. This will allow you to see how the Rx count changes with Bridge NF as more packets arrive.  
 
-*At any point, enter :code:`stp` in the Pktgen command line (Node A) if you'd like to stop the transmission of packets. Use :code:`quit` to quit Pktgen completely.*
+*At any point, enter* :code:`stp` *in the Pktgen command line (Node A) if you'd like to stop the transmission of packets. Use* :code:`quit` *to quit Pktgen completely.*
 
 
 Customizing Packets 
@@ -130,14 +129,14 @@ Specifying Protocol
 --------------------
 If you wish to specify the protocol of each packet, this can be done by modifying the following configuration:   
 :code:`pktgen.set_proto("all", "udp");` 
-***Note:*** Pktgen currently supports TCP/UDP/ICMP protocols.
+**Note:** Pktgen currently supports TCP/UDP/ICMP protocols.
 
 Number of Packets
 -------------------
 You may specify the number of packets you want transmit with: :code:`pktgen.set("all", "count", 100000);`
 This indicates that you'd like to transmit 100,000 packets.
 
-***All other customization options can be found by entering*** :code:`all` ***in the Pktgen command line***
+**All other customization options can be found by entering** :code:`all` **in the Pktgen command line**
 
 
 Create a 2 Node CloudLab Profile for Pktgen
