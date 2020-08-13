@@ -3,13 +3,13 @@ Running OpenNetVM in Docker
 
 To run openNetVM NFs inside Docker containers, use the included `Docker Script <https://github.com/sdnfv/openNetVM/blob/master/scripts/docker.sh>`_.  We provide a `Docker image on Docker Hub <https://hub.docker.com/r/sdnfv/opennetvm/>`_ that is a copy of `Ubuntu 18.04 <http://releases.ubuntu.com/14.04/>`_ with a few dependencies installed.  This script does the following:
 
-  - Creates a Docker container off of the `sdnfv/opennetvm Docker image <https://hub.docker.com/r/sdnfv/opennetvm/>`_ with a custom name
-  - Maps NIC devices from the host into the container
-  - Maps the shared hugepage region into the container
-  - Maps the openNetVM directory into the container
-  - Maps any other directories you want into the container
-  - Configures the container to use all of the shared memory and data structures
-  - Depending on the presence of a command to run, the container starts the NF automatically in detached mode or the terminal is connected to it to run the NF by hand
+- Creates a Docker container off of the `sdnfv/opennetvm Docker image <https://hub.docker.com/r/sdnfv/opennetvm/>`_ with a custom name
+- Maps NIC devices from the host into the container
+- Maps the shared hugepage region into the container
+- Maps the openNetVM directory into the container
+- Maps any other directories you want into the container
+- Configures the container to use all of the shared memory and data structures
+- Depending on the presence of a command to run, the container starts the NF automatically in detached mode or the terminal is connected to it to run the NF by hand
 
 Usage
 --------------------------------
@@ -21,27 +21,26 @@ To use the script, simply run it from the command line with the following option
     
     sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c COMMAND]
 
-  - :code:`HUGEPAGES - A path to where the hugepage filesystem is on the host`
-  - :code:`ONVM - A path to the openNetVM directory on the host filesystem`
-  - :code:`NAME - A name to give the container`
-  - :code:`DEVICES - An optional comma deliniated list of NIC devices to map to the container`
-  - :code:`DIRECTORY - An optional additional directory to map inside the container.`
-  - :code:`COMMAND - An optional command to run in the container. For example, the path to a go script or to the executable of your NF.`
+- :code:`HUGEPAGES - A path to where the hugepage filesystem is on the host`
+- :code:`ONVM - A path to the openNetVM directory on the host filesystem`
+- :code:`NAME - A name to give the container`
+- :code:`DEVICES - An optional comma deliniated list of NIC devices to map to the container`
+- :code:`DIRECTORY - An optional additional directory to map inside the container.`
+- :code:`COMMAND - An optional command to run in the container. For example, the path to a go script or to the executable of your NF.`
 
 .. code-block:: bash
     :linenos:
     
     sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Basic_Monitor_NF -D /dev/uio0,/dev/uio1
 
-  - This will start a container with two NIC devices mapped in, :code:`/dev/uio0` and :code:`/dev/uio1`, the hugepage directory at :code:`/mnt/huge` mapped in, and the openNetVM source directory at :code:`/root/openNetVM` mapped into the container with the name of Basic_Monitor_NF.
+- This will start a container with two NIC devices mapped in, :code:`/dev/uio0` and :code:`/dev/uio1`, the hugepage directory at :code:`/mnt/huge` mapped in, and the openNetVM source directory at :code:`/root/openNetVM` mapped into the container with the name of Basic_Monitor_NF.
 
 .. code-block:: bash
     :linenos:
     
     sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/speed_tester/go.sh 1 -d 1"
 
-  - This will start a container with one NIC device mapped in, :code:`/dev/uio0` , the hugepage directory at :code:`/mnt/huge` mapped in, and the openNetVM source directory at :code:`/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF.
-Careful, the path needs to be correct inside the container (use absolute path, here the openNetVM directory is mapped in the /).
+- This will start a container with one NIC device mapped in, :code:`/dev/uio0` , the hugepage directory at :code:`/mnt/huge` mapped in, and the openNetVM source directory at :code:`/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF. Careful, the path needs to be correct inside the container (use absolute path, here the openNetVM directory is mapped in the /).
 
 To remove all containers:
 
@@ -85,10 +84,12 @@ Here is an example of starting a container and then running an NF inside of it:
     root@nimbnode /root/openNetVM/scripts# ./docker.sh
     sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c COMMAND]
 
-        e.g. sudo ./docker.sh -h /hugepages -o /root/openNetVM -n Basic_Monitor_NF -D /dev/uio0,/dev/uio1
-                This will create a container with two NIC devices, uio0 and uio1,
-                hugepages mapped from the host's /hugepage directory and openNetVM
-                mapped from /root/openNetVM and it will name it Basic_Monitor_NF
+    e.g. sudo ./docker.sh -h /hugepages -o /root/openNetVM -n Basic_Monitor_NF -D /dev/uio0,/dev/uio1
+
+- This will create a container with two NIC devices, :code:`uio0` and :code:`uio1`, hugepages mapped from the host's :code:`/hugepage` directory and openNetVM mapped from :code:`/root/openNetVM` and it will name it Basic_Monitor_NF
+
+.. code-block:: bash
+    :linenos:
 
     root@nimbnode /root/openNetVM/scripts# ./docker.sh -h /mnt/huge -o /root/openNetVM -D /dev/uio0,/dev/uio1 -n basic_monitor
     root@899618eaa98c:/openNetVM# ls
@@ -101,7 +102,6 @@ Here is an example of starting a container and then running an NF inside of it:
     root@899618eaa98c:/openNetVM/examples/basic_monitor# ls
     Makefile  README.md  build  go.sh  monitor.c
     root@899618eaa98c:/openNetVM/examples/basic_monitor# ./go.sh 3 -d 1
-    ...
 
 You can also use the optional command argument to run directly the NF inside of the container, without connecting to it. Then, to stop gracefully the NF (so it has time to notify onvm manager), use the docker stop command before docker rm the container.
 The prerequisites are the same as in the case where you connect to the container.
@@ -116,10 +116,9 @@ The prerequisites are the same as in the case where you connect to the container
     speed_tester_nf
     root@nimbnode /root/openNetVM# sudo docker rm speed_tester_nf
     speed_tester_nf
-    ...
 
 Setting Up and Updating Dockerfiles
---------------------------------
+-------------------------------------
 
 If you need to update the Dockerfile in the future, you will need to follow these steps.
 
