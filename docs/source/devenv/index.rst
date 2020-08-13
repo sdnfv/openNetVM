@@ -5,9 +5,9 @@ Development Environment
 
 Getting Started
 -----------------
-- Download `Visual Studio Code <https://code.visualstudio.com/download)`_ 
+- Download `Visual Studio Code <https://code.visualstudio.com/download)>`_ 
 - Download the Remote Development Extension Pack which includes the 'Remote-SSH', 'Remote-WSL', and 'Remote-Containers' extensions:
-  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack`_ or 
+  - From `Visual Studio Marketplace <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_ or 
   - Launch VSCode
     - Click on the 'Extensions' icon on the left sidebar (:code:`Shift + Command + X`)
     - Search 'Remote Development' and install the 'Visual Studio Remote Development Extension Pack'
@@ -18,7 +18,7 @@ Getting Started
 
 Setup OpenSSH
 ---------------
-- Install `OpenSSH <https://code.visualstudio.com/docs/remote/troubleshooting#_installing-a-supported-ssh-client`_ if not already present on your machine
+- Install `OpenSSH <https://code.visualstudio.com/docs/remote/troubleshooting#_installing-a-supported-ssh-client>`_ if not already present on your machine
 - Ensure that you have the :code:`.ssh` directory in your user's home directory:
 
 .. code-block:: bash
@@ -50,7 +50,7 @@ Setup OpenSSH
 
 CloudLab Work Environment
 ---------------------------
-- Setup your `SSH public key <https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent`_ if you have not already done so
+- Setup your `SSH public key <https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`_ if you have not already done so
 - Login to your CloudLab account and select 'Manage SSH Keys' under your account profile and add your public key
 - When you instantiate a CloudLab experiment, a unique SSH command will be generated for you in the form: :code:`ssh -p portNum user@hostname` listed under **Experiment -> List View -> SSH Command** 
 - Ensure that your generated ssh command works by running it in terminal 
@@ -89,7 +89,7 @@ or (**Windows**) :
 
 - Select 'Remote-SSH: Connect to Host' and enter :code:`ssh -p portNum user@hostname` when prompted
 - VS Code will automatically connect and set itself up
-  - See `Troubleshooting tips <https://code.visualstudio.com/docs/remote/troubleshooting#_troubleshooting-hanging-or-failing-connections>`_ for connection issues and `Fixing SSH file permissions <https://code.visualstudio.com/docs/remote/troubleshooting#_fixing-ssh-file-permission-errors`_ for permissions errors
+  - See `Troubleshooting tips <https://code.visualstudio.com/docs/remote/troubleshooting#_troubleshooting-hanging-or-failing-connections>`_ for connection issues and `Fixing SSH file permissions <https://code.visualstudio.com/docs/remote/troubleshooting#_fixing-ssh-file-permission-errors>`_ for permissions errors
 - After the connection is complete, you will be in an empty window and can then navigate to any folder or workspace using **File -> Open** or **File -> WorkSpace** 
 - To initialize and run openNetVM, select **File -> Open** and navigate to :code:`/local/onvm/openNetVM/scripts`
   - Select **Terminal -> New Terminal** and run:
