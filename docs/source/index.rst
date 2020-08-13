@@ -37,13 +37,6 @@ And then rebuild DPDK using the install guide or running these commands:
 
 See our release document for more information.
 
-.. Indices and tables
-.. ####################################
-
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
-
 .. toctree::
    :caption: Contents
    :hidden:
