@@ -725,7 +725,7 @@ This release adds a feature to the Speed Tester example NF to support latency me
 
 It also makes minor changes to the setup scripts to work better in NSF CloudLab environments.
 
-We now provide a docker container image that can be used to easily run NFs inside containers. See the `Docker Docs <../docker/index>`_ for more information.
+We now provide a docker container image that can be used to easily run NFs inside containers. See the `Docker Docs <../docker>`_ for more information.
 
 OpenNetVM support has now been integrated into the mainline `mTCP repository <https://github.com/eunyoung14/mtcp>`_.
 
@@ -747,7 +747,7 @@ In order to update to the latest version of DPDK you must run:
 
     git submodule update --init
 
-And then rebuild DPDK using the `install guide <../install/index>`_ or running these commands:
+And then rebuild DPDK using the `install guide <../install>`_ or running these commands:
 
 .. code-block:: bash
     :linenos:
