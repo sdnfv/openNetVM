@@ -431,7 +431,6 @@ main(int argc, char *argv[]) {
         }
 
         rx_loop(nf_local_ctx);
-        
         pthread_join(tx_thread, NULL);
         if (print_stats_flag) {
                 pthread_join(stats_thread, NULL);
