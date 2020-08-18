@@ -42,7 +42,7 @@ About
 
 OpenNetVM is a high performance NFV platform based on `DPDK <http://dpdk.org>`_ and `Docker <https://www.docker.com/>`_ containers.  OpenNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
 
-OpenNetVM is an open source version of the NetVM platform described in our `NSDI 2014 <http://faculty.cs.gwu.edu/timwood/papers/14-NSDI-netvm.pdf>`_ and `HotMiddlebox 2016 <http://faculty.cs.gwu.edu/timwood/papers/16-HotMiddlebox-onvm.pdf>`_ papers, released under the `BSD <../../LICENSE>`_ license.  
+OpenNetVM is an open source version of the NetVM platform described in our `NSDI 2014 <http://faculty.cs.gwu.edu/timwood/papers/14-NSDI-netvm.pdf>`_ and `HotMiddlebox 2016 <http://faculty.cs.gwu.edu/timwood/papers/16-HotMiddlebox-onvm.pdf>`_ papers, released under the `BSD <https://github.com/sdnfv/openNetVM/blob/master/LICENSE>`_ license.  
 
 The `develop <https://github.com/sdnfv/OpenNetVM/tree/develop>`_ branch tracks experimental builds (active development) whereas the `master <https://github.com/sdnfv/OpenNetVM/tree/master>`_ branch tracks verified stable releases.  Please read our `releases </releases>`_ document for more information about our releases and release cycle.
 
@@ -51,22 +51,22 @@ You can find information about research projects building on `OpenNetVM <http://
 Installing
 ######################
 
-To install OpenNetVM, please see the `OpenNetVM Installation </install>`_ guide for a thorough walkthrough.
+To install OpenNetVM, please see the `OpenNetVM Installation <install>`_ guide for a thorough walkthrough.
 
 Using OpenNetVM
 #######################
 
-OpenNetVM comes with several sample network functions.  To get started with some examples, please see the `Example Uses </examples>`_ guide
+OpenNetVM comes with several sample network functions.  To get started with some examples, please see the `Example Uses <examples>`_ guide
 
 Creating NFs
 ########################
 
-The `NF Development </nfdev>`_ guide will provide what you need to start creating your own NFs.
+The `NF Development <nfdev>`_ guide will provide what you need to start creating your own NFs.
 
 Dockerize NFs
 #######################
 
-NFs can be run inside docker containers, with the NF being automatically or hand started. For more informations, see our `Docker guide </docker>`_.
+NFs can be run inside docker containers, with the NF being automatically or hand started. For more informations, see our `Docker guide <docker>`_.
 
 TCP Stack
 #######################
@@ -90,25 +90,43 @@ If you use OpenNetVM in your work, please cite our paper:
       year = {2016},
    }
 
-*Please let us know if you use OpenNetVM in your research by `emailing us <mailto:timwood@gwu.edu>`_ or completing this `short survey <https://goo.gl/forms/oxcnGO45Kxq1Zyyi2>`_.*
+Please let us know if you use OpenNetVM in your research by `emailing us <mailto:timwood@gwu.edu>`_ or completing this `short survey <https://goo.gl/forms/oxcnGO45Kxq1Zyyi2>`_.
 
 .. toctree::
-   :caption: Contents
+   :caption: Getting Started
    :hidden:
-   :maxdepth: 2
-
+   :maxdepth: -1
+   
    Installation Guide </install/index>
-   Contributing </contributing/index>
-   Debugging </debug/index>
-   Running OpenNetVM in Docker <docker/index>
-   OpenNetVM Examples <examples/index>
-   NF Development <nfdev/index>
-   Release Notes <releases/index>
-   MoonGen Installation (DPDK-2.0 Version) <moongen/index>
-   CI Development <cidev/index>
    Development Environment <devenv/index>
-   NF API <nfapi/index.rst>
-   Frequently Asked Questions <faq/index>
-   Packet Generation Using Pktgen <pktgen/index>
-   Wireshark & Pdump for Packet Sniffing <wireshark/index>
+   Debugging </debug/index>
+
+.. toctree::
+   :caption: Step-By-Step Guides
+   :hidden:
+   :maxdepth: -1
+
    Three Node Topology Tutorial <threenodetutorial/index>
+   Packet Generation Using Pktgen <pktgen/index>
+   Running OpenNetVM in Docker <docker/index>
+   MoonGen Installation (DPDK-2.0 Version) <moongen/index>
+   Wireshark & Pdump for Packet Sniffing <wireshark/index>
+
+.. toctree::
+   :caption: Advanced Features
+   :hidden:
+   :maxdepth: -1
+
+   OpenNetVM Examples <examples/index>
+   NF API <nfapi/index>
+   NF Development <nfdev/index>
+
+.. toctree::
+   :caption: About OpenNetVM
+   :hidden:
+   :maxdepth: -1
+
+   Contributing </contributing/index>
+   Release Notes <releases/index>
+   Frequently Asked Questions <faq/index>
+   CI Development <cidev/index>
