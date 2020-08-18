@@ -176,7 +176,7 @@ Configure and compile DPDK
     cd scripts
     ./install.sh
 
-The `install script <https://github.com/sdnfv/openNetVM/blob/master/scripts/install.sh>`_ will automatically run the `environment setup script <https://github.com/sdnfv/openNetVM/blob/master/scripts/install.sh>`_, which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
+The `install script <https://github.com/sdnfv/openNetVM/blob/master/scripts/install.sh>`_ will automatically run the `environment setup script <https://github.com/sdnfv/openNetVM/blob/master/scripts/install.sh>`__, which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
 
 Run DPDK HelloWorld Application
 -----------------------------------
@@ -261,7 +261,7 @@ Once the NF's initialization is completed, you should see the NF display how man
 Configuring environment post reboot
 --------------------------------------
 
-After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the `environment setup script <https://github.com/sdnfv/openNetVM/blob/master/scripts/setup_environment.sh>`_.
+After a reboot, you can configure your environment again (load kernel modules and bind the NIC) by running the `environment setup script <https://github.com/sdnfv/openNetVM/blob/master/scripts/setup_environment.sh>`__.
 
 Also, please double check if the environment variables from `Set up Environment`_ are initialized.  If they are not, please go to `Set up Environment`_
 

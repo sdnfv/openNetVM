@@ -20,12 +20,17 @@ As noted, both nodes must be bound to the same NIC port(s).
 Running Pktgen with 1 Port 
 ----------------------------
 1. Start the manager on Node B with 1 port: :code:`./go.sh 0,1,2 1 0xF0 -s stdout`
-2. On Node A, modify :code:`/tools/Pktgen/OpenNetVM-Scripts/pktgen-config.lua` (the Lua configuration script) to indicate the correct MAC address   
-    :code:`pktgen.set_mac("0", "aa:bb:cc:dd:ee:ff")`   
+2. On Node A, modify :code:`/tools/Pktgen/OpenNetVM-Scripts/pktgen-config.lua` (the Lua configuration script) to indicate the correct MAC address
+
+.. code-block:: bash
+    :linenos:
+
+    pktgen.set_mac("0", "aa:bb:cc:dd:ee:ff")
+
 where :code:`aa:bb:cc:dd:ee:ff` is the port MAC address visible on the manager interface. 
 3. Run :code:`./run-pktgen.sh 1` on Node A to start up Pktgen
 4. Enter :code:`start all` in the Pktgen command line prompt to being packet transmission
-5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples)>`_ for a list of all NFs and more information).   
+5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples)>`__ for a list of all NFs and more information).   
 ***Note:*** *If packets don't appear to be reaching the NF, try restarting the NF with a service ID of 1.*
 
 
@@ -46,15 +51,17 @@ Running Pktgen with 2 ports is very similar to running it with just a single por
     pktgen.set_mac("0", "aa:bb:cc:dd:ee:ff");
     pktgen.set_mac("1", "aa:bb:cc:dd:ee:ff");
     
- where :code:`0` and :code:`1` refer to the port number and :code:`aa:bb:cc:dd:ee:ff` refer to each of their MAC addresses, as visible on the manager interface. 
- 3. Run :code:`./run-pktgen.sh 2` on Node A, where :code:`2` indicates the use of 2 ports.
- 4. To begin transmission, there are a couple of options when presented with the Pktgen command like on Node A:
+where :code:`0` and :code:`1` refer to the port number and :code:`aa:bb:cc:dd:ee:ff` refer to each of their MAC addresses, as visible on the manager interface. 
+
+3. Run :code:`./run-pktgen.sh 2` on Node A, where :code:`2` indicates the use of 2 ports.
+4. To begin transmission, there are a couple of options when presented with the Pktgen command like on Node A:
+
 - :code:`start all` will generate and send packets to both ports set up
 - :code:`start 0` will only send generated packets to Port 0
 - :code:`start 1` will only send generated packets to Port 1  
 
 *Once one of the above commands is enter, packet transmission will begin*
-5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands (see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples>`_ for a list of all NFs and more information).   
+5. To start an NF, open a new shell terminal off of Node B and run the desired NF using the respective commands (see our `NF Examples folder <https://github.com/sdnfv/openNetVM/tree/master/examples>`__ for a list of all NFs and more information).   
 **Note:** *If packets don't appear to be reaching the NF, try restarting the NF with a service ID of 1.*
 
  *To stop the transmission of packets, enter* :code:`stp` *in the Pktgen command line on Node A. To quit Pktgen, use* :code:`quit`.
@@ -67,7 +74,9 @@ ONVM's `Bridge NF <https://github.com/sdnfv/openNetVM/tree/master/examples/bridg
 
 1. Instantiate a Cloudlab experiment using the :code:`2nodes-2links` profile made available by GWCloudLab. (**Note:** *If you do not have access to this profile, instructions on how to create it are outlined below.*)
 2. On each node, install `ONVM <https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md>`_ and `Pktgen <https://github.com/sdnfv/openNetVM-dev/blob/master/tools/Pktgen/README.md>`_ as per the instructions provided in the installation guides.    
+
 *Node A will be our designated Pktgen node, while Node B will run the ONVM manager and NFs*
+
 3. Check the NIC port status on each node to ensure that both nodes have the same two 10Gb NICs bound to DPDK. The NIC statuses on each node should look similar to this: 
 
 *From here, we should be able to follow the steps outlined in the above section.*
