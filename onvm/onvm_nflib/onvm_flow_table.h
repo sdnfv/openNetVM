@@ -140,9 +140,9 @@ onvm_ft_get_data(struct onvm_ft *table, int32_t index) {
 
 static inline int
 onvm_ft_fill_key(struct onvm_ft_ipv4_5tuple *key, struct rte_mbuf *pkt) {
-        struct ipv4_hdr *ipv4_hdr;
-        struct tcp_hdr *tcp_hdr;
-        struct udp_hdr *udp_hdr;
+        struct rte_ipv4_hdr *ipv4_hdr;
+        struct rte_tcp_hdr *tcp_hdr;
+        struct rte_udp_hdr *udp_hdr;
 
         if (unlikely(!onvm_pkt_is_ipv4(pkt))) {
                 return -EPROTONOSUPPORT;
@@ -196,7 +196,7 @@ onvm_ft_ipv4_hash_crc(const void *data, __rte_unused uint32_t data_len, uint32_t
         const uint32_t *p;
 
         k = (union ipv4_5tuple_host*) malloc(sizeof(union ipv4_5tuple_host));
-        memcpy(k, data, sizeof(union ipv4_5tuple_host));  
+        rte_memcpy(k, data, sizeof(union ipv4_5tuple_host));
 
         t = k->proto;
         p = (const uint32_t *)&k->port_src;

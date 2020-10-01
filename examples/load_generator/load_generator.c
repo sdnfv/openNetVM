@@ -83,8 +83,8 @@ static double total_latency_since_update = 0;
 
 struct rte_mempool *pktmbuf_pool;
 
-static uint16_t packet_size = ETHER_HDR_LEN;
-static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
+static uint16_t packet_size = RTE_ETHER_HDR_LEN;
+static uint8_t d_addr_bytes[RTE_ETHER_ADDR_LEN];
 
 /* number of seconds between each print */
 static double print_delay = 0.1;
@@ -94,7 +94,7 @@ static uint16_t destination;
 
 static uint8_t action_out = 0;
 
-static struct ether_hdr *ehdr;
+static struct rte_ether_hdr *ehdr;
 
 /* Sets up variables for the load generator */
 void
@@ -133,7 +133,7 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, i, count, dst_flag = 0;
-        int values[ETHER_ADDR_LEN];
+        int values[RTE_ETHER_ADDR_LEN];
         while ((c = getopt(argc, argv, "d:p:t:m:s:o")) != -1) {
                 switch (c) {
                         case 'd':
@@ -150,8 +150,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'm':
                                 count = sscanf(optarg, "%x:%x:%x:%x:%x:%x", &values[0], &values[1], &values[2],
                                                &values[3], &values[4], &values[5]);
-                                if (count == ETHER_ADDR_LEN) {
-                                        for (i = 0; i < ETHER_ADDR_LEN; ++i) {
+                                if (count == RTE_ETHER_ADDR_LEN) {
+                                        for (i = 0; i < RTE_ETHER_ADDR_LEN; ++i) {
                                                 d_addr_bytes[i] = (uint8_t)values[i];
                                         }
                                 } else {
@@ -161,7 +161,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                                 break;
                         case 's':
                                 packet_size = strtoul(optarg, NULL, 10);
-                                if (packet_size >= ETHER_HDR_LEN) {
+                                if (packet_size >= RTE_ETHER_HDR_LEN) {
                                         break;
                                 } else {
                                         RTE_LOG(INFO, APP,
@@ -261,7 +261,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx)
                 batch_size = (packets_to_send <= BATCH_LIMIT) ? (int)packets_to_send : BATCH_LIMIT;
                 struct rte_mbuf *pkts[batch_size];
                 for (i = 0; i < batch_size; i++) {
-                        struct ether_hdr *pkt_ehdr;
+                        struct rte_ether_hdr *pkt_ehdr;
                         struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
                         uint64_t *timestamp;
 
@@ -271,8 +271,8 @@ callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx)
                         }
 
                         /* Append and copy ether header */
-                        pkt_ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
-                        rte_memcpy(pkt_ehdr, ehdr, sizeof(struct ether_hdr));
+                        pkt_ehdr = (struct rte_ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
+                        rte_memcpy(pkt_ehdr, ehdr, sizeof(struct rte_ether_hdr));
 
                         struct onvm_pkt_meta *pmeta = onvm_get_pkt_meta(pkt);
                         pmeta->destination = destination;
@@ -322,13 +322,16 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
-        ehdr = (struct ether_hdr *)malloc(sizeof(struct ether_hdr));
+        ehdr = (struct rte_ether_hdr *)malloc(sizeof(struct rte_ether_hdr));
         if (ehdr == NULL) {
                 rte_exit(EXIT_FAILURE, "Failed to allocate common ehdr\n");
         }
 
-        rte_eth_macaddr_get(0, &ehdr->s_addr);
-        for (j = 0; j < ETHER_ADDR_LEN; ++j) {
+        if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
+                RTE_LOG(INFO, APP, "Using fake MAC address\n");
+                onvm_get_fake_macaddr(&ehdr->s_addr);
+        }
+        for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
                 ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
         }
         ehdr->ether_type = rte_cpu_to_be_16(LOCAL_EXPERIMENTAL_ETHER);

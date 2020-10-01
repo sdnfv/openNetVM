@@ -70,7 +70,7 @@ fi
 sudo -v
 
 # Ensure we're working relative to the onvm root directory
-if [ $(basename $(pwd)) == "scripts" ]; then
+if [ "$(basename "$(pwd)")" == "scripts" ]; then
     cd ..
 fi
 
@@ -83,33 +83,37 @@ if [ -z "$ONVM_HOME" ]; then
 fi
 
 # Source DPDK helper functions
-. $ONVM_HOME/scripts/dpdk_helper_scripts.sh
+. "$ONVM_HOME"/scripts/dpdk_helper_scripts.sh
 
 set +e
 remove_igb_uio_module
 set -e
 
 # Compile dpdk
-cd $RTE_SDK
+cd "$RTE_SDK"
 echo "Compiling and installing dpdk in $RTE_SDK"
 
 # Adding ldflags.txt output for mTCP compatibility
-if grep "ldflags.txt" $RTE_SDK/mk/rte.app.mk > /dev/null
+if grep "ldflags.txt" "$RTE_SDK"/mk/rte.app.mk > /dev/null
 then
     :
 else
-    sed -i -e 's/O_TO_EXE_STR =/\$(shell if [ \! -d \${RTE_SDK}\/\${RTE_TARGET}\/lib ]\; then mkdir -p \${RTE_SDK}\/\${RTE_TARGET}\/lib\; fi)\nLINKER_FLAGS = \$(call linkerprefix,\$(LDLIBS))\n\$(shell echo \${LINKER_FLAGS} \> \${RTE_SDK}\/\${RTE_TARGET}\/lib\/ldflags\.txt)\nO_TO_EXE_STR =/g' $RTE_SDK/mk/rte.app.mk
+    # want to use single quotes for sed operation
+    # shellcheck disable=SC2016
+    sed -i -e 's/O_TO_EXE_STR =/\$(shell if [ \! -d \${RTE_SDK}\/\${RTE_TARGET}\/lib ]\; then mkdir -p \${RTE_SDK}\/\${RTE_TARGET}\/lib\; fi)\nLINKER_FLAGS = \$(call linkerprefix,\$(LDLIBS))\n\$(shell echo \${LINKER_FLAGS} \> \${RTE_SDK}\/\${RTE_TARGET}\/lib\/ldflags\.txt)\nO_TO_EXE_STR =/g' "$RTE_SDK"/mk/rte.app.mk
 fi
 
+sed -i 's/CONFIG_RTE_EAL_IGB_UIO=n/CONFIG_RTE_EAL_IGB_UIO=y/g' "$RTE_SDK"/config/common_base
+
 sleep 1
-make config T=$RTE_TARGET
-make T=$RTE_TARGET -j 8
-make install T=$RTE_TARGET -j 8
+make config T="$RTE_TARGET"
+make T="$RTE_TARGET" -j 8
+make install T="$RTE_TARGET" -j 8
 
 # Refresh sudo
 sudo -v
 
-cd $start_dir
+cd "$start_dir"
 
 # Setup/Check for free HugePages if the user wants to
 if [ -z "$ONVM_SKIP_HUGEPAGES" ]; then
@@ -118,7 +122,7 @@ fi
 
 grep -m 1 "huge" /etc/fstab | cat
 # Only add to /etc/fstab if user wants it
-if [ ${PIPESTATUS[0]} != 0 ] && [ -z "$ONVM_SKIP_FSTAB" ]; then
+if [ "${PIPESTATUS[0]}" != 0 ] && [ -z "$ONVM_SKIP_FSTAB" ]; then
     echo "Adding huge fs to /etc/fstab"
     sleep 1
     sudo sh -c "echo \"huge /mnt/huge hugetlbfs defaults 0 0\" >> /etc/fstab"

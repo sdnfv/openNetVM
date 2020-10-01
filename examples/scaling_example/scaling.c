@@ -79,8 +79,8 @@ static uint16_t num_children = DEFAULT_NUM_CHILDREN;
 static uint8_t use_advanced_rings = 0;
 static uint8_t use_shared_core_allocation = 0;
 
-static uint8_t d_addr_bytes[ETHER_ADDR_LEN];
-static uint16_t packet_size = ETHER_HDR_LEN;
+static uint8_t d_addr_bytes[RTE_ETHER_ADDR_LEN];
+static uint16_t packet_size = RTE_ETHER_HDR_LEN;
 static uint32_t packet_number = DEFAULT_PKT_NUM;
 
 /* For advanced rings scaling */
@@ -173,7 +173,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 
         for (i = 0; i < packet_number; ++i) {
                 struct onvm_pkt_meta *pmeta;
-                struct ether_hdr *ehdr;
+                struct rte_ether_hdr *ehdr;
                 int j;
 
                 struct rte_mbuf *pkt = rte_pktmbuf_alloc(pktmbuf_pool);
@@ -181,11 +181,13 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                         break;
 
                 /* set up ether header and set new packet size */
-                ehdr = (struct ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
+                ehdr = (struct rte_ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
                 /* Using manager mac addr for source*/
-                rte_eth_macaddr_get(0, &ehdr->s_addr);
-                for (j = 0; j < ETHER_ADDR_LEN; ++j) {
+                if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
+                        onvm_get_fake_macaddr(&ehdr->s_addr);
+                }
+                for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
                         ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
                 }
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
@@ -316,11 +318,10 @@ int
 thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
         void *pkts[PKT_READ_SIZE];
         struct onvm_pkt_meta *meta;
-        uint16_t i, j, nb_pkts;
-        void *pktsTX[PKT_READ_SIZE];
+        uint16_t i, nb_pkts;
+        struct rte_mbuf *pktsTX[PKT_READ_SIZE];
         int tx_batch_size;
         struct rte_ring *rx_ring;
-        struct rte_ring *tx_ring;
         struct rte_ring *msg_q;
         struct onvm_nf *nf;
         struct onvm_nf_msg *msg;
@@ -333,7 +334,6 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         /* Get rings from nflib */
         rx_ring = nf->rx_q;
-        tx_ring = nf->tx_q;
         msg_q = nf->msg_q;
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
 
@@ -371,14 +371,10 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                         packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
-
-                if (unlikely(tx_batch_size > 0 && rte_ring_enqueue_bulk(tx_ring, pktsTX, tx_batch_size, NULL) == 0)) {
-                        nf->stats.tx_drop += tx_batch_size;
-                        for (j = 0; j < tx_batch_size; j++) {
-                                rte_pktmbuf_free(pktsTX[j]);
-                        }
-                } else {
-                        nf->stats.tx += tx_batch_size;
+                /* Process all packet actions */
+                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
+                if (tx_batch_size < PACKET_READ_SIZE) {
+                        onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
                 }
         }
         return 0;

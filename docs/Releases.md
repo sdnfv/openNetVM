@@ -13,9 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-
 ## v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
-
 A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
 
 **Version Updates**

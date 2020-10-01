@@ -24,14 +24,14 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 NF_NAME=$1
 NF_PATH=$SCRIPTPATH/$NF_NAME
-# For NFD NF 
+# For NFD NF
 NF_NAME=${NF_PATH##*/}
 BINARY=$NF_PATH/build/app/$NF_NAME
 DPDK_BASE_ARGS="-n 3 --proc-type=secondary"
 # For simple mode, only used for initial dpdk startup
 DEFAULT_CORE_ID=0
 
-if [ ! -f $BINARY ]; then
+if [ ! -f "$BINARY" ]; then
   echo "ERROR: NF executable not found, $BINARY doesn't exist"
   echo "Please verify NF binary name and run script from the NF folder"
   exit 1
@@ -44,7 +44,7 @@ if [ "$1" = "-F" ]
 then
   config=$2
   shift 2
-  exec sudo $BINARY -F $config "$@"
+  exec sudo "$BINARY" -F "$config" "$@"
 fi
 
 # Check if -- is present, if so parse dpdk/onvm specific args
@@ -61,8 +61,8 @@ done
 
 # Spaces before $@ are required otherwise it swallows the first arg for some reason
 if [[ $dash_dash_cnt -ge 2 ]]; then
-  DPDK_ARGS="$DPDK_BASE_ARGS $(echo " ""$@" | awk -F "--" '{print $1;}')"
-  ONVM_ARGS="$(echo " ""$@" | awk -F "--" '{print $2;}')"
+  DPDK_ARGS="$DPDK_BASE_ARGS $(echo " ""$*" | awk -F "--" '{print $1;}')"
+  ONVM_ARGS="$(echo " ""$*" | awk -F "--" '{print $2;}')"
   # Move to NF arguments
   shift ${non_nf_arg_cnt}
   if [[ $DPDK_ARGS =~ "-l" && ! $ONVM_ARGS =~ "-m" ]]; then
@@ -82,4 +82,6 @@ elif [[ $dash_dash_cnt -eq 1 ]]; then
   exit 1
 fi
 
-exec sudo $BINARY $DPDK_ARGS -- $ONVM_ARGS -- "$@"
+# don't mess with variable expansion
+# shellcheck disable=SC2086
+exec sudo "$BINARY" $DPDK_ARGS -- $ONVM_ARGS -- "$@"
