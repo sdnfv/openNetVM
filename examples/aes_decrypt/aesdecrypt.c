@@ -138,7 +138,7 @@ do_stats_display(struct rte_mbuf *pkt) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         static uint64_t pkt_process = 0;
-        struct ipv4_hdr *ip;
+        struct rte_ipv4_hdr *ip;
 
         pkt_process += print_delay;
 
@@ -154,14 +154,14 @@ do_stats_display(struct rte_mbuf *pkt) {
 
         ip = onvm_pkt_ipv4_hdr(pkt);
         if (ip != NULL) {
-                struct udp_hdr *udp;
+                struct rte_udp_hdr *udp;
 
                 onvm_pkt_print(pkt);
                 /* Check if we have a valid UDP packet */
                 udp = onvm_pkt_udp_hdr(pkt);
                 if (udp != NULL) {
                         uint8_t *pkt_data;
-                        pkt_data = ((uint8_t *)udp) + sizeof(struct udp_hdr);
+                        pkt_data = ((uint8_t *)udp) + sizeof(struct rte_udp_hdr);
                         printf("Payload : %.32s\n", pkt_data);
                 }
         } else {
@@ -172,7 +172,7 @@ do_stats_display(struct rte_mbuf *pkt) {
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
-        struct udp_hdr *udp;
+        struct rte_udp_hdr *udp;
         static uint32_t counter = 0;
 
         /* Check if we have a valid UDP packet */
@@ -184,7 +184,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 uint16_t hlen;
 
                 /* Get at the payload */
-                pkt_data = ((uint8_t *)udp) + sizeof(struct udp_hdr);
+                pkt_data = ((uint8_t *)udp) + sizeof(struct rte_udp_hdr);
                 /* Calculate length */
                 eth = rte_pktmbuf_mtod(pkt, uint8_t *);
                 hlen = pkt_data - eth;
@@ -196,7 +196,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 aes_decrypt_ctr(pkt_data, plen, pkt_data, key_schedule, 256, iv[0]);
                 if (counter == 0) {
                         printf("Decrypted %d bytes at offset %d (%ld)\n", plen, hlen,
-                               sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) + sizeof(struct udp_hdr));
+                               sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr));
                 }
         }
 
