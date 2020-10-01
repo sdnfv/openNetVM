@@ -229,7 +229,7 @@ void
 onvm_stats_gen_event_info(const char *msg, uint8_t type, void *data) {
         struct onvm_event *event;
 
-        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        event = (struct onvm_event *)rte_malloc("onvm stats gen event info", sizeof(struct onvm_event), 0);
         if (event == NULL) {
                 perror("Couldn't allocate event");
                 return;
@@ -246,7 +246,7 @@ void
 onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf) {
         struct onvm_event *event;
 
-        event = (struct onvm_event *)malloc(sizeof(struct onvm_event));
+        event = (struct onvm_event *)rte_malloc("onvm stats gen event nf info", sizeof(struct onvm_event), 0);
         if (event == NULL) {
                 perror("Couldn't allocate event");
                 return;
@@ -264,6 +264,7 @@ onvm_stats_gen_event_nf_info(const char *msg, struct onvm_nf *nf) {
 static void
 onvm_stats_add_event(struct onvm_event *event_info) {
         if (event_info == NULL || stats_destination != ONVM_STATS_WEB) {
+                rte_free(event_info);
                 return;
         }
         char event_time_buf[20];
@@ -305,6 +306,7 @@ onvm_stats_add_event(struct onvm_event *event_info) {
 
         cJSON_AddItemToObject(new_event, "source", source);
         cJSON_AddItemToArray(onvm_json_events_arr, new_event);
+        rte_free(event_info);
 }
 
 static void
@@ -591,7 +593,7 @@ onvm_stats_print_MAC(uint8_t port) {
                 return err_address;
 
         if (unlikely(addresses[port][0] == '\0')) {
-                struct ether_addr mac;
+                struct rte_ether_addr mac;
                 rte_eth_macaddr_get(port, &mac);
                 snprintf(addresses[port], sizeof(addresses[port]), "%02x:%02x:%02x:%02x:%02x:%02x\n", mac.addr_bytes[0],
                          mac.addr_bytes[1], mac.addr_bytes[2], mac.addr_bytes[3], mac.addr_bytes[4], mac.addr_bytes[5]);

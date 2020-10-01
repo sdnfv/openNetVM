@@ -1,12 +1,11 @@
 Pktgen Installation 
 ===================
 
+#### Welcome to the installation guide for [Pktgen](https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html). Pktgen is a high performance traffic generator app built on [DPDK](http://dpdk.org/).
 
+This guide assumes that you already have openNetVM installed on your machine. If you do not, please follow the [ONVM installation guide](https://github.com/sdnfv/openNetVM/blob/master/docs/Install.md). 
 
-
-#### Welcome to installation memo for [Pktgen](https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html), Pktgen is an app build on [DPDK](http://dpdk.org/),  which is a high performance traffic generator. 
-
-This guide is assuming that you have already got openNetVM installed on your machine, if not, please follow installation guide for openNetVM in file ***INSTALL.md***. 
+For further information regarding Pktgen configuration or set up, please refer to the [ONVM Pktgen Wiki page](https://github.com/sdnfv/openNetVM/wiki/Packet-generation-using-Pktgen).
 
 ----------
 
@@ -19,8 +18,8 @@ This guide is assuming that you have already got openNetVM installed on your mac
 
 `$grep -i huge /proc/meminfo`
 
-If ***HugePages_Free*** 's value equals to 0, which means there is no free hugepages available, you probably have to reboot your machine, by `$sudo reboot` to get some released hugepages. After rebooting your computer please refer to installation guide for openNetVM step ***5*** for guiance of creating Hugepage directory and reserving memory.
 
+Ensure that you have enough hugepage memory available by verifying that `HugePages_Free` is not equal to 0. If it is, you will likely need to reboot your machine, with `sudo reboot` to free hugepages. After a reboot, repeat this step. You may need to refer to the troubleshooting section of the ONVM install guide for if issues are persistent.
 ```
 AnonHugePages:      2048 kB
 HugePages_Total:    1024
@@ -33,8 +32,10 @@ Hugepagesize:       2048 kB
 1.2 Check your current status of NIC binding and active status
 ------------- 
 
-If your 10G ports are binded with DPDK driver, you are fine, if not, please refer to installation guide openNetVM for instructions for unbinding NIC cards from kernal uio and rebinding to DPDK.  
+Pktgen requires that at least one 10Gb NIC port is bound to the DPDK driver at the time of use. 
 
+You can check the status of your NICs with `./dpdk/usertools/dpdk-devbind.py -s`.   
+The desired NIC status should appear as such:  
 
 ```
 Network devices using DPDK-compatible driver
@@ -47,28 +48,42 @@ Network devices using kernel driver
 0000:05:00.0 '82576 Gigabit Network Connection' if=eth0 drv=igb unused=igb_uio *Active*
 ```
 
+Please refer to the troubleshooting section of the ONVM Install Guide for instructions on how to bind NIC cards to the DPDK driver. 
 
 
 2 Installation of Pktgen 
 ===================
 
-
 2.1 Get Package 
 -------------
 
-Initialize pktgen submodule
+#### Initialize pktgen submodule   
+`git submodule init`   
+`git submodule update`
 
-`git submodule init && git submodule update`
+#### Install dependencies
+pcap: `sudo apt-get install libpcap-dev`   
+readline: `sudo apt-get install libreadline-dev` 
 
-Install pcap dependency
+#### Install Lua
 
-`sudo apt-get install libpcap-dev`
-
-Download Lua, can be found [here](https://www.lua.org/download.html)  
-This might require running:  
-`sudo apt-get install libreadline-dev`  
-Navigate into the downloaded Lua directory and run  
-`sudo make install`
+To install the latest version, you will need to download, extract and build the package from [Lua](https://www.lua.org/download.html).   
+From your root directory:
+```
+cd ~/
+curl -R -O http://www.lua.org/ftp/lua-5.3.5.tar.gz             
+tar -zxf lua-5.3.5.tar.gz
+cd lua-5.3.5
+make linux test
+sudo make install
+```
+To make sure the installation was successful, run `lua` in the command line. The output should be similar to 
+```
+$ lua
+Lua 5.3.5, Copyright (C)1994-2017 Lua.org, PUC Rico
+>
+```
+***Note:*** *Lua 5.3.5 may not be the latest version. Please visit [Lua](https://www.lua.org/download.html) for more information.*
 
 2.2 Build Pktgen Application
 ------------- 
@@ -77,21 +92,26 @@ Enter working directory, and compile the application
 
 `$cd tools/Pktgen/pktgen-dpdk/`
 
-`$make`
+`$make`   
 
-Test pktgen by:
+***Note:*** *Compilation of Pktgen may display errors regarding installation location of Lua. Please ignore.*
+
+Test pktgen by running:
 
 `$sudo ./app/x86_64-native-linuxapp-gcc/pktgen -c 3 -n 1`
 
 Updating configuration for pktgen, three servers are set up for observing the traffic flow: web client ----> port 0 - ONVM - port 1----> web server
 
 
-2.3 Configure pktgen for openNetVM
+2.3 Configure Pktgen for openNetVM
 ------------- 
+1. Run the ONVM manager and retrieve the MAC address being used.
 
-Script files are located in openNetVM-Scripts
+Pktgen script files are located in `openNetVM-Scripts`, found in the `tools/Pktgen` directory.   
 
-1. Modify mac and optionally src/dest ip in the `pktgen-config.lua`.
+2. In the `pktgen-config.lua` file, modify the MAC address to match that being used by the ONVM manager. Optionally, you may want to modify the src/dest ip as well. 
+
+Further guidance on Pktgen configuration for ONVM can be found in [ONVM's Pktgen Wiki page](https://github.com/sdnfv/openNetVM/wiki/Packet-generation-using-Pktgen). 
 
 2.4 Run pktgen
 ------------- 

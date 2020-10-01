@@ -13,6 +13,46 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
+A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
+
+**Version Updates**
+
+- [[249](https://github.com/sdnfv/openNetVM/pull/249)] Updates ONVM to use DPDK 20.05 and Pktgen 20.05, as well as to run on Ubuntu 20.04 LTS
+
+**Miscellaneous Bug and Documentation Fixes**
+
+- [[216](https://github.com/sdnfv/openNetVM/pull/216)] Related to issues [#200](https://github.com/sdnfv/openNetVM/issues/200) and [#201](https://github.com/sdnfv/openNetVM/issues/201). Removed a few memory leaks. Replaced some libc function calls with the corresponding recommended dpdk function calls. Created new function to free allocated memory upon manager termination. Added if statements to error check after every allocation.
+- [[221](https://github.com/sdnfv/openNetVM/pull/221)] Updates Python scripts to use Python 3 rather than Python 2 and adds Python 3 as a dependency in the ONVM Install Guide
+- [[224](https://github.com/sdnfv/openNetVM/pull/224)] Use NF data instead of global variables in simple_fwd_tb NF
+- [[223](https://github.com/sdnfv/openNetVM/pull/223)] Fixes a bug in the load_generator NF. “Failure to obtain MAC address” error caused the NF to hang, so a function is now called to obtain a fake MAC address in this case.
+- [[227](https://github.com/sdnfv/openNetVM/pull/227)] Update stats updating during ONVM_NF_ACTION_OUT action
+- [[229](https://github.com/sdnfv/openNetVM/pull/229)] Fixed Issue #[228](https://github.com/sdnfv/openNetVM/issues/228) by properly counting the number of ports in the port mask and comparing it to the number available
+- [[235](https://github.com/sdnfv/openNetVM/pull/235)] Changed Pull Request template to remind users to request onto develop instead of master
+- [[239](https://github.com/sdnfv/openNetVM/pull/239)] Updates existing Pktgen installation guide by providing clarity on Lua installation and improves ONVM’s Pktgen Wiki page
+- [[241](https://github.com/sdnfv/openNetVM/pull/241)] Updated README.md with description of config file
+- [[252](https://github.com/sdnfv/openNetVM/pull/252)] Improves ONVM Install Guide to reflect DPDK and Pktgen version updates
+- [[258](https://github.com/sdnfv/openNetVM/pull/258)] Updated README.md with description of config file. This relates to PR [241](https://github.com/sdnfv/openNetVM/pull/241), since there are some linter issues with 241, this PR is made to resolve that issue.
+
+**New Features and NFs**
+
+- [[218](https://github.com/sdnfv/openNetVM/pull/218)] Python script that parses a JSON config file to launch multiple NFs
+- [[219](https://github.com/sdnfv/openNetVM/pull/219)] Manager has new suggested syntax: `./go.sh -k <port mask> -n <NF core mask> [OPTIONS]`. This replaces the positional argument-based syntax with flags. Also assumes default CPU cores unless the user uses the `-m` flag to specify manager cores
+- [[230](https://github.com/sdnfv/openNetVM/pull/230)] Add L2 switch NF. The functionality of this NF is similar to the DPDK l2fwd example
+
+Contributors:
+
+- Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+- Ethan Baron ([EthanBaron14](https://github.com/EthanBaron14))
+- Benjamin De Vierno ([bdevierno1](https://github.com/bdevierno1))
+- Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Mingyu Ma ([WilliamMaa](https://github.com/WilliamMaa))
+- Catherine Meadows ([catherinemeadows](https://github.com/catherinemeadows))
+- Sreya Nalla ([sreya](https://github.com/sreyanalla)[nalla](https://github.com/sreyanalla))
+- Rohit M P ([rohit-mp](https://github.com/rohit-mp))
+- [khaledshahine](https://github.com/khaledshahine)
+- Vivek Jain ([vivek-anand-jain](https://github.com/Vivek-anand-jain))
+
 ## v20.05 (May 31, 2020): Bug Fixes, Usability Improvements, and Token Bucket NF
 A CloudLab template will be available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
@@ -22,7 +62,7 @@ A CloudLab template will be available with the latest release here: https://www.
 - [[159](https://github.com/sdnfv/openNetVM/pull/159)] In `onvm_ft_create` instead of calling `rte_hash_create` from secondary process (NF), enqueue a message for the primary process (onvm_mgr) to do it and then return a pointer.
 - [[160](https://github.com/sdnfv/openNetVM/pull/160)] Fixes the case when packets that had an invalid out port would crash the manager. This is done by maintaining a port init array.
 - [[166](https://github.com/sdnfv/openNetVM/pull/180), [209](https://github.com/sdnfv/openNetVM/pull/209/files)] Updates dependencies mentioned in [194](https://github.com/sdnfv/openNetVM/pull/194) by updating Acorn’s version from 5.7.3 to 5.7.4 for ONVM Web
-- [[173](https://github.com/sdnfv/openNetVM/pull/173)] Fixes a bug in load_generator that caused a seg fault, the NF wasn't calling the setup function before running. 
+- [[173](https://github.com/sdnfv/openNetVM/pull/173)] Fixes a bug in load_generator that caused a seg fault, the NF wasn't calling the setup function before running.
 - [[180](https://github.com/sdnfv/openNetVM/pull/180)] Prevent user from running multiple managers or starting an NF prior to the manager.
 - [[183](https://github.com/sdnfv/openNetVM/pull/183)] Improved style and efficiency of bash shell scripts using ShellCheck linter
 - [[189](https://github.com/sdnfv/openNetVM/pull/189)] Fixes broken links in Moongen and Pktgen installation guides
@@ -42,7 +82,7 @@ A CloudLab template will be available with the latest release here: https://www.
         - Shellcheck
     - New scripts for researchers to install necessary dependencies and run linter locally.
     - Removed CI code from the main repository
-- [[199](https://github.com/sdnfv/openNetVM/pull/199)] Added new Simple Forward Token Bucket Rate Limiter NF that simulates a queue with a token bucket and forwards packets to a specific destination.  The NF forwards packets based on a user specified rate (-R) and depth (-D). 
+- [[199](https://github.com/sdnfv/openNetVM/pull/199)] Added new Simple Forward Token Bucket Rate Limiter NF that simulates a queue with a token bucket and forwards packets to a specific destination.  The NF forwards packets based on a user specified rate (-R) and depth (-D).
 
 Contributors:
 
@@ -62,7 +102,7 @@ A CloudLab template is available with the latest release here: https://www.cloud
 **Performance**: This release includes a new macro `ENABLE_FLOW_LOOKUP` which controls whether a flow lookup is performed for every incoming packet. If disabled, all packets are forwarded to the default service ID which improves performance. The flow lookup is still enabled by default for backward compatibility with other applications that use ONVM.
 
 ### NFD library with example NFS
-Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China. NFD compiles the NF logic into a common C++ program by using table-form language to model NFs' behavior. 
+Add example NFs based on NFD, a C++-based NF developing compiler designed by Wenfei Wu's group (http://wenfei-wu.github.io/) from IIIS, Tsinghua University, China. NFD compiles the NF logic into a common C++ program by using table-form language to model NFs' behavior.
 
 **The NFD compiler itself isn't included, only the NFs that were created with it.**
 
@@ -111,11 +151,11 @@ The code is based on the hybrid-polling model proposed in [_Flurries: Countless 
 Usage and implementation details can be found [here][shared_core_docs].
 
 ### Major Architectural Changes:
-- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm. 
+- Introduce a local `onvm_nf_init_ctx` struct allocated from the heap before starting onvm.
 
     Previously the initialization sequence for NFs wasn't able to properly cleanup if a signal was received. Because of this we have introduced a new NF context struct(`onvm_nf_local_ctx`) which would be malloced before initialization begins and would help handle cleanup. This struct contains relevant information about the status of the initialization sequence and holds a reference to the `onvm_nf` struct which has all the information about the NF.  
 
-- Reworking the `onvm_nf` struct. 
+- Reworking the `onvm_nf` struct.
 
     Previously the `onvm_nf` struct contained a pointer to the `onvm_nf_info`, which was used during processing. It's better to have one main struct that represents the NF, thus the contents of the `onvm_nf_info` were merged into the `onvm_nf` struct. This allows us to maintain a cleaner API where all information about the NF is stored in the `onvm_nf` struct.  
 
@@ -123,9 +163,9 @@ Usage and implementation details can be found [here][shared_core_docs].
 
     This struct contains all relevant information to spawn a new NF (service/instance IDs, flags, core, etc). When the NF is spawned this struct will be released back to the mempool.  
 
-	
+
  - Adding a function table struct `onvm_nf_function_table`.  
-	
+
     Finally, we introduced the `onvm_nf_function_table` struct that groups all NF callback functions that can be set by developers.   
 
 **Overall, the new NF launch/shutdown sequence looks as follows:**
@@ -141,7 +181,7 @@ nf_function_table->pkt_handler = &packet_handler;
 
 if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0)
         // error checks
-		
+
 argc -= arg_offset;
 argv += arg_offset;
 
@@ -154,14 +194,14 @@ onvm_nflib_stop(nf_local_ctx);
 
 ### Advanced Rings Changes:
 This release changes our approach to NFs using the advanced rings mode. Previously we were trying to provide APIs for advanced ring developers such as scaling, but this logic should be managed by the NFs themselves. Because of this we're reworking those APIs and letting the NF devs handle everything themselves.  
- - Speed Tester NF advanced rings mode is removed 
- - Extra APIs have been removed 
- - Removes support for advanced rings scaling APIs 
+ - Speed Tester NF advanced rings mode is removed
+ - Extra APIs have been removed
+ - Removes support for advanced rings scaling APIs
  - Scaling Example NF advanced rings mode has been reworked, the new implementation now does its own pthread creation instead of relying on the onvm scaling APIs. Also makes a clear separation between default and advanced ring mode.  
  - Because of these changes some internal nflib APIs were exposed to the NF (`onvm_nflib_start_nf`, `onvm_nflib_init_nf_init_cfg`, `onvm_nflib_inherit_parent_init_cfg`)
 
 ### Stats Updates:
-This release updates both console and web stats. 
+This release updates both console and web stats.
 
  - For web stats this adds the Core Mappings page with the core layout for both onvm_mgr and NFs.
  - For console stats this overhauls the displayed stats and adds new information, see more below.
@@ -248,7 +288,7 @@ The firewall NF drops or forwards packets based on rules provided in a JSON conf
 The Payload Scan NF provides the functionality to search for a string within a given UDP or TCP packet payload. Packet is forwarded to its destination NF on a match, dropped otherwise. The NF also has an inverse mode to drop on match and forward otherwise. Documentation for this NF can be found [here][payload_scan_nf_readme].
 
 ### TTL Flags:
-Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received. 
+Adds TTL and packet limit flags to stop the NF or the onvm_mgr based on time since startup or based on packets received. Default measurements for these flags are in seconds and in millions of packets received.
 
 ### NF to NF Messaging:
 Adds the ability for NFs to send messages to other NFs. NFs need to define a message handler to receive messages and are responsible to free the custom message data. If the message is sent to a NF that doesn't have a message handler the message is ignored.
@@ -298,7 +338,7 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
             nf_pkt_handler_fn  pkt_handler;
     };
     ```
-    
+
 * Renaming the old `onvm_nf_info` -> `onvm_nf_init_cfg`:
     ```c
     struct onvm_nf_init_cfg {
@@ -314,7 +354,7 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
             uint16_t pkt_limit;
     };
     ```
-    
+
 * Consolidating previous `onvm_nf_info` and `onvm_nf` into a singular `onvm_nf` struct:  
     ```c
     struct onvm_nf {
@@ -371,8 +411,8 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
             } stats;
 
             struct {
-                     /* 
-                      * Sleep state (shared mem variable) to track state of NF and trigger wakeups 
+                     /*
+                      * Sleep state (shared mem variable) to track state of NF and trigger wakeups
                       *     sleep_state = 1 => NF sleeping (waiting on semaphore)
                       *     sleep_state = 0 => NF running (not waiting on semaphore)
                       */
@@ -400,7 +440,7 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
  - `struct onvm_nf_local_ctx *onvm_nflib_init_nf_local_ctx(void)`
  - `struct onvm_nf_function_table *onvm_nflib_init_nf_function_table(void)`
  - `int onvm_nflib_start_signal_handler(struct onvm_nf_local_ctx *nf_local_ctx, handle_signal_func signal_hanlder)`
- - `int onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data)` 
+ - `int onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data)`
  - `int onvm_nflib_request_lpm(struct lpm_request *req)`
  - `struct onvm_configuration *onvm_nflib_get_onvm_config(void)`  
     These APIs were previously internal but are now exposed for advanced ring NFs:
@@ -418,14 +458,14 @@ Adds the ability for NFs to send messages to other NFs. NFs need to define a mes
 ## v19.02 (2/19): Manager Assigned NF Cores, Global Launch Script, DPDK 18.11 Update, Web Stats Overhaul, Load Generator NF, CI (Internal repo only), minor improvements and bug fixes
 This release adds several new features and changes how the onvm_mgr and NFs start. A CloudLab template is available with the latest release here: https://www.cloudlab.us/p/GWCloudLab/onvm
 
-Note: This release makes important changes in how NFs are run and assigned to cores. 
+Note: This release makes important changes in how NFs are run and assigned to cores.
 
 Performance: We are aware of some performance irregularities with this release. For example, the first few times a Basic Monitor NF is run we achieve only ~8 Mpps on a CloudLab Wisconsin c220g2 server. After starting and stopping the NF several times, the performance rises to the expected 14.5 Mpps.
 
 ### Manager Assigned NF Cores:
-NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument. 
+NFs no longer require a CORE_LIST argument to start, the manager now does core assignment based on the provided core bitmask argument.
 
-NFs now go through the dpdk init process on a default core (currently 0) and then launch a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function is affinized to a core obtained from the Manager. 
+NFs now go through the dpdk init process on a default core (currently 0) and then launch a pthread for its main loop, which using the DPDK `rte_thread_set_affinity()` function is affinized to a core obtained from the Manager.
 
 The core info is maintained in a memzone and the Manager keeps track of what cores are used, by how many NFs, and if the cores are reserved as dedicated. The Manager always selects the core with the fewest NFs unless a flag is used when starting an NF.
 
@@ -443,10 +483,10 @@ cd onvm
 ```
 With this command the manager runs on cores 0-3, uses ports 1 and 2 (since `0x3` is binary `0b11`), and will start NFs on cores 4-7 (since `0xF0` is binary `0b11110000`)
 
-New Network Functions arguments: 
+New Network Functions arguments:
   * `-m` manual core decision mode, NF runs on the core supplied by the `-l` argument if available. If the core is busy or not enabled then returns an error and doesn't start the NF.
   * `-s` shared core mode, this will allow multiple NFs to run on the same core. Generally this should be avoided to prevent performance problems. By default, each core is dedicated to a single NF.
-  
+
 These arguments can be set as `ONVM_ARGS` as detailed below.
 
 **API Additions:**
@@ -487,7 +527,7 @@ git submodule sync
 git submodule update --init
 ```
 
-### Web Stats Overhaul 
+### Web Stats Overhaul
 Adds a new event logging system which is used for port initialization and NF starting, ready, and stopping events. In the future, this could be used for more complex logging such as service chain based events and for core mappings.
 
 Also contains a complete rewrite of the web frontend. The existing code which primarily used jquery has been rewritten and expanded upon in React, using Flow for type checking rather than a full TypeScript implementation. This allows us to maintain application state across pages and to restore graphs to the fully updated state when returning to a graph from a different page.
@@ -500,7 +540,7 @@ Adds a Load Generator NF, which sends packets at a specified rate and size, meas
 Example usage with a chain of load_generator <-> simple_forward:
 ```sh
 cd examples/load_generator
-./go.sh 1 -d 2 -t 4000000 
+./go.sh 1 -d 2 -t 4000000
 
 cd examples/simple_forward
 ./go.sh 2 -d 1
@@ -544,12 +584,12 @@ To make an NF start another thread, run the `onvm_nflib_scale(struct onvm_nf_sca
 
 **API Changes:**
 The prior code relied on global data structures that do not work in a multithreaded environment. As a result, many of the APIs have been refactored to take an `onvm_nf_info` structure, instead of assuming it is available as a global variable.
- - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag);` -> 
+ - `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag);` ->
 `int onvm_nflib_init(int argc, char *argv[], const char *nf_tag, struct onvm_nf_info **nf_info_p)`
- - `void onvm_nflib_stop(void)` -> `void onvm_nflib_stop(struct onvm_nf_info *nf_info)` 
-- `int onvm_nflib_return_pkt(struct rte_mbuf* pkt)` -> 
+ - `void onvm_nflib_stop(void)` -> `void onvm_nflib_stop(struct onvm_nf_info *nf_info)`
+- `int onvm_nflib_return_pkt(struct rte_mbuf* pkt)` ->
 `int onvm_nflib_return_pkt(struct onvm_nf_info *nf_info, struct rte_mbuf* pkt)`
-- `int pkt_handler_func(struct rte_mbuf* pkt, struct onvm_pkt_meta* action)` -> 
+- `int pkt_handler_func(struct rte_mbuf* pkt, struct onvm_pkt_meta* action)` ->
 `int pkt_handler_func(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, __attribute__ ((unused)) struct onvm_nf_info *nf_info)`
 - `int callback_handler_func(void)` -> `int callback_handler_func(__attribute__ ((unused)) struct onvm_nf_info *nf_info)`
 - Any existing NFs will need to be modified to support this updated API. Generally this just requires adding a reference to the `onvm_nf_info` struct in the API calls.
@@ -597,7 +637,7 @@ ONVM now supports JSON config files, which can be loaded through the API provide
 
 
 ## v18.05 (5/31/18): Bug Fixes, Latency Measurements, and Docker Image
-This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict. 
+This release adds a feature to the Speed Tester example NF to support latency measurements by using the `-l` flag. Latency is calculated by writing a timestamp into the packet body and comparing this value when the packet is returned to the Speed Tester NF. A sample use case is to run 3 speed tester NFs configured to send in a chain, with the last NF sending back to the first. The first NF can use the `-l` flag to measure latency for this chain. Note that only one NF in a chain should be using the flag since otherwise timestamp information written to the packet will conflict.
 
 It also makes minor changes to the setup scripts to work better in NSF CloudLab environments.
 
@@ -634,10 +674,10 @@ make install T=$RTE_TARGET -j 8
 This update also includes preliminary support for mTCP-based endpoint NFs. Our OpenNetVM driver has been merged into the [develop branch of mTCP](https://github.com/eunyoung14/mtcp/tree/devel). This allows you to run services like high performance web servers on an integrated platform with other middleboxes.  See the mTCP repository for usage instructions.
 
 Other changes include:
- - Adds a new "Router NF" example which can be used to redirect packets to specific NFs based on their IP. This is currently designed for simple scenarios where a small number of IPs are matched to NFs acting as connection terminating endpoints (e.g., mTCP-based servers). 
+ - Adds a new "Router NF" example which can be used to redirect packets to specific NFs based on their IP. This is currently designed for simple scenarios where a small number of IPs are matched to NFs acting as connection terminating endpoints (e.g., mTCP-based servers).
  - Bug Fix in ARP NF to properly handle replies based on the ARP OP code.
  - Updated pktgen submodule to 3.49 which works with DPDK 17.08.
- 
+
  An NSF CloudLab template including OpenNetVM 18.03, mTCP, and some basic networking utilities is available here: https://www.cloudlab.us/p/GWCloudLab/onvm-18.03
 
 *No API changes were introduced in this release.*
@@ -650,13 +690,13 @@ This release includes several bug fixes including:
 
 Improvements:
  - Speed Tester NF now supports a `-c` argument indicating how many packets should be created. If combined with the PCAP replay flag, this parameter controls how many of packets in the trace will be transmitted. A larger packet count may be required when trying to use Speed Tester to saturate a chain of network functions.
- 
+
 *No API changes were introduced in this release.*
 
 ## v17.11 (11/16/17): New TX thread architecture, realistic NF examples, better stats, messaging, and more
 Since the last official release there have been substantial changes to openNetVM, including the switch to date based versioning mentioned above. Changes include:
- - New TX architecture: previously NFs enqueued packets into a TX ring that was read by TX threads in the manager, which consumed significant CPU resources. 
- By moving TX thread logic to the NF side, ONVM can run with fewer cores, improving efficiency.  NFs can then directly pass packets which saves enqueueing/dequeuing to an extra ring. TX threads still send packets out the NIC, but NFs primarily do packet passing--it is suggested to run the system with at least 1 TX thread to handle outgoing packets. Despite these changes, TX threads can still perform the same work that they did before. If a user would like to run ONVM with TX threads handling all packet passing, they must set `NF_HANDLE_TX` to `0` in `onvm_common.h` 
+ - New TX architecture: previously NFs enqueued packets into a TX ring that was read by TX threads in the manager, which consumed significant CPU resources.
+ By moving TX thread logic to the NF side, ONVM can run with fewer cores, improving efficiency.  NFs can then directly pass packets which saves enqueueing/dequeuing to an extra ring. TX threads still send packets out the NIC, but NFs primarily do packet passing--it is suggested to run the system with at least 1 TX thread to handle outgoing packets. Despite these changes, TX threads can still perform the same work that they did before. If a user would like to run ONVM with TX threads handling all packet passing, they must set `NF_HANDLE_TX` to `0` in `onvm_common.h`
    - Our tests show this change increases NF transmit speed from 20 Mpps to 41 Mpps with the Speed Tester NF benchmark, while consuming fewer cores.
  - New NFs: we have developed several new sample NFs, including:
    - `examples/ndpi_stats` uses the [nDPI library](https://github.com/ntop/nDPI) for deep packet inspection to determine the protocol of each flow.
@@ -667,7 +707,7 @@ Since the last official release there have been substantial changes to openNetVM
  - [PCAP replay](https://github.com/sdnfv/openNetVM/commit/4b40bdca5117c6a72f57dfa5c622173abfc49483): the Speed Tester NF can now load a packet trace file and use that to generate the packets that it transmits.
  - [NF idle call back](https://github.com/sdnfv/openNetVM/commit/d4bc32aeffeb5f2082cfb978b3860a407c962a93): Traditionally, NFs would wait until the ONVM manager puts packets on their Rx buffer and then calls their packet handler function to process them.  This meant that NFs would sit idle until they have some packets to process.  With this change, NFs can now run at any time even if there are no packets to process.  NFs can provide a callback handler function to be registered with NFLib.  Once this callback handler is registered with NFLib, the function will be run constantly even if there are no packets to be processed.
  - [Web-based stats](https://github.com/sdnfv/openNetVM/commit/b7380020837dcecc32b3fb72e79190c256670e80): the ONVM manager can now display statistics about the active NFs. See `onvm_web/` for more information.
- - [NF--Manager Messaging Interface](https://github.com/sdnfv/openNetVM/commit/125e6dd5e9339b5492723866988edf05ecadcd48): We have expanded the interface between the manager and NFs to allow more flexible message passing. 
+ - [NF--Manager Messaging Interface](https://github.com/sdnfv/openNetVM/commit/125e6dd5e9339b5492723866988edf05ecadcd48): We have expanded the interface between the manager and NFs to allow more flexible message passing.
  - A multitude of other bug fixes, documentation improvements, etc!
 
 ## v1.1.0 (1/25/17): Refactoring to library, new NFs
