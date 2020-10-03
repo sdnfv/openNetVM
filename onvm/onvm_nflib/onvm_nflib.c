@@ -1692,7 +1692,7 @@ onvm_nflib_get_go_script_path(void) {
         token_len = strlen(token);
         cwd = cwd + token_len;
 
-        cwd_len = strlen(cwd); 
+        cwd_len = strlen(cwd);
         go_script_len = strlen(go_script);
         wd_nf_len = strlen(examples_path);
         total_directory_size = cwd_len + go_script_len;
@@ -1701,7 +1701,7 @@ onvm_nflib_get_go_script_path(void) {
         strncat(go_script_path, cwd, cwd_len);
         strncat(go_script_path, examples_path, wd_nf_len);
         strncat(go_script_path, go_script, go_script_len);
-        
+
         rte_free(cwd);
         return go_script_path;
 }
