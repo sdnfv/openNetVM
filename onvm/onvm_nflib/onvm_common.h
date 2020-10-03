@@ -356,7 +356,7 @@ struct onvm_nf_init_cfg {
 
 struct onvm_nf_pool_ctx {
         struct rte_ring *pool_ring;
-        void *args;
+        const char *args;
         const char *binary_executable;
         const char *nf_name;
         unsigned refill;

@@ -238,7 +238,7 @@ onvm_nflib_handle_signal(int signal);
  * to its pool.
  */
 int
-onvm_nflib_fork_pool_nfs(const char *nf_name, void *nf_args, struct rte_ring *nf_pool_ring, int nf_count);
+onvm_nflib_fork_pool_nfs(const char *nf_name, const char *nf_args, struct rte_ring *nf_pool_ring, int nf_count);
 
 /**
  * Obtains the nfpool hashmap used for NF pool API
@@ -1502,7 +1502,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
 }
 
 int
-onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int eq_num, int refill) {
+onvm_nflib_pool_enqueue(const char *nf_name, const char *nf_args, int eq_num, int refill) {
         struct rte_ring *nf_pool_ring;
         struct ring_request *rte_ring_request;
         char *nf_ring_name;
@@ -1511,7 +1511,7 @@ onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int eq_num, int refi
         struct onvm_nf_pool_ctx *pool_ctx = NULL;
 
         if (nf_args == NULL) {
-                RTE_LOG(INFO, APP, "NF args structs is NULL\n");
+                RTE_LOG(INFO, APP, "Invalid NF args string\n");
                 return -1;
         }
 
@@ -1567,7 +1567,7 @@ onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int eq_num, int refi
 }
 
 int
-onvm_nflib_fork_pool_nfs(const char *nf_name, void *nf_args, struct rte_ring *nf_pool_ring, int nf_count) {
+onvm_nflib_fork_pool_nfs(const char *nf_name, const char *nf_args, struct rte_ring *nf_pool_ring, int nf_count) {
         struct onvm_nf *spawned_nf;
         int i, count_sleep;
 
@@ -1637,11 +1637,8 @@ onvm_nflib_pool_dequeue(const char *nf_name, int dq_num, int refill) {
 }
 
 struct onvm_nf *
-onvm_nflib_fork(const char *nf_name, void *nf_args) {
-        struct simple_forward_args *args_sf;
-        struct aes_decrypt_args *args_aesdec;
-        char *binary_string;
-        int fork_error;
+onvm_nflib_fork(const char *nf_name, const char *nf_args) {
+        char *go_script_path;
         int instance_id;
 
         if (nf_name == NULL) {
@@ -1654,37 +1651,21 @@ onvm_nflib_fork(const char *nf_name, void *nf_args) {
         }
 
         instance_id = onvm_nflib_request_next_instance_id();
-        binary_string = onvm_nflib_create_binary_exec_string(nf_name);
+        go_script_path = onvm_nflib_get_go_script_path();
+        if (go_script_path == NULL) {
+                return NULL;
+        }
         if (fork() == 0) {
-                if (strcmp(nf_name, "simple_forward") == 0) {
-                        args_sf = (struct simple_forward_args *) nf_args;
-                        if (args_sf->optional_args.print_delay != NULL) {
-                                fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r",
-                                        args_sf->service_id, "--","-d", args_sf->destination_id, "--", "-p", args_sf->optional_args.print_delay, NULL);
-                                RTE_LOG(INFO, APP, "Execl error %d\n", fork_error);
-                                return NULL;
-                        }
-                        // Default case is user does not specify packet delay args
-                        fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r",
-                                           args_sf->service_id, "--", "-d", args_sf->destination_id, NULL);
-                        RTE_LOG(INFO, APP, "Execl error %d\n", fork_error);
-                        return NULL;
-                if (strcmp(nf_name, "aes_decrypt") == 0) {
-                        args_aesdec = (struct aes_decrypt_args *) nf_args;
-                        if (args_aesdec->optional_args.print_delay != NULL) {
-                                fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r", 
-                                        args_aesdec->service_id, "--","-d", args_sf->destination_id, "--", "-p", args_aesdec->optional_args.print_delay, NULL);
-                                RTE_LOG(INFO, APP, "Execl error %d\n", fork_error);
-                                return NULL;
-                        }
-                        // Default case is user does not specify packet delay args
-                        fork_error = execl(binary_string, "-l", "7", "-n", "3", "--proc-type=secondary", "--", "-r",
-                                           args_aesdec->service_id, "--", "-d", args_aesdec->destination_id, NULL);
-                        RTE_LOG(INFO, APP, "Execl error %d\n", fork_error);
+                char *command;
+                int ret;
+                ret = asprintf(&command, "%s %s %s", go_script_path, nf_name, nf_args);
+                if (ret < 0) {
+                        RTE_LOG(INFO, APP, "Could not allocate command string for bash script call\n");
                         return NULL;
                 }
-                } else {
-                        RTE_LOG(INFO, APP, "NF_name not found");
+                ret = system(command);
+                if (ret < 0) {
+                        RTE_LOG(INFO, APP, "Could not execute NF go script\n");
                         return NULL;
                 }
         }
@@ -1693,43 +1674,36 @@ onvm_nflib_fork(const char *nf_name, void *nf_args) {
 }
 
 char *
-onvm_nflib_create_binary_exec_string(const char *nf_name) {
+onvm_nflib_get_go_script_path(void) {
         char *token;
-        const char *wd_nf = "/examples/";
-        const char *build_nf = "/build/app/";
-        char *binary_directory;
-        uint16_t total_directory_size, nf_name_len, wd_nf_len, build_nf_len, token_len, cwd_len;
+        const char *examples_path = "/examples/";
+        const char *go_script = "start_nf.sh";
+        char *go_script_path;
+        uint16_t total_directory_size, wd_nf_len, token_len, cwd_len, go_script_len;
         char *cwd = rte_malloc(0, sizeof(char) * 4096, 0);
 
         if (getcwd(cwd, 4096) == NULL) {
                 RTE_LOG(INFO, APP, "Could not extract current working CWD");
+                return NULL;
         }
-        // A little bit hacky but idk a better way, idea is: find first position of /examples/ string, use that to parse
-        // the CWD then construct the full directory to NF binary. Works only if user is running NF from examples
-        // directory
-        token = strstr(cwd, wd_nf);
+
+        token = strstr(cwd, examples_path);
         *token = '\0';
         token_len = strlen(token);
         cwd = cwd + token_len;
 
-        // Get the strlen's of all the needed string for our binary string
-        cwd_len = strlen(cwd);
-        nf_name_len = strlen(nf_name);
-        wd_nf_len = strlen(wd_nf);
-        build_nf_len = strlen(build_nf);
+        cwd_len = strlen(cwd); 
+        go_script_len = strlen(go_script);
+        wd_nf_len = strlen(examples_path);
+        total_directory_size = cwd_len + go_script_len;
+        go_script_path = rte_malloc(0, sizeof(char) * total_directory_size, 0);
 
-        // Allocate the memory needed for the full binary string
-        total_directory_size = wd_nf_len + nf_name_len + cwd_len + nf_name_len;
-        binary_directory = rte_malloc(0, sizeof(char) * total_directory_size, 0);
-
-        strncat(binary_directory, cwd, cwd_len);
-        strncat(binary_directory, wd_nf, wd_nf_len);
-        strncat(binary_directory, nf_name, nf_name_len);
-        strncat(binary_directory, build_nf, build_nf_len);
-        strncat(binary_directory, nf_name, nf_name_len);
-
+        strncat(go_script_path, cwd, cwd_len);
+        strncat(go_script_path, examples_path, wd_nf_len);
+        strncat(go_script_path, go_script, go_script_len);
+        
         rte_free(cwd);
-        return binary_directory;
+        return go_script_path;
 }
 
 int

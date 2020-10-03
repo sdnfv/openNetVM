@@ -317,7 +317,7 @@ onvm_nflib_stats_summary_output(uint16_t id);
  * Output: Number of nf's enqueued into pool, -1 on error
  */ 
 int
-onvm_nflib_pool_enqueue(const char *nf_name, void *nf_args, int nf_count, int refill);
+onvm_nflib_pool_enqueue(const char *nf_name, const char *nf_args, int nf_count, int refill);
 
 /**
  * Dequeues NF from its corresponding pool
@@ -333,15 +333,15 @@ onvm_nflib_pool_dequeue(const char *nf_name, int nf_count, int refill_threshold)
  * Output: Pointer to NF struct that was forked
  */  
 struct onvm_nf *
-onvm_nflib_fork(const char *nf_name, void *nf_args);
+onvm_nflib_fork(const char *nf_name, const char *nf_args);
 
 /**
- * Creates a path to the binary executable of the NF. Assumes the NF is in the 
- * examples directory and its executable is within a /build folder
- * Input: Name of the NF
+ * Creates a path to the start_nf.sh script from the calling process, which is used
+ * to dynamically start NF's during runtime
+ * Input: None
  * Output: String to binary executable
  */ 
 char *
-onvm_nflib_create_binary_exec_string(const char *nf_name);
+onvm_nflib_get_go_script_path(void);
 
 #endif // _ONVM_NFLIB_H_
