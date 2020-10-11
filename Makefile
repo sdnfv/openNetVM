@@ -36,6 +36,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+ifeq ($(ONVM_HOME),)
+$(error "Please define ONVM_HOME environment variable")
+endif
+
+include $(ONVM_HOME)/onvm/Makefiles
+include $(ONVM_HOME)/examples/Makefiles
+include $(ONVM_HOME)/dpdk/Makefiles
+
 .PHONY: tags
 
 tags:
