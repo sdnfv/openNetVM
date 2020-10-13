@@ -40,9 +40,14 @@ ifeq ($(ONVM_HOME),)
 $(error "Please define ONVM_HOME environment variable")
 endif
 
-include $(ONVM_HOME)/onvm/Makefiles
-include $(ONVM_HOME)/examples/Makefiles
-include $(ONVM_HOME)/dpdk/Makefiles
+ifeq ($(RTE_SDK),)
+$(error "Please define RTE_SDK environment variable")
+endif
+
+all:
+	cd $(ONVM_HOME)/dpdk && make
+	cd $(ONVM_HOME)/onvm && make
+	cd $(ONVM_HOME)/examples && make
 
 .PHONY: tags
 
