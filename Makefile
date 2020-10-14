@@ -45,7 +45,7 @@ $(error "Please define RTE_SDK environment variable")
 endif
 
 all:
-	cd $(ONVM_HOME)/dpdk && make
+	# cd $(ONVM_HOME)/dpdk && make
 	cd $(ONVM_HOME)/onvm && make
 	cd $(ONVM_HOME)/examples && make
 
