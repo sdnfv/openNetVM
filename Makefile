@@ -36,6 +36,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+ifeq ($(ONVM_HOME),)
+$(error "Please define ONVM_HOME environment variable")
+endif
+
+ifeq ($(RTE_SDK),)
+$(error "Please define RTE_SDK environment variable")
+endif
+
+all:
+	# cd $(ONVM_HOME)/dpdk && make
+	cd $(ONVM_HOME)/onvm && make
+	cd $(ONVM_HOME)/examples && make
+
 .PHONY: tags
 
 tags:
