@@ -200,19 +200,19 @@ int
 onvm_pkt_swap_ether_hdr(struct rte_ether_hdr* ether_hdr);
 
 /**
- * Generates a UDP packet with the provided values
+ * Swap the IP header values
  */
 int
 onvm_pkt_swap_ip_hdr(struct rte_ipv4_hdr* ip_hdr);
 
 /**
- * Generates a TCP packet with the provided values
+ * Swap the TCP header values
  */
 int
 onvm_pkt_swap_tcp_hdr(struct rte_tcp_hdr* tcp_hdr);
 
 /**
- * Generates a UDP packet with the provided values
+ * Generates a TCP packet with the provided values
  */
 struct rte_mbuf*
 onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct rte_tcp_hdr* tcp_hdr, struct rte_ipv4_hdr* iph,
