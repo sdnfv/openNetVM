@@ -84,7 +84,7 @@ if [[ "${CMD}" == "" ]] ; then
         --volume="${ONVM}":/openNetVM \
         ${DIR} \
         "${DEVICES[@]}" \
-        sdnfv/opennetvm \
+        sdnfv/opennetvm:20.10 \
         /bin/bash
 else
     sudo docker run \
@@ -98,7 +98,7 @@ else
         --volume="${ONVM}":/openNetVM \
         ${DIR} \
         "${DEVICES[@]}" \
-        sdnfv/opennetvm \
+        sdnfv/opennetvm.20.10 \
         /bin/bash -c "${CMD}"
 fi
 
