@@ -34,7 +34,7 @@ sudo ./docker.sh -h HUGEPAGES -o ONVM -n NAME [-D DEVICES] [-d DIRECTORY] [-c CO
   - This will start a container with two NIC devices mapped in, /dev/uio0 and /dev/uio1, the hugepage directory at `/mnt/huge` mapped in, and the openNetVM source directory at `/root/openNetVM` mapped into the container with the name of Basic_Monitor_NF.
 
     ```bash
-    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/speed_tester/go.sh 1 -d 1"
+    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/start_nf.sh speed_tester 1 -d 1"
     ```
 
   - This will start a container with one NIC device mapped in, /dev/uio0 , the hugepage directory at `/mnt/huge` mapped in, and the openNetVM source directory at `/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF.
@@ -162,7 +162,7 @@ Older Dockerfiles
 
 If you want to use an older ONVM version on Ubuntu 14, take a look at the [Available Tags][onvm-docker-tags].
 The 18.03 tag runs ONVM when it had been set up for an older version of Ubuntu.
-The `latest` dockerfile runs on Ubuntu 18.04 and is called `latest`.
+The `latest` dockerfile runs on Ubuntu 20.04 and is called `latest`.
 
 [docker]: ../scripts/docker.sh
 [onvm-docker]: https://hub.docker.com/r/sdnfv/opennetvm/
