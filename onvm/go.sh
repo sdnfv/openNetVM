@@ -255,7 +255,7 @@ fi
 
 if [ "${stats}" = "-s web" ]
 then
-    cd ../onvm_web/ || usage
+    cd "$ONVM_HOME"/onvm_web/ || usage
     if [ -n "${web_port}" ]
     then
         . start_web_console.sh -p "${web_port}"
