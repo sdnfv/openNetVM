@@ -129,6 +129,7 @@ extern uint8_t ONVM_NF_SHARE_CORES;
 
 /* For handling shared core logic */
 extern struct nf_wakeup_info *nf_wakeup_infos;
+extern struct nf_wakeup_info *nf_pool_wakeup_infos;
 
 /**********************************Functions**********************************/
 

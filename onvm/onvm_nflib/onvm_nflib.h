@@ -270,6 +270,20 @@ onvm_nflib_scale(struct onvm_nf_scale_info *scale_info);
 int
 onvm_nflib_request_lpm(struct lpm_request *req);
 
+/**
+ * Request ring data structure. Return success or failure of this initiatlization 
+ * @param ring_request
+ * @return response status 
+ */
+int
+onvm_nflib_request_ring(struct ring_request *ring_req);
+
+/**
+ * Requests the next available instance ID from the manager. Not MT safe. 
+ */ 
+int
+onvm_nflib_request_next_instance_id(void);
+
 /*
  * Initializes a flow_tables hashmap. Returns the status code, representing the success or failure of the initialization 
  *
@@ -296,5 +310,38 @@ onvm_nflib_get_onvm_config(void);
  */
 void
 onvm_nflib_stats_summary_output(uint16_t id);
+
+/**
+ * Enqueues an NF into its corresponding pool.
+ * Input: Name of the nf, args to the nf, number of nf's to enqueue, (optional) pool refll threshold
+ * Output: Number of nf's enqueued into pool, -1 on error
+ */ 
+int
+onvm_nflib_pool_enqueue(const char *nf_name, const char *nf_args, int nf_count, int refill);
+
+/**
+ * Dequeues NF from its corresponding pool
+ * Input: Name of the nf, amount of nf's to dequeue, (optional) pool refill threshold 
+ * Output: Number of nf's dequeued from pool, -1 on error
+ */ 
+int
+onvm_nflib_pool_dequeue(const char *nf_name, int nf_count, int refill_threshold);
+
+/**
+ * Forks a NF based off its name. Assumes the NF is within the examples directory. 
+ * Input: Name of the nf, argument struct to the NF
+ * Output: Pointer to NF struct that was forked
+ */  
+struct onvm_nf *
+onvm_nflib_fork(const char *nf_name, const char *nf_args);
+
+/**
+ * Creates a path to the start_nf.sh script from the calling process, which is used
+ * to dynamically start NF's during runtime
+ * Input: None
+ * Output: String to binary executable
+ */ 
+char *
+onvm_nflib_get_go_script_path(void);
 
 #endif // _ONVM_NFLIB_H_

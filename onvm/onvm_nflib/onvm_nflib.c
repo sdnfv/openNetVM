@@ -70,6 +70,7 @@
 #define NF_MODE_RING 2
 
 #define ONVM_NO_CALLBACK NULL
+#define TIMEOUT_NF_REQUEST 3
 
 /******************************Global Variables*******************************/
 
@@ -100,6 +101,9 @@ static struct onvm_nf_local_ctx *main_nf_local_ctx;
 
 // Global NF specific signal handler
 static handle_signal_func global_nf_signal_handler = NULL;
+
+// Global NF pool table
+struct rte_hash *pool_map;
 
 // Shared data for default service chain
 struct onvm_service_chain *default_chain;
@@ -220,7 +224,6 @@ onvm_nflib_thread_main_loop(void *arg);
  */
 static void
 init_shared_core_mode_info(uint16_t instance_id);
-
 /*
  * Signal handler to catch SIGINT/SIGTERM.
  *
@@ -229,6 +232,25 @@ init_shared_core_mode_info(uint16_t instance_id);
  */
 void
 onvm_nflib_handle_signal(int signal);
+
+/*
+ * Forks NF's and enqueues them into a given ring. The ring stores NF struct pointers corresponding
+ * to its pool.
+ */
+int
+onvm_nflib_fork_pool_nfs(const char *nf_name, const char *nf_args, struct rte_ring *nf_pool_ring, int nf_count);
+
+/**
+ * Obtains the nfpool hashmap used for NF pool API
+ */
+struct rte_hash *
+onvm_nflib_get_nfpool_hashmap(void);
+
+/**
+ * Function to initialize the semaphore used for pool nf's
+ */ 
+void
+init_pool_info(uint16_t instance_id);
 
 /************************************API**************************************/
 
@@ -285,6 +307,33 @@ onvm_nflib_request_lpm(struct lpm_request *lpm_req) {
 
         rte_mempool_put(nf_msg_pool, request_message);
         return lpm_req->status;
+}
+
+int
+onvm_nflib_request_ring(struct ring_request *ring_req) {
+        struct onvm_nf_msg *request_message;
+        int ret;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **)(&request_message));
+        if (ret != 0)
+                return ret;
+
+        request_message->msg_type = MSG_REQUEST_RING;
+        request_message->msg_data = ring_req;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        ring_req->status = NF_WAITING_FOR_RING;
+        for (; ring_req->status == (uint16_t)NF_WAITING_FOR_RING;) {
+                sleep(1);
+        }
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        return ring_req->status;
 }
 
 int
@@ -530,6 +579,7 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
                 RTE_LOG(INFO, APP, "Shared CPU support enabled\n");
                 init_shared_core_mode_info(nf->instance_id);
         }
+        init_pool_info(nf->instance_id);
 
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf->service_id);
@@ -598,6 +648,10 @@ onvm_nflib_thread_main_loop(void *arg) {
                                 rte_atomic16_set(nf->shared_core.sleep_state, 1);
                                 sem_wait(nf->shared_core.nf_mutex);
                         }
+                }
+
+                if (unlikely(nf->pool_status.pool_sleep_state == 1)) {
+                        sem_wait(nf->pool_status.pool_mutex);
                 }
 
                 nb_pkts_added =
@@ -949,7 +1003,53 @@ onvm_nflib_lookup_shared_structs(void) {
         if (mgr_msg_queue == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot get mgr message ring");
 
+        pool_map = onvm_nflib_get_nfpool_hashmap();
+        if (pool_map == NULL) {
+                rte_exit(EXIT_FAILURE, "Could not lookup/create hashmap\n");
+        }
+
         return 0;
+}
+
+struct rte_hash *
+onvm_nflib_get_nfpool_hashmap(void) {
+        struct rte_hash_parameters *ipv4_hash_params;
+        struct rte_hash *map;
+        size_t nf_pool_name_size;
+        char *name;
+        int status;
+
+        if ((map = rte_hash_find_existing(_NF_POOL_NAME)) != NULL) {
+                return map;
+        }
+
+        ipv4_hash_params = (struct rte_hash_parameters *) rte_malloc(NULL, sizeof(struct rte_hash_parameters), 0);
+        if (!ipv4_hash_params) {
+                return NULL;
+        }
+
+        nf_pool_name_size = strlen(_NF_POOL_NAME) + 1;
+        name = rte_malloc(NULL, 64, 0);
+        /* create ipv4 hash table. use core number and cycle counter to get a unique name. */
+        ipv4_hash_params->entries = 256;
+        ipv4_hash_params->key_len = 64;
+        ipv4_hash_params->hash_func = rte_jhash;
+        ipv4_hash_params->hash_func_init_val = 0;
+        ipv4_hash_params->name = name;
+        ipv4_hash_params->socket_id = rte_socket_id();
+        snprintf(name, nf_pool_name_size, "%s", _NF_POOL_NAME);
+
+        status = onvm_nflib_request_ft(ipv4_hash_params);
+        if (status < 0) {
+                return NULL;
+        }
+        RTE_LOG(INFO, APP, "Looking up:%s\n", name);
+        map = rte_hash_find_existing(name);
+        if (map == NULL) {
+                return NULL;
+        }
+
+        return map;
 }
 
 static void
@@ -958,7 +1058,7 @@ onvm_nflib_parse_config(struct onvm_configuration *config) {
 }
 
 static inline uint16_t
-onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_local_ctx *nf_local_ctx, nf_pkt_handler_fn  handler) {
+onvm_nflib_dequeue_packets(void **pkts, struct onvm_nf_local_ctx *nf_local_ctx, nf_pkt_handler_fn handler) {
         struct onvm_nf *nf;
         struct onvm_pkt_meta *meta;
         uint16_t i, nb_pkts;
@@ -1090,7 +1190,6 @@ onvm_nflib_is_scale_info_valid(struct onvm_nf_scale_info *scale_info) {
         return scale_info->nf_init_cfg->service_id != 0 && scale_info->function_table != NULL &&
                scale_info->function_table->pkt_handler != NULL;
 }
-
 
 static void
 onvm_nflib_nf_tx_mgr_init(struct onvm_nf *nf) {
@@ -1317,6 +1416,21 @@ init_shared_core_mode_info(uint16_t instance_id) {
 }
 
 void
+init_pool_info(uint16_t instance_id) {
+        struct onvm_nf *nf;
+        char *sem_name;
+
+        nf = &nfs[instance_id];
+        sem_name = rte_malloc(NULL, sizeof(char) * 64, 0);
+        snprintf(sem_name, 64, "nf_pool_%d", instance_id);
+
+        nf->pool_status.pool_mutex = sem_open(sem_name, 0, 0666, 0);
+        nf->pool_status.pool_mutex_name = sem_name;
+        if (nf->pool_status.pool_mutex == SEM_FAILED)
+                rte_exit(EXIT_FAILURE, "Unable to execute semphore for NF %d\n", instance_id);
+}
+
+void
 onvm_nflib_stats_summary_output(uint16_t id) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
@@ -1410,4 +1524,240 @@ onvm_nflib_stats_summary_output(uint16_t id) {
 
         printf("CSV file written to %s directory\n", nf_tag);
         free(csv_filename);
+}
+
+int
+onvm_nflib_pool_enqueue(const char *nf_name, const char *nf_args, int eq_num, int refill) {
+        struct rte_ring *nf_pool_ring;
+        struct ring_request *rte_ring_request;
+        char *nf_ring_name;
+        char *global_nf_name;
+        int spawned_nf_count, ret;
+        struct onvm_nf_pool_ctx *pool_ctx = NULL;
+
+        if (nf_args == NULL) {
+                RTE_LOG(INFO, APP, "Invalid NF args string\n");
+                return -1;
+        }
+
+        if (eq_num <= 0) {
+                RTE_LOG(INFO, APP, "Invalid amount of NF's requested for pool\n");
+                return -1;
+        }
+
+        global_nf_name = rte_calloc(NULL, 1, 64, 0);
+        snprintf(global_nf_name, 64, "%s", nf_name);
+        ret = rte_hash_lookup_data(pool_map, global_nf_name, (void *) &pool_ctx);
+        if (ret < 0) {
+                pool_ctx = rte_malloc(NULL, sizeof(struct onvm_nf_pool_ctx), 0);
+                rte_ring_request = rte_malloc(NULL, sizeof(struct ring_request), 0);
+                nf_ring_name = rte_malloc(NULL, sizeof(char) * 64, 0);
+                if (rte_ring_request == NULL || nf_ring_name == NULL || pool_ctx == NULL) {
+                        RTE_LOG(INFO, APP, "Could not allocate ring request objects\n");
+                        return -1;
+                }
+                rte_ring_request->count = 128;
+                snprintf(nf_ring_name, 64, "%s", nf_name);
+                rte_ring_request->name = nf_ring_name;
+
+                if (onvm_nflib_request_ring(rte_ring_request) == -1) {
+                        RTE_LOG(INFO, APP, "Could not request a ring for %s from manager\n", nf_name);
+                        return -1;
+                }
+
+                RTE_LOG(INFO, APP, "Created %s nf pool ring\n", nf_name);
+                nf_pool_ring = rte_ring_lookup(nf_name);
+                if (nf_pool_ring == NULL) {
+                        RTE_LOG(INFO, APP, "Could not lookup %s ring\n", nf_name);
+                        return -1;
+                }
+                pool_ctx->pool_ring = nf_pool_ring;
+                pool_ctx->args = nf_args;
+                pool_ctx->nf_name = nf_name;
+                if (rte_hash_add_key_data(pool_map, global_nf_name, (void *) pool_ctx) != 0) {
+                        RTE_LOG(INFO, APP, "Could not add to hash table\n");
+                        return -1;
+                }
+
+                rte_free(rte_ring_request);
+                rte_free(nf_ring_name);
+        }
+
+        if (refill >= 0) {
+                pool_ctx->refill = refill;
+        }
+
+        spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args, pool_ctx->pool_ring, eq_num);
+        return spawned_nf_count;
+}
+
+int
+onvm_nflib_fork_pool_nfs(const char *nf_name, const char *nf_args, struct rte_ring *nf_pool_ring, int nf_count) {
+        struct onvm_nf *spawned_nf;
+        int i, count_sleep;
+
+        for (i = 0; i < nf_count; i++) {
+                spawned_nf = onvm_nflib_fork(nf_name, nf_args);
+                count_sleep = 0;
+                while (spawned_nf->status != NF_RUNNING) {
+                        if (count_sleep == TIMEOUT_NF_REQUEST) {
+                                RTE_LOG(INFO, APP, "nf %d of requested %d nf request timed out\n", i, nf_count);
+                                return i;
+                        }
+                        count_sleep++;
+                        sleep(1);
+                }
+                if (rte_ring_enqueue(nf_pool_ring, (void *) spawned_nf) != 0) {
+                        RTE_LOG(INFO, APP, "Failed to enqueue spawned NF into the ring\n");
+                        break;
+                }
+                spawned_nf->pool_status.pool_sleep_state = 1;
+        }
+
+        return i;
+}
+
+int
+onvm_nflib_pool_dequeue(const char *nf_name, int dq_num, int refill) {
+        struct rte_ring *nf_pool_ring;
+        struct onvm_nf_pool_ctx *pool_ctx;
+        struct onvm_nf *dequeued_nf = NULL;
+        sem_t *sem;
+        int i, ret, total_refill, spawned_nf_count;
+        char *global_nf_name;
+
+        global_nf_name = rte_calloc(NULL, 1, 64, 0);
+        snprintf(global_nf_name, 64, "%s", nf_name);
+        ret = rte_hash_lookup_data(pool_map, global_nf_name, (void *) &pool_ctx);
+        if (ret < 0) {
+                RTE_LOG(INFO, APP, "NF does not have an associated pool\n");
+                return -1;
+        }
+
+        nf_pool_ring = pool_ctx->pool_ring;
+        for (i = 0; i < dq_num; i++) {
+                if (rte_ring_dequeue(nf_pool_ring, (void *) &dequeued_nf) != 0) {
+                        RTE_LOG(INFO, APP, "Could not dequeue %s, ring is empty\n", nf_name);
+                        break;
+                }
+                sem = sem_open(dequeued_nf->pool_status.pool_mutex_name, 0, 0666, 0);
+                dequeued_nf->pool_status.pool_sleep_state = 0;
+                if (sem_post(sem) < 0) {
+                        RTE_LOG(INFO, APP, "Could not post to semaphore\n");
+                        break;
+                }
+        }
+        if (refill >= 0) {
+                pool_ctx->refill = refill;
+        }
+
+        if (rte_ring_count(nf_pool_ring) < pool_ctx->refill) {
+                total_refill = pool_ctx->refill - rte_ring_count(nf_pool_ring);
+                spawned_nf_count = onvm_nflib_fork_pool_nfs(pool_ctx->nf_name, pool_ctx->args,
+                                                            nf_pool_ring, total_refill);
+                RTE_LOG(INFO, APP, "Refilled NF pool with %d NF's\n", spawned_nf_count);
+        }
+
+        return i;
+}
+
+struct onvm_nf *
+onvm_nflib_fork(const char *nf_name, const char *nf_args) {
+        char *go_script_path;
+        int instance_id;
+
+        if (nf_name == NULL) {
+                RTE_LOG(INFO, APP, "onvm_nflib_fork(): nf_name is null\n");
+                return NULL;
+        }
+        if (nf_args == NULL) {
+                RTE_LOG(INFO, APP, "onvm_nflib_fork(): nf_args is null\n");
+                return NULL;
+        }
+
+        instance_id = onvm_nflib_request_next_instance_id();
+        go_script_path = onvm_nflib_get_go_script_path();
+        if (go_script_path == NULL) {
+                return NULL;
+        }
+        if (fork() == 0) {
+                char *command;
+                int ret;
+                ret = asprintf(&command, "%s %s %s", go_script_path, nf_name, nf_args);
+                if (ret < 0) {
+                        RTE_LOG(INFO, APP, "Could not allocate command string for bash script call\n");
+                        return NULL;
+                }
+                ret = system(command);
+                if (ret < 0) {
+                        RTE_LOG(INFO, APP, "Could not execute NF go script\n");
+                        return NULL;
+                }
+        }
+
+        return &nfs[instance_id];
+}
+
+char *
+onvm_nflib_get_go_script_path(void) {
+        char *token;
+        const char *examples_path = "/examples/";
+        const char *go_script = "start_nf.sh";
+        char *go_script_path;
+        uint16_t total_directory_size, wd_nf_len, token_len, cwd_len, go_script_len;
+        char *cwd = rte_malloc(0, sizeof(char) * 4096, 0);
+
+        if (getcwd(cwd, 4096) == NULL) {
+                RTE_LOG(INFO, APP, "Could not extract current working CWD");
+                return NULL;
+        }
+
+        token = strstr(cwd, examples_path);
+        *token = '\0';
+        token_len = strlen(token);
+        cwd = cwd + token_len;
+
+        cwd_len = strlen(cwd);
+        go_script_len = strlen(go_script);
+        wd_nf_len = strlen(examples_path);
+        total_directory_size = cwd_len + go_script_len;
+        go_script_path = rte_malloc(0, sizeof(char) * total_directory_size, 0);
+
+        strncat(go_script_path, cwd, cwd_len);
+        strncat(go_script_path, examples_path, wd_nf_len);
+        strncat(go_script_path, go_script, go_script_len);
+
+        rte_free(cwd);
+        return go_script_path;
+}
+
+int
+onvm_nflib_request_next_instance_id(void) {
+        struct id_request *get_next_id;
+        struct onvm_nf_msg *request_message;
+        int ret, instance_id;
+
+        ret = rte_mempool_get(nf_msg_pool, (void **)(&request_message));
+        if (ret != 0)
+                return ret;
+
+        get_next_id = rte_malloc(NULL, sizeof(struct id_request), 0);
+        request_message->msg_type = MSG_REQUEST_ID;
+        request_message->msg_data = get_next_id;
+
+        ret = rte_ring_enqueue(mgr_msg_queue, request_message);
+        if (ret < 0) {
+                rte_mempool_put(nf_msg_pool, request_message);
+                return ret;
+        }
+
+        get_next_id->status = NF_WAITING_FOR_INSTANCE_ID;
+        for (; get_next_id->status == (uint16_t)NF_WAITING_FOR_INSTANCE_ID;) {
+                sleep(1);
+        }
+        instance_id = get_next_id->instance_id;
+
+        rte_mempool_put(nf_msg_pool, request_message);
+        rte_free(get_next_id);
+        return instance_id;
 }

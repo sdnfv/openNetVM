@@ -56,6 +56,7 @@ struct port_info *ports = NULL;
 struct core_status *cores = NULL;
 struct onvm_configuration *onvm_config = NULL;
 struct nf_wakeup_info *nf_wakeup_infos = NULL;
+struct nf_wakeup_info *nf_pool_wakeup_infos = NULL;
 
 struct rte_mempool *pktmbuf_pool;
 struct rte_mempool *nf_init_cfg_pool;
@@ -85,6 +86,9 @@ init_port(uint8_t port_num);
 
 static void
 init_shared_sem(void);
+
+static void
+init_pool_sem(void);
 
 static int
 init_info_queue(void);
@@ -244,6 +248,9 @@ init(int argc, char *argv[]) {
         /* initialise the shared memory for shared core mode */
         init_shared_sem();
 
+        /* Init mutex's for NF pool structures */
+        init_pool_sem();
+
         /*initialize a default service chain*/
         default_chain = onvm_sc_create();
         retval = onvm_sc_append_entry(default_chain, ONVM_NF_ACTION_TONF, 1);
@@ -263,7 +270,6 @@ init(int argc, char *argv[]) {
         onvm_sc_print(default_chain);
 
         onvm_flow_dir_init();
-
         return 0;
 }
 
@@ -443,6 +449,28 @@ init_shared_sem(void) {
                 }
 
                 nf_wakeup_infos[i].shm_server = (rte_atomic16_t *)shm;
+        }
+}
+
+static void
+init_pool_sem(void) {
+        uint16_t i;
+        sem_t *mutex;
+        char * sem_name;
+
+        nf_pool_wakeup_infos = rte_calloc("POOL_SHM_INFOS", sizeof(struct nf_wakeup_info), MAX_NFS, 0);
+        for (i = 0; i < MAX_NFS; i++) {
+                sem_name = rte_malloc(NULL, sizeof(char) * 64, 0);
+                snprintf(sem_name, 64, "nf_pool_%d", i);
+                nf_pool_wakeup_infos[i].sem_name = sem_name;
+
+                mutex = sem_open(sem_name, O_CREAT, 06666, 0);
+                if (mutex == SEM_FAILED) {
+                        fprintf(stderr, "can not create semaphore for NF %d\n", i);
+                        sem_unlink(sem_name);
+                        exit(1);
+                }
+                nf_pool_wakeup_infos[i].mutex = mutex;
         }
 }
 

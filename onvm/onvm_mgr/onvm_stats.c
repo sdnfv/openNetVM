@@ -408,6 +408,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
 
         /* For same service id TX/RX stats */
         uint8_t print_total_stats = 0;
+        uint64_t pool_count = 0;
         uint64_t rx_for_service[MAX_SERVICES];
         uint64_t tx_for_service[MAX_SERVICES];
         uint64_t rx_drop_for_service[MAX_SERVICES];
@@ -445,6 +446,10 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
         for (i = 0; i < MAX_NFS; i++) {
                 if (!onvm_nf_is_valid(&nfs[i]))
                         continue;
+                if (nfs[i].pool_status.pool_sleep_state == 1) {
+                        pool_count++;
+                        continue;
+                }
                 const uint64_t rx = nfs[i].stats.rx;
                 const uint64_t rx_drop = nfs[i].stats.rx_drop;
                 const uint64_t tx = nfs[i].stats.tx;
@@ -572,6 +577,7 @@ onvm_stats_display_nfs(unsigned difftime, uint8_t verbosity_level) {
                 onvm_stats_display_client_wakeup_thread_context(difftime);
         }
 
+        fprintf(stats_out, "\n\nNumber of NF's in pool: %ld\n--------------------------\n", pool_count);
 }
 
 /***************************Helper functions**********************************/
