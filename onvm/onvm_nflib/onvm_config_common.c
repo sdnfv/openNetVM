@@ -39,10 +39,10 @@
  * to load an NF from a config file
  ********************************************************************/
 
-#include <rte_memcpy.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <rte_memcpy.h>
 
 #include "cJSON.h"
 #include "onvm_config_common.h"

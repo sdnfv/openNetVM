@@ -47,9 +47,9 @@
 ******************************************************************************/
 
 #include "onvm_nf.h"
-#include <rte_lpm.h>
 #include "onvm_mgr.h"
 #include "onvm_stats.h"
+#include <rte_lpm.h>
 
 /* ID 0 is reserved */
 uint16_t next_instance_id = 1;
