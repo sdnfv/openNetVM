@@ -4,10 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2017 George Washington University
-#          2015-2017 University of California Riverside
-#          2016-2017 Hewlett Packard Enterprise Development LP
-#          2010-2014 Intel Corporation.
+#          2015-2020 George Washington University
+#          2015-2020 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,20 +34,29 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-ifeq ($(ONVM_HOME),)
-$(error "Please define ONVM_HOME environment variable")
-endif
-
 ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-all:
-	# cd $(ONVM_HOME)/dpdk && make
-	cd $(ONVM_HOME)/onvm && make
-	cd $(ONVM_HOME)/examples && make
+RTE_TARGET ?= $(RTE_TARGET)
 
-.PHONY: tags
+# Default target, can be overriden by command line or environment
+include $(RTE_SDK)/mk/rte.vars.mk
 
-tags:
-	ctags -R .
+# binary name
+APP = l2fwd
+
+# all source are stored in SRCS-y
+SRCS-y := l2fwd.c
+
+# OpenNetVM path
+ONVM= $(SRCDIR)/../../onvm
+
+CFLAGS += -O3 $(USER_FLAGS)
+
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
+
+include $(RTE_SDK)/mk/rte.extapp.mk
