@@ -26,7 +26,7 @@ sudo ./build/nf_router -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -
 
 App Specific Arguments
 --
-  - `-f <router_cfg>`: router configuration, has a list of (IPs, dest) tuples 
+  - `-f <router_cfg>`: router configuration, has a list of destination IPs and IDs of NF you want to forward the packet to in form of tuples 
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
 
 Config File Support
@@ -35,4 +35,3 @@ This NF supports the NF generating arguments from a config file. For
 additional reading, see [Examples.md](../../docs/Examples.md)
 
 See `../example_config.json` for all possible options that can be set.
-

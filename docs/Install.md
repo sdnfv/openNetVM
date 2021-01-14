@@ -21,7 +21,7 @@ Check System
 
     Install the Linux Kernel headers package for your kernel version.
     ```sh
-    sudo apt-get install build-essential linux-headers-$(uname -r) git bc
+    sudo apt-get install build-essential linux-headers-$(uname -r) git bc gcc make pkg-config
     ```
     If your distribution didn't come with Python or came with an earlier version, you will need to install Python 3 v3.4+. 
 
@@ -50,7 +50,7 @@ Check System
    ```sh
    sudo apt-get install libnuma-dev
    ```
-   If installing libnuma-dev fails, your system may not be up to date. To fix this, run:
+   If installing libnuma-dev fails, your package information may not be up to date. To fix this, run:
    ```sh
    sudo apt-get update
    ```
@@ -105,7 +105,7 @@ Set up Environment
     echo export ONVM_NUM_HUGEPAGES=1024 >> ~/.bashrc
     ```
 
-    ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK. Note, NIC PCI device IDs may not be the same across all hosts. In that case, please retrieve this information for your host before setting the variable.
+    ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK. Note, NIC PCI device IDs may not be the same across all hosts. In that case, please retrieve this information for your host before setting the variable. (e.g., via `lspci`)
     ```sh
     export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
     ```
@@ -117,7 +117,7 @@ Set up Environment
 7. Disable ASLR since it makes sharing memory with NFs harder:
    ```sh
    sudo sh -c "echo 0 > /proc/sys/kernel/randomize_va_space"
-    ```
+   ```
 
 Configure and compile DPDK
 --
@@ -129,6 +129,8 @@ Configure and compile DPDK
     ```
 
     The [install script](../scripts/install.sh) will automatically run the [environment setup script](../scripts/setup_environment.sh), which configures your local environment.  This should be run once for every reboot, as it loads the appropraite kernel modules and can bind your NIC ports to the DPDK driver.
+
+    If `which python` shows **not found** in your environment, please link `python` to Python3, e.g., via `link -s` or `alias python=$(which python3)`.
 
 Run DPDK HelloWorld Application
 --

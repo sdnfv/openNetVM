@@ -52,3 +52,5 @@ fi
 if [ -z "$ONVM_HOME" ]; then
     export ONVM_HOME=$ONVM_PATH
 fi
+
+bash "$ONVM_HOME"/scripts/setup_environment.sh

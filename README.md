@@ -9,7 +9,7 @@ _Want to get started quickly?_ Try using our NSF CloudLab profile: https://www.c
 Notes
 --
 
-We have updated our DPDK submodule to point to a new version, v18.11.  If you have already cloned this repository, please update your DPDK submodule by running:
+We have updated our DPDK submodule to point to a new version, v20.05.  If you have already cloned this repository, please update your DPDK submodule by running:
 
 ```
 git submodule sync
@@ -25,7 +25,7 @@ make T=$RTE_TARGET -j 8
 make install T=$RTE_TARGET -j 8
 ```
 
-See our [release](docs/Releases.md) document for more information.
+The current OpenNetVM version is 20.10. Please see our [release](docs/Releases.md) document for more information.
 
 About
 --
@@ -35,7 +35,7 @@ openNetVM is an open source version of the NetVM platform described in our [NSDI
 
 The [develop][dev] branch tracks experimental builds (active development) whereas the [master][mast] branch tracks verified stable releases.  Please read our [releases][rels] document for more information about our releases and release cycle.
 
-You can find information about research projects building on [OpenNetVM][onvm] at the [UCR/GW SDNFV project site][sdnfv]. OpenNetVM is supported in part by NSF grants CNS-1422362 and CNS-1522546. 
+You can find information about research projects building on [OpenNetVM][onvm] at the [UCR/GW SDNFV project site][sdnfv]. OpenNetVM is supported in part by NSF grants CNS-1422362 and CNS-1522546.
 
 Installing
 --
