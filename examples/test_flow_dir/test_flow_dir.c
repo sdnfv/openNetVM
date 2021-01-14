@@ -172,11 +172,6 @@ do_stats_display(struct rte_mbuf *pkt) {
 
 static void
 populate_sample_ipv4(void) {
-        struct onvm_flow_entry *flow_entry = (struct onvm_flow_entry *)
-                rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
-        if (flow_entry == NULL) {
-                rte_exit(EXIT_FAILURE, "Unable to populate flow.\n");
-        }
         struct test_add_key {
                 struct onvm_ft_ipv4_5tuple key;
                 uint8_t destinations[ONVM_MAX_CHAIN_LENGTH];
@@ -216,8 +211,6 @@ populate_sample_ipv4(void) {
                         }
                 }
         }
-        flow_entry = NULL;
-        rte_free(flow_entry);
 }
 
 static void
@@ -306,8 +299,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
-        flow_entry = NULL;
         rte_free(flow_entry);
+        flow_entry = NULL;
         printf("If we reach here, program is ending\n");
         return 0;
 }
