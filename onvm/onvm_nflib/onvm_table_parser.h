@@ -224,8 +224,7 @@ add_rules(void * tbl, const char *rule_path, uint8_t print_keys, int table_type)
 		int tbl_index = -EINVAL;
 		if (table_type == ONVM_TABLE_EM) {
 			tbl_index = onvm_ft_add_key((struct onvm_ft*)tbl, &ipv4_tuple.key, (char **)&data);
-		}
-		else if (table_type == ONVM_TABLE_LPM) {
+		} else if (table_type == ONVM_TABLE_LPM) {
 			// Adds to the lpm table using the src ip adress.
 			tbl_index = rte_lpm_add((struct rte_lpm *)tbl, ipv4_tuple.key.src_addr, ipv4_tuple.src_addr_depth, dest);
 		}
