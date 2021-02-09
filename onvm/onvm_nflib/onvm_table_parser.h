@@ -85,8 +85,7 @@ enum {
 
 int
 get_cb_field(char **in, uint32_t *fd, int base, unsigned long lim,
-		char dlm)
-{
+		char dlm) {
 	unsigned long val;
 	char *end;
 
@@ -100,8 +99,7 @@ get_cb_field(char **in, uint32_t *fd, int base, unsigned long lim,
 }
 
 int
-parse_ipv4_net(char *in, uint32_t *addr, uint32_t *depth)
-{
+parse_ipv4_net(char *in, uint32_t *addr, uint32_t *depth) {
 	uint32_t a, b, c, d, m;
 
 	if (get_cb_field(&in, &a, 0, UINT8_MAX, '.'))
@@ -121,8 +119,7 @@ parse_ipv4_net(char *in, uint32_t *addr, uint32_t *depth)
 
 /* This function fills the key and return the destination or action to be stored in the table entry.*/
 int
-parse_ipv4_5tuple_rule(char *str, struct onvm_parser_ipv4_5tuple *ipv4_tuple)
-{
+parse_ipv4_5tuple_rule(char *str, struct onvm_parser_ipv4_5tuple *ipv4_tuple) {
 	int i, ret;
 	char *s, *sp, *in[CB_FLD_NUM];
 	static const char *dlm = " \t\n";
@@ -172,8 +169,7 @@ parse_ipv4_5tuple_rule(char *str, struct onvm_parser_ipv4_5tuple *ipv4_tuple)
 
 /* Bypass comment and empty lines */
 int
-is_bypass_line(char *buff)
-{
+is_bypass_line(char *buff) {
 	int i = 0;
 
 	/* comment line */
@@ -195,8 +191,7 @@ is_bypass_line(char *buff)
  * hash and lpm is suppoerted.
  */
 int
-add_rules(void * tbl, const char *rule_path, uint8_t print_keys, int table_type)
-{
+add_rules(void * tbl, const char *rule_path, uint8_t print_keys, int table_type) {
 	FILE *fh;
 	char buff[LINE_MAX];
 	unsigned int i = 0;
@@ -226,21 +221,18 @@ add_rules(void * tbl, const char *rule_path, uint8_t print_keys, int table_type)
 				rule_path, i);
 
 		struct data *data = NULL;
-		int tbl_index;
-		if (table_type == ONVM_TABLE_EM)
-		{
+		int tbl_index = -EINVAL;
+		if (table_type == ONVM_TABLE_EM) {
 			tbl_index = onvm_ft_add_key((struct onvm_ft*)tbl, &ipv4_tuple.key, (char **)&data);
 		}
-		else if (table_type == ONVM_TABLE_LPM)
-		{
+		else if (table_type == ONVM_TABLE_LPM) {
 			// Adds to the lpm table using the src ip adress.
 			tbl_index = rte_lpm_add((struct rte_lpm *)tbl, ipv4_tuple.key.src_addr, ipv4_tuple.src_addr_depth, dest);
 		}
 		data->dest = dest;
         if (tbl_index < 0)
             rte_exit(EXIT_FAILURE, "Unable to add entry %u\n", i);
-        if (print_keys)
-        {
+        if (print_keys) {
             printf("\nAdding key:");
             _onvm_ft_print_key(&ipv4_tuple.key);
         }
