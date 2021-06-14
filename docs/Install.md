@@ -107,7 +107,7 @@ Set up Environment
 
     ONVM_NIC_PCI is a variable that specifies NIC ports to be bound to DPDK.  If ONVM_NIC_PCI is not specified, the default action is to bind all non-active 10G NIC ports to DPDK. Note, NIC PCI device IDs may not be the same across all hosts. In that case, please retrieve this information for your host before setting the variable.
     ```sh
-    export ONVM_NIC_PCI=" 07:00.0 07:00.1 "
+    export ONVM_NIC_PCI=" 06:00.0 06:00.1 "
     ```
 6. Source your shell rc file to set the environment variables:
     ```sh
@@ -122,7 +122,13 @@ Set up Environment
 Configure and compile DPDK
 --
 
-1. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
+1. Bind NICS to DPDK
+   First you must unbind the connections with
+   ```sh
+   sudo ifconfig eno1s0fx
+   ```
+   You must do this for both 10-Gigabit connections
+2. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
     ```sh¬
     cd scripts
     ./install.sh
