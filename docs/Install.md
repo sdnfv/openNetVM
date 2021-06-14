@@ -122,7 +122,7 @@ Set up Environment
 Configure and compile DPDK
 --
 
-1. Bind NICS to DPDK
+1. Take Down NICS <br>
    First you must unbind the connections with
    ```sh
    sudo ifconfig enp1s0fx down
