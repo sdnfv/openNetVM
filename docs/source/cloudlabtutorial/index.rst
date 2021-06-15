@@ -111,18 +111,6 @@ Once you are properly connected to the node, it's time to run the manager
 - Go to /local/onvm/openNetVM/onvm and run :code:`make`
 
 - Go to /local/onvm/openNetVM/examples and run :code:`make`
-
-- Now you need to check which network devices are bound to the NIC
-
-- Go to /local/onvm/openNetVM/dpdk and run sudo :code:`./usertools/dpdk-devbind.py --status`
-
-- Check to make sure that the 10 GbE controller is using a DPDK-compatable driver
-
-.. image:: ../images/dpdk-driver.png
-   :width: 600
-   
-- If not, run :code:`./usertools/dpdk-devbind.py -b <unused driver> <number identifier>`
-   This will bind it to dpdk
    
 - Go to /local/onvm/openNetVM and run sudo :code:`./onvm/go.sh -k 1 -n 0xF8 -s stdout`
     If this gives you an error, it may be an issue with the pre-made profile, and you mmay have to pull a new onvm profile from GitHub in a new directory
