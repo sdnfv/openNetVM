@@ -107,7 +107,7 @@ Please let us know if you use OpenNetVM in your research by `emailing us <mailto
    :maxdepth: -1
 
    Cloudlab Tutorial <cloudlabtutorial/index>
-   Three Node Topology Tutorial LOL<threenodetutorial/index>
+   Three Node Topology Tutorial <threenodetutorial/index>
    Packet Generation Using Pktgen <pktgen/index>
    Running OpenNetVM in Docker <docker/index>
    MoonGen Installation (DPDK-2.0 Version) <moongen/index>
