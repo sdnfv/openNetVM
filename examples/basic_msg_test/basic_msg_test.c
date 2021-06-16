@@ -73,3 +73,72 @@ usage(const char *progname) {
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
 
+/*
+ * Parse the application arguments.
+ */
+static int
+parse_app_args(int argc, char *argv[], const char *progname) {
+        int c;
+
+        while ((c = getopt(argc, argv, "p:")) != -1) {
+                switch (c) {
+                        case 'p':
+                                print_delay = strtoul(optarg, NULL, 10);
+                                RTE_LOG(INFO, APP, "print_delay = %d\n", print_delay);
+                                break;
+                        case '?':
+                                usage(progname);
+                                if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (isprint(optopt))
+                                        RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
+                                else
+                                        RTE_LOG(INFO, APP, "Unknown option character `\\x%x'.\n", optopt);
+                                return -1;
+                        default:
+                                usage(progname);
+                                return -1;
+                }
+        }
+        return optind;
+}
+
+int
+main(int argc, char *argv[]) {
+        int arg_offset;
+        struct onvm_nf_local_ctx *nf_local_ctx;
+        struct onvm_nf_function_table *nf_function_table;
+        const char *progname = argv[0];
+
+        nf_local_ctx = onvm_nflib_init_nf_local_ctx();
+        onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
+
+        nf_function_table = onvm_nflib_init_nf_function_table();
+        // nf_function_table->pkt_handler = &packet_handler;
+
+        if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                if (arg_offset == ONVM_SIGNAL_TERMINATION) {
+                        printf("Exiting due to user termination\n");
+                        return 0;
+                } else {
+                        rte_exit(EXIT_FAILURE, "Failed ONVM init\n");
+                }
+        }
+
+        argc -= arg_offset;
+        argv += arg_offset;
+
+        if (parse_app_args(argc, argv, progname) < 0) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
+        }
+
+
+        onvm_nflib_run(nf_local_ctx);
+
+        onvm_nflib_stop(nf_local_ctx);
+        
+        printf("If we reach here, program is ending\n");
+        return 0;
+}
