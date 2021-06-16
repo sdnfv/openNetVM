@@ -152,6 +152,17 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         } else {
                 meta->destination = 0;
         }
+
+        if(onvm_pkt_is_tcp(pkt)){
+                onvm_pkt_print_tcp(onvm_pkt_tcp_hdr(pkt));
+        }
+        if(onvm_pkt_is_udp(pkt)){
+                onvm_pkt_print_udp(onvm_pkt_udp_hdr(pkt));
+        }
+        if(onvm_pkt_is_ipv4(pkt)){
+                onvm_pkt_print_ipv4(onvm_pkt_ipv4_hdr(pkt));
+        }
+        
         meta->action = ONVM_NF_ACTION_OUT;
         return 0;
 }
