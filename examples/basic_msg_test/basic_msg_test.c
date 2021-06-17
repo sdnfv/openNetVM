@@ -52,6 +52,9 @@
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
+#include <rte_mempool.h>
+#include <rte_ring.h>
+#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -115,6 +118,14 @@ main(int argc, char *argv[]) {
 
         nf_function_table = onvm_nflib_init_nf_function_table();
         // nf_function_table->pkt_handler = &packet_handler;
+
+        // struct onvm_nf_msg *msg;
+        // msg->msg_type = MSG_FROM_NF;
+        // msg->msg_data = rte_malloc(NULL, sizeof(struct onvm_nf_msg), 0);
+        uint16_t address = 1;
+
+        int ret = onvm_nflib_send_msg_to_nf(address, NULL);
+        printf("%d", ret);
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
