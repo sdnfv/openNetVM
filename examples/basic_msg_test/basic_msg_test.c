@@ -124,7 +124,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
 
-        uint16_t address = 1;
+        uint16_t address = nf_local_ctx->nf->service_id;
 
         int ret = onvm_nflib_send_msg_to_nf(address, NULL);
         printf("%d\n", ret);
@@ -134,7 +134,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
-        uint16_t address = 1;
+        uint16_t address = nf_local_ctx->nf->service_id;
 
         int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
         printf("%d\n", ret);
@@ -142,10 +142,9 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 }
 
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+packet_handler(__attribute__((unused)) struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         
-        (void)pkt;
         meta->destination = destination;
         meta->action = ONVM_NF_ACTION_TONF;
 
