@@ -131,7 +131,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint16_t address = 1;
 
         int ret = onvm_nflib_send_msg_to_nf(address, NULL);
-        printf("%d", ret);
+        printf("%d\n", ret);
         
 }
 
@@ -141,8 +141,8 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         uint16_t address = 1;
 
         int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
-        printf("%d", ret);
-
+        printf("%d\n", ret);
+        
 }
 
 static int
