@@ -116,7 +116,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
 void
 nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
-        // uint32_t i;
         struct rte_mempool *pktmbuf_pool;
 
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
