@@ -114,9 +114,6 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         return optind;
 }
 
-/*
- * Generates fake packets and enqueues them into the tx ring
- */
 void
 nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         // uint32_t i;
