@@ -727,7 +727,16 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
         msg->msg_type = MSG_FROM_NF;
         msg->msg_data = msg_data;
 
-        return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+        ret = rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+        if(ret != 0){
+                RTE_LOG(INFO, APP, "Destination NF ring is full! Unable to enqueue msg to ring\n");
+                rte_mempool_put(nf_msg_pool, (void*)msg);
+                return ret;
+        }
+        else{
+                return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+        }
+        return 0;
 }
 
 void
