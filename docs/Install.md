@@ -125,7 +125,11 @@ Configure and compile DPDK
 1. Bind NICS to DPDK
    First you must unbind the connections with
    ```sh
+<<<<<<< HEAD
    sudo ifconfig eno1s0fx down
+=======
+   sudo ifconfig enp1s0fx down
+>>>>>>> parent of bd464ba... Update Install.md
    ```
    You must do this for both 10-Gigabit connections
 2. Run the [install script](../scripts/install.sh) to compile DPDK and configure hugepages.
