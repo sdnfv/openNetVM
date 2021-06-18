@@ -7,7 +7,7 @@ Compilation and Execution
 ```
 cd examples
 make
-cd bridge
+cd basic_msg_test
 ./go.sh SERVICE_ID [PRINT_DELAY]
 
 OR
@@ -16,7 +16,7 @@ OR
 
 OR
 
-sudo ./build/basic_masg_test -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+sudo ./build/basic_msg_test -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
