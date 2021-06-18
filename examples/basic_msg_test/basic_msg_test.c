@@ -64,6 +64,14 @@
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+static uint16_t destination;
+
+void
+nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
+
+void
+nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
+
 /*
  * Print a usage message
  */
@@ -106,6 +114,48 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         return optind;
 }
 
+/*
+ * Generates fake packets and enqueues them into the tx ring
+ */
+void
+nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        // uint32_t i;
+        struct rte_mempool *pktmbuf_pool;
+
+        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
+        if (pktmbuf_pool == NULL) {
+                onvm_nflib_stop(nf_local_ctx);
+                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
+        }
+
+        uint16_t address = 1;
+
+        int ret = onvm_nflib_send_msg_to_nf(address, NULL);
+        printf("%d", ret);
+        
+}
+
+void
+nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
+
+        uint16_t address = 1;
+
+        int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
+        printf("%d", ret);
+
+}
+
+static int
+packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        
+        (void)pkt;
+        meta->destination = destination;
+        meta->action = ONVM_NF_ACTION_TONF;
+
+        return 0;
+}
+
 int
 main(int argc, char *argv[]) {
         int arg_offset;
@@ -117,15 +167,9 @@ main(int argc, char *argv[]) {
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
         nf_function_table = onvm_nflib_init_nf_function_table();
-        // nf_function_table->pkt_handler = &packet_handler;
-
-        // struct onvm_nf_msg *msg;
-        // msg->msg_type = MSG_FROM_NF;
-        // msg->msg_data = rte_malloc(NULL, sizeof(struct onvm_nf_msg), 0);
-        uint16_t address = 1;
-
-        int ret = onvm_nflib_send_msg_to_nf(address, NULL);
-        printf("%d", ret);
+        nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
+        nf_function_table->msg_handler = &nf_msg_handler;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
@@ -144,7 +188,6 @@ main(int argc, char *argv[]) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
-
 
         onvm_nflib_run(nf_local_ctx);
 
