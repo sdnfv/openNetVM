@@ -4,13 +4,13 @@ Cloudlab Tutorial
 Getting Started
 -----------------
 
-- This tutorial assumes that you have access to the openNetVM `CloudLab <https://cloudlab.us/>`_ 
+- This tutorial assumes that you have access the NSF sponsored `CloudLab <https://cloudlab.us/>`_  testbed
     - To gain access, you must first create an account, choose to join a project and enter "GWCloudLab" to request access
 
 Setting up SSH Keys for CloudLab
 -----------------
 
-CloudLab allows you to upload an SSH key
+If you do not already have an SSH key associated with your account you will need to create one. Here are the steps to create an SSH key and upload it to CloudLab.
 
 - Open a terminal and cd to the directory you want to store the keys in
 
@@ -123,4 +123,3 @@ Once you are properly connected to the node, it's time to run the manager
 - To run the speed tester, open a new tab while the manager is running and go to /local/onvm/openNetVM/examples/speed_tester 
 
 - run :code:`./go.sh 1 -d 1 -c 16000`
-
