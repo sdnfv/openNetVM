@@ -5,7 +5,7 @@ Getting Started
 -----------------
 
 - This tutorial assumes that you have access the NSF sponsored `CloudLab <https://cloudlab.us/>`_  testbed
-    - To gain access, you must first create an account, choose to join a project and enter "GWCloudLab" to request access
+    - To gain access, you must first create an account, and join a project from your university. See `the CloudLab Docs http://docs.cloudlab.us/users.html` for more information
 
 Setting up SSH Keys for CloudLab
 -----------------
