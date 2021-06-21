@@ -16,6 +16,8 @@ If you do not already have an SSH key associated with your account you will need
 
     Generally, on a Windows machine, all SSH-related files are found in following location: /c/Users/PC_USER_NAME/.ssh/
     
+    On Mac/Linux, it's typically found in the ~/.ssh directory
+    
 To generate an SSH Key:
 
 - Type :code:`ssh-keygen` to make an ssh-key
@@ -45,9 +47,11 @@ Starting a ONVM Profile With 1 Node on CloudLab
 
 - For "select a profile" you can choose the desired profile (onvm is the most updated/recommended)
 
+    If you don't have access to the GW profiles, you can find it `here <https://www.cloudlab.us/p/GWCloudLab/onvm>`_
+
 - For "parameterize" use 1 host, and for node type, you can keep it as is or select a different one. 
 
-    If you're running into trouble runnign the manager, selecting the c220g5 node may assist you
+    If you're running into trouble running the manager, selecting the c220g5 node may assist you
     
 - For "finalize" you can just click next
 
