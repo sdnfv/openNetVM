@@ -146,7 +146,7 @@ packet_handler(__attribute__((unused)) struct rte_mbuf *pkt, struct onvm_pkt_met
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         
         meta->destination = destination;
-        meta->action = ONVM_NF_ACTION_TONF;
+        meta->action = ONVM_NF_ACTION_DROP;
 
         return 0;
 }
