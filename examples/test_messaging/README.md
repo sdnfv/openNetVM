@@ -1,4 +1,4 @@
-Basic Message Test
+Test Messaging
 ==
 This is an example NF that acts as a unit test for sending messsages from an NF to itself.
 
@@ -7,7 +7,7 @@ Compilation and Execution
 ```
 cd examples
 make
-cd basic_msg_test
+cd test_messaging
 ./go.sh SERVICE_ID [PRINT_DELAY]
 
 OR
@@ -16,7 +16,7 @@ OR
 
 OR
 
-sudo ./build/basic_msg_test -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+sudo ./build/test_messaging -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
 
 App Specific Arguments

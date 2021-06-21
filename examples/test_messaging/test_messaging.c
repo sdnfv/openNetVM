@@ -59,7 +59,7 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
-#define NF_TAG "basic_msg_test"
+#define NF_TAG "test_messaging"
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
