@@ -58,6 +58,7 @@
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_common.h"
 
 #define NF_TAG "test_messaging"
 
@@ -65,6 +66,13 @@
 static uint32_t print_delay = 1000000;
 
 static uint16_t destination;
+
+struct test_msg_data{
+        int tests_passed;
+        int tests_failed;
+        struct rte_mempool* msg_pool;
+        int test_phase;
+};
 
 void
 nf_setup(struct onvm_nf_local_ctx *nf_local_ctx);
@@ -126,29 +134,42 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 
         uint16_t address = nf_local_ctx->nf->service_id;
 
-        int ret = onvm_nflib_send_msg_to_nf(address, NULL);
-        printf("Return: %d\n", ret);
+        // lookup NF message pool and store pointer to it somewhere
+        /* Lookup mempool for NF messages */
+        // nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        // if (nf_msg_pool == NULL)
+        //         rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
+
+        // send the numbers 1...10 and make sure we receive that correctly
+        int msg_ints[130];
+
+        for(int i = 0; i < 130; i++){
+                msg_ints[i] = i;
+                int ret = onvm_nflib_send_msg_to_nf(address, &msg_ints[i]);
+                
+                printf("Sending message %d\n", i);
+                printf("Return: %d\n", ret);
+                printf("Iteration: %d\n", i);
+                printf("SID: %i\n", address);
+                printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
+
+                printf("---------------------------\n");
+
+        }
+
 
 }
 
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
-        uint16_t address = nf_local_ctx->nf->service_id;
+        // uint16_t address = nf_local_ctx->nf->service_id;
+        printf("Receive message\n");
+        printf("msg_data: %d\n", *((int*) msg_data));
+        printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
 
-        for(int i = 0; i < 150; i++){
-                int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
-                
-                printf("Return: %d\n", ret);
-                printf("Iteration: %d\n", i);
-                printf("msg_data: %p\n", msg_data);
-                printf("SID: %i\n", address);
-                printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
-
-                printf("---------------------------\n");
-
-                sleep(1);
-        }
+        printf("---------------------------\n");
+        
         
 }
 
