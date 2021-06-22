@@ -127,8 +127,8 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         uint16_t address = nf_local_ctx->nf->service_id;
 
         int ret = onvm_nflib_send_msg_to_nf(address, NULL);
-        printf("%d\n", ret);
-        
+        printf("Return: %d\n", ret);
+
 }
 
 void
@@ -136,8 +136,19 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         uint16_t address = nf_local_ctx->nf->service_id;
 
-        int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
-        printf("%d\n", ret);
+        for(int i = 0; i < 150; i++){
+                int ret = onvm_nflib_send_msg_to_nf(address, msg_data);
+                
+                printf("Return: %d\n", ret);
+                printf("Iteration: %d\n", i);
+                printf("msg_data: %p\n", msg_data);
+                printf("SID: %i\n", address);
+                printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
+
+                printf("---------------------------\n");
+
+                sleep(1);
+        }
         
 }
 
