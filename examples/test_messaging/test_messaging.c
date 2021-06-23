@@ -152,7 +152,9 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 printf("Iteration: %d\n", i);
                 printf("SID: %i\n", address);
                 printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
-
+                FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
+                rte_ring_dump(fp, nf_local_ctx->nf->msg_q);
+                fclose(fp);
                 printf("---------------------------\n");
 
         }
@@ -167,8 +169,18 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         printf("Receive message\n");
         printf("msg_data: %d\n", *((int*) msg_data));
         printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
-
+        FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
+        rte_ring_dump(fp, nf_local_ctx->nf->msg_q);
+        fclose(fp);
+        int empty = rte_ring_empty(nf_local_ctx->nf->msg_q);
+        if(empty != 0){
+                printf("Message Ring Empty\n");
+        }
+        else{
+                printf("Message Ring Not Empty\n");
+        }
         printf("---------------------------\n");
+        
         
         
 }
