@@ -70,8 +70,11 @@ static uint16_t destination;
 struct test_msg_data{
         int tests_passed;
         int tests_failed;
-        struct rte_mempool* msg_pool;
         int test_phase;
+        int ring_count;
+        uint16_t address;
+        struct rte_mempool* msg_pool;
+        struct rte_ring *msg_q;
 };
 
 void
@@ -96,8 +99,24 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname) {
+parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf) {
         int c;
+        struct test_msg_data *msg_params;
+        static struct rte_mempool *nf_msg_pool;
+
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        if (nf_msg_pool == NULL)
+                rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
+
+        msg_params = (struct test_msg_data *)rte_malloc(NULL, sizeof(struct test_msg_data), 0);
+        msg_params->tests_passed = 0;
+        msg_params->tests_failed = 0;
+        msg_params->test_phase = 1;
+        msg_params->ring_count = 0;
+        msg_params->address = nf->service_id;
+        msg_params->msg_pool = nf_msg_pool;
+        msg_params->msg_q = nf->msg_q;
+        nf->data = (void *)msg_params;
 
         while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
@@ -131,29 +150,39 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
+        // printf("TEST MESSAGING STARTED\n");
+        // printf("---------------------------\n");
+        // printf("TEST 1: Send/Receive One Message...\n");
+        // printf("TEST 2: Send/Receive Multiple Messages...\n");
+        // printf("TEST 3: Message Ring Overflow...\n");
+        // int msg_tests_passed;
+        // int msg_tests_failed;
+        // int msg_test_phase;
+        // int msg_ring_count;
+        uint16_t msg_address;
+        struct test_msg_data *msg_params;
 
-        uint16_t address = nf_local_ctx->nf->service_id;
-
-        // lookup NF message pool and store pointer to it somewhere
-        /* Lookup mempool for NF messages */
-        // nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
-        // if (nf_msg_pool == NULL)
-        //         rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
+        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
+        // msg_tests_passed = msg_params->tests_passed;
+        // msg_tests_failed = msg_params->tests_failed;
+        // msg_test_phase = msg_params->test_phase;
+        // msg_ring_count = msg_params->ring_count;
+        msg_address = msg_params->address;
 
         // send the numbers 1...10 and make sure we receive that correctly
-        int msg_ints[130];
+        int msg_ints[10];
 
-        for(int i = 0; i < 130; i++){
+        for(int i = 0; i < 10; i++){
                 msg_ints[i] = i;
-                int ret = onvm_nflib_send_msg_to_nf(address, &msg_ints[i]);
+                int ret = onvm_nflib_send_msg_to_nf(msg_address, &msg_ints[i]);
                 
                 printf("Sending message %d\n", i);
                 printf("Return: %d\n", ret);
                 printf("Iteration: %d\n", i);
-                printf("SID: %i\n", address);
-                printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
+                printf("SID: %i\n", msg_address);
+                printf("Ring Count: %u\n", rte_ring_count(msg_params->msg_q));
                 FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
-                rte_ring_dump(fp, nf_local_ctx->nf->msg_q);
+                rte_ring_dump(fp, msg_params->msg_q);
                 fclose(fp);
                 printf("---------------------------\n");
 
@@ -165,14 +194,28 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
+        // int msg_tests_passed;
+        // int msg_tests_failed;
+        // int msg_test_phase;
+        // int msg_ring_count;
+        // uint16_t msg_address;
+        struct test_msg_data *msg_params;
+
+        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
+        // msg_tests_passed = msg_params->tests_passed;
+        // msg_tests_failed = msg_params->tests_failed;
+        // msg_test_phase = msg_params->test_phase;
+        // msg_ring_count = msg_params->ring_count;
+        // msg_address = msg_params->address;
+
         // uint16_t address = nf_local_ctx->nf->service_id;
         printf("Receive message\n");
         printf("msg_data: %d\n", *((int*) msg_data));
-        printf("Ring Count: %u\n", rte_ring_count(nf_local_ctx->nf->msg_q));
+        printf("Ring Count: %u\n", rte_ring_count(msg_params->msg_q));
         FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
-        rte_ring_dump(fp, nf_local_ctx->nf->msg_q);
+        rte_ring_dump(fp, msg_params->msg_q);
         fclose(fp);
-        int empty = rte_ring_empty(nf_local_ctx->nf->msg_q);
+        int empty = rte_ring_empty(msg_params->msg_q);
         if(empty != 0){
                 printf("Message Ring Empty\n");
         }
@@ -223,7 +266,7 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
-        if (parse_app_args(argc, argv, progname) < 0) {
+        if (parse_app_args(argc, argv, progname, nf_local_ctx->nf) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
