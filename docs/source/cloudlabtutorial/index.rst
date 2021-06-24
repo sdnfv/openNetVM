@@ -57,19 +57,8 @@ Starting a ONVM Profile With 1 Node on CloudLab
 
 - For "schedule," you don't have to make a schedule, leaving it blank will start it immediately 
 
-Connecting to the Node via VSCode
------------------
 
-Before connecting, you must have uploaded your SSH key, and started an experiment
-You also must have these VSCode extensions:
-    Remote - SSH
-    Remote - SSH: Editing Configuration Files (may come preinstalled with Remote SSH)
-    Remote - Containers
-    Remote - WSL
-
-There are 2 easy ways to connect:
-
-1) Via a terminal
+To test your connection, you can connect Via a terminal
 
 - Open a VSCode terminal and cd inside your .ssh folder 
 
@@ -80,7 +69,19 @@ There are 2 easy ways to connect:
 .. image:: ../images/ssh-connect.png
    :width: 600
 
-2) Via a Remote Window
+Connecting to the Node via VSCode
+-----------------
+
+Before connecting, you must have uploaded your SSH key, and started an experiment
+You also must have these VSCode extensions:
+    Remote - SSH
+    Remote - SSH: Editing Configuration Files (may come preinstalled with Remote SSH)
+    
+These aren't neccessary but may be helpful in the future:
+    Remote - Containers
+    Remote - WSL (if using Windows)
+
+Connecting Via a Remote Window
 
 - Open the "Remote Explorer" via the sidebar (on the left by default)
 
@@ -110,7 +111,10 @@ Once you are properly connected to the node, it's time to run the manager
 - First, cd into /local/onvm/openNetVM/scripts and run :code:`source setup_cloudlab.sh`
 
 - Depending on which node you're using, it will ask you to bind certain network devices to dpdk 
-    In general, you want to make sure that the 2 10 GbE devices are bound (the letters/numbers before listing the device can be used as identifiers)
+    
+    For this guide, we won't be working with real network traffic so we do not need to bind any ports
+    
+    When working with 2+ nodes, you want to make sure that the two 10 GbE devices are bound (the letters/numbers before listing the device can be used as identifiers)
     
 - Go to /local/onvm/openNetVM/onvm and run :code:`make`
 
