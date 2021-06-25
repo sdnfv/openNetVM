@@ -150,12 +150,10 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
-        printf("TEST MESSAGING STARTED\n");
+
+        printf("\nTEST MESSAGING STARTED\n");
         printf("---------------------------\n");
-        printf("TEST 1: Send/Receive One Message...\n");
-        printf("---------------------------\n");
-        // printf("TEST 2: Send/Receive Multiple Messages...\n");
-        // printf("TEST 3: Message Ring Overflow...\n");
+
         // int msg_tests_passed;
         // int msg_tests_failed;
         // int msg_test_phase;
@@ -170,27 +168,19 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         // msg_ring_count = msg_params->ring_count;
         msg_address = msg_params->address;
 
-
         int *msg_ints;
-
         msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
 
-        *msg_ints = 25;                
+        *msg_ints = 0;                
 
-        int ret = onvm_nflib_send_msg_to_nf(msg_address, msg_ints);
-        
-        printf("Sending message: %d\n", *msg_ints);
-        printf("Return: %d\n", ret);
-        printf("SID: %i\n", msg_address);
-        printf("Ring Count: %u\n", rte_ring_count(msg_params->msg_q));
+        onvm_nflib_send_msg_to_nf(msg_address, msg_ints);
 
-        // FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
-        // rte_ring_dump(fp, msg_params->msg_q);
-        // fclose(fp);
-
-        printf("---------------------------\n");
-
-
+        // printf("Sending message: %d\n", *msg_ints);
+        // printf("Return: %d\n", ret);
+        // printf("SID: %i\n", msg_address);
+        // printf("Ring Count: %u\n", rte_ring_count(msg_params->msg_q));
+        // printf("Test Phase: %d\n", msg_test_phase);
+        // printf("---------------------------\n");
 
 }
 
@@ -199,43 +189,53 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         // int msg_tests_passed;
         // int msg_tests_failed;
-        // int msg_test_phase;
+        int msg_test_phase;
         int msg_ring_count;
-        // uint16_t msg_address;
         struct test_msg_data *msg_params;
-
-        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
+        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;            
         // msg_tests_passed = msg_params->tests_passed;
         // msg_tests_failed = msg_params->tests_failed;
-        // msg_test_phase = msg_params->test_phase;
+        msg_test_phase = msg_params->test_phase;
         msg_ring_count = rte_ring_count(msg_params->msg_q);
         // msg_address = msg_params->address;
-
-        printf("Receive message\n");
-        printf("msg_data: %d\n", *((int *)msg_data));
-        printf("Ring Count: %u\n", msg_ring_count);
-
-        // FILE *fp = fopen("/users/noahchin/openNetVM/examples/test_messaging/status.txt", "a+");
-        // rte_ring_dump(fp, msg_params->msg_q);
-        // fclose(fp);
-
-        int empty = rte_ring_empty(msg_params->msg_q);
-        if(empty != 0){
-                printf("Message Ring Empty\n");
+        
+        
+        if(msg_test_phase == 1){
+                if(*((int *)msg_data) == 0){        
+                        printf("TEST 1: Send/Receive One Message...\n");
+                        printf("---------------------------\n");
+                        // printf("Receive message\n");
+                        // printf("msg_data: %d\n", *((int *)msg_data));
+                        // printf("Ring Count: %u\n", msg_ring_count);
+                        printf("PASSED\n");
+                        
+                }
+                else{
+                        printf("FAILED\n");
+                }
+                msg_test_phase++;
         }
-        else{
-                printf("Message Ring Not Empty\n");
+        else if(msg_test_phase == 2){
+                printf("TEST 2: Send/Receive Multiple Messages...\n");
+                printf("---------------------------\n");
+                printf("Receive message\n");
+                printf("msg_data: %d\n", *((int *)msg_data));
+                printf("Ring Count: %u\n", msg_ring_count);
+                msg_test_phase++;
+        }
+        else if(msg_test_phase == 3){
+                printf("TEST 3: Message Ring Overflow...\n");
+                printf("---------------------------\n");
+                printf("Receive message\n");
+                printf("msg_data: %d\n", *((int *)msg_data));
+                printf("Ring Count: %u\n", msg_ring_count);
         }
         printf("---------------------------\n");
 
-        if(*((int *)msg_data) == 25){
-                printf("PASSED\n");
-        }
-        else{
-                printf("FAILED\n");
-        }
+        
         
         msg_params->ring_count = msg_ring_count;
+        msg_params->test_phase = msg_test_phase;
         
 }
 
