@@ -112,10 +112,10 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
         msg_params->tests_passed = 0;
         msg_params->tests_failed = 0;
         msg_params->test_phase = 1;
-        msg_params->ring_count = 0;
         msg_params->address = nf->service_id;
         msg_params->msg_pool = nf_msg_pool;
         msg_params->msg_q = nf->msg_q;
+        msg_params->ring_count = 0;
         nf->data = (void *)msg_params;
 
         while ((c = getopt(argc, argv, "p:")) != -1) {
@@ -154,88 +154,114 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         printf("\nTEST MESSAGING STARTED\n");
         printf("---------------------------\n");
 
-        // int msg_tests_passed;
-        // int msg_tests_failed;
-        // int msg_test_phase;
-        // int msg_ring_count;
+        int msg_tests_passed;
+        int msg_tests_failed;
+        int msg_test_phase;
+        int msg_ring_count;
         uint16_t msg_address;
+        struct rte_mempool *msg_pool;
+        struct rte_ring *msg_q;
         struct test_msg_data *msg_params;
 
-        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
-        // msg_tests_passed = msg_params->tests_passed;
-        // msg_tests_failed = msg_params->tests_failed;
-        // msg_test_phase = msg_params->test_phase;
-        // msg_ring_count = msg_params->ring_count;
+        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;            
+        msg_tests_passed = msg_params->tests_passed;
+        msg_tests_failed = msg_params->tests_failed;
+        msg_test_phase = msg_params->test_phase;
+        msg_ring_count = rte_ring_count(msg_params->msg_q);
         msg_address = msg_params->address;
+        msg_pool = msg_params->msg_pool;
+        msg_q = msg_params->msg_q;
 
         int *msg_ints;
         msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
 
-        *msg_ints = 0;                
-
-        onvm_nflib_send_msg_to_nf(msg_address, msg_ints);
-
-        // printf("Sending message: %d\n", *msg_ints);
-        // printf("Return: %d\n", ret);
-        // printf("SID: %i\n", msg_address);
-        // printf("Ring Count: %u\n", rte_ring_count(msg_params->msg_q));
-        // printf("Test Phase: %d\n", msg_test_phase);
-        // printf("---------------------------\n");
-
+        *msg_ints = 25;                
+        
+        for(int i = 0; i < 130; i++){
+                onvm_nflib_send_msg_to_nf(msg_address, msg_ints);  
+        }
+                
+        msg_params->tests_passed = msg_tests_passed;
+        msg_params->tests_failed = msg_tests_failed;
+        msg_params->test_phase = msg_test_phase;
+        msg_params->ring_count = msg_ring_count;
+        msg_params->address = msg_address;
+        msg_params->msg_pool = msg_pool;
+        msg_params->msg_q = msg_q;
+        
 }
 
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
-        // int msg_tests_passed;
-        // int msg_tests_failed;
+        int msg_tests_passed;
+        int msg_tests_failed;
         int msg_test_phase;
         int msg_ring_count;
+        uint16_t msg_address;
+        struct rte_mempool *msg_pool;
+        struct rte_ring *msg_q;
         struct test_msg_data *msg_params;
+
         msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;            
-        // msg_tests_passed = msg_params->tests_passed;
-        // msg_tests_failed = msg_params->tests_failed;
+        msg_tests_passed = msg_params->tests_passed;
+        msg_tests_failed = msg_params->tests_failed;
         msg_test_phase = msg_params->test_phase;
         msg_ring_count = rte_ring_count(msg_params->msg_q);
-        // msg_address = msg_params->address;
-        
+        msg_address = msg_params->address;
+        msg_pool = msg_params->msg_pool;
+        msg_q = msg_params->msg_q;
         
         if(msg_test_phase == 1){
-                if(*((int *)msg_data) == 0){        
+                
+                if(*((int *)msg_data) == 25 && msg_ring_count == 126){        
                         printf("TEST 1: Send/Receive One Message...\n");
                         printf("---------------------------\n");
-                        // printf("Receive message\n");
-                        // printf("msg_data: %d\n", *((int *)msg_data));
-                        // printf("Ring Count: %u\n", msg_ring_count);
                         printf("PASSED\n");
-                        
+                        msg_tests_passed++;
+                        msg_test_phase++;
                 }
                 else{
-                        printf("FAILED\n");
+                        msg_tests_failed++;
                 }
-                msg_test_phase++;
         }
         else if(msg_test_phase == 2){
-                printf("TEST 2: Send/Receive Multiple Messages...\n");
-                printf("---------------------------\n");
-                printf("Receive message\n");
-                printf("msg_data: %d\n", *((int *)msg_data));
-                printf("Ring Count: %u\n", msg_ring_count);
-                msg_test_phase++;
+                
+                if(*((int *)msg_data) == 25 && msg_ring_count == 116){
+                        printf("TEST 2: Send/Receive Multiple Messages...\n");
+                        printf("---------------------------\n");
+                        printf("PASSED\n");
+                        msg_tests_passed++;
+                        msg_test_phase++;
+                }
+                else{
+                        msg_tests_failed++;
+                }
         }
         else if(msg_test_phase == 3){
-                printf("TEST 3: Message Ring Overflow...\n");
-                printf("---------------------------\n");
-                printf("Receive message\n");
-                printf("msg_data: %d\n", *((int *)msg_data));
-                printf("Ring Count: %u\n", msg_ring_count);
+                
+                if(*((int *)msg_data) == 25 && msg_ring_count == 0){
+                        printf("TEST 3: Message Ring Overflow...\n");
+                        printf("---------------------------\n");
+                        printf("PASSED\n");
+                        msg_tests_passed++;
+                }else{
+                        msg_tests_failed++;
+                }
         }
         printf("---------------------------\n");
 
+        if(msg_ring_count == 0){
+                printf("Passed %d/3 Tests\n", msg_tests_passed);
+        }       
         
-        
-        msg_params->ring_count = msg_ring_count;
+        msg_params->tests_passed = msg_tests_passed;
+        msg_params->tests_failed = msg_tests_failed;
         msg_params->test_phase = msg_test_phase;
+        msg_params->ring_count = msg_ring_count;
+        msg_params->address = msg_address;
+        msg_params->msg_pool = msg_pool;
+        msg_params->msg_q = msg_q;
         
 }
 
