@@ -173,14 +173,20 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_q = msg_params->msg_q;
 
         int *msg_ints;
-        msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
-
-        *msg_ints = 25;                
+            
         
         for(int i = 0; i < 130; i++){
-                onvm_nflib_send_msg_to_nf(msg_address, msg_ints);  
+
+                msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
+
+                *msg_ints = i;    
+
+                onvm_nflib_send_msg_to_nf(msg_address, msg_ints);
+  
         }
-                
+
+        rte_free(msg_ints);
+
         msg_params->tests_passed = msg_tests_passed;
         msg_params->tests_failed = msg_tests_failed;
         msg_params->test_phase = msg_test_phase;
@@ -211,10 +217,10 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         msg_address = msg_params->address;
         msg_pool = msg_params->msg_pool;
         msg_q = msg_params->msg_q;
-        
+
         if(msg_test_phase == 1){
                 
-                if(*((int *)msg_data) == 25 && msg_ring_count == 126){        
+                if(*((int *)msg_data) == 0 && msg_ring_count == 126){        
                         printf("TEST 1: Send/Receive One Message...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
@@ -227,7 +233,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         }
         else if(msg_test_phase == 2){
                 
-                if(*((int *)msg_data) == 25 && msg_ring_count == 116){
+                if(*((int *)msg_data) == 10 && msg_ring_count == 116){
                         printf("TEST 2: Send/Receive Multiple Messages...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
@@ -240,7 +246,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         }
         else if(msg_test_phase == 3){
                 
-                if(*((int *)msg_data) == 25 && msg_ring_count == 0){
+                if(*((int *)msg_data) == 126 && msg_ring_count == 0){
                         printf("TEST 3: Message Ring Overflow...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
