@@ -35,7 +35,7 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * test_messaging.c - unit test to ensure NFs can send messages to itself
+ * test_messaging.c - unit test to ensure NFs can send messages to themselves
  ********************************************************************/
 
 #include <errno.h>
@@ -62,10 +62,12 @@
 
 #define NF_TAG "test_messaging"
 
-/* number of package between each print */
 static uint32_t print_delay = 1000000;
 
 static uint16_t destination;
+
+/* num_msgs must be 128 or larger for all three tests to be ran and executed properly */
+static int num_msgs = 130;
 
 struct test_msg_data{
         int tests_passed;
@@ -141,6 +143,9 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
         return optind;
 }
 
+/*
+ * Sets up the NF. Initiates Unit Test
+ */
 void
 nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         struct rte_mempool *pktmbuf_pool;
@@ -173,9 +178,9 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_q = msg_params->msg_q;
 
         int *msg_ints;
-            
         
-        for(int i = 0; i < 130; i++){
+        /* num_msgs must be 128 or larger for all three tests to be ran and executed properly */
+        for(int i = 0; i < num_msgs; i++){
 
                 msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
 
@@ -196,7 +201,9 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         msg_params->msg_q = msg_q;
         
 }
-
+/*
+ * Runs logic for tests
+ */
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
@@ -219,41 +226,39 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         msg_q = msg_params->msg_q;
 
         if(msg_test_phase == 1){
-                
-                if(*((int *)msg_data) == 0 && msg_ring_count == 126){        
+
+                /* Ensures that one message can be sent to itself */
+                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 126){        
                         printf("TEST 1: Send/Receive One Message...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
                         msg_tests_passed++;
                         msg_test_phase++;
                 }
-                else{
-                        msg_tests_failed++;
-                }
+
         }
         else if(msg_test_phase == 2){
                 
-                if(*((int *)msg_data) == 10 && msg_ring_count == 116){
+                /* Ensures that multiple messages can be sent to itself */
+                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 116){
                         printf("TEST 2: Send/Receive Multiple Messages...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
                         msg_tests_passed++;
                         msg_test_phase++;
                 }
-                else{
-                        msg_tests_failed++;
-                }
+
         }
         else if(msg_test_phase == 3){
                 
-                if(*((int *)msg_data) == 126 && msg_ring_count == 0){
+                /* Ensures that even when the message ring overflows it can still process the messages */
+                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 0){
                         printf("TEST 3: Message Ring Overflow...\n");
                         printf("---------------------------\n");
                         printf("PASSED\n");
                         msg_tests_passed++;
-                }else{
-                        msg_tests_failed++;
                 }
+
         }
         printf("---------------------------\n");
 

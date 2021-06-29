@@ -9,14 +9,6 @@ cd examples
 make
 cd test_messaging
 ./go.sh SERVICE_ID [PRINT_DELAY]
-
-OR
-
-./go.sh -F CONFIG_FILE -- -- [-p PRINT_DELAY]
-
-OR
-
-sudo ./build/test_messaging -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
