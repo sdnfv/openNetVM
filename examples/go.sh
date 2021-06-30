@@ -19,4 +19,4 @@ then
     exit 1
 fi
 
-bash -x ../start_nf.sh $NF_DIR "$@"
+../start_nf.sh $NF_DIR "$@"
