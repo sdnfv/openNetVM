@@ -61,18 +61,17 @@
 #include "onvm_common.h"
 
 #define NF_TAG "test_messaging"
+#define MAGIC_NUMBER 11
 
 static uint32_t print_delay = 1000000;
 
 static uint16_t destination;
 
-/* num_msgs must be 128 or larger for all three tests to be ran and executed properly */
-static int num_msgs = 130;
-
 struct test_msg_data{
         int tests_passed;
         int tests_failed;
         int test_phase;
+        int test_msg_count;
         int ring_count;
         uint16_t address;
         struct rte_mempool* msg_pool;
@@ -118,6 +117,7 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
         msg_params->msg_pool = nf_msg_pool;
         msg_params->msg_q = nf->msg_q;
         msg_params->ring_count = 0;
+        msg_params->test_msg_count = 0;
         nf->data = (void *)msg_params;
 
         while ((c = getopt(argc, argv, "p:")) != -1) {
@@ -159,120 +159,150 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         printf("\nTEST MESSAGING STARTED\n");
         printf("---------------------------\n");
 
-        int msg_tests_passed;
-        int msg_tests_failed;
-        int msg_test_phase;
-        int msg_ring_count;
-        uint16_t msg_address;
-        struct rte_mempool *msg_pool;
-        struct rte_ring *msg_q;
         struct test_msg_data *msg_params;
 
         msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;            
-        msg_tests_passed = msg_params->tests_passed;
-        msg_tests_failed = msg_params->tests_failed;
-        msg_test_phase = msg_params->test_phase;
-        msg_ring_count = rte_ring_count(msg_params->msg_q);
-        msg_address = msg_params->address;
-        msg_pool = msg_params->msg_pool;
-        msg_q = msg_params->msg_q;
 
-        int *msg_ints;
-        
-        /* num_msgs must be 128 or larger for all three tests to be ran and executed properly */
-        for(int i = 0; i < num_msgs; i++){
-
-                msg_ints = (int*)rte_malloc(NULL, sizeof(int*), 0);
-
-                *msg_ints = i;    
-
-                onvm_nflib_send_msg_to_nf(msg_address, msg_ints);
-  
-        }
-
-        rte_free(msg_ints);
-
-        msg_params->tests_passed = msg_tests_passed;
-        msg_params->tests_failed = msg_tests_failed;
-        msg_params->test_phase = msg_test_phase;
-        msg_params->ring_count = msg_ring_count;
-        msg_params->address = msg_address;
-        msg_params->msg_pool = msg_pool;
-        msg_params->msg_q = msg_q;
-        
+        int *msg_int;
+        msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+        *msg_int = MAGIC_NUMBER;
+        onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
 }
+
 /*
  * Runs logic for tests
  */
 void
 nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
 
-        int msg_tests_passed;
-        int msg_tests_failed;
-        int msg_test_phase;
-        int msg_ring_count;
-        uint16_t msg_address;
-        struct rte_mempool *msg_pool;
-        struct rte_ring *msg_q;
         struct test_msg_data *msg_params;
 
-        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;            
-        msg_tests_passed = msg_params->tests_passed;
-        msg_tests_failed = msg_params->tests_failed;
-        msg_test_phase = msg_params->test_phase;
-        msg_ring_count = rte_ring_count(msg_params->msg_q);
-        msg_address = msg_params->address;
-        msg_pool = msg_params->msg_pool;
-        msg_q = msg_params->msg_q;
+        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
 
-        if(msg_test_phase == 1){
+        if(msg_params->test_phase == 1){
 
-                /* Ensures that one message can be sent to itself */
-                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 126){        
-                        printf("TEST 1: Send/Receive One Message...\n");
-                        printf("---------------------------\n");
-                        printf("PASSED\n");
-                        msg_tests_passed++;
-                        msg_test_phase++;
+                printf("TEST 1: Send/Receive One Message...\n");
+                printf("---------------------------\n");
+
+                msg_params->test_msg_count++;
+
+                if(1 == msg_params->test_msg_count){
+                        
+                        if(rte_ring_count(msg_params->msg_q) != 0) {
+                                printf("FAILED: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
+                        else {
+                                if(*((int *)msg_data) == MAGIC_NUMBER){
+                                        printf("PASSED\n");
+                                        msg_params->tests_passed++;
+                                        msg_params->test_phase++;
+                                }
+                                else {
+                                        printf("FAILED: received %d instead of %d\n", *((int *)msg_data), MAGIC_NUMBER);
+                                        msg_params->tests_failed++;
+                                        msg_params->test_phase++;
+                                }
+                        }
+
+                }
+                
+                rte_free(msg_data);
+
+                msg_params->test_msg_count = 0;
+                // rte_ring_reset(msg_params->msg_q);
+                
+                // send messgaes for phase 2 here
+                printf("TEST 2: Send/Receive Multiple Messages...\n");
+                printf("---------------------------\n");
+
+                for(int i = 0; i < 10; i++){
+                        int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+                        *msg_int = i;    
+                        onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
                 }
 
         }
-        else if(msg_test_phase == 2){
+        else if(msg_params->test_phase == 2){
                 
+                if(*((int *)msg_data) != msg_params->test_msg_count) { 
+                        printf("FAILED: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
+                        msg_params->tests_failed++;
+                        msg_params->test_phase++;
+                }
+                else {
+                        msg_params->test_msg_count++;
+                }
+
+                rte_free(msg_data);
+
                 /* Ensures that multiple messages can be sent to itself */
-                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 116){
-                        printf("TEST 2: Send/Receive Multiple Messages...\n");
-                        printf("---------------------------\n");
-                        printf("PASSED\n");
-                        msg_tests_passed++;
-                        msg_test_phase++;
+                if(10 == msg_params->test_msg_count){
+
+                        if(rte_ring_count(msg_params->msg_q) != 0) {
+                                printf("FAILED: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
+                        else {
+                                printf("PASSED\n");
+                                msg_params->tests_passed++;
+                                msg_params->test_phase++;
+                        }
+
                 }
 
-        }
-        else if(msg_test_phase == 3){
+                msg_params->test_msg_count = 0;
+                // rte_ring_reset(msg_params->msg_q);                        
                 
-                /* Ensures that even when the message ring overflows it can still process the messages */
-                if(*((int *)msg_data) == (126 - msg_ring_count) && msg_ring_count == 0){
-                        printf("TEST 3: Message Ring Overflow...\n");
-                        printf("---------------------------\n");
-                        printf("PASSED\n");
-                        msg_tests_passed++;
+                printf("TEST 3: Message Ring Overflow...\n");
+                printf("---------------------------\n");
+
+                for(int i = 0; i < 130; i++){
+                        int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+                        *msg_int = i;    
+                        onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
+                }
+
+                // TODO: can we detect that we fail phase 2 from missing messages?
+
+        }
+        else if(msg_params->test_phase == 3){
+                
+                if(*((int *)msg_data) != msg_params->test_msg_count) { 
+                        printf("FAILED: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
+                        msg_params->tests_failed++;
+                        msg_params->test_phase++;
+                }
+                else {
+                        msg_params->test_msg_count++;
+                }
+
+                rte_free(msg_data);
+
+                /* Ensures that multiple messages can be sent to itself */
+                if(126 == msg_params->test_msg_count){
+
+                        if(rte_ring_count(msg_params->msg_q) != 0) {
+                                printf("FAILED: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
+                        else {
+                                printf("PASSED\n");
+                                msg_params->tests_passed++;
+                                msg_params->test_phase++;
+                        }
+
                 }
 
         }
-        printf("---------------------------\n");
+        else if(msg_params->test_phase == 4){
+                printf("Passed %d/3 Tests\n", msg_params->tests_passed);
+        }
 
-        if(msg_ring_count == 0){
-                printf("Passed %d/3 Tests\n", msg_tests_passed);
-        }       
-        
-        msg_params->tests_passed = msg_tests_passed;
-        msg_params->tests_failed = msg_tests_failed;
-        msg_params->test_phase = msg_test_phase;
-        msg_params->ring_count = msg_ring_count;
-        msg_params->address = msg_address;
-        msg_params->msg_pool = msg_pool;
-        msg_params->msg_q = msg_q;
+        printf("---------------------------\n");
         
 }
 
@@ -322,6 +352,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+
+        rte_free(nf_local_ctx->nf->data);
         
         printf("If we reach here, program is ending\n");
         return 0;
