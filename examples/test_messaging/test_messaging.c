@@ -178,8 +178,15 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
 
         int *msg_int;
         msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+        if(msg_int == NULL){
+                printf("Message was not able to be malloc'd\n");
+        }
         *msg_int = MAGIC_NUMBER;
-        onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
+        int ret = onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
+        if(ret != 0){
+                printf("Message was unable to be sent\n");
+        }
+        
 }
 
 /*
