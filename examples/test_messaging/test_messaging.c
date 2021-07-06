@@ -88,13 +88,13 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
  * Frees memory allocated to the test_msg_data struct
  */ 
 static int
-destroy_test_msg_data(struct test_msg_data *test_msg_data){
+destroy_test_msg_data(struct test_msg_data **test_msg_data){
         if(test_msg_data == NULL){
                 return 0;
         }
-        rte_free(test_msg_data);
+        rte_free(*test_msg_data);
+        (*test_msg_data) = NULL;
         return 0;
-
 }
 
 /*
@@ -205,6 +205,9 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                         if(rte_ring_count(msg_params->msg_q) != 0) {
                                 printf("FAILED TEST 1: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
                                 printf("---------------------------\n");
+                                while(rte_ring_count(msg_params->msg_q) != 0){
+                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
+                                }
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -259,6 +262,9 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                         if(rte_ring_count(msg_params->msg_q) != 0) {
                                 printf("FAILED TEST 2: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
                                 printf("---------------------------\n");
+                                while(rte_ring_count(msg_params->msg_q) != 0){
+                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
+                                }
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -305,6 +311,9 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                         if(rte_ring_count(msg_params->msg_q) != 0) {
                                 printf("FAILED TEST 3: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
                                 printf("---------------------------\n");
+                                while(rte_ring_count(msg_params->msg_q) != 0){
+                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
+                                }
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -373,7 +382,7 @@ main(int argc, char *argv[]) {
 
         onvm_nflib_run(nf_local_ctx);
 
-        destroy_test_msg_data((struct test_msg_data*)&nf_local_ctx->nf->data);
+        destroy_test_msg_data((struct test_msg_data**)&nf_local_ctx->nf->data);
 
         onvm_nflib_stop(nf_local_ctx);
         
