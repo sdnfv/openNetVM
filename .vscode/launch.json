@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "gcc-9 - Build and debug speed tester",
+            "name": "gcc-9 - Debug speed tester",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/examples/speed_tester/build/app/speed_tester",
@@ -22,7 +22,6 @@
                     "ignoreFailures": true
                 }
             ],
-            //"preLaunchTask": "C/C++: gcc-9 build active file",
             "miDebuggerPath": "${workspaceFolder}/examples/gdb.sh"
         }
     ]
