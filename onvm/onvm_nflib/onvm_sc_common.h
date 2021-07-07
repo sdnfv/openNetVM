@@ -51,10 +51,12 @@ extern uint16_t **services;
 extern uint16_t *nf_per_service_count;
 
 /********************************Interfaces***********************************/
-
+/* Returns the instance ID associated with the given service ID and packet.
+   If using for a message, given packet is NULL and the function returns 
+   the first instance ID associated with the given service ID for messaging */
 uint16_t
 onvm_sc_service_to_nf_map(uint16_t service_id,
-                          struct rte_mbuf *pkt); /*, uint16_t *nf_per_service_count, uint16_t **services);*/
+                          struct rte_mbuf *pkt);
 
 /* append a entry to serivce chain, 0 means appending successful, 1 means failed*/
 int
