@@ -1,1 +1,1 @@
-pkexec /usr/bin/gdb "$@"
+sudo /usr/bin/gdb "$@"

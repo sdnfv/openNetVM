@@ -23,6 +23,26 @@
                 }
             ],
             "miDebuggerPath": "${workspaceFolder}/examples/gdb.sh"
+        },
+        {
+            "name": "gcc-9 - Debug Message Tester",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/test_messaging/build/app/test_messaging",
+            "args": ["-l", "0", "-n", "3", "--proc-type=secondary", "--", "-r", "1"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "${workspaceFolder}/examples/gdb.sh"
         }
     ]
 }

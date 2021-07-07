@@ -727,7 +727,9 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
         msg->msg_type = MSG_FROM_NF;
         msg->msg_data = msg_data;
 
-        ret = rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+        //need to convert from SID to IID
+        uint16_t instance_id = onvm_sc_service_to_nf_map(dest, NULL);
+        ret = rte_ring_enqueue(nfs[instance_id].msg_q, (void*)msg);
         if(ret != 0){
                 RTE_LOG(ERR, APP, "Destination NF ring is full! Unable to enqueue msg to ring\n");
                 rte_mempool_put(nf_msg_pool, (void*)msg);
