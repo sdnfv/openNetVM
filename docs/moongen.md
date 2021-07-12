@@ -13,7 +13,13 @@ Installation steps are assuming that you already have [openNetVM installed](./In
 
 `$ grep -i huge /proc/meminfo`
 
-If ***HugePages_Free*** 's value equals 0, which means there is no free hugepages available, you probably have to reboot your machine with `$ sudo reboot` to release some hugepages. 
+If the ***HugePages_Free*** 's value equals 0, which means there are no free hugepages available, there may be a few reasons why: 
+- The manager crashed, but an NF(s) is still running.
+    - In this case, either kill them manually by hitting Ctrl+C or run `$ sudo pkill NF_NAME` for every NF that you have ran.
+- The manager and NFs are not running, but something crashed without freeing hugepages.
+    - To fix this, please run `$ sudo rm -rf /mnt/huge/*` to remove all files that contain hugepage data.
+- The above two cases are not met, something weird is happening:
+    - A reboot might fix this problem and free memory: `$ sudo reboot`
 
 ### 1.2 Check NIC ports are bound to DPDK
 
