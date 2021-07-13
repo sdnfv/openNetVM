@@ -109,12 +109,12 @@ Install other dependencies with:
 ```$ sudo apt-get install -y build-essential cmake linux-headers-`uname -r` pciutils libnuma-dev```
 
 
-## 2. MoonGen Installation 
+## 2. MoonGen Installation
 ===================
 
-### 2.1 Get the resource from github, and checkout the dpdk2.0 branch
+### 2.1 Get the resource from github, and checkout the dpdk19.5 branch
 
-`$ git clone https://github.com/emmericp/MoonGen`
+`$ git clone https://github.com/emmericp/MoonGen` 
 
 `$ cd MoonGen`
 
