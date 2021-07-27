@@ -73,6 +73,7 @@ struct test_msg_data{
         int test_phase;
         int test_msg_count;
         int ring_count;
+        int mempool_count;
         uint16_t address;
         struct rte_mempool* msg_pool;
         struct rte_ring *msg_q;
@@ -130,6 +131,7 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
         msg_params->msg_pool = nf_msg_pool;
         msg_params->msg_q = nf->msg_q;
         msg_params->ring_count = 0;
+        msg_params->mempool_count = rte_mempool_avail_count(msg_params->msg_pool);
         msg_params->test_msg_count = 0;
         nf->data = (void *)msg_params;
 
@@ -186,7 +188,6 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         if(ret != 0){
                 printf("Message was unable to be sent\n");
         }
-        
 }
 
 /*
@@ -200,7 +201,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
         msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
 
         // Tests if one message can be sent to itself
-        if(msg_params->test_phase == 1){
+        if(1 == msg_params->test_phase){
 
                 printf("TEST 1: Send/Receive One Message...\n");
                 printf("---------------------------\n");
@@ -215,6 +216,11 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 while(rte_ring_count(msg_params->msg_q) != 0){
                                         rte_ring_dequeue(msg_params->msg_q, msg_data);
                                 }
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
+                                printf("FAILED TEST 1: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -250,7 +256,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         }
         //Tests if multiple messages can be sent to itself
-        else if(msg_params->test_phase == 2){
+        else if(2 == msg_params->test_phase){
                 
                 if(*((int *)msg_data) != msg_params->test_msg_count) { 
                         printf("FAILED TEST 2: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
@@ -275,6 +281,11 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
+                                printf("FAILED TEST 2: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
                         else {
                                 printf("PASSED TEST 2\n");
                                 printf("---------------------------\n");
@@ -285,10 +296,10 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
                 }
                 
-                if(msg_params->test_msg_count == 0){
+                if(0 == msg_params->test_msg_count){
                         printf("TEST 3: Message Ring Overflow...\n");
                         printf("---------------------------\n");
-                        for(int i = 0; i < 130; i++){
+                        for(int i = 0; i < (int)(rte_ring_get_size(msg_params->msg_q) + 2); i++){
                                 int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
                                 *msg_int = i;    
                                 onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
@@ -313,7 +324,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
                 rte_free(msg_data);
                 
-                if(127 == msg_params->test_msg_count){
+                if((int)(rte_ring_get_size(msg_params->msg_q) - 1) == msg_params->test_msg_count){
 
                         if(rte_ring_count(msg_params->msg_q) != 0) {
                                 printf("FAILED TEST 3: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
@@ -321,6 +332,11 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 while(rte_ring_count(msg_params->msg_q) != 0){
                                         rte_ring_dequeue(msg_params->msg_q, msg_data);
                                 }
+                                msg_params->tests_failed++;
+                                msg_params->test_phase++;
+                        }
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
+                                printf("FAILED TEST 3: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -335,7 +351,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         }
 
-        if(msg_params->test_phase == 4){
+        if(4 == msg_params->test_phase){
                 printf("Passed %d/3 Tests\n", msg_params->tests_passed);
         }
 
