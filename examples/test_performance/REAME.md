@@ -1,10 +1,33 @@
 TEST PERFORMANCE
 ==
-Script that generates a graph of how latency and throughput of an NF chain changes based on its length
+This directory contains a script that generates a graph of how the latency and throughput of an NF chain changes based on its length
 
-To be determined
--fix graph, what axes and measurments to use
--specify before running, what # NFs to use (user will input as a flag)
+Optional Libraries
+--
+matplotlib library is required for graph generation.
+If libpcap is not installed run (might need to update/upgrade):
+```
+sudo apt-get install python3-matplotlib
+```
 
+Compilation and Execution
+--
+```
 cd examples/test_performance
-./test_performance.sh ###SPECIFY NUMBER OF NFS
+	./test_performanmce.sh -s [specific lengths of NFs]
+
+	OR
+
+	./test_performanmce.sh -i [one int specifying the max # of NFs]
+
+	```
+
+SUMMARY: 
+
+test_performance.sh -- a script that generates data based on a changing # of NFs  
+
+make_data.py -- parses through NF data and outputs it to a data.txt 
+
+make_graph.py -- uses the appropriate data in the data.txt file to make a graph 
+
+clear_files.py -- resets data.txt file so that the script can run again 

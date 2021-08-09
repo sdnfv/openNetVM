@@ -1,11 +1,14 @@
-#this script resets the data.txt and example_nf_deploy scripts and returns them to their original state
+#!/usr/bin/python
+### This script resets the data.txt and example_nf_deploy scripts and returns them to their original state
 
 import json
 
 with open("data.txt", 'r+') as f:
-    f.truncate(0)
+        with open("data-copy.txt", "w") as file:
+                file.write(f.read())
+        f.truncate(0)
 
-with open("../example_nf_deploy.json", "w") as f:
+with open("../example_nf_deploy_test_p_template.json", "w") as f:
 	data = {"globals": [
                 {
                         "TTL": 1
