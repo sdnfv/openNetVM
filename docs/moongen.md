@@ -106,7 +106,11 @@ and then change the default compiler to use update-alternatives:
 
 Install other dependencies with:
 
-```$ sudo apt-get install -y build-essential cmake linux-headers-`uname -r` pciutils libnuma-dev```
+```
+$ sudo apt-get install -y build-essential cmake linux-headers-`uname -r` pciutils libnuma-dev
+$ sudo apt install cmake
+$ sudo apt install libtbb2
+```
 
 
 ## 2. MoonGen Installation
