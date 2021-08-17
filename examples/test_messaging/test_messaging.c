@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2019 George Washington University
- *            2015-2019 University of California Riverside
+ *            2015-2021 George Washington University
+ *            2015-2021 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -190,7 +190,7 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         
         if(ret != 0){
                 printf("Message was unable to be sent\n");
-        }
+        }     
 }
 
 /*
@@ -222,8 +222,8 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
-                                printf("FAILED TEST 1: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
+                                printf("FAILED TEST 1: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -284,8 +284,8 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
-                                printf("FAILED TEST 2: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
+                                printf("FAILED TEST 2: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -313,7 +313,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         }
         //Tests to see if even with a ring overflow it can still handle the messages
-        else if(msg_params->test_phase == 3){
+        else if(3 == msg_params->test_phase){
                 
                 if(*((int *)msg_data) != msg_params->test_msg_count) { 
                         printf("FAILED TEST 3: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
@@ -338,8 +338,8 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count - 1){
-                                printf("FAILED TEST 3: %d messages have not been deallocated from the memory pool. There is a memory leak somewhere.\n", rte_mempool_avail_count(msg_params->msg_pool));
+                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
+                                printf("FAILED TEST 3: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
@@ -353,7 +353,7 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                 }
 
         }
-
+        
         if(4 == msg_params->test_phase){
                 printf("Passed %d/3 Tests\n", msg_params->tests_passed);
         }
