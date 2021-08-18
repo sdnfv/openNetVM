@@ -222,11 +222,6 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
-                                printf("FAILED TEST 1: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
-                        }
                         else {
                                 if(*((int *)msg_data) == MAGIC_NUMBER){
                                         printf("PASSED TEST 1\n");
@@ -284,11 +279,6 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
-                                printf("FAILED TEST 2: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
-                        }
                         else {
                                 printf("PASSED TEST 2\n");
                                 printf("---------------------------\n");
@@ -338,11 +328,6 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
                                 msg_params->tests_failed++;
                                 msg_params->test_phase++;
                         }
-                        if((int)rte_mempool_avail_count(msg_params->msg_pool) != msg_params->mempool_count){
-                                printf("FAILED TEST 3: %d messages have not been deallocated back to the memory pool. There is a memory leak somewhere.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
-                        }
                         else {
                                 printf("PASSED TEST 3\n");
                                 printf("---------------------------\n");
@@ -354,8 +339,13 @@ nf_msg_handler(void *msg_data, __attribute__((unused)) struct onvm_nf_local_ctx 
 
         }
         
-        if(4 == msg_params->test_phase){
-                printf("Passed %d/3 Tests\n", msg_params->tests_passed);
+        if(0 == msg_params->test_msg_count){
+                if((int)rte_mempool_avail_count(msg_params->msg_pool) == msg_params->mempool_count){
+                        printf("Passed %d/3 Tests\n", msg_params->tests_passed);
+                }
+                else{
+                        printf("%d messages have not been deallocated back to the memory pool.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
+                }
         }
 
         printf("---------------------------\n");
