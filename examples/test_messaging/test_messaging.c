@@ -295,10 +295,20 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
         }
         if (4 == msg_params->test_phase) {
+                printf("TEST 4: Memory Deallocation...\n");
+                printf("---------------------------\n");
+                // Tests to make sure all messages have been deallocated back to the memory pool
                 if ((int)rte_mempool_avail_count(msg_params->msg_pool) == msg_params->mempool_count - 1) {
-                        printf("Passed %d/3 Tests\n", msg_params->tests_passed);
+                        printf("PASSED TEST 4\n");
+                        printf("---------------------------\n");
+                        msg_params->tests_passed++;
+                        printf("Passed %d/4 Tests\n", msg_params->tests_passed);
                 } else {
+                        printf("FAILED TEST 4\n");
+                        printf("---------------------------\n");
                         printf("%d messages have not been deallocated back to the memory pool.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
+                        msg_params->tests_failed++;
+                        printf("Passed %d/4 Tests\n", msg_params->tests_passed);
                 }
         }
         printf("---------------------------\n");
