@@ -63,6 +63,12 @@
 #define NF_TAG "test_messaging"
 #define MAGIC_NUMBER 11
 
+#define TEST_FAILED -1
+#define TEST_INCOMPLETE 0
+#define TEST_PASSED 1
+
+#define TEST_TIME_LIMIT 5
+
 static uint32_t print_delay = 1000000;
 
 struct test_msg_data{
@@ -75,6 +81,8 @@ struct test_msg_data{
         uint16_t address;
         struct rte_mempool* msg_pool;
         struct rte_ring *msg_q;
+        int test_status[3]; 
+        uint64_t start_time;
 };
 
 void
@@ -96,6 +104,14 @@ destroy_test_msg_data(struct test_msg_data **test_msg_data) {
         return 0;
 }
 
+static void
+clear_msg_queue(struct test_msg_data *test_state) {
+        void* msg;
+        while (rte_ring_count(test_state->msg_q) != 0) {
+                rte_ring_dequeue(test_state->msg_q, &msg);
+        }
+}
+
 /*
  * Print a usage message
  */
@@ -112,27 +128,8 @@ usage(const char *progname) {
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf) {
+parse_app_args(int argc, char *argv[], const char *progname, __attribute__((unused)) struct onvm_nf *nf) {
         int c;
-        struct test_msg_data *msg_params;
-        static struct rte_mempool *nf_msg_pool;
-
-        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
-        if (nf_msg_pool == NULL)
-                rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
-
-        msg_params = (struct test_msg_data *)rte_malloc(NULL, sizeof(struct test_msg_data), 0);
-        msg_params->tests_passed = 0;
-        msg_params->tests_failed = 0;
-        msg_params->test_phase = 1;
-        msg_params->address = nf->service_id;
-        msg_params->msg_pool = nf_msg_pool;
-        msg_params->msg_q = nf->msg_q;
-        msg_params->ring_count = 0;
-        msg_params->mempool_count = 0;
-        msg_params->test_msg_count = 0;
-        nf->data = (void *)msg_params;
-
         while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
                         case 'p':
@@ -162,27 +159,132 @@ parse_app_args(int argc, char *argv[], const char *progname, struct onvm_nf *nf)
 void
 nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct rte_mempool *pktmbuf_pool;
+        struct test_msg_data *test_state;
+        static struct rte_mempool *nf_msg_pool;
         pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
         if (pktmbuf_pool == NULL) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
         }
+        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
+        if (nf_msg_pool == NULL)
+                rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
 
-        printf("\nTEST MESSAGING STARTED\n");
-        printf("---------------------------\n");
-        struct test_msg_data *msg_params;
-        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
-        msg_params->mempool_count = rte_mempool_avail_count(msg_params->msg_pool);
-        int *msg_int;
-        msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
-        if (msg_int == NULL) {
-                printf("Message was not able to be malloc'd\n");
+        test_state = (struct test_msg_data *)rte_malloc(NULL, sizeof(struct test_msg_data), 0);
+        test_state->tests_passed = 0;
+        test_state->tests_failed = 0;
+        test_state->test_phase = 0;
+        test_state->address = nf_local_ctx->nf->service_id;
+        test_state->msg_pool = nf_msg_pool;
+        test_state->msg_q = nf_local_ctx->nf->msg_q;
+        test_state->ring_count = 0;
+        test_state->mempool_count = 0;
+        test_state->test_msg_count = 0;
+        test_state->start_time = rte_get_tsc_cycles();
+        memset(test_state->test_status, TEST_INCOMPLETE, sizeof(int)*3);
+        nf_local_ctx->nf->data = (void *)test_state;
+        
+}
+
+static int
+test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
+        struct test_msg_data *test_state;
+        test_state = (struct test_msg_data *)nf_local_ctx->nf->data;
+
+        if(( (rte_get_tsc_cycles() - test_state->start_time) / rte_get_timer_hz()) > TEST_TIME_LIMIT) {
+                // it took too long
+                // we failed this test
+                test_state->test_status[test_state->test_phase - 1] = TEST_FAILED;
+                // reset start time clock
+                test_state->start_time = rte_get_tsc_cycles();
+                // clear ring and move on to next test
+                clear_msg_queue(test_state);
+                test_state->test_phase++;
         }
-        *msg_int = MAGIC_NUMBER;
-        int ret = onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
-        if (ret != 0) {
-                printf("Message was unable to be sent\n");
+
+        // If we haven't started any tests yet, start phase 1
+        if (0 == test_state->test_phase) {
+                printf("\nTEST MESSAGING STARTED\n");
+                printf("---------------------------\n");
+                clear_msg_queue(test_state);
+                test_state->mempool_count = rte_mempool_avail_count(test_state->msg_pool);
+                int *msg_int;
+                msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+                if (msg_int == NULL) {
+                        printf("Message was not able to be malloc'd\n");
+                }
+                *msg_int = MAGIC_NUMBER;
+                int ret = onvm_nflib_send_msg_to_nf(test_state->address, msg_int);
+                if (ret != 0) {
+                        printf("Message was unable to be sent\n");
+                }
+                test_state->test_phase++;
         }
+        else if (1 == test_state->test_phase) {              
+                printf("TEST 1: Send/Receive One Message with correct data...\n");
+                printf("---------------------------\n");
+                if(TEST_PASSED == test_state->test_status[0]){
+                        printf("PASSED TEST 1\n");
+                        printf("---------------------------\n");
+                }
+                else if (TEST_FAILED == test_state->test_status[0]) {
+                        printf("FAILED TEST 1\n");
+                        printf("---------------------------\n");
+                }
+                if(TEST_INCOMPLETE != test_state->test_status[0]) {
+                        printf("TEST 2: Send/Receive Multiple Messages...\n");
+                        printf("---------------------------\n");
+                        clear_msg_queue(test_state);
+                        for (int i = 0; i < 10; i++) {
+                                int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+                                *msg_int = i;
+                                onvm_nflib_send_msg_to_nf(test_state->address, msg_int);
+                        }
+                        test_state->test_phase++;
+                }
+        }
+        else if (2 == test_state->test_phase){
+                if (TEST_PASSED == test_state->test_status[1]){
+                        printf("PASSED TEST 2\n");
+                        printf("---------------------------\n");
+
+                }
+                else if (TEST_FAILED == test_state->test_status[1]){
+                        printf("FAILED TEST 2\n");
+                        printf("---------------------------\n");
+                }
+                if(TEST_INCOMPLETE != test_state->test_status[1]) {
+                        printf("TEST 3: Message Ring Overflow...\n");
+                        printf("---------------------------\n");
+                        clear_msg_queue(test_state);
+                        for (int i = 0; i < (int)(rte_ring_get_size(test_state->msg_q) + 2); i++) {
+                                int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
+                                *msg_int = i;
+                                onvm_nflib_send_msg_to_nf(test_state->address, msg_int);
+                        }
+                        test_state->test_phase++;
+                }
+        }
+        else if (3 == test_state->test_phase){
+                if(TEST_PASSED == test_state->test_status[2]){
+                        printf("PASSED TEST 3\n");
+                        printf("---------------------------\n");
+                }
+                else if (TEST_FAILED == test_state->test_status[2]){
+                        printf("FAILED TEST 3\n");
+                        printf("---------------------------\n");
+                }
+                if(TEST_INCOMPLETE != test_state->test_status[2]){
+                        clear_msg_queue(test_state);
+                        test_state->test_phase++;
+                }
+        }
+        else if (4 == test_state->test_phase){
+                printf("Passed %d/3 Tests\n", test_state->tests_passed);
+                sleep(8);
+                return 1;
+        }
+        return 0;
 }
 
 /*
@@ -190,128 +292,84 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
  */
 void
 nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
-        struct test_msg_data *msg_params;
-        msg_params = (struct test_msg_data *)nf_local_ctx->nf->data;
+        struct test_msg_data *test_state;
+        test_state = (struct test_msg_data *)nf_local_ctx->nf->data;
         // Tests if one message can be sent to itself
-        if (1 == msg_params->test_phase) {
-                printf("TEST 1: Send/Receive One Message...\n");
-                printf("---------------------------\n");
-                msg_params->test_msg_count++;
-                if (1 == msg_params->test_msg_count) {
-                        if (rte_ring_count(msg_params->msg_q) != 0) {
-                                printf("FAILED TEST 1: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+        if (1 == test_state->test_phase) {
+                test_state->test_msg_count++;
+                if (1 == test_state->test_msg_count) {
+                        if (rte_ring_count(test_state->msg_q) != 0) {
+                                printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                while (rte_ring_count(msg_params->msg_q) != 0) {
-                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
-                                }
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
+                                test_state->tests_failed++;
+                                test_state->test_status[0] = TEST_FAILED;
                         } else {
+                                // *((int *)msg_data) = 45; // CAUSE A BUG
                                 if (*((int *)msg_data) == MAGIC_NUMBER) {
-                                        printf("PASSED TEST 1\n");
-                                        printf("---------------------------\n");
-                                        msg_params->tests_passed++;
-                                        msg_params->test_phase++;
-                                        msg_params->test_msg_count = 0;
+                                        test_state->tests_passed++;
+                                        test_state->test_status[0] = TEST_PASSED;
+                                        test_state->test_msg_count = 0;
                                 } else {
-                                        printf("FAILED TEST 1: received %d instead of %d\n", *((int *)msg_data), MAGIC_NUMBER);
+                                        printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), MAGIC_NUMBER);
                                         printf("---------------------------\n");
-                                        msg_params->tests_failed++;
-                                        msg_params->test_phase++;
+                                        test_state->tests_failed++;
+                                        test_state->test_status[0] = TEST_FAILED;
                                 }
                         }
                 }
-                rte_free(msg_data);
-                printf("TEST 2: Send/Receive Multiple Messages...\n");
-                printf("---------------------------\n");
-                for (int i = 0; i < 10; i++) {
-                        int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
-                        *msg_int = i;
-                        onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
-                }
-        } else if (2 == msg_params->test_phase) { // Tests if multiple messages can be sent to itself
-                if (*((int *)msg_data) != msg_params->test_msg_count) {
-                        printf("FAILED TEST 2: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
+        } else if (2 == test_state->test_phase) { // Tests if multiple messages can be sent to itself
+                if (*((int *)msg_data) != test_state->test_msg_count) {
+                        printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), test_state->test_msg_count);
                         printf("---------------------------\n");
-                        msg_params->tests_failed++;
-                        msg_params->test_phase++;
+                        test_state->tests_failed++;
+                        test_state->test_status[1] = TEST_FAILED;
                 } else {
-                        msg_params->test_msg_count++;
+                        test_state->test_msg_count++;
+                        // sleep(6);
                 }
-                if (10 == msg_params->test_msg_count) {
-                        if (rte_ring_count(msg_params->msg_q) != 0) {
-                                printf("FAILED TEST 2: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+                if (10 == test_state->test_msg_count) {
+                        if (rte_ring_count(test_state->msg_q) != 0) {
+                                printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                while (rte_ring_count(msg_params->msg_q) != 0) {
-                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
-                                }
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
+                                test_state->tests_failed++;
+                                test_state->test_status[1] = TEST_FAILED;
                         } else {
-                                printf("PASSED TEST 2\n");
-                                printf("---------------------------\n");
-                                msg_params->tests_passed++;
-                                msg_params->test_phase++;
-                                msg_params->test_msg_count = 0;
-                        }
-                }
-                rte_free(msg_data);
-                if (0 == msg_params->test_msg_count) {
-                        printf("TEST 3: Message Ring Overflow...\n");
-                        printf("---------------------------\n");
-                        for (int i = 0; i < (int)(rte_ring_get_size(msg_params->msg_q) + 2); i++) {
-                                int* msg_int = (int*)rte_malloc(NULL, sizeof(int), 0);
-                                *msg_int = i;
-                                onvm_nflib_send_msg_to_nf(msg_params->address, msg_int);
+                                test_state->tests_passed++;
+                                test_state->test_status[1] = TEST_PASSED;
+                                test_state->test_msg_count = 0;
                         }
                 }
                 // TODO: can we detect that we fail phase 2 from missing messages?
-        } else if (3 == msg_params->test_phase) { // Tests to see if even with a ring overflow it can still handle the messages
-                if (*((int *)msg_data) != msg_params->test_msg_count) {
-                        printf("FAILED TEST 3: received %d instead of %d\n", *((int *)msg_data), msg_params->test_msg_count);
+        } else if (3 == test_state->test_phase) { // Tests to see if even with a ring overflow it can still handle the messages
+                if (*((int *)msg_data) != test_state->test_msg_count) {
+                        printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), test_state->test_msg_count);
                         printf("---------------------------\n");
-                        msg_params->tests_failed++;
-                        msg_params->test_phase++;
+                        test_state->tests_failed++;
+                        test_state->test_status[2] = TEST_FAILED;
                 } else {
-                        msg_params->test_msg_count++;
+                        test_state->test_msg_count++;
                 }
-                rte_free(msg_data);
-                if ((int)(rte_ring_get_size(msg_params->msg_q) - 1) == msg_params->test_msg_count) {
-                        if (rte_ring_count(msg_params->msg_q) != 0) {
-                                printf("FAILED TEST 3: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(msg_params->msg_q));
+                if ((int)(rte_ring_get_size(test_state->msg_q) - 1) == test_state->test_msg_count) {
+                        if (rte_ring_count(test_state->msg_q) != 0) {
+                                printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                while (rte_ring_count(msg_params->msg_q) != 0) {
-                                        rte_ring_dequeue(msg_params->msg_q, msg_data);
-                                }
-                                msg_params->tests_failed++;
-                                msg_params->test_phase++;
+                                test_state->tests_failed++;
+                                test_state->test_status[2] = TEST_FAILED;
+                        } else if ((int)rte_mempool_avail_count(test_state->msg_pool) == test_state->mempool_count - 1) {
+                                // only pass if there wasn't a memory leak
+                                test_state->tests_passed++;
+                                test_state->test_status[2] = TEST_PASSED;
+                                test_state->test_msg_count = 0;
                         } else {
-                                printf("PASSED TEST 3\n");
+                                printf("FAILURE: %d messages have not been deallocated back to the memory pool.\n", test_state->mempool_count - rte_mempool_avail_count(test_state->msg_pool));
                                 printf("---------------------------\n");
-                                msg_params->tests_passed++;
-                                msg_params->test_phase++;
-                                msg_params->test_msg_count = 0;
+                                test_state->tests_failed++;
+                                test_state->test_status[2] = TEST_FAILED;
                         }
                 }
         }
-        if (4 == msg_params->test_phase) {
-                printf("TEST 4: Memory Deallocation...\n");
-                printf("---------------------------\n");
-                // Tests to make sure all messages have been deallocated back to the memory pool
-                if ((int)rte_mempool_avail_count(msg_params->msg_pool) == msg_params->mempool_count - 1) {
-                        printf("PASSED TEST 4\n");
-                        printf("---------------------------\n");
-                        msg_params->tests_passed++;
-                        printf("Passed %d/4 Tests\n", msg_params->tests_passed);
-                } else {
-                        printf("FAILED TEST 4\n");
-                        printf("---------------------------\n");
-                        printf("%d messages have not been deallocated back to the memory pool.\n", msg_params->mempool_count - rte_mempool_avail_count(msg_params->msg_pool));
-                        msg_params->tests_failed++;
-                        printf("Passed %d/4 Tests\n", msg_params->tests_passed);
-                }
-        }
         printf("---------------------------\n");
+        rte_free(msg_data);
 }
 
 static int
@@ -335,6 +393,7 @@ main(int argc, char *argv[]) {
         nf_function_table->pkt_handler = &packet_handler;
         nf_function_table->setup = &nf_setup;
         nf_function_table->msg_handler = &nf_msg_handler;
+        nf_function_table->user_actions = &test_handler;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
