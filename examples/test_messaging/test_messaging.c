@@ -104,6 +104,9 @@ destroy_test_msg_data(struct test_msg_data **test_msg_data) {
         return 0;
 }
 
+/*
+ * Clears the message queues after each test
+ */
 static void
 clear_msg_queue(struct test_msg_data *test_state) {
         void* msg;
@@ -154,7 +157,7 @@ parse_app_args(int argc, char *argv[], const char *progname, __attribute__((unus
 }
 
 /*
- * Sets up the NF. Initiates Unit Test
+ * Sets up the NF and state data
  */
 void
 nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
@@ -186,6 +189,9 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         
 }
 
+/*
+ * Initiates each test phase
+ */
 static int
 test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct test_msg_data *test_state;
@@ -281,14 +287,13 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
         }
         else if (4 == test_state->test_phase){
                 printf("Passed %d/3 Tests\n", test_state->tests_passed);
-                sleep(8);
                 return 1;
         }
         return 0;
 }
 
 /*
- * Runs logic for tests
+ * Checks for test correctness
  */
 void
 nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
@@ -304,7 +309,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                                 test_state->tests_failed++;
                                 test_state->test_status[0] = TEST_FAILED;
                         } else {
-                                // *((int *)msg_data) = 45; // CAUSE A BUG
                                 if (*((int *)msg_data) == MAGIC_NUMBER) {
                                         test_state->tests_passed++;
                                         test_state->test_status[0] = TEST_PASSED;
@@ -325,7 +329,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                         test_state->test_status[1] = TEST_FAILED;
                 } else {
                         test_state->test_msg_count++;
-                        // sleep(6);
                 }
                 if (10 == test_state->test_msg_count) {
                         if (rte_ring_count(test_state->msg_q) != 0) {
@@ -339,7 +342,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                                 test_state->test_msg_count = 0;
                         }
                 }
-                // TODO: can we detect that we fail phase 2 from missing messages?
         } else if (3 == test_state->test_phase) { // Tests to see if even with a ring overflow it can still handle the messages
                 if (*((int *)msg_data) != test_state->test_msg_count) {
                         printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), test_state->test_msg_count);
@@ -372,6 +374,9 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
         rte_free(msg_data);
 }
 
+/*
+ * Not concerned with packets, so they are dropped.
+ */
 static int
 packet_handler(__attribute__((unused)) struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
@@ -379,6 +384,9 @@ packet_handler(__attribute__((unused)) struct rte_mbuf *pkt, struct onvm_pkt_met
         return 0;
 }
 
+/*
+ * Creates function table and local context. Runs NF.
+ */
 int
 main(int argc, char *argv[]) {
         int arg_offset;
