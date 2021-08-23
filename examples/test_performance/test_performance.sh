@@ -2,6 +2,8 @@
 
 echo "Type of script (iterative (i) or selective (s) ) = $1" 
 
+python3 ./clear_files.py
+
 if [[ $1 = "-s" ]]
 then
 	echo "Running selective version"
