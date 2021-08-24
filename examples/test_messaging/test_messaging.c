@@ -97,7 +97,7 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
 static void
 destroy_test_msg_data(struct test_msg_data **test_msg_data) {
         if (test_msg_data == NULL) {
-                return 0;
+                return;
         }
         rte_free(*test_msg_data);
         (*test_msg_data) = NULL;
