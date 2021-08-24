@@ -73,7 +73,6 @@ static uint32_t print_delay = 1000000;
 
 struct test_msg_data{
         int tests_passed;
-        int tests_failed;
         int test_phase;
         int test_msg_count;
         int ring_count;
