@@ -94,7 +94,7 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx);
 /*
  * Frees memory allocated to the test_msg_data struct
  */ 
-static int
+static void
 destroy_test_msg_data(struct test_msg_data **test_msg_data) {
         if (test_msg_data == NULL) {
                 return 0;
