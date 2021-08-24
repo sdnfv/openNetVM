@@ -101,7 +101,7 @@ destroy_test_msg_data(struct test_msg_data **test_msg_data) {
         }
         rte_free(*test_msg_data);
         (*test_msg_data) = NULL;
-        return 0;
+        return;
 }
 
 /*
