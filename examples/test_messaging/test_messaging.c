@@ -426,6 +426,5 @@ main(int argc, char *argv[]) {
         destroy_test_msg_data((struct test_msg_data**)&nf_local_ctx->nf->data);
         onvm_nflib_stop(nf_local_ctx);
 
-        printf("If we reach here, program is ending\n");
         return 0;
 }
