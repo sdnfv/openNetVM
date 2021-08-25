@@ -1,8 +1,8 @@
 #!/bin/bash
 # A script to install static analysis tools pylint, shellcheck, and cppcheck.
 
-# Install cppcheck
-sudo apt-get install -y cppcheck
+# Install cppcheck=1.90-4build1
+sudo apt-get install -y cppcheck=1.90-4build1
 cppcheck --version
 
 # Install shellcheck-v0.7.0
