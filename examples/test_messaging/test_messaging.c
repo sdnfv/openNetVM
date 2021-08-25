@@ -69,8 +69,6 @@
 
 #define TEST_TIME_LIMIT 5
 
-static uint32_t print_delay = 1000000;
-
 struct test_msg_data{
         int tests_passed;
         int test_phase;
@@ -80,7 +78,7 @@ struct test_msg_data{
         uint16_t address;
         struct rte_mempool* msg_pool;
         struct rte_ring *msg_q;
-        int test_status[3]; 
+        int test_status[3];
         uint64_t start_time;
 };
 
@@ -108,10 +106,12 @@ destroy_test_msg_data(struct test_msg_data **test_msg_data) {
  */
 static void
 clear_msg_queue(struct test_msg_data *test_state) {
-        void* msg;
+        void* msg = NULL;
         while (rte_ring_count(test_state->msg_q) != 0) {
                 rte_ring_dequeue(test_state->msg_q, &msg);
+                rte_mempool_put(test_state->msg_pool, (void *)msg);
         }
+        rte_free(msg);
 }
 
 /*
@@ -120,10 +120,7 @@ clear_msg_queue(struct test_msg_data *test_state) {
 static void
 usage(const char *progname) {
         printf("Usage:\n");
-        printf("%s [EAL args] -- [NF_LIB args] -- -p <print_delay>\n", progname);
-        printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
-        printf("Flags:\n");
-        printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf("%s [EAL args] -- [NF_LIB args]\n", progname);
 }
 
 /*
@@ -134,10 +131,6 @@ parse_app_args(int argc, char *argv[], const char *progname, __attribute__((unus
         int c;
         while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
-                        case 'p':
-                                print_delay = strtoul(optarg, NULL, 10);
-                                RTE_LOG(INFO, APP, "print_delay = %d\n", print_delay);
-                                break;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
@@ -174,7 +167,6 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
 
         test_state = (struct test_msg_data *)rte_malloc(NULL, sizeof(struct test_msg_data), 0);
         test_state->tests_passed = 0;
-        test_state->tests_failed = 0;
         test_state->test_phase = 0;
         test_state->address = nf_local_ctx->nf->service_id;
         test_state->msg_pool = nf_msg_pool;
@@ -185,7 +177,6 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
         test_state->start_time = rte_get_tsc_cycles();
         memset(test_state->test_status, TEST_INCOMPLETE, sizeof(int)*3);
         nf_local_ctx->nf->data = (void *)test_state;
-        
 }
 
 /*
@@ -196,7 +187,7 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
         struct test_msg_data *test_state;
         test_state = (struct test_msg_data *)nf_local_ctx->nf->data;
 
-        if(( (rte_get_tsc_cycles() - test_state->start_time) / rte_get_timer_hz()) > TEST_TIME_LIMIT) {
+        if (( (rte_get_tsc_cycles() - test_state->start_time) / rte_get_timer_hz()) > TEST_TIME_LIMIT) {
                 // it took too long
                 // we failed this test
                 test_state->test_status[test_state->test_phase - 1] = TEST_FAILED;
@@ -224,19 +215,17 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
                         printf("Message was unable to be sent\n");
                 }
                 test_state->test_phase++;
-        }
-        else if (1 == test_state->test_phase) {              
+        } else if (1 == test_state->test_phase) {
                 printf("TEST 1: Send/Receive One Message with correct data...\n");
                 printf("---------------------------\n");
-                if(TEST_PASSED == test_state->test_status[0]){
+                if (TEST_PASSED == test_state->test_status[0]) {
                         printf("PASSED TEST 1\n");
                         printf("---------------------------\n");
-                }
-                else if (TEST_FAILED == test_state->test_status[0]) {
+                } else if (TEST_FAILED == test_state->test_status[0]) {
                         printf("FAILED TEST 1\n");
                         printf("---------------------------\n");
                 }
-                if(TEST_INCOMPLETE != test_state->test_status[0]) {
+                if (TEST_INCOMPLETE != test_state->test_status[0]) {
                         printf("TEST 2: Send/Receive Multiple Messages...\n");
                         printf("---------------------------\n");
                         clear_msg_queue(test_state);
@@ -247,18 +236,16 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
                         }
                         test_state->test_phase++;
                 }
-        }
-        else if (2 == test_state->test_phase){
-                if (TEST_PASSED == test_state->test_status[1]){
+        } else if (2 == test_state->test_phase) {
+                if (TEST_PASSED == test_state->test_status[1]) {
                         printf("PASSED TEST 2\n");
                         printf("---------------------------\n");
 
-                }
-                else if (TEST_FAILED == test_state->test_status[1]){
+                } else if (TEST_FAILED == test_state->test_status[1]) {
                         printf("FAILED TEST 2\n");
                         printf("---------------------------\n");
                 }
-                if(TEST_INCOMPLETE != test_state->test_status[1]) {
+                if (TEST_INCOMPLETE != test_state->test_status[1]) {
                         printf("TEST 3: Message Ring Overflow...\n");
                         printf("---------------------------\n");
                         clear_msg_queue(test_state);
@@ -269,23 +256,21 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
                         }
                         test_state->test_phase++;
                 }
-        }
-        else if (3 == test_state->test_phase){
-                if(TEST_PASSED == test_state->test_status[2]){
+        } else if (3 == test_state->test_phase) {
+                if (TEST_PASSED == test_state->test_status[2]) {
                         printf("PASSED TEST 3\n");
                         printf("---------------------------\n");
-                }
-                else if (TEST_FAILED == test_state->test_status[2]){
+                } else if (TEST_FAILED == test_state->test_status[2]) {
                         printf("FAILED TEST 3\n");
                         printf("---------------------------\n");
                 }
-                if(TEST_INCOMPLETE != test_state->test_status[2]){
+                if (TEST_INCOMPLETE != test_state->test_status[2]) {
                         clear_msg_queue(test_state);
                         test_state->test_phase++;
                 }
-        }
-        else if (4 == test_state->test_phase){
+        } else if (4 == test_state->test_phase) {
                 printf("Passed %d/3 Tests\n", test_state->tests_passed);
+                sleep(2);
                 return 1;
         }
         return 0;
@@ -305,7 +290,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                         if (rte_ring_count(test_state->msg_q) != 0) {
                                 printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                test_state->tests_failed++;
                                 test_state->test_status[0] = TEST_FAILED;
                         } else {
                                 if (*((int *)msg_data) == MAGIC_NUMBER) {
@@ -315,7 +299,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                                 } else {
                                         printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), MAGIC_NUMBER);
                                         printf("---------------------------\n");
-                                        test_state->tests_failed++;
                                         test_state->test_status[0] = TEST_FAILED;
                                 }
                         }
@@ -324,7 +307,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                 if (*((int *)msg_data) != test_state->test_msg_count) {
                         printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), test_state->test_msg_count);
                         printf("---------------------------\n");
-                        test_state->tests_failed++;
                         test_state->test_status[1] = TEST_FAILED;
                 } else {
                         test_state->test_msg_count++;
@@ -333,7 +315,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                         if (rte_ring_count(test_state->msg_q) != 0) {
                                 printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                test_state->tests_failed++;
                                 test_state->test_status[1] = TEST_FAILED;
                         } else {
                                 test_state->tests_passed++;
@@ -345,7 +326,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                 if (*((int *)msg_data) != test_state->test_msg_count) {
                         printf("FAILURE: Received %d instead of %d\n", *((int *)msg_data), test_state->test_msg_count);
                         printf("---------------------------\n");
-                        test_state->tests_failed++;
                         test_state->test_status[2] = TEST_FAILED;
                 } else {
                         test_state->test_msg_count++;
@@ -354,7 +334,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                         if (rte_ring_count(test_state->msg_q) != 0) {
                                 printf("FAILURE: Shouldn't be any messages left, but there are %d in the ring. This may cause future tests to fail.\n", rte_ring_count(test_state->msg_q));
                                 printf("---------------------------\n");
-                                test_state->tests_failed++;
                                 test_state->test_status[2] = TEST_FAILED;
                         } else if ((int)rte_mempool_avail_count(test_state->msg_pool) == test_state->mempool_count - 1) {
                                 // only pass if there wasn't a memory leak
@@ -364,7 +343,6 @@ nf_msg_handler(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx) {
                         } else {
                                 printf("FAILURE: %d messages have not been deallocated back to the memory pool.\n", test_state->mempool_count - rte_mempool_avail_count(test_state->msg_pool));
                                 printf("---------------------------\n");
-                                test_state->tests_failed++;
                                 test_state->test_status[2] = TEST_FAILED;
                         }
                 }

@@ -8,12 +8,8 @@ Compilation and Execution
 cd examples
 make
 cd test_messaging
-./go.sh SERVICE_ID [PRINT_DELAY]
+./go.sh SERVICE_ID
 ```
-
-App Specific Arguments
---
-  - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packet.
 
 Config File Support
 --
