@@ -35,7 +35,7 @@ The Linter can be broken down into a few simple steps.
 
 * The following three linters need to be installed before you are able to run the linter in your terminal. \
 **pylint 2.4.4** \
-**Cppcheck 1.82** \
+**Cppcheck 1.90-4build1** \
 **ShellCheck 0.7.0**
 
 Run **./style/install-linters.sh** to install the different static tools.
