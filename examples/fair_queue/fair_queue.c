@@ -408,7 +408,6 @@ main(int argc, char *argv[]) {
         nf = nf_local_ctx->nf;
 
         if (parse_app_args(argc, argv, progname, nf) < 0) {
-                destroy_fairqueue(nf->data);
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
