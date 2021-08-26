@@ -118,6 +118,16 @@ static void
 onvm_nf_init_ft(struct ft_request *ft);
 
 /*
+ * Function that clears the tx, rx, & msg_q rings
+ * in case an NF uses this iid in the future
+ *
+ * Input  : An nf struct
+ * Output : none
+ */
+static void
+onvm_nf_clear_rings(struct onvm_nf *nf);
+
+/*
  *  Set up the DPDK rings which will be used to pass packets, via
  *  pointers, between the multi-process server and NF processes.
  *  Each NF needs one RX queue.
@@ -192,7 +202,7 @@ onvm_nf_check_status(void) {
                                 onvm_nf_init_lpm_region(req_lpm);
                                 break;
                         case MSG_REQUEST_FT:
-                                ft = (struct ft_request *) msg->msg_data;
+                                ft = (struct ft_request *)msg->msg_data;
                                 onvm_nf_init_ft(ft);
                                 break;
                         case MSG_NF_STARTING:
@@ -370,8 +380,8 @@ onvm_nf_stop(struct onvm_nf *nf) {
                         rte_pktmbuf_free(pkts[i]);
         }
         nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
-        while (rte_ring_dequeue(nfs[nf_id].msg_q, (void**)(&msg)) == 0) {
-                rte_mempool_put(nf_msg_pool, (void*)msg);
+        while (rte_ring_dequeue(nfs[nf_id].msg_q, (void **)(&msg)) == 0) {
+                rte_mempool_put(nf_msg_pool, (void *)msg);
         }
 
         /* Free info struct */
@@ -380,7 +390,7 @@ onvm_nf_stop(struct onvm_nf *nf) {
         if (nf_info_mp == NULL)
                 return 1;
 
-        rte_mempool_put(nf_info_mp, (void*)nf);
+        rte_mempool_put(nf_info_mp, (void *)nf);
 
         /* Further cleanup is only required if NF was succesfully started */
         if (nf_status != NF_RUNNING && nf_status != NF_PAUSED)
@@ -391,6 +401,9 @@ onvm_nf_stop(struct onvm_nf *nf) {
 
         /* Reset stats */
         onvm_stats_clear_nf(nf_id);
+
+        /* Free rings if another NF uses this instance id */
+        onvm_nf_clear_rings(&nfs[nf_id]);
 
         /* Remove this NF from the service map.
          * Need to shift all elements past it in the array left to avoid gaps */
@@ -429,7 +442,7 @@ onvm_nf_stop(struct onvm_nf *nf) {
 static void
 onvm_nf_init_lpm_region(struct lpm_request *req_lpm) {
         struct rte_lpm_config conf;
-        struct rte_lpm* lpm_region;
+        struct rte_lpm *lpm_region;
 
         conf.max_rules = req_lpm->max_num_rules;
         conf.number_tbl8s = req_lpm->num_tbl8s;
@@ -475,6 +488,13 @@ onvm_nf_relocate_nf(uint16_t dest, uint16_t new_core) {
 }
 
 static void
+onvm_nf_clear_rings(struct onvm_nf *nf) {
+        rte_ring_free(nf->rx_q);
+        rte_ring_free(nf->tx_q);
+        rte_ring_free(nf->msg_q);
+}
+
+static void
 onvm_nf_init_rings(struct onvm_nf *nf) {
         unsigned instance_id;
         unsigned socket_id;
@@ -489,20 +509,16 @@ onvm_nf_init_rings(struct onvm_nf *nf) {
         rq_name = get_rx_queue_name(instance_id);
         tq_name = get_tx_queue_name(instance_id);
         msg_q_name = get_msg_queue_name(instance_id);
-        nf->rx_q =
-                rte_ring_create(rq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
-        nf->tx_q =
-                rte_ring_create(tq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
-        nf->msg_q =
-                rte_ring_create(msg_q_name, msgringsize, socket_id,
-                                RING_F_SC_DEQ); /* multi prod, single cons */
 
+        nf->rx_q = rte_ring_create(rq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
         if (nf->rx_q == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for NF %u\n", instance_id);
 
+        nf->tx_q = rte_ring_create(tq_name, ringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
         if (nf->tx_q == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create tx ring queue for NF %u\n", instance_id);
 
+        nf->msg_q = rte_ring_create(msg_q_name, msgringsize, socket_id, RING_F_SC_DEQ); /* multi prod, single cons */
         if (nf->msg_q == NULL)
                 rte_exit(EXIT_FAILURE, "Cannot create msg queue for NF %u\n", instance_id);
 }
