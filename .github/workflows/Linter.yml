@@ -24,13 +24,13 @@ jobs:
          chmod +x style/run-lint.sh
          style/run-lint.sh c
   Cppcheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Requirements
         run: |
-         sudo apt-get install cppcheck=1.82-1
+         sudo apt-get install cppcheck=1.90-4build1
       - name: User's Lint
         run: |
          chmod +x style/run-lint.sh
