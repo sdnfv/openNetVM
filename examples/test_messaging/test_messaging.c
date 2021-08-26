@@ -270,7 +270,6 @@ test_handler(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
         } else if (4 == test_state->test_phase) {
                 printf("Passed %d/3 Tests\n", test_state->tests_passed);
-                sleep(2);
                 return 1;
         }
         return 0;
