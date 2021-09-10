@@ -102,6 +102,14 @@ master_thread_main(void) {
         onvm_stats_init(verbosity_level);
         /* Loop forever: sleep always returns 0 or <= param */
         while (main_keep_running && sleep(sleeptime) <= sleeptime) {
+                for (i = 0; i < ports->num_ports; i++) {
+                        struct rte_eth_stats stat;
+                        if (rte_eth_stats_get(ports->id[i], &stat))
+                                RTE_LOG(ERR, APP, "Cannot get stats of port %d\n", ports->id[i]);
+                        ports->nic_drop[ports->id[i]] = stat.imissed + stat.ierrors;
+                        ports->nic_receive[ports->id[i]] = stat.ipackets;
+                }
+
                 onvm_nf_check_status();
                 if (stats_destination != ONVM_STATS_NONE)
                         onvm_stats_display_all(sleeptime, verbosity_level);

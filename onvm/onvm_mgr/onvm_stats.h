@@ -83,7 +83,8 @@ extern const char *NF_MSG[3];
         "SID %-2u %2u%s -                   %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64\
         " / %-11" PRIu64 "  %11" PRIu64 " / %-11" PRIu64 " / %-11" PRIu64 "\n"
 #define ONVM_STATS_REG_PORTS \
-        "Port %u - rx: %9" PRIu64 "  (%9" PRIu64 " pps)\t"\
+        "Port %u - nic: %9" PRIu64 "  (drop %9" PRIu64 ")\t"\
+        "rx: %9" PRIu64 "  (%9" PRIu64 " pps)\t"\
         "tx: %9" PRIu64 "  (%9" PRIu64 " pps)\n"
 #define ONVM_STATS_ADV_CONTENT \
         "%-14s %2u  /  %-2u / %2u    %9" PRIu64 " / %-9" PRIu64 "   %11" PRIu64 " / %-11" PRIu64\
