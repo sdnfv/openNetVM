@@ -33,12 +33,12 @@ A CloudLab template will be available with the latest release here: [https://www
 
 **Miscellaneous Bug and Documentation Fixes**
 
-- [[304](https://github.com/sdnfv/openNetVM/pull/304)]
-- [[300](https://github.com/sdnfv/openNetVM/pull/300)]
-- [[270](https://github.com/sdnfv/openNetVM/pull/270)]
-- [[272](https://github.com/sdnfv/openNetVM/pull/272)]
-- [[265](https://github.com/sdnfv/openNetVM/pull/265)]
-- [[267](https://github.com/sdnfv/openNetVM/pull/267)]
+- [[304](https://github.com/sdnfv/openNetVM/pull/304)] Fixes the NF_TAG of `aes_decrypt` in `openNetVM/examples/aes_decrypt/aesdecrypt.c`.
+- [[300](https://github.com/sdnfv/openNetVM/pull/300)] Updates MoonGen installation document to work with the new DPDK version.
+- [[270](https://github.com/sdnfv/openNetVM/pull/270)] Fixes issues with relative path in the onvm go script to find the web directory. Now using `$ONVM_HOME` instead of `..`.
+- [[272](https://github.com/sdnfv/openNetVM/pull/272)] Fixes two bugs (including Issue #233) where the NF rings would not be cleared after deallocation and an underflow bug in stats.
+- [[265](https://github.com/sdnfv/openNetVM/pull/265)] Updates Install README to provide further clarification as well as to include a missing package. 
+- [[267](https://github.com/sdnfv/openNetVM/pull/267)] Fixes typos in `onvm_pkt_helper.h`.
 
 Contributors:
 
