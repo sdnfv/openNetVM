@@ -63,7 +63,7 @@
 static uint32_t print_delay = 1000000;
 
 // State structs hold any variables which are universal to all files within the NF
-// The following struct is an example from text_messaging NF:
+// The following struct is an example from test_messaging NF:
 struct skeleton_state {
         // Insert stored data which is not specific to any function (similar to global data)
         int tests_passed;
@@ -201,7 +201,7 @@ setup(__attribute__((unused))struct onvm_nf_local_ctx *nf_local_ctx){
 
         // Gets called once before NF will get any packets/messages
 
-        // Excerpt from text_messaging setup; note nf_local_ctx->nf->data with corresponding struct
+        // Excerpt from test_messaging setup; note nf_local_ctx->nf->data with corresponding struct
         struct rte_mempool *pktmbuf_pool;
         struct test_msg_data *test_state;
         static struct rte_mempool *nf_msg_pool;
