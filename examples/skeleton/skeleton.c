@@ -76,6 +76,7 @@ struct skeleton_state {
         struct rte_ring *msg_q;
         int test_status[3];
         uint64_t start_time;
+        uint32_t counter;
 };
 
 /*
@@ -155,12 +156,16 @@ do_stats_display(struct rte_mbuf *pkt) {
 }
 
 
+// Gets called every time a packet arrives
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         
-        // Timed display counter - keep/edit if NF uses display
-        static uint32_t counter = 0;
+        /* 
+        Timed display counter (counter stored in skeleton_state - keep/edit if NF uses display)
+        After the reception of each packet, the counter is incremented. Once we reach a defined
+        number of packets, display and reset the counter
+        */
         if (counter++ == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
@@ -174,49 +179,57 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
           meta->destination 
                 Defines the service ID of the NF which will receive the packet.           
         */
+
+        /* Skeleton NF simply bridges two ports, swapping packets between them. [APP LOGIC HERE] */
+
         if (pkt->port == 0) {
                 meta->destination = 1;
         } else {
                 meta->destination = 0;
         }
         
-        // Send the packet out of the NIC port
+        // Specify an action
         meta->action = ONVM_NF_ACTION_OUT;
+        
+        /* ONVM_NF_ACTION_* Options
+          ONVM_NF_ACTION_DROP - drop packet
+          NVM_NF_ACTION_NEXT - to whatever the next action is configured by the SDN controller in the flow table
+          ONVM_NF_ACTION_TONF - send to the NF specified in the argument field (assume it is on the same host)
+          ONVM_NF_ACTION_OUT - send the packet out the NIC port set in the argument field
+        */
 
         // Return 0 on success, -1 on failure
         return 0;
 }
 
+// Gets called every run loop even if there weren't any packets
 static int 
 action(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
-        
-        // Gets called every run loop even if there weren't any packets
         
         // [ADD ACTION CODE] - Remove __attribute__((unused))
         return 0;
 }
 
+// Gets called once before NF will get any packets/messages
 static void 
 setup(__attribute__((unused))struct onvm_nf_local_ctx *nf_local_ctx){
 
-        // Gets called once before NF will get any packets/messages
+        // Declare and initialize struct skeleton_state to hold all data within the NF.
+        // Assign the nf_local_ctx->nf->data pointer to the struct.
+        // Initialize packet counter
+        struct skeleton_state *skeleton_data;
+        skeleton_data = (struct skeleton_state *) rte_zmalloc ("skeleton", sizeof(struct skeleton_state), 0);
+        nf_local_ctx->nf->data = (void *) skeleton_data;
+        nf_local_ctx->nf->data->counter = 0;
 
-        // Excerpt from test_messaging setup; note nf_local_ctx->nf->data with corresponding struct
-        struct rte_mempool *pktmbuf_pool;
-        struct test_msg_data *test_state;
-        static struct rte_mempool *nf_msg_pool;
-        pktmbuf_pool = rte_mempool_lookup(PKTMBUF_POOL_NAME);
-        if (pktmbuf_pool == NULL) {
-                onvm_nflib_stop(nf_local_ctx);
-                rte_exit(EXIT_FAILURE, "Cannot find mbuf pool!\n");
-        }
-        nf_msg_pool = rte_mempool_lookup(_NF_MSG_POOL_NAME);
-        if (nf_msg_pool == NULL)
-                rte_exit(EXIT_FAILURE, "No NF Message mempool - bye\n");
-
-        nf_local_ctx->nf->data = (void *)test_state;
-
-        // [REMOVE EXCERPT, ADD SETUP CODE]
+        /*
+        void* rte_malloc
+                const char * type,              A string identifying the type of allocated objects. Can be NULL.
+                size_t size,                    Size (in bytes) to be allocated.
+                unsigned align                  If 0, the return is a pointer that is suitably aligned for any kind of variable
+        */
+)		
+        // [ADD SETUP CODE]
 }
 
 static void 
