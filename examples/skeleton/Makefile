@@ -43,7 +43,7 @@ endif
 include $(RTE_SDK)/mk/rte.vars.mk
 RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
-# binary name
+# binary name			[EDIT & ADD NF TAG TO "examples" VARIABLE WITHIN MAKEFILE OF EXAMPLES DIRECTORY]
 APP = skeleton
 
 # all source are stored in SRCS-y
