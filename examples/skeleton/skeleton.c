@@ -262,9 +262,7 @@ main(int argc, char *argv[]) {
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
-        /* Initialize function table and respective pointers to NF methods: 
-         *      [EDIT]
-         */
+        /* Initialize function table and respective pointers to NF methods: */
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
         nf_function_table->setup = &setup;
