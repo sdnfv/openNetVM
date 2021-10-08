@@ -177,6 +177,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
          *      Defines the service ID of the NF which will receive the packet.           
          */
 
+        /* The following example bridges two ports, swapping packets between them.  [EDIT APP LOGIC BELOW] */
         if (pkt->port == 0) {
                 meta->destination = 1;
         } else {
