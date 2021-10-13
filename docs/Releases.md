@@ -51,7 +51,7 @@ Contributors:
 - Rohit M P ([rohit-mp](https://github.com/rohit-mp))
 - Leslie Monis [lesliemonis](https://github.com/lesliemonis)
 - Peng Wu ([PengWu-wp](https://github.com/PengWu-wp))
-
+- Noah Chinitz ([NoahChinitzGWU](https://github.com/NoahChinitzGWU))
 ## v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
 A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
 
