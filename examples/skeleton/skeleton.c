@@ -52,6 +52,7 @@
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
@@ -65,13 +66,10 @@
  *      Listed below are common variables used within the struct
  */
 struct skeleton_state {
-        int tests_passed;
-        int test_phase;
-        int pkt_process
-        uint16_t address;
-        uint32_t print_delay;
+
         uint64_t start_time;
-        uint32_t counter;
+        uint32_t print_delay;
+        // uint32_t counter;
 };
 
 /*
@@ -97,9 +95,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
         while ((c = getopt(argc, argv, "p:")) != -1) {
                 switch (c) {
-                        case 'p':
-                                print_delay = strtoul(optarg, NULL, 10);
-                                break;
+                        // case 'p':
+                        //         print_delay = strtoul(optarg, NULL, 10);
+                        //         break;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
@@ -121,80 +119,83 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * Function for NFs with Displays       
  *      [EDIT IF NF USES DISPLAY; ELSE DELETE]
  */
-static void
-do_stats_display(struct rte_mbuf *pkt) {
+// static void
+// do_stats_display(struct rte_mbuf *pkt) {
         
-        const char clr[] = {27, '[', '2', 'J', '\0'};
-        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
-        skeleton_data->pkt_process = 0;
+//         const char clr[] = {27, '[', '2', 'J', '\0'};
+//         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+//         static uint64_t pkt_process = 0;
 
-        struct rte_ipv4_hdr *ip;
+//         struct rte_ipv4_hdr *ip;
 
-        skeleton_data->pkt_process += skeleton_data->print_delay;
+//         pkt_process += 1000000;
 
-        /* Clear screen and move to top left */
-        printf("%s%s", clr, topLeft);
+//         /* Clear screen and move to top left */
+//         printf("%s%s", clr, topLeft);
 
-        printf("PACKETS\n");
-        printf("-----\n");
-        printf("Port : %d\n", pkt->port);
-        printf("Size : %d\n", pkt->pkt_len);
-        printf("Type : %d\n", pkt->packet_type);
-        printf("Number of packet processed : %" PRIu64 "\n", pkt_process);
+//         printf("PACKETS\n");
+//         printf("-----\n");
+//         printf("Port : %d\n", pkt->port);
+//         printf("Size : %d\n", pkt->pkt_len);
+//         printf("Type : %d\n", pkt->packet_type);
+//         printf("Number of packet processed : %" PRIu64 "\n", pkt_process);
 
-        ip = onvm_pkt_ipv4_hdr(pkt);
-        if (ip != NULL) {
-                onvm_pkt_print(pkt);
-        } else {
-                printf("Not IP4\n");
-        }
+//         ip = onvm_pkt_ipv4_hdr(pkt);
+//         if (ip != NULL) {
+//                 onvm_pkt_print(pkt);
+//         } else {
+//                 printf("Not IP4\n");
+//         }
 
-        printf("\n\n");
-}
+//         printf("\n\n");
+// }
 
 
 /*
  * Handles each packet upon arrival     [EDIT]
  */
 static int
-packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+packet_handler(__attribute__((unused))struct rte_mbuf *pkt, __attribute__((unused)) struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         
-        /* 
-         * Timed display counter (counter stored in skeleton_state - keep/edit if NF uses display)
-         * After the reception of each packet, the counter is incremented. Once we reach a defined
-         * number of packets, display and reset the counter
-         */
-        if (counter++ == print_delay) {
-                do_stats_display(pkt);
-                counter = 0;
-        }
-        
-        /* 
-         * meta->action
-         *      Defines what to do with the packet. Actions defined in onvm_common.h
-         * meta->destination 
-         *      Defines the service ID of the NF which will receive the packet.           
-         */
-
-        /* The following example bridges two ports, swapping packets between them.  [EDIT] */
-        if (pkt->port == 0) {
-                meta->destination = 1;
-        } else {
-                meta->destination = 0;
-        }
-        
-        /* 
-         * Specify an action:    
-         * ONVM_NF_ACTION_DROP - Drop packet
-         * NVM_NF_ACTION_NEXT - Go to whatever the next action is configured by the SDN controller in the flow table
-         * ONVM_NF_ACTION_TONF - Send the packet to the NF specified in the argument field (assume it is on the same host)
-         * ONVM_NF_ACTION_OUT - Send the packet out the NIC port set in the argument field
-         */
-        meta->action = ONVM_NF_ACTION_OUT;
-
-        /* Return 0 on success, -1 on failure */
+        meta->action = ONVM_NF_ACTION_DROP;
         return 0;
+        
+        // /* 
+        //  * Timed display counter (counter stored in skeleton_state - keep/edit if NF uses display)
+        //  * After the reception of each packet, the counter is incremented. Once we reach a defined
+        //  * number of packets, display and reset the counter
+        //  */
+        // if (counter++ == print_delay) {
+        //         do_stats_display(pkt);
+        //         counter = 0;
+        // }
+        
+        // /* 
+        //  * meta->action
+        //  *      Defines what to do with the packet. Actions defined in onvm_common.h
+        //  * meta->destination 
+        //  *      Defines the service ID of the NF which will receive the packet.           
+        //  */
+
+        // /* The following example bridges two ports, swapping packets between them.  [EDIT] */
+        // if (pkt->port == 0) {
+        //         meta->destination = 1;
+        // } else {
+        //         meta->destination = 0;
+        // }
+        
+        // /* 
+        //  * Specify an action:    
+        //  * ONVM_NF_ACTION_DROP - Drop packet
+        //  * NVM_NF_ACTION_NEXT - Go to whatever the next action is configured by the SDN controller in the flow table
+        //  * ONVM_NF_ACTION_TONF - Send the packet to the NF specified in the argument field (assume it is on the same host)
+        //  * ONVM_NF_ACTION_OUT - Send the packet out the NIC port set in the argument field
+        //  */
+        // meta->action = ONVM_NF_ACTION_OUT;
+
+        // /* Return 0 on success, -1 on failure */
+        // return 0;
 }
 
 /*
@@ -203,7 +204,13 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
 static int 
 action(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
         
-        /* Remove __attribute__((unused)) once implemented */
+        struct skeleton_state *skeleton_data;
+        skeleton_data = (struct skeleton_state *)nf_local_ctx->nf->data;
+
+        __uint64_t time = (rte_get_tsc_cycles() - skeleton_data->start_time) / rte_get_timer_hz();
+        if (time%5 == 0) {
+             printf("%ld\n",time);
+        }
 
         return 0;
 }
@@ -229,6 +236,9 @@ setup(__attribute__((unused))struct onvm_nf_local_ctx *nf_local_ctx){
         struct skeleton_state *skeleton_data;
         skeleton_data = (struct skeleton_state *) rte_zmalloc ("skeleton", sizeof(struct skeleton_state), 0);
         nf_local_ctx->nf->data = (void *) skeleton_data;
+        
+        skeleton_data->start_time = rte_get_tsc_cycles();
+        skeleton_data->print_delay = 5;
 }
 
 /*
