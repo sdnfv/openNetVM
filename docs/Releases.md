@@ -13,7 +13,7 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
-## v21.09 (09/2020): Bug Fixes, Test cases, Dev Environment Improvements
+## v21.10 (10/2020): Bug Fixes, Test cases, Dev Environment Improvements
 This release focused on general bug fixing and improving our test/development environments.
 A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
 
@@ -43,8 +43,10 @@ A CloudLab template will be available with the latest release here: [https://www
 Contributors:
 
 - Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+- Noah Chinitz ([NoahChinitzGWU](https://github.com/NoahChinitzGWU))
 - Benjamin De Vierno ([bdevierno1](https://github.com/bdevierno1))
 - Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Lauren Hahn ([lhahn01](https://github.com/Lhahn01))
 - Elliott (Elie) Henne ([elliotthenne](https://github.com/elliotthenne))
 - Vivek Jain ([vivek-anand-jain](https://github.com/Vivek-anand-jain))
 - Jack Kuo [JackKuo-tw](https://github.com/JackKuo-tw)
@@ -52,7 +54,8 @@ Contributors:
 - Rohit M P ([rohit-mp](https://github.com/rohit-mp))
 - Leslie Monis [lesliemonis](https://github.com/lesliemonis)
 - Peng Wu ([PengWu-wp](https://github.com/PengWu-wp))
-- Noah Chinitz ([NoahChinitzGWU](https://github.com/NoahChinitzGWU))
+
+
 ## v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
 A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
 
