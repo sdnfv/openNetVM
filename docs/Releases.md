@@ -45,6 +45,7 @@ Contributors:
 - Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
 - Benjamin De Vierno ([bdevierno1](https://github.com/bdevierno1))
 - Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Elliott (Elie) Henne ([elliotthenne](https://github.com/elliotthenne))
 - Vivek Jain ([vivek-anand-jain](https://github.com/Vivek-anand-jain))
 - Jack Kuo [JackKuo-tw](https://github.com/JackKuo-tw)
 - Catherine Meadows ([catherinemeadows](https://github.com/catherinemeadows))
