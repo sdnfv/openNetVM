@@ -55,8 +55,10 @@ onvm_sc_service_to_nf_map(uint16_t service_id, struct rte_mbuf *pkt) {
         if (num_nfs_available == 0)
                 return 0;
 
-        if (pkt == NULL)
-                return 0;
+        if (pkt == NULL) {
+                uint16_t instance_id = services[service_id][0];
+                return instance_id;
+        }
 
         uint16_t instance_index = pkt->hash.rss % num_nfs_available;
         uint16_t instance_id = services[service_id][instance_index];

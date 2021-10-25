@@ -45,6 +45,7 @@ then
   config=$2
   shift 2
   exec sudo "$BINARY" -F "$config" "$@"
+  exit 0
 fi
 
 # Check if -- is present, if so parse dpdk/onvm specific args

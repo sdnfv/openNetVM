@@ -188,6 +188,16 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 int
 onvm_nflib_handle_msg(struct onvm_nf_msg *msg, struct onvm_nf_local_ctx *nf_local_ctx);
 
+/**
+ * Sends a message to another NF
+ *
+ * @param dest_nf
+ *    The destination NF's service ID
+ * @param msg_data
+ *    Pointer to the message that is sent
+ * @return
+ *    0 on success, or a negative value on error
+ */
 int
 onvm_nflib_send_msg_to_nf(uint16_t dest_nf, void *msg_data);
 
