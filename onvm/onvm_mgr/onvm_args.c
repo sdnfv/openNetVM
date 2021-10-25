@@ -79,6 +79,9 @@ uint8_t global_verbosity_level = 1;
 /* global flag for enabling shared core logic - extern in init.h */
 uint8_t ONVM_NF_SHARE_CORES = 0;
 
+/* global flag for jumbo frames - extern in init.h */
+uint8_t ONVM_USE_JUMBO_FRAMES = 0;
+
 /* global var for program name */
 static const char *progname;
 
@@ -126,11 +129,12 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
             {"nf-cores", required_argument, NULL, 'n'},  {"default-service", required_argument, NULL, 'd'},
             {"stats-out", no_argument, NULL, 's'},       {"stats-sleep-time", no_argument, NULL, 'z'},
             {"time_to_live", no_argument, NULL, 't'},    {"packet_limit", no_argument, NULL, 'l'},
-            {"verbocity-level", no_argument, NULL, 'v'}, {"enable_shared_cpu", no_argument, NULL, 'c'}};
+            {"verbocity-level", no_argument, NULL, 'v'}, {"enable_shared_cpu", no_argument, NULL, 'c'},
+            {"jumbo_frames", no_argument, NULL, 'j'}};
 
         progname = argv[0];
 
-        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:t:l:z:v:c", lgopts, &option_index)) != EOF) {
+        while ((opt = getopt_long(argc, argvopt, "p:r:n:d:s:t:l:z:v:cj", lgopts, &option_index)) != EOF) {
                 switch (opt) {
                         case 'p':
                                 if (parse_portmask(max_ports, optarg) != 0) {
@@ -192,6 +196,9 @@ parse_app_args(uint8_t max_ports, int argc, char *argv[]) {
                                 onvm_config->flags.ONVM_NF_SHARE_CORES = 1;
                                 ONVM_NF_SHARE_CORES = 1;
                                 break;
+                        case 'j':
+                                ONVM_USE_JUMBO_FRAMES = 1;
+                                break;
                         default:
                                 printf("ERROR: Unknown option '%c'\n", opt);
                                 usage();
@@ -216,7 +223,8 @@ usage(void) {
             "\t-t TTL: time to live, how many seconds to wait until exiting (optional)\n"
             "\t-l PACKET_LIMIT: how many millions of packets to recieve before exiting (optional)\n"
             "\t-v VERBOCITY_LEVEL: verbocity level of the stats output (optional)\n"
-            "\t-c ENABLE_SHARED_CORE: allow the NFs to share a core based on mutex sleep/wakeups (optional)\n",
+            "\t-c ENABLE_SHARED_CORE: allow the NFs to share a core based on mutex sleep/wakeups (optional)\n"
+            "\t-j JUMBO_FRAMES: allow the ports to send and receive jumbo frames (optional)\n",
             progname);
 }
 

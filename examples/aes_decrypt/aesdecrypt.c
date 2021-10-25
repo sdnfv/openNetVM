@@ -60,7 +60,7 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 
-#define NF_TAG "aes_encrypt"
+#define NF_TAG "aes_decrypt"
 
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
