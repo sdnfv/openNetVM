@@ -122,7 +122,7 @@ parse_app_args(int argc, char *argv[], const char *progname, struct skeleton_sta
                                 return -1;
                 }
         }
-        return optind;
+        return optind;ƒ
 }
 
 /*
