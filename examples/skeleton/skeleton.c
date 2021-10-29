@@ -67,9 +67,11 @@
  */
 struct skeleton_state {
 
+        int displayType;
         uint64_t start_time;
-        uint32_t print_delay;
-        // uint32_t counter;
+        uint32_t delay;
+        uint32_t current_time;
+        uint32_t packets_processed;
 };
 
 /*
@@ -83,21 +85,29 @@ usage(const char *progname) {
         // Additional Usage Messages    [EDIT]
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-p <delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
 
 /*
  * Parse the application arguments.
  */
 static int
-parse_app_args(int argc, char *argv[], const char *progname) {
+parse_app_args(int argc, char *argv[], const char *progname, struct skeleton_state *skeleton_data) {
         int c;
-
-        while ((c = getopt(argc, argv, "p:")) != -1) {
+        
+        /* User can specify how they would like to display data. */ 
+        
+        skeleton_data->displayType = -1;                                // displayType -1 = No Display
+        while ((c = getopt(argc, argv, "p:v:")) != -1) {
                 switch (c) {
-                        // case 'p':
-                        //         print_delay = strtoul(optarg, NULL, 10);
-                        //         break;
+                        case 'p':
+                                skeleton_data->delay = strtoul(optarg, NULL, 10);
+                                skeleton_data->displayType = 0;         // displayType 0 = Time-Based Delays
+                                break;
+                        case 'v':
+                                skeleton_data->delay = strtoul(optarg, NULL, 10);
+                                skeleton_data->displayType = 1;         // displayType 1 = Packet-Based Delays
+                                break;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
@@ -119,99 +129,89 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  * Function for NFs with Displays       
  *      [EDIT IF NF USES DISPLAY; ELSE DELETE]
  */
-// static void
-// do_stats_display(struct rte_mbuf *pkt) {
+static void
+do_stats_display(struct skeleton_state *skeleton_data) {
         
-//         const char clr[] = {27, '[', '2', 'J', '\0'};
-//         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
-//         static uint64_t pkt_process = 0;
+        const char clr[] = {27, '[', '2', 'J', '\0'};
+        const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
 
-//         struct rte_ipv4_hdr *ip;
+        /* Clear screen and move to top left */
+        printf("%s%s", clr, topLeft);
 
-//         pkt_process += 1000000;
+        printf("PACKETS\n");
+        printf("-----\n");
+        printf("Number of packet processed : %d\n", skeleton_data->packets_processed);
+        printf("Time : %d\n", skeleton_data->current_time);
 
-//         /* Clear screen and move to top left */
-//         printf("%s%s", clr, topLeft);
-
-//         printf("PACKETS\n");
-//         printf("-----\n");
-//         printf("Port : %d\n", pkt->port);
-//         printf("Size : %d\n", pkt->pkt_len);
-//         printf("Type : %d\n", pkt->packet_type);
-//         printf("Number of packet processed : %" PRIu64 "\n", pkt_process);
-
-//         ip = onvm_pkt_ipv4_hdr(pkt);
-//         if (ip != NULL) {
-//                 onvm_pkt_print(pkt);
-//         } else {
-//                 printf("Not IP4\n");
-//         }
-
-//         printf("\n\n");
-// }
+        printf("\n\n");
+}
 
 
 /*
  * Handles each packet upon arrival     [EDIT]
  */
 static int
-packet_handler(__attribute__((unused))struct rte_mbuf *pkt, __attribute__((unused)) struct onvm_pkt_meta *meta,
-               __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+packet_handler(__attribute__((unused)) struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
+               struct onvm_nf_local_ctx *nf_local_ctx) {
         
+        struct skeleton_state *skeleton_data;
+        skeleton_data = (struct skeleton_state *)nf_local_ctx->nf->data;
+        skeleton_data->packets_processed++;
+        
+        /* 
+         * Timed display current_time (current_time stored in skeleton_state - keep/edit if NF uses display)
+         * After the reception of each packet, the current_time is incremented. Once we reach a defined
+         * number of packets, display and reset the current_time
+         */
+        
+        if (skeleton_data->displayType == 1) {
+                if (skeleton_data->packets_processed % skeleton_data->delay == 0) {
+                        do_stats_display(skeleton_data);
+                }
+        }
+        
+        /* 
+         * meta->action
+         *      Defines what to do with the packet. Actions defined in onvm_common.h
+         * meta->destination 
+         *      Defines the service ID of the NF which will receive the packet.           
+         *
+         * Possible actions:    
+         *      ONVM_NF_ACTION_DROP - Drop packet
+         *      NVM_NF_ACTION_NEXT - Go to whatever the next action is configured by the SDN controller in the flow table
+         *      ONVM_NF_ACTION_TONF - Send the packet to the NF specified in the argument field (assume it is on the same host)
+         *      ONVM_NF_ACTION_OUT - Send the packet out the NIC port set in the argument field
+         */
         meta->action = ONVM_NF_ACTION_DROP;
+
+        /* Return 0 on success, -1 on failure */
         return 0;
-        
-        // /* 
-        //  * Timed display counter (counter stored in skeleton_state - keep/edit if NF uses display)
-        //  * After the reception of each packet, the counter is incremented. Once we reach a defined
-        //  * number of packets, display and reset the counter
-        //  */
-        // if (counter++ == print_delay) {
-        //         do_stats_display(pkt);
-        //         counter = 0;
-        // }
-        
-        // /* 
-        //  * meta->action
-        //  *      Defines what to do with the packet. Actions defined in onvm_common.h
-        //  * meta->destination 
-        //  *      Defines the service ID of the NF which will receive the packet.           
-        //  */
-
-        // /* The following example bridges two ports, swapping packets between them.  [EDIT] */
-        // if (pkt->port == 0) {
-        //         meta->destination = 1;
-        // } else {
-        //         meta->destination = 0;
-        // }
-        
-        // /* 
-        //  * Specify an action:    
-        //  * ONVM_NF_ACTION_DROP - Drop packet
-        //  * NVM_NF_ACTION_NEXT - Go to whatever the next action is configured by the SDN controller in the flow table
-        //  * ONVM_NF_ACTION_TONF - Send the packet to the NF specified in the argument field (assume it is on the same host)
-        //  * ONVM_NF_ACTION_OUT - Send the packet out the NIC port set in the argument field
-        //  */
-        // meta->action = ONVM_NF_ACTION_OUT;
-
-        // /* Return 0 on success, -1 on failure */
-        // return 0;
 }
 
 /*
  * Performs action continuously; called every run loop regardless of packet reception     [EDIT]
  */
 static int 
-action(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
+action(struct onvm_nf_local_ctx *nf_local_ctx){
         
         struct skeleton_state *skeleton_data;
         skeleton_data = (struct skeleton_state *)nf_local_ctx->nf->data;
 
+        /* 
+         * Get the current time, and, if the user has specified a timer-based print delay,
+         * check whether it is time to print
+         */
         __uint64_t time = (rte_get_tsc_cycles() - skeleton_data->start_time) / rte_get_timer_hz();
-        if (time%5 == 0) {
-             printf("%ld\n",time);
+        if (skeleton_data->displayType == 0) {
+                __uint64_t delay = skeleton_data->delay;
+                __uint64_t current_time = skeleton_data->current_time;
+                if ((time%delay == 0) && (time != current_time)) {
+                        do_stats_display(skeleton_data);
+                }
         }
 
+        /* Update the current time */
+        skeleton_data->current_time = time;
         return 0;
 }
 
@@ -219,26 +219,17 @@ action(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx){
  * Initial setup function; called before NF receives any packets/messages                 [EDIT]
  */
 static void 
-setup(__attribute__((unused))struct onvm_nf_local_ctx *nf_local_ctx){
+setup(struct onvm_nf_local_ctx *nf_local_ctx){
 
         /* 
-         * (1) Declare and initialize state struct to hold non-local data within the NF. Use rte_zmalloc
-         *              void * rte_zmalloc (const char * type, size_t size, unsigned align)
-         *                      type: A string identifying the type of allocated objects. Can be NULL.
-         *                      size: Size (in bytes) to be allocated.
-         *                      align: If 0, the return is a pointer that is suitably aligned for any kind of variable
-         * (2) Assign the nf_local_ctx->nf->data pointer to the struct.
-         * (3) Initialize other predefined data or counters; examples include:   
-         *              nf_local_ctx->nf->data->counter = 0;
-         *              skeleton_data->print_delay = 10000
+         * Initialize variables within state struct that must be defined
+         * before receiving packets/messages 
          */
-
-        struct skeleton_state *skeleton_data;
-        skeleton_data = (struct skeleton_state *) rte_zmalloc ("skeleton", sizeof(struct skeleton_state), 0);
-        nf_local_ctx->nf->data = (void *) skeleton_data;
         
+        struct skeleton_state *skeleton_data = nf_local_ctx->nf->data;
         skeleton_data->start_time = rte_get_tsc_cycles();
-        skeleton_data->print_delay = 5;
+        skeleton_data->current_time = 0;
+        skeleton_data->packets_processed = 0;
 }
 
 /*
@@ -295,8 +286,20 @@ main(int argc, char *argv[]) {
         argc -= arg_offset;
         argv += arg_offset;
 
+        /* 
+         * (1) Declare and initialize state struct to hold non-local data within the NF. Use rte_zmalloc
+         *              void * rte_zmalloc (const char * type, size_t size, unsigned align)
+         *                      type: A string identifying the type of allocated objects. Can be NULL.
+         *                      size: Size (in bytes) to be allocated.
+         *                      align: If 0, the return is a pointer that is suitably aligned for any kind of variable
+         * (2) Assign the nf_local_ctx->nf->data pointer to the struct.
+         */
+        struct skeleton_state *skeleton_data;
+        skeleton_data = (struct skeleton_state *) rte_zmalloc ("skeleton", sizeof(struct skeleton_state), 0);
+        nf_local_ctx->nf->data = (void *) skeleton_data;
+
         /* Invalid command-line argument handling */
-        if (parse_app_args(argc, argv, progname) < 0) {
+        if (parse_app_args(argc, argv, progname, skeleton_data) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
                 rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
         }
