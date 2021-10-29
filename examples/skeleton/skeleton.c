@@ -102,15 +102,25 @@ parse_app_args(int argc, char *argv[], const char *progname, struct skeleton_sta
                 switch (c) {
                         case 'p':
                                 skeleton_data->delay = strtoul(optarg, NULL, 10);
+                                if (skeleton_data->delay < 1) {
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                        return -1;
+                                }
                                 skeleton_data->displayType = 0;         // displayType 0 = Time-Based Delays
-                                break;
+                                return optind;
                         case 'v':
                                 skeleton_data->delay = strtoul(optarg, NULL, 10);
+                                if (skeleton_data->delay < 1) {
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                        return -1;
+                                }
                                 skeleton_data->displayType = 1;         // displayType 1 = Packet-Based Delays
-                                break;
+                                return optind;
                         case '?':
                                 usage(progname);
                                 if (optopt == 'p')
+                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
+                                else if (optopt == 'v')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                                 else if (isprint(optopt))
                                         RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -206,7 +216,9 @@ action(struct onvm_nf_local_ctx *nf_local_ctx){
                 __uint64_t delay = skeleton_data->delay;
                 __uint64_t current_time = skeleton_data->current_time;
                 if ((time%delay == 0) && (time != current_time)) {
+                        skeleton_data->current_time = time;
                         do_stats_display(skeleton_data);
+                        return 0;
                 }
         }
 
@@ -230,6 +242,9 @@ setup(struct onvm_nf_local_ctx *nf_local_ctx){
         skeleton_data->start_time = rte_get_tsc_cycles();
         skeleton_data->current_time = 0;
         skeleton_data->packets_processed = 0;
+        if (skeleton_data->displayType > -1) {
+                do_stats_display(skeleton_data);
+        }
 }
 
 /*

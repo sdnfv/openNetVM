@@ -16,7 +16,7 @@ OR
 
 OR
 
-sudo ./build/skeleton -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p PRINT_DELAY]
+sudo ./build/skeleton -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- [-p TIME_PRINT_DELAY | -v PACKET_PRINT_DELAY]
 ```
 
 App Specific Arguments
