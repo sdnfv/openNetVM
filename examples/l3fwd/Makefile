@@ -4,9 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2017 George Washington University
-#          2015-2017 University of California Riverside
-#          2016-2017 Hewlett Packard Enterprise Development LP
+#          2015-2020 George Washington University
+#          2015-2020 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,26 +38,25 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-# To add new examples, append the directory name to this variable
+RTE_TARGET ?= $(RTE_TARGET)
 
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response nf_router scaling_example load_generator payload_scan firewall simple_fwd_tb l2fwd test_messaging l3fwd fair_queue skeleton
+# Default target, can be overriden by command line or environment
+include $(RTE_SDK)/mk/rte.vars.mk
 
+# binary name
+APP = l3fwd
 
-ifeq ($(NDPI_HOME),)
-$(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
-else
-examples +=ndpi_stats
-endif
+# all source are stored in SRCS-y
+SRCS-y := l3fwd.c l3fwd_lpm.c l3fwd_em.c
 
-clean_examples=$(addprefix clean_,$(examples))
+# OpenNetVM path
+ONVM= $(SRCDIR)/../../onvm
 
-.PHONY: $(examples) $(clean_examples)
+CFLAGS += -O3 $(USER_FLAGS)
 
-all : $(examples)
-clean: $(clean_examples)
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
 
-$(examples):
-	cd $@ && $(MAKE)
-
-$(clean_examples):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+include $(RTE_SDK)/mk/rte.extapp.mk
