@@ -268,7 +268,7 @@ Also, please double check if the environment variables from `Set up Environment`
 Troubleshooting
 -----------------
 
-1. Setting up DPDK manually
+1. **Setting up DPDK manually**
 
 Our install script helps configure DPDK by using its setup script. Sometimes, it's helpful to troubleshoot a problem by running DPDK's script directly to fix things like misconfigured igb_uio drivers or hugepage regions. 
 
@@ -288,7 +288,7 @@ Run :code:`dpdk/usertools/dpdk-setup.sh` then:
 
 After these steps, it should be possible to compile and run onvm. 
 
-2. Huge Page Configuration
+2. **Huge Page Configuration**
 
 You can get information about the hugepage configuration with:
 
@@ -306,7 +306,7 @@ If there is not enough or no free memory, there are a few reasons why:
 - The above two cases are not met, something weird is happening:
     - A reboot might fix this problem and free memory
 
-3. Binding the NIC to the DPDK Driver
+3. **Binding the NIC to the DPDK Driver**
 
 You can check the current status of NIC port bindings with
 
@@ -363,11 +363,11 @@ Check the status again, :code:`./usertools/dpdk-devbind.py --status`, and assure
     0000:05:00.1 '82576 Gigabit Network Connection' if=eth1 drv=igb unused=igb_uio
     0000:07:00.1 '82599EB 10-Gigabit SFI/SFP+ Network Connection' if=eth3 drv=ixgbe unused=igb_uio
 
-4. Exporting $ONVM_HOME
+4. **Exporting $ONVM_HOME**
 
 If the setup_environment.sh script fails because the environment variable ONVM_HOME is not set, please run this command: :code:`export ONVM_HOME=$ONVM_HOME:CHANGEME_TO_THE_PATH_TO_ONVM_DIR`
 
-5. Poor Performance
+5. **Poor Performance**
 
 If you are not getting the expected level of performance, try these:
 
