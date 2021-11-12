@@ -42,7 +42,7 @@ See if Python is already installed with
 
     python3 --version
    
-Install Python with your distribution's package manager (Note: the command and package name may vary).
+If Python is not yet installed, use your distribution's package manager to install (Note: the command and package name may vary).
 
 On Debian derivatives such as Ubuntu, use `apt`. Check the apt repository for the versions of Python available to you. Then, run the following command:
     
