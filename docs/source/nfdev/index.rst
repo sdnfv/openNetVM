@@ -27,6 +27,7 @@ NFs are run with different arguments in three different tiers--DPDK configuratio
    - User defined flags to configure NF parameters.  Some of our example NFs use a flag to throttle how often packet info is printed, or to specify a destination NF to send packets to.  See the `simple_forward <https://github.com/sdnfv/openNetVM/blob/master/examples/simple_forward/forward.c#L82>`_ NF for an example of them both.
 
 Each NF needs to have a packet handler function.  It must match this specification: :code:`static int packet_handler(struct rte_mbuf* pkt, struct onvm_pkt_meta* meta);`  A pointer to this function will be provided to the manager and is the entry point for packets to be processed by the NF (see NF Library section below).  Once packet processing is finished, an NF can set an *action* coupled with a *destination NF ID* or *destination port ID* in the packet which tell the openNetVM manager how route the packet next.  These *actions* are defined in `onvm_common <https://github.com/sdnfv/openNetVM/blob/master/onvm/onvm_nflib/onvm_common.h#L55>`_:
+
 - :code:`ONVM_NF_ACTION_DROP`: Drop the packet
 - :code:`ONVM_NF_ACTION_NEXT`: Forward the packet using the rule from the SDN controller stored in the flow table
 - :code:`ONVM_NF_ACTION_TONF`: Forward the packet to the specified NF
