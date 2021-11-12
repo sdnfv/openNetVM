@@ -60,7 +60,7 @@ It can be done by adding a line similar to this:
     CFLAGS += -g
 
 Packet capturing
---
+--------------------------------
 When working with different packet protocols and tcp related applications it is often needed to look at the packets received/sent by the manager. DPDK provides a dpdk-pdump application that can capture packets to a pcap file.  
 
 To use dpdk-pdump set CONFIG_RTE_LIBRTE_PMD_PCAP=y in dpdk/config/common_base and then recompile dpdk.  
