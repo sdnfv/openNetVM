@@ -28,7 +28,7 @@ Instantiating the ONVM CloudLab Profile
    :width: 600
 
 - Enter the number of hosts you want — for a three-node topology, enter “3”
-- Ensure that the host type is “c220g1” or “c220g2”
+- Ensure that the host type is “c220g1,” “c220g2,” or "c220g5" (if available)
 
 .. image:: ../images/cloudlab-2.png
    :width: 600
