@@ -20,6 +20,53 @@ use a date based versioning system.  Now, a release version can look
 like :code:`17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
+------------------------------------------------------------------------------
+
+A CloudLab template will be available with the latest release here: `https://www.cloudlab.us/p/GWCloudLab/onvm <https://www.cloudlab.us/p/GWCloudLab/onvm>`_
+
+Version Updates
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[249] <https://github.com/sdnfv/openNetVM/pull/249>`_ Updates ONVM to use DPDK 20.05 and Pktgen 20.05, as well as to run on Ubuntu 20.04 LTS
+
+Miscellaneous Bug and Documentation Fixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[216] <https://github.com/sdnfv/openNetVM/pull/216>`_ Related to issues `[#200] <https://github.com/sdnfv/openNetVM/issues/200>`_ and `[#201] <https://github.com/sdnfv/openNetVM/issues/201>`_. Removed a few memory leaks. Replaced some libc function calls with the corresponding recommended dpdk function calls. Created new function to free allocated memory upon manager termination. Added if statements to error check after every allocation.
+- `[221] <https://github.com/sdnfv/openNetVM/pull/221>`_ Updates Python scripts to use Python 3 rather than Python 2 and adds Python 3 as a dependency in the ONVM Install Guide
+- `[224] <https://github.com/sdnfv/openNetVM/pull/224>`_ Use NF data instead of global variables in simple_fwd_tb NF
+- `[223] <https://github.com/sdnfv/openNetVM/pull/223>`_ Fixes a bug in the load_generator NF. “Failure to obtain MAC address” error caused the NF to hang, so a function is now called to obtain a fake MAC address in this case.
+- `[227] <https://github.com/sdnfv/openNetVM/pull/227>`_ Update stats updating during ONVM_NF_ACTION_OUT action
+- `[229] <https://github.com/sdnfv/openNetVM/pull/229>`_ Fixed Issue `[#228] <https://github.com/sdnfv/openNetVM/issues/228>`_ by properly counting the number of ports in the port mask and comparing it to the number available
+- `[235] <https://github.com/sdnfv/openNetVM/pull/235>`_ Changed Pull Request template to remind users to request onto develop instead of master
+- `[239] <https://github.com/sdnfv/openNetVM/pull/239>`_ Updates existing Pktgen installation guide by providing clarity on Lua installation and improves ONVM’s Pktgen Wiki page
+- `[241] <https://github.com/sdnfv/openNetVM/pull/241>`_ Updated README.md with description of config file
+- `[252] <https://github.com/sdnfv/openNetVM/pull/252>`_ Improves ONVM Install Guide to reflect DPDK and Pktgen version updates
+- `[258] <https://github.com/sdnfv/openNetVM/pull/258>`_ Updated README.md with description of config file. This relates to PR `[#241] <https://github.com/sdnfv/openNetVM/pull/241>`_, since there are some linter issues with 241, this PR is made to resolve that issue.
+
+New Features and NFs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[218] <https://github.com/sdnfv/openNetVM/pull/218>`_ Python script that parses a JSON config file to launch multiple NFs
+- `[219] <https://github.com/sdnfv/openNetVM/pull/219>`_ Manager has new suggested syntax: `./go.sh -k <port mask> -n <NF core mask> [OPTIONS]`. This replaces the positional argument-based syntax with flags. Also assumes default CPU cores unless the user uses the `-m` flag to specify manager cores
+- `[230] <https://github.com/sdnfv/openNetVM/pull/230>`_ Add L2 switch NF. The functionality of this NF is similar to the DPDK l2fwd example
+
+Contributors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Dennis Afanasev (`dennisafa <https://github.com/dennisafa>`_)
+- Ethan Baron (`EthanBaron14 <https://github.com/EthanBaron14>`_)
+- Benjamin De Vierno (`bdevierno1 <https://github.com/bdevierno1>`_)
+- Kevin Deems (`kevindweb <https://github.com/kevindweb>`_)
+- Mingyu Ma (`WilliamMaa <https://github.com/WilliamMaa>`_)
+- Catherine Meadows (`catherinemeadows <https://github.com/catherinemeadows>`_)
+- Sreya Nalla (`sreyanalla <https://github.com/sreyanalla>`_)
+- Rohit M P (`rohit-mp <https://github.com/rohit-mp>`_)
+- `khaledshahine <https://github.com/khaledshahine>`_
+- Vivek Jain (`vivek-anand-jain <https://github.com/Vivek-anand-jain>`_)
+
+
 v20.05 (May 31, 2020): Bug Fixes, Usability Improvements, and Token Bucket NF
 ------------------------------------------------------------------------------
 
