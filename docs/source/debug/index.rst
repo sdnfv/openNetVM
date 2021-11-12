@@ -8,6 +8,7 @@ When programming NFs or the manager, it is often neccessary to debug.
 By default openNetVM does not compile with debugging symbols but is able to when compiler flags are set. 
 
 For example, you may want to debug `speed tester <https://github.com/sdnfv/openNetVM/blob/master/examples/speed_tester>`_ with gdb.
+
 - The first step is to set the correct environment variables which can be done using the following command:
 
 .. code-block:: bash
