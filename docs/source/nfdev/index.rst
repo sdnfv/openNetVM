@@ -32,6 +32,21 @@ Each NF needs to have a packet handler function.  It must match this specificati
 - :code:`ONVM_NF_ACTION_TONF`: Forward the packet to the specified NF
 - :code:`ONVM_NF_ACTION_OUT`: Forward the packet to the specified NIC port
 
+Skeleton NF 
+-------------
+In order to provide a baseline implementation for the development of NFs, a skeleton is provided in :code:`openNetVM/examples/skeleton/`. This skeleton outlines all required files and functions within any standard ONVM NF, and their respective uses. These functions, which are declared in the function table or control execution, include:
+
+- **main**: :code:`int main(int argc, char *argv[])` Responsible for initializing the function table and local NF context. Starts and stops the NF, and handles command-line arguments.
+- **setup** :code:`static void setup(struct onvm_nf_local_ctx *nf_local_ctx)` Allows the NF to initialize non-local data or perform necessary instructions which must be executed before receiving packets or messages. 
+- **action** :code:`static int action(struct onvm_nf_local_ctx *nf_local_ctx)` Continually called while the NF is running, allowing the user to perform actions or checks which are packet or message-independent.
+- **packet_handler** :code:`static int packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta, struct onvm_nf_local_ctx *nf_local_ctx)` As described previously, the handler function will handle each packet upon arrival.
+- **message_handler** :code:`static void handle_msg(void *msg_data, struct onvm_nf_local_ctx *nf_local_ctx)` Like the packet handler, the message handler function will handle messages from other NFs upon arrival.
+
+For those who wish to use the skeleton as a training mechanism, inline commentary will provide additional clarification on the purpose of each function and where edits must be made throughout the files. The NF also includes various customary helper-functions for those seeking a baseline template; these functions can be removed if not applicable. 
+
+To demonstrate the management of data, the NF contains high-level functionality that counts the number of packets received and the time which the NF has been running. This data is stored within a state struct initialized in main and stored within the local context. The NF will print the current time and number of packets on a delay which is specified by the user at the command line (see :code:`/examples/skeleton/README.md` for further details). To observe packets being counted, you can easily send packets from the speed_tester NF by following the instructions on the `OpenNetVM Examples Page <examples>`_ (you are looking to create a linear NF chain, but the circular NF chain instructions will provide context on how to use the speed_tester PCAP files). If you are looking for introductory comprehension, tracing through the skeleton NF is a logical place to begin. For developing more advanced NFs, template usage requires only a few deletions. 
+
+
 NF Library
 -------------
 
