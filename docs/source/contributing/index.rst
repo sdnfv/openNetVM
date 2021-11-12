@@ -5,7 +5,7 @@ Contribution Guidelines
 
 To contribute to OpenNetVM, please follow these steps:
 
-1. Please read our style guide (TODO: MAKE LINK)
+1. Please read our `style guide <https://github.com/sdnfv/openNetVM/blob/master/style/styleguide.md>`__.
 
 2. Create your own fork of the OpenNetVM repository
 
