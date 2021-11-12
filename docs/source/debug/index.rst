@@ -76,7 +76,7 @@ Then execute dpdk-pdump as a secondary application when the manager is running
 Full set of options and configurations for dpdk-pdump can be found `here <http://dpdk.org/doc/guides/tools/pdump.html#example>`_.
 
 Possible crash reasons
---
+--------------------------------
 Both primary and secondary dpdk processes must have the exact same hugepage memory mappings to function correctly. This can be an issue when using complex NFs that have a large memory footprint. When using such NFs a memory discrepency occurs between a NF and onvm_mgr, which leads to onvm_mgr crashes.  
 
 The NF/mgr hugepage memory layout discrepency is resolved by using the base virtual address value for onvm_mgr.
