@@ -6,13 +6,13 @@
 Welcome to OpenNetVM!
 =====================================
 
-OpenNetVM is a high performance NFV platform based on DPDK and Docker containers. OpenNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
+OpenNetVM is a high performance NFV platform based on `DPDK <http://dpdk.org>`_ and `Docker <https://www.docker.com/>`_ containers.  OpenNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
 
-OpenNetVM is an open source version of the NetVM platform described in our NSDI 2014 and HotMiddlebox 2016 papers, released under the BSD license.
+OpenNetVM is an open source version of the NetVM platform described in our `NSDI 2014 <http://faculty.cs.gwu.edu/timwood/papers/14-NSDI-netvm.pdf>`_ and `HotMiddlebox 2016 <http://faculty.cs.gwu.edu/timwood/papers/16-HotMiddlebox-onvm.pdf>`_ papers, released under the `BSD <https://github.com/sdnfv/openNetVM/blob/master/LICENSE>`_ license.  
 
-The develop branch tracks experimental builds (active development) whereas the master branch tracks verified stable releases. Please read our releases document for more information about our releases and release cycle.
+The `develop <https://github.com/sdnfv/OpenNetVM/tree/develop>`_ branch tracks experimental builds (active development) whereas the `master <https://github.com/sdnfv/OpenNetVM/tree/master>`_ branch tracks verified stable releases.  Please read our `releases </releases>`_ document for more information about our releases and release cycle.
 
-You can find information about research projects building on OpenNetVM at the UCR/GW SDNFV project site. OpenNetVM is supported in part by NSF grants CNS-1422362 and CNS-1522546.
+You can find information about research projects building on `OpenNetVM <http://sdnfv.github.io/onvm/>`_ at the `UCR/GW SDNFV project site <http://sdnfv.github.io/>`_. OpenNetVM is supported in part by NSF grants CNS-1422362 and CNS-1522546. 
 
 Notes
 ####################################
@@ -36,17 +36,6 @@ And then rebuild DPDK using the install guide or running these commands:
    make install T=$RTE_TARGET -j 8
 
 See our release document for more information.
-
-About
-###################
-
-OpenNetVM is a high performance NFV platform based on `DPDK <http://dpdk.org>`_ and `Docker <https://www.docker.com/>`_ containers.  OpenNetVM provides a flexible framework for deploying network functions and interconnecting them to build service chains.
-
-OpenNetVM is an open source version of the NetVM platform described in our `NSDI 2014 <http://faculty.cs.gwu.edu/timwood/papers/14-NSDI-netvm.pdf>`_ and `HotMiddlebox 2016 <http://faculty.cs.gwu.edu/timwood/papers/16-HotMiddlebox-onvm.pdf>`_ papers, released under the `BSD <https://github.com/sdnfv/openNetVM/blob/master/LICENSE>`_ license.  
-
-The `develop <https://github.com/sdnfv/OpenNetVM/tree/develop>`_ branch tracks experimental builds (active development) whereas the `master <https://github.com/sdnfv/OpenNetVM/tree/master>`_ branch tracks verified stable releases.  Please read our `releases </releases>`_ document for more information about our releases and release cycle.
-
-You can find information about research projects building on `OpenNetVM <http://sdnfv.github.io/onvm/>`_ at the `UCR/GW SDNFV project site <http://sdnfv.github.io/>`_. OpenNetVM is supported in part by NSF grants CNS-1422362 and CNS-1522546. 
 
 Installing
 ######################
