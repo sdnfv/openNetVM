@@ -79,6 +79,7 @@ This code allows you to evaluate resource management techniques for NFs that sha
 The code is based on the hybrid-polling model proposed in `Flurries: Countless Fine-Grained NFs for Flexible Per-Flow Customization by Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, and Timothy Wood, published at Co-NEXT 16 <https://dl.acm.org/citation.cfm?id=2999602>`_ and extended in `NFVnice: Dynamic Backpressure and Scheduling for NFV Service Chains by Sameer G. Kulkarni, Wei Zhang, Jinho Hwang, Shriram Rajagopalan, K. K. Ramakrishnan, Timothy Wood, Mayutan Arumaithurai and Xiaoming Fu, published at SIGCOMM '17 <https://dl.acm.org/citation.cfm?id=3098828>`_. Note that this code does not contain the full Flurries or NFVnice systems, only the basic support for shared-Core NFs. However, we have recently released a full version of the NFVNice system as an experimental branch, which can be found `here <https://github.com/sdnfv/openNetVM/tree/experimental/nfvnice-reinforce>`__.
 
 Usage / Known Limitations:
+
 - To enable pass a :code:`-c` flag to the onvm_mgr, and use a :code:`-s` flag when starting a NF to specify that they want to share cores
 - All code for sharing CPUs is within :code:`if (ONVM_NF_SHARE_CORES)` blocks
 - When enabled, you can run multiple NFs on the same CPU core with much less interference than if they are polling for packets and messages
