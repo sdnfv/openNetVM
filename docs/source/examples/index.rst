@@ -13,7 +13,7 @@ command line. The general structure for launching an NF from a config file is
 Any args specified in :code:`<DPDK args>` or :code:`<ONVM ARGS>` will replace the
 corresponding args in the config file. **An important note:** If no DPDK
 or ONVM args are passed, **but** NF args are required, the :code:`-- --` is
-still required. For documentation on developing with config files, see `NF_Dev <https://github.com/sdnfv/openNetVM/blob/master/docs/NF_Dev.md>`_
+still required. Additionally, launching multiple network functions at once, including circular or linear chains, from a JSON config file is supported. For documentation on developing with config files, see `NF_Dev <https://github.com/sdnfv/openNetVM/blob/master/docs/NF_Dev.md>`_
 
 NF Starting Scripts
 --------------------
@@ -37,7 +37,7 @@ The script has 2 modes:
     ./start_nf.sh NF_NAME DPDK_ARGS -- ONVM_ARGS -- NF_ARGS
     ./start_nf.sh speed_tester -l 4 -- -s -r 6 -- -d 5
 
-*All the NF directories have a symlink to :code:`examples/go.sh` file which allows to omit the NF name argument when running the NF from its directory:*
+*All the NF directories have a symlink to* :code:`examples/go.sh` *file which allows to omit the NF name argument when running the NF from its directory:*
 
 .. code-block:: bash
     :linenos:
