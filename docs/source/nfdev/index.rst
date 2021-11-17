@@ -136,7 +136,7 @@ Sample Config File
 
 Running Groups of NFs
 -------------
-Additionally, a developer can run the `run group script <https://github.com/sdnfv/openNetVM/blob/master/examples/run_group.py>`__ to deploy multiple network functions, including linear or circular chains of multiple NFs, from a JSON config file. An example config file can be found `here <https://github.com/sdnfv/openNetVM/blob/master/examples/example_nf_deploy.json>`__. "NF Name" indicates the example NF to be run and must be the name of the NF folder in the `examples folder <https://github.com/sdnfv/openNetVM/blob/master/examples>.`__
+Additionally, a developer can run the `run group script <https://github.com/sdnfv/openNetVM/blob/master/examples/run_group.py>`__ to deploy multiple network functions, including linear or circular chains of multiple NFs, from a JSON config file. An example config file can be found `here <https://github.com/sdnfv/openNetVM/blob/master/examples/example_nf_deploy.json>`__. "NF Name" indicates the example NF to be run and must be the name of the NF folder in the `examples folder <https://github.com/sdnfv/openNetVM/blob/master/examples>`_.
 
 Optional "globals" in the config file include:
 
