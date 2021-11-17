@@ -36,6 +36,7 @@ For example, you may want to debug `speed tester <https://github.com/sdnfv/openN
 
 **Troubleshooting:**  
 If debugging symbols are not found verify that debugging flags are set with :code:`echo $USER_FLAGS` and also try executing the following command in gdb:
+
 - For onvm_mgr:
  
 .. code-block:: bash
