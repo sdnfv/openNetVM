@@ -38,7 +38,7 @@ To use the script, simply run it from the command line with the following option
 .. code-block:: bash
     :linenos:
     
-    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/speed_tester/go.sh 1 -d 1"
+    sudo ./docker.sh -h /mnt/huge -o /root/openNetVM -n Speed_Tester_NF -D /dev/uio0 -c "./examples/start_nf.sh speed_tester 1 -d 1"
 
 - This will start a container with one NIC device mapped in, :code:`/dev/uio0` , the hugepage directory at :code:`/mnt/huge` mapped in, and the openNetVM source directory at :code:`/root/openNetVM` mapped into the container with the name of Speed_Tester_NF. Also, the container will be started in detached mode (no connection to it) and it will run the go script of the simple forward NF. Careful, the path needs to be correct inside the container (use absolute path, here the openNetVM directory is mapped in the /).
 
