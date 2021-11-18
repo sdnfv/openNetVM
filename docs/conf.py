@@ -21,7 +21,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'openNetVM'
-copyright = '2020, GWU Cloud Lab'
+copyright = '2021, GWU Cloud Lab'
 author = 'GWU Cloud Lab'
 
 # -- General configuration ---------------------------------------------------
