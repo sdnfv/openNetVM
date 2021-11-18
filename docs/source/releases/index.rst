@@ -20,6 +20,54 @@ use a date based versioning system.  Now, a release version can look
 like :code:`17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+
+v21.10 (10/2020): Bug Fixes, Test cases, Dev Environment Improvements
+------------------------------------------------------------------------------
+
+This release focused on general bug fixing and improving our test/development environments. A CloudLab template will be available with the latest release here: `https://www.cloudlab.us/p/GWCloudLab/onvm <https://www.cloudlab.us/p/GWCloudLab/onvm>`_
+
+New Features and NFs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[243] <https://github.com/sdnfv/openNetVM/pull/243>`_ Adds L3 Switch example based on DPDK :code:`l3fwd` sample code. This NF can forward packets either using longest prefix match or a hash table lookup.
+- `[254] <https://github.com/sdnfv/openNetVM/pull/254>`_ Adds Fair Queue NF that demonstrates how to use advanced rings mode to directly access packets and distribute them to a set of child NFs. Packets are "classified" using a CRC32 hash and assigned to a queue. Queues are then read from in Round Robin order to process packets of different types in a fair way. Contributed by (Rohit M P) from NITK.
+- `[277] <https://github.com/sdnfv/openNetVM/pull/277>`_ Adds support for Jumbo frame packets. Enable by adding a :code:`-j` flag to the manager's go.sh script.
+
+Testing and Development Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[296] <https://github.com/sdnfv/openNetVM/pull/296>`_ Adds unit test for NF messaging infrastructure and fixes memory leak related to overflow of message pools [Issue `293 <https://github.com/sdnfv/openNetVM/pull/293>`_].
+- `[297] <https://github.com/sdnfv/openNetVM/pull/297>`_ Adds VS Code profile to simplify debugging of NFs.
+- `[302] <https://github.com/sdnfv/openNetVM/pull/302>`_ Adds NF chain performance test to measure and plot inter-NF throughput and latency.
+
+Miscellaneous Bug and Documentation Fixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- `[304] <https://github.com/sdnfv/openNetVM/pull/304>`_ Fixes the NF_TAG of :code:`aes_decrypt` in :code:`openNetVM/examples/aes_decrypt/aesdecrypt.c`.
+- `[300] <https://github.com/sdnfv/openNetVM/pull/300>`_ Updates MoonGen installation document to work with the new DPDK version.
+- `[270] <https://github.com/sdnfv/openNetVM/pull/270>`_ Fixes issues with relative path in the onvm go script to find the web directory. Now using :code:`$ONVM_HOME` instead of :code:`..`.
+- `[272] <https://github.com/sdnfv/openNetVM/pull/272>`_ Fixes two bugs (including Issue `233 <https://github.com/sdnfv/openNetVM/pull/233>`_) where the NF rings would not be cleared after deallocation and an underflow bug in stats.
+- `[265] <https://github.com/sdnfv/openNetVM/pull/265>`_ Updates Install README to provide further clarification as well as to include a missing package.
+- `[267] <https://github.com/sdnfv/openNetVM/pull/267>`_ Fixes typos in :code:`onvm_pkt_helper.h`.
+
+
+Contributors:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Dennis Afanasev (`dennisafa <https://github.com/dennisafa>`_)
+- Noah Chinitz (`NoahChinitzGWU <https://github.com/NoahChinitzGWU>`_)
+- Benjamin De Vierno (`bdevierno1 <https://github.com/bdevierno1>`_)
+- Kevin Deems (`kevindweb <https://github.com/kevindweb>`_)
+- Lauren Hahn (`lhahn01 <https://github.com/Lhahn01>`_)
+- Elliott (Elie) Henne (`elliotthenne <https://github.com/elliotthenne>`_)
+- Vivek Jain (`vivek-anand-jain <https://github.com/Vivek-anand-jain>`_)
+- Jack Kuo (`JackKuo-tw <https://github.com/JackKuo-tw>`_)
+- Catherine Meadows (`catherinemeadows <https://github.com/catherinemeadows>`_)
+- Rohit M P (`rohit-mp <https://github.com/rohit-mp>`_)
+- Leslie Monis (`lesliemonis <https://github.com/lesliemonis>`_)
+- Pend Wu (`PengWu-wp <https://github.com/PengWu-wp>`_)
+
+
 v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
 ------------------------------------------------------------------------------
 
