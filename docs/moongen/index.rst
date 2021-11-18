@@ -135,6 +135,7 @@ Install other dependencies with:
 
 .. code-block:: bash
     :linenos:
+    
     $ sudo apt-get install -y build-essential cmake linux-headers-`uname -r` pciutils libnuma-dev
     $ sudo apt install cmake
     $ sudo apt install libtbb2
