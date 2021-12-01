@@ -329,22 +329,25 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 /* 
                  * max_elt_size is the maximum preallocated memory size permitted for each packet, 
-                 * adjusted for the memory offset of the rte_mbuf struct
+                 * adjusted for the memory offset of the rte_mbuf struct and header/tail lengths
                  */
                 
-                max_elt_size = pktmbuf_pool->elt_size - sizeof(struct rte_mbuf);
+                max_elt_size = pktmbuf_pool->elt_size - sizeof(struct rte_mbuf) - pktmbuf_pool->header_size - pktmbuf_pool->trailer_size;
 
                 while (((packet = pcap_next(pcap, &header)) != NULL) && (i < packet_number)) {
                         struct onvm_pkt_meta *pmeta;
                         struct onvm_ft_ipv4_5tuple key;
 
+                        /* Length of the packet cannot exceed preallocated storage size */
+                        if (header.caplen > max_elt_size) {
+                                nf_local_ctx->nf->stats.tx_drop++;
+                                nf_local_ctx->nf->stats.act_drop++;
+                                continue;
+                        }
+
                         pkt = rte_pktmbuf_alloc(pktmbuf_pool);
                         if (pkt == NULL)
                                 break;
-
-                        /* Length of the packet cannot exceed preallocated storage size */
-                        if (header.caplen > max_elt_size)
-                                continue;
 
                         pkt->pkt_len = header.caplen;
                         pkt->data_len = header.caplen;
