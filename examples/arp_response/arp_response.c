@@ -249,7 +249,7 @@ send_arp_reply(int port, struct rte_ether_addr *tha, uint32_t tip, struct onvm_n
         out_arp_hdr->arp_opcode = rte_cpu_to_be_16(RTE_ARP_OP_REPLY);
 
         rte_ether_addr_copy(&ports->mac[port], &out_arp_hdr->arp_data.arp_sha);
-        out_arp_hdr->arp_data.arp_sip = state_info->source_ips[ports->id[port]];
+        out_arp_hdr->arp_data.arp_sip = rte_cpu_to_be_32(state_info->source_ips[ports->id[port]]);
 
         out_arp_hdr->arp_data.arp_tip = tip;
         rte_ether_addr_copy(tha, &out_arp_hdr->arp_data.arp_tha);
