@@ -4,9 +4,8 @@
 # BSD LICENSE
 #
 # Copyright(c)
-#          2015-2017 George Washington University
-#          2015-2017 University of California Riverside
-#          2016-2017 Hewlett Packard Enterprise Development LP
+#          2015-2021 George Washington University
+#          2015-2021 University of California Riverside
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,24 +38,30 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-# To add new examples, append the directory name to this variable
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response nf_router scaling_example load_generator payload_scan firewall simple_fwd_tb l2fwd test_messaging l3fwd fair_queue
 
-ifeq ($(NDPI_HOME),)
-$(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
-else
-examples +=ndpi_stats
+# Default target, can be overriden by command line or environment
+include $(RTE_SDK)/mk/rte.vars.mk
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
+
+# binary name
+APP = test_messaging
+
+# all source are stored in SRCS-y
+SRCS-y := test_messaging.c
+
+ONVM= $(SRCDIR)/../../onvm
+
+CFLAGS += $(WERROR_FLAGS) -O3 $(USER_FLAGS)
+
+CFLAGS += -I$(ONVM)/onvm_nflib
+CFLAGS += -I$(ONVM)/lib
+LDFLAGS += $(ONVM)/onvm_nflib/$(RTE_TARGET)/libonvm.a
+LDFLAGS += $(ONVM)/lib/$(RTE_TARGET)/lib/libonvmhelper.a -lm
+
+# workaround for a gcc bug with noreturn attribute
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
+ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
+CFLAGS_main.o += -Wno-return-type
 endif
 
-clean_examples=$(addprefix clean_,$(examples))
-
-.PHONY: $(examples) $(clean_examples)
-
-all : $(examples)
-clean: $(clean_examples)
-
-$(examples):
-	cd $@ && $(MAKE)
-
-$(clean_examples):
-	cd $(patsubst clean_%,%,$@) && $(MAKE) clean
+include $(RTE_SDK)/mk/rte.extapp.mk

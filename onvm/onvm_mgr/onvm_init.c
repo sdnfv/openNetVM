@@ -283,10 +283,17 @@ set_default_config(struct onvm_configuration *config) {
  */
 static int
 init_mbuf_pools(void) {
+        uint16_t mbuf_size;
+
+        if (ONVM_USE_JUMBO_FRAMES)
+                mbuf_size = 9600 + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + MBUF_OVERHEAD;
+        else
+                mbuf_size = RTE_MBUF_DEFAULT_DATAROOM + MBUF_OVERHEAD;
+
         /* don't pass single-producer/single-consumer flags to mbuf create as it
          * seems faster to use a cache instead */
         printf("Creating mbuf pool '%s' [%u mbufs] ...\n", PKTMBUF_POOL_NAME, NUM_MBUFS);
-        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, NUM_MBUFS, MBUF_SIZE, MBUF_CACHE_SIZE,
+        pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, NUM_MBUFS, mbuf_size, MBUF_CACHE_SIZE,
                                           sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init, NULL,
                                           rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS);
 
@@ -361,6 +368,11 @@ init_port(uint8_t port_num) {
                     "Port %u modified RSS hash function based on hardware support,"
                     "requested:%#" PRIx64 " configured:%#" PRIx64 "\n",
                     port_num, port_conf.rx_adv_conf.rss_conf.rss_hf, local_port_conf.rx_adv_conf.rss_conf.rss_hf);
+        }
+
+        if (ONVM_USE_JUMBO_FRAMES) {
+                local_port_conf.rxmode.max_rx_pkt_len = 9600 + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN;
+                local_port_conf.rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
         }
 
         if ((retval = rte_eth_dev_configure(port_num, rx_rings, tx_rings, &local_port_conf)) != 0)
