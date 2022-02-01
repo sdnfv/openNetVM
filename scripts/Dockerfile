@@ -34,9 +34,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM ubuntu:18.04
-MAINTAINER "Kevin Deems" <kevin8deems@gmail.com>
-LABEL version="OpenNetVM v19.07"
+FROM ubuntu:20.04
+LABEL maintainer="Kevin Deems kevin8deems@gmail.com"
+LABEL version="OpenNetVM v20.10"
 LABEL vendor="SDNFV @ UCR and GW"
 LABEL github="github.com/sdnfv/openNetVM"
 
@@ -47,13 +47,19 @@ ENV ONVM_NUM_HUGEPAGES=1024
 
 WORKDIR $ONVM_HOME
 
+# Ubuntu 20.04 image hangs unless timezone is set
+RUN DEBIAN_FRONTEND=noninteractive \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
 RUN apt-get update -y && apt-get upgrade -y && \
-    apt-get install -y build-essential \
-                       sudo \
-                       gdb \
-                       python \
-                       libnuma-dev \
-                       vim \
-                       less \
-                       git \
-                       net-tools \
+    apt-get install -y \
+    build-essential \
+    sudo \
+    gdb \
+    python \
+    libnuma-dev \
+    vim \
+    less \
+    git \
+    net-tools \
+    bc

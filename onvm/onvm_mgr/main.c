@@ -84,7 +84,7 @@ master_thread_main(void) {
         const uint64_t start_time = rte_get_tsc_cycles();
         uint64_t total_rx_pkts;
 
-        RTE_LOG(INFO, APP, "Core %d: Running master thread\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: Running master thread\n", rte_socket_id(), rte_lcore_id());
 
         if (stats_destination == ONVM_STATS_WEB) {
                 RTE_LOG(INFO, APP, "ONVM stats can be viewed through the web console\n");
@@ -130,7 +130,7 @@ master_thread_main(void) {
         rte_pdump_uninit();
 #endif
 
-        RTE_LOG(INFO, APP, "Core %d: Initiating shutdown sequence\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: Initiating shutdown sequence\n", rte_socket_id(), rte_lcore_id());
 
         /* Stop all RX and TX threads */
         worker_keep_running = 0;
@@ -140,7 +140,7 @@ master_thread_main(void) {
                 if (nfs[i].status != NF_RUNNING)
                         continue;
 
-                RTE_LOG(INFO, APP, "Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_lcore_id(), i);
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Notifying NF %" PRIu16 " to shut down\n", rte_socket_id(), rte_lcore_id(), i);
                 onvm_nf_send_msg(i, MSG_STOP, NULL);
 
                 /* If in shared core mode NFs might be sleeping */
@@ -154,13 +154,13 @@ master_thread_main(void) {
         /* Wait to process all exits */
         for (shutdown_iter_count = 0; shutdown_iter_count < MAX_SHUTDOWN_ITERS && num_nfs > 0; shutdown_iter_count++) {
                 onvm_nf_check_status();
-                RTE_LOG(INFO, APP, "Core %d: Waiting for %" PRIu16 " NFs to exit\n", rte_lcore_id(), num_nfs);
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Waiting for %" PRIu16 " NFs to exit\n", rte_socket_id(), rte_lcore_id(), num_nfs);
                 sleep(sleeptime);
         }
 
         if (num_nfs > 0) {
-                RTE_LOG(INFO, APP, "Core %d: Up to %" PRIu16 " NFs may still be running and must be killed manually\n",
-                        rte_lcore_id(), num_nfs);
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Up to %" PRIu16 " NFs may still be running and must be killed manually\n",
+                        rte_socket_id(), rte_lcore_id(), num_nfs);
         }
 
         /* Clean up the shared memory */
@@ -171,7 +171,7 @@ master_thread_main(void) {
                 }
         }
 
-        RTE_LOG(INFO, APP, "Core %d: Master thread done\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: Master thread done\n", rte_socket_id(), rte_lcore_id());
 }
 
 /*
@@ -186,7 +186,7 @@ rx_thread_main(void *arg) {
         cur_lcore = rte_lcore_id();
 
         onvm_stats_gen_event_info("Rx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
-        RTE_LOG(INFO, APP, "Core %d: Running RX thread for RX queue %d\n", cur_lcore, rx_mgr->id);
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: Running RX thread for RX queue %d\n", rte_socket_id(), cur_lcore, rx_mgr->id);
 
         for (; worker_keep_running;) {
                 /* Read ports */
@@ -206,7 +206,7 @@ rx_thread_main(void *arg) {
                 }
         }
 
-        RTE_LOG(INFO, APP, "Core %d: RX thread done\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: RX thread done\n", rte_socket_id(), rte_lcore_id());
         return 0;
 }
 
@@ -220,10 +220,10 @@ tx_thread_main(void *arg) {
 
         onvm_stats_gen_event_info("Tx Start", ONVM_EVENT_WITH_CORE, &cur_lcore);
         if (tx_mgr->tx_thread_info->first_nf == tx_mgr->tx_thread_info->last_nf - 1) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NF %d\n", cur_lcore,
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Running TX thread for NF %d\n", rte_socket_id(), cur_lcore,
                         tx_mgr->tx_thread_info->first_nf);
         } else if (tx_mgr->tx_thread_info->first_nf < tx_mgr->tx_thread_info->last_nf) {
-                RTE_LOG(INFO, APP, "Core %d: Running TX thread for NFs %d to %d\n", cur_lcore,
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Running TX thread for NFs %d to %d\n", rte_socket_id(), cur_lcore,
                         tx_mgr->tx_thread_info->first_nf, tx_mgr->tx_thread_info->last_nf - 1);
         }
 
@@ -250,7 +250,7 @@ tx_thread_main(void *arg) {
                 onvm_pkt_flush_all_nfs(tx_mgr, NULL);
         }
 
-        RTE_LOG(INFO, APP, "Core %d: TX thread done\n", rte_lcore_id());
+        RTE_LOG(INFO, APP, "Socket %d, Core %d: TX thread done\n", rte_socket_id(), rte_lcore_id());
         return 0;
 }
 
@@ -276,10 +276,10 @@ wakeup_thread_main(void *arg) {
         struct wakeup_thread_context *wakeup_ctx = (struct wakeup_thread_context *)arg;
 
         if (wakeup_ctx->first_nf == wakeup_ctx->last_nf - 1) {
-                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NF %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Running Wakeup thread for NF %d\n", rte_socket_id(), rte_lcore_id(),
                         wakeup_ctx->first_nf);
         } else if (wakeup_ctx->first_nf < wakeup_ctx->last_nf) {
-                RTE_LOG(INFO, APP, "Core %d: Running Wakeup thread for NFs %d to %d\n", rte_lcore_id(),
+                RTE_LOG(INFO, APP, "Socket %d, Core %d: Running Wakeup thread for NFs %d to %d\n", rte_socket_id(), rte_lcore_id(),
                         wakeup_ctx->first_nf, wakeup_ctx->last_nf - 1);
         }
 
@@ -379,7 +379,7 @@ main(int argc, char *argv[]) {
         /* Offset cur_lcore to start assigning TX cores */
         cur_lcore += (rx_lcores - 1);
 
-        RTE_LOG(INFO, APP, "%d cores available in total\n", rte_lcore_count());
+        RTE_LOG(INFO, APP, "%d Sockets, %d Cores available in total\n", rte_socket_count(), rte_lcore_count());
         RTE_LOG(INFO, APP, "%d cores available for handling manager RX queues\n", rx_lcores);
         RTE_LOG(INFO, APP, "%d cores available for handling TX queues\n", tx_lcores);
         if (ONVM_NF_SHARE_CORES)
@@ -432,7 +432,7 @@ main(int argc, char *argv[]) {
                 tx_mgr[i]->tx_thread_info->last_nf = RTE_MIN((i + 1) * nfs_per_tx + 1, (unsigned)MAX_NFS);
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(tx_thread_main, (void *)tx_mgr[i], cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d TX\n", cur_lcore,
+                        RTE_LOG(ERR, APP, "Socket %d, Core %d is already busy, can't use for nf %d TX\n", rte_socket_id(), cur_lcore,
                                 tx_mgr[i]->tx_thread_info->first_nf);
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
                         return -1;
@@ -454,7 +454,7 @@ main(int argc, char *argv[]) {
                 }
                 cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                 if (rte_eal_remote_launch(rx_thread_main, (void *)rx_mgr[i], cur_lcore) == -EBUSY) {
-                        RTE_LOG(ERR, APP, "Core %d is already busy, can't use for RX queue id %d\n", cur_lcore,
+                        RTE_LOG(ERR, APP, "Socket %d, Core %d is already busy, can't use for RX queue id %d\n", rte_socket_id(), cur_lcore,
                                 rx_mgr[i]->id);
                         onvm_main_free(tx_lcores,rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
                         return -1;
@@ -472,8 +472,8 @@ main(int argc, char *argv[]) {
                         wakeup_ctx[i]->last_nf = RTE_MIN((i + 1) * nfs_per_wakeup_thread + 1, (unsigned)MAX_NFS);
                         cur_lcore = rte_get_next_lcore(cur_lcore, 1, 1);
                         if (rte_eal_remote_launch(wakeup_thread_main, (void*)wakeup_ctx[i], cur_lcore) == -EBUSY) {
-                                RTE_LOG(ERR, APP, "Core %d is already busy, can't use for nf %d wakeup thread\n",
-                                        cur_lcore, wakeup_ctx[i]->first_nf);
+                                RTE_LOG(ERR, APP, "Socket %d, Core %d is already busy, can't use for nf %d wakeup thread\n",
+                                        rte_socket_id(), cur_lcore, wakeup_ctx[i]->first_nf);
                                 onvm_main_free(tx_lcores, rx_lcores, tx_mgr, rx_mgr, wakeup_ctx);
                                 return -1;
                         }

@@ -16,6 +16,8 @@ function usage {
         echo -e "\tRuns ONVM the same way as above, but prints statistics to stdout"
         echo -e "$0 -k 3 -n 0xF0 -m 2,3,4 -s stdout -c"
         echo -e "\tRuns ONVM the same way as above, but enables shared cpu support"
+        echo -e "$0 -k 3 -n 0xF0 -m 2,3,4 -s stdout -c -j"
+        echo -e "\tRuns ONVM the same way as above, but allows ports to send and receive jumbo frames"
         echo -e "$0 -k 3 -n 0xF0 -m 2,3,4 -s stdout -t 42"
         echo -e "\tRuns ONVM the same way as above, but shuts down after 42 seconds"
         echo -e "$0 -k 3 -n 0xF0 -m 2,3,4 -s stdout -l 64"
@@ -110,7 +112,7 @@ then
     exit 1
 fi
 
-while getopts "a:r:d:s:t:l:p:z:cvm:k:n:" opt; do
+while getopts "a:r:d:s:t:l:p:z:cvm:k:n:j" opt; do
     case $opt in
         a) virt_addr="--base-virtaddr=$OPTARG";;
         r) num_srvc="-r $OPTARG";;
@@ -152,6 +154,7 @@ while getopts "a:r:d:s:t:l:p:z:cvm:k:n:" opt; do
             else
                 nf_cores=$OPTARG
             fi;;
+        j) jumbo_frames_flag="-j";;
         \?) echo "Unknown option -$OPTARG" && usage
             ;;
     esac
@@ -255,7 +258,7 @@ fi
 
 if [ "${stats}" = "-s web" ]
 then
-    cd ../onvm_web/ || usage
+    cd "$ONVM_HOME"/onvm_web/ || usage
     if [ -n "${web_port}" ]
     then
         . start_web_console.sh -p "${web_port}"
@@ -269,7 +272,7 @@ fi
 sudo rm -rf /mnt/huge/rtemap_*
 # watch out for variable expansion
 # shellcheck disable=SC2086
-sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag}
+sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=primary ${virt_addr} -- -p ${ports} -n ${nf_cores} ${num_srvc} ${def_srvc} ${stats} ${stats_sleep_time} ${verbosity_level} ${ttl} ${packet_limit} ${shared_cpu_flag} ${jumbo_frames_flag}
 
 if [ "${stats}" = "-s web" ]
 then

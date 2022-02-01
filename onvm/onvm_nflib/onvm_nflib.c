@@ -533,7 +533,7 @@ onvm_nflib_start_nf(struct onvm_nf_local_ctx *nf_local_ctx, struct onvm_nf_init_
 
         RTE_LOG(INFO, APP, "Using Instance ID %d\n", nf->instance_id);
         RTE_LOG(INFO, APP, "Using Service ID %d\n", nf->service_id);
-        RTE_LOG(INFO, APP, "Running on core %d\n", nf->thread_info.core);
+        RTE_LOG(INFO, APP, "Running on Socket %d, Core %d\n", rte_socket_id(), nf->thread_info.core);
 
         if (nf->flags.time_to_live)
                 RTE_LOG(INFO, APP, "Time to live set to %u\n", nf->flags.time_to_live);
@@ -727,7 +727,14 @@ onvm_nflib_send_msg_to_nf(uint16_t dest, void *msg_data) {
         msg->msg_type = MSG_FROM_NF;
         msg->msg_data = msg_data;
 
-        return rte_ring_enqueue(nfs[dest].msg_q, (void*)msg);
+        uint16_t instance_id = onvm_sc_service_to_nf_map(dest, NULL);
+        ret = rte_ring_enqueue(nfs[instance_id].msg_q, (void*)msg);
+        if (ret != 0) {
+                RTE_LOG(WARNING, APP, "Destination NF ring is full! Unable to enqueue msg to ring\n");
+                rte_mempool_put(nf_msg_pool, (void*)msg);
+                return ret;
+        }
+        return 0;
 }
 
 void
@@ -1321,7 +1328,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         const char clr[] = {27, '[', '2', 'J', '\0'};
         const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
         const char *csv_suffix = "_stats.csv";
-        const char *csv_stats_headers = "NF tag, NF instance ID, NF service ID, NF assigned core, RX total,"
+        const char *csv_stats_headers = "NF tag, NF instance ID, NF service ID, NF assigned socket, NF assigned core, RX total,"
                                         "RX total dropped, TX total, TX total dropped, NF sent out, NF sent to NF,"
                                         "NF dropped, NF next, NF tx buffered, NF tx buffered, NF tx returned";
         const uint64_t rx = nfs[id].stats.rx;
@@ -1348,6 +1355,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         printf("NF tag: %s\n", nf_tag);
         printf("NF instance ID: %d\n", instance_id);
         printf("NF service ID: %d\n", service_id);
+        printf("NF assigned socket: %d\n", rte_socket_id());
         printf("NF assigned core: %d\n", core);
         printf("----------------------------------------------------\n");
         printf("RX total: %ld\n", rx);
@@ -1390,6 +1398,7 @@ onvm_nflib_stats_summary_output(uint16_t id) {
         fprintf(csv_fp, "\n%s", nf_tag);
         fprintf(csv_fp, ", %d", instance_id);
         fprintf(csv_fp, ", %d", service_id);
+        fprintf(csv_fp, ", %d", rte_socket_id());
         fprintf(csv_fp, ", %d", core);
         fprintf(csv_fp, ", %ld", rx);
         fprintf(csv_fp, ", %ld", rx_drop);

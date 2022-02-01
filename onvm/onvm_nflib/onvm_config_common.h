@@ -55,6 +55,18 @@
 
 /*****************************API************************************/
 
+/*
+ * Uses strlen to get string length *including*
+ * null terminator '\0'
+ *
+ * @param __s
+ *   String to measure
+ * @return
+ *   Size of the string including null terminator
+ */
+size_t
+strlenn(const char* __s);
+
 /**
  * Parses a config file into a cJSON struct.
  * This struct contains all information stored within the config file

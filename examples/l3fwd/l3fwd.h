@@ -5,8 +5,8 @@
  *   BSD LICENSE
  *
  *   Copyright(c)
- *            2015-2019 George Washington University
- *            2015-2019 University of California Riverside
+ *            2015-2020 George Washington University
+ *            2015-2020 University of California Riverside
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -35,38 +35,57 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * onvm_sc_common.h - service functions for manager and NFs
+ * l3switch.h - This application performs L3 forwarding.
  ********************************************************************/
 
-#ifndef _ONVM_SC_COMMON_H_
-#define _ONVM_SC_COMMON_H_
+#include "onvm_flow_table.h"
 
-#include <inttypes.h>
-#include "onvm_common.h"
+#ifndef __L3_SWITCH_H_
+#define __L3_SWICTH_H_
 
-/********************************Global variables*****************************/
+/* Hash parameters. */
+#ifdef RTE_ARCH_64
+/* default to 4 million hash entries (approx) */
+#define L3FWD_HASH_ENTRIES              (1024*1024*4)
+#else
+/* 32-bit has less address-space for hugepage memory, limit to 1M entries */
+#define L3FWD_HASH_ENTRIES              (1024*1024*1)
+#endif
 
-extern struct onvm_nf *nfs;
-extern uint16_t **services;
-extern uint16_t *nf_per_service_count;
+#define HASH_ENTRY_NUMBER_DEFAULT       4
+#define NB_SOCKETS        8
 
-/********************************Interfaces***********************************/
-/* Returns the instance ID associated with the given service ID and packet.
-   If using for a message, given packet is NULL and the function returns 
-   the first instance ID associated with the given service ID for messaging */
+/*Struct that holds all NF state information */
+struct state_info {
+        struct lpm_request *l3switch_req;
+        struct rte_lpm *lpm_tbl;
+        struct onvm_ft *em_tbl;
+        struct rte_ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
+        uint64_t port_statistics[RTE_MAX_ETHPORTS];
+        xmm_t val_eth[RTE_MAX_ETHPORTS];
+        uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
+        uint64_t packets_dropped;
+        uint32_t print_delay;
+        uint32_t hash_entry_number;
+        int8_t l3fwd_lpm_on;
+        int8_t l3fwd_em_on;
+};
+
+/* Function pointers for LPM or EM functionality. */
+
+int
+setup_lpm(struct state_info *stats);
+
+int
+setup_hash(struct state_info *stats);
+
 uint16_t
-onvm_sc_service_to_nf_map(uint16_t service_id,
-                          struct rte_mbuf *pkt);
+lpm_get_ipv4_dst_port(void *ipv4_hdr, uint16_t portid, struct state_info *stats);
 
-/* append a entry to serivce chain, 0 means appending successful, 1 means failed*/
+uint16_t
+em_get_ipv4_dst_port(struct rte_mbuf *pkt, struct state_info *stats);
+
 int
-onvm_sc_append_entry(struct onvm_service_chain *chain, uint8_t action, uint16_t destination);
+get_initialized_ports(uint8_t if_out);
 
-/*set entry to a new action and destination, 0 means setting successful, 1 means failed */
-int
-onvm_sc_set_entry(struct onvm_service_chain *chain, int entry, uint8_t action, uint16_t destination);
-
-void
-onvm_sc_print(struct onvm_service_chain *chain);
-
-#endif // _ONVM_SC_COMMON_H_
+#endif // __L3_SWICTH_H_

@@ -13,6 +13,52 @@ use a date based versioning system.  Now, a release version can look
 like `17.11` where the "major" number is the year and the "minor" number
 is the month.
 
+## v21.10 (10/2020): Bug Fixes, Test cases, Dev Environment Improvements
+This release focused on general bug fixing and improving our test/development environments.
+A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
+
+**New Features and NFs**
+
+- [[243](https://github.com/sdnfv/openNetVM/pull/243)] Adds L3 Switch example based on DPDK `l3fwd` sample code. This NF can forward packets either using longest prefix match or a hash table lookup. 
+- [[254](https://github.com/sdnfv/openNetVM/pull/254)] Adds Fair Queue NF that demonstrates how to use advanced rings mode to directly access packets and distribute them to a set of child NFs. Packets are "classified" using a CRC32 hash and assigned to a queue. Queues are then read from in Round Robin order to process packets of different types in a fair way. Contributed by  ([Rohit M P](https://github.com/rohit-mp)) from NITK. 
+- [[277](https://github.com/sdnfv/openNetVM/pull/277)] Adds support for Jumbo frame packets. Enable by adding a `-j` flag to the manager's go.sh script.
+
+
+**Testing and Development Improvements**
+
+- [[296](https://github.com/sdnfv/openNetVM/pull/296)] Adds unit test for NF messaging infrastructure and fixes memory leak related to overflow of message pools [[Issue 293](https://github.com/sdnfv/openNetVM/pull/293)]. 
+- [[297](https://github.com/sdnfv/openNetVM/pull/297)] Adds VS Code profile to simplify debugging of NFs. 
+- [[302](https://github.com/sdnfv/openNetVM/pull/302)] Adds NF chain performance test to measure and plot inter-NF throughput and latency.
+- [[308](https://github.com/sdnfv/openNetVM/pull/308)] Adds socket ID information to NF and manager logging print statements. 
+
+**Miscellaneous Bug and Documentation Fixes**
+
+- [[304](https://github.com/sdnfv/openNetVM/pull/304)] Fixes the NF_TAG of `aes_decrypt` in `openNetVM/examples/aes_decrypt/aesdecrypt.c`.
+- [[300](https://github.com/sdnfv/openNetVM/pull/300)] Updates MoonGen installation document to work with the new DPDK version.
+- [[270](https://github.com/sdnfv/openNetVM/pull/270)] Fixes issues with relative path in the onvm go script to find the web directory. Now using `$ONVM_HOME` instead of `..`.
+- [[272](https://github.com/sdnfv/openNetVM/pull/272)] Fixes two bugs (including Issue #233) where the NF rings would not be cleared after deallocation and an underflow bug in stats.
+- [[265](https://github.com/sdnfv/openNetVM/pull/265)] Updates Install README to provide further clarification as well as to include a missing package. 
+- [[267](https://github.com/sdnfv/openNetVM/pull/267)] Fixes typos in `onvm_pkt_helper.h`.
+- [[317](https://github.com/sdnfv/openNetVM/pull/317)] Fixes the ARP NF endianness for source IP addresses. 
+- [[306](https://github.com/sdnfv/openNetVM/pull/306)] Updates linter installation script to use newer versions of cppcheck and Ubuntu.
+- [[316](https://github.com/sdnfv/openNetVM/pull/316)] Fixes Speed Tester NF so that it does not crash while loading a PCAP trace with jumbo frames without the correct flags.
+
+Contributors:
+
+- Dennis Afanasev ([dennisafa](https://github.com/dennisafa))
+- Noah Chinitz ([NoahChinitzGWU](https://github.com/NoahChinitzGWU))
+- Benjamin De Vierno ([bdevierno1](https://github.com/bdevierno1))
+- Kevin Deems ([kevindweb](https://github.com/kevindweb))
+- Lauren Hahn ([lhahn01](https://github.com/Lhahn01))
+- Elliott (Elie) Henne ([elliotthenne](https://github.com/elliotthenne))
+- Vivek Jain ([vivek-anand-jain](https://github.com/Vivek-anand-jain))
+- Jack Kuo [JackKuo-tw](https://github.com/JackKuo-tw)
+- Catherine Meadows ([catherinemeadows](https://github.com/catherinemeadows))
+- Rohit M P ([rohit-mp](https://github.com/rohit-mp))
+- Leslie Monis [lesliemonis](https://github.com/lesliemonis)
+- Peng Wu ([PengWu-wp](https://github.com/PengWu-wp))
+
+
 ## v20.10 (10/2020): OS/Dependency Updates, Bug Fixes, New NFs
 A CloudLab template will be available with the latest release here: [https://www.cloudlab.us/p/GWCloudLab/onvm](https://www.cloudlab.us/p/GWCloudLab/onvm)
 
