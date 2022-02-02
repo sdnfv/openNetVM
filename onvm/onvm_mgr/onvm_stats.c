@@ -316,6 +316,8 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
         uint64_t nic_tx_pkts = 0;
         uint64_t nic_rx_pps = 0;
         uint64_t nic_tx_pps = 0;
+        uint64_t nic_received_pkts = 0;
+        uint64_t nic_dropped_pkts = 0;
         char *port_label = NULL;
         /* Arrays to store last TX/RX count to calculate rate */
         static uint64_t tx_last[RTE_MAX_ETHPORTS];
@@ -339,13 +341,18 @@ onvm_stats_display_ports(unsigned difftime, uint8_t verbosity_level) {
                 nic_rx_pps = (nic_rx_pkts - rx_last[i]) / difftime;
                 nic_tx_pps = (nic_tx_pkts - tx_last[i]) / difftime;
 
+                nic_dropped_pkts = ports->nic_drop[ports->id[i]];
+                nic_received_pkts = ports->nic_receive[ports->id[i]];
+
                 if (verbosity_level == ONVM_RAW_STATS_DUMP) {
                         fprintf(stats_out, ONVM_STATS_RAW_DUMP_PORTS_CONTENT, buffer,
                                 (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
 
                 } else {
                         fprintf(stats_out, ONVM_STATS_REG_PORTS,
-                                (unsigned)ports->id[i], nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
+                                (unsigned)ports->id[i],
+                                nic_received_pkts, nic_dropped_pkts,
+                                nic_rx_pkts, nic_rx_pps, nic_tx_pkts, nic_tx_pps);
                 }
 
                 /* Only print this information out if we haven't already printed it to the console above */

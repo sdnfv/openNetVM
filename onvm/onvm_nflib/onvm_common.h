@@ -204,6 +204,8 @@ struct port_info {
         struct rte_ether_addr mac[RTE_MAX_ETHPORTS];
         volatile struct rx_stats rx_stats;
         volatile struct tx_stats tx_stats;
+        uint64_t nic_drop[RTE_MAX_ETHPORTS];
+        uint64_t nic_receive[RTE_MAX_ETHPORTS];
 };
 
 struct onvm_configuration {
