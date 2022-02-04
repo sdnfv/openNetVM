@@ -98,6 +98,7 @@ Please let us know if you use OpenNetVM in your research by `emailing us <mailto
    Cloudlab Tutorial <cloudlabtutorial/index>
    Three Node Topology Tutorial <threenodetutorial/index>
    Packet Generation Using Pktgen <pktgen/index>
+   Load Balancer Tutorial <loadbalancer/index>
    Running OpenNetVM in Docker <docker/index>
    MoonGen Installation (DPDK-2.0 Version) <moongen/index>
    Wireshark & Pdump for Packet Sniffing <wireshark/index>
