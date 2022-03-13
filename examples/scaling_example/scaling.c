@@ -229,7 +229,7 @@ packet_handler_with_scaling(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         while (spawned_nfs < num_children) {
                 struct onvm_nf_scale_info *scale_info = onvm_nflib_get_empty_scaling_config(nf_local_ctx->nf);
                 /* Sets service id of child */
-                scale_info->nf_init_cfg->service_id = destination;
+                scale_info->nf_init_cfg->service_id = nf_local_ctx->nf->service_id;
                 scale_info->function_table = onvm_nflib_init_nf_function_table();
                 /* Run the setup function to generate packets */
                 scale_info->function_table->setup = &nf_setup;
