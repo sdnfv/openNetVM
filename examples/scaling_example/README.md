@@ -1,7 +1,7 @@
 Scaling Example NF
 ==
 This program showcases how to use NF scaling. It shows how to use the ONVM scaling API or use the advanced rings mode and implement your own scaling logic.
-The NF will spawn X children (provided by `-n`, defaulting to 1 if arg isn't provided) and send packets to destination NF.    
+The NF will spawn `N` children (provided by `-n`, defaulting to 1 if arg isn't provided) with the same service ID as the parent NF. When packets are received, they are distributed equally among the parent and children (`N+1`) NFs. Packets are then forwarded to the destination NF (provided by `-d`).     
 
 This NF can be run in 2 modes:
 
