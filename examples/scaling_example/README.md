@@ -14,7 +14,7 @@ Compilation and Execution
 cd examples
 make
 cd scaling_example
-./go.sh SERVICE_ID -d DST_ID [NUM_CHILDREN] [ADVANCED_RINGS]
+./go.sh SERVICE_ID -d DST_ID [-n NUM_CHILDREN] [-a]
 
 OR
 
