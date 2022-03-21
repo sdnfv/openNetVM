@@ -317,7 +317,7 @@ get_iface_inf(void) {
         /* Parse server interface */
         strncpy(ifr.ifr_name, lb->server_iface_name, IFNAMSIZ - 1);
 
-        ioctl(fd, SIOCGIFADDR, &ifr);
+        // ioctl(fd, SIOCGIFADDR, &ifr);
         // lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
         char ip0[32] = "10.10.2.2";
         ret = onvm_pkt_parse_ip(ip0, &lb->ip_lb_server);
@@ -332,13 +332,12 @@ get_iface_inf(void) {
         // for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
         //         server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
 
-
-
         /* Parse client interface */
-        strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ - 1);
+        // strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ - 1);
 
-        ioctl(fd, SIOCGIFADDR, &ifr);
+        // ioctl(fd, SIOCGIFADDR, &ifr);
         // lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr); HERE
+        
         char ip1[32] = "10.10.1.2";
         ret = onvm_pkt_parse_ip(ip1, &lb->ip_lb_client);
         if (ret < 0) {
@@ -352,6 +351,7 @@ get_iface_inf(void) {
         // ioctl(fd, SIOCGIFHWADDR, &ifr);
         // for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
         //         client_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
+
 
         /* Compare the interfaces to onvm_mgr ports by hwaddr and assign port id accordingly */
         if (memcmp(&client_addr_bytes, &ports->mac[0], RTE_ETHER_ADDR_LEN) == 0) {
