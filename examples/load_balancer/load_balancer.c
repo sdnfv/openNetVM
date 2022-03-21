@@ -306,7 +306,7 @@ print_flow_info(struct flow_info *f) {
  */
 static void
 get_iface_inf(void) {
-        int fd, i;
+        int fd, ret;
         struct ifreq ifr;
         uint8_t client_addr_bytes[RTE_ETHER_ADDR_LEN];
         uint8_t server_addr_bytes[RTE_ETHER_ADDR_LEN];
@@ -318,21 +318,40 @@ get_iface_inf(void) {
         strncpy(ifr.ifr_name, lb->server_iface_name, IFNAMSIZ - 1);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        // lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        char ip0[32] = "10.10.2.2";
+        ret = onvm_pkt_parse_ip(ip0, &lb->ip_lb_server);
+        if (ret < 0) {
+                rte_exit(EXIT_FAILURE, "Error parsing config IP address");
+        }
 
-        ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
-                server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
+        char mac1[32] = "90:e2:ba:b5:0f:21";
+        sscanf(mac1, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &server_addr_bytes[0], &server_addr_bytes[1], &server_addr_bytes[2], &server_addr_bytes[3], &server_addr_bytes[4], &server_addr_bytes[5]);
+        
+        // ioctl(fd, SIOCGIFHWADDR, &ifr);
+        // for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
+        //         server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
+
+
 
         /* Parse client interface */
         strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ - 1);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        // lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr); HERE
+        char ip1[32] = "10.10.1.2";
+        ret = onvm_pkt_parse_ip(ip1, &lb->ip_lb_client);
+        if (ret < 0) {
+                rte_exit(EXIT_FAILURE, "Error parsing config IP address");
+        }
 
-        ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
-                client_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
+        char mac2[32] = "90:e2:ba:b5:0f:20";
+        sscanf(mac2, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &client_addr_bytes[0], &client_addr_bytes[1], &client_addr_bytes[2], &client_addr_bytes[3], &client_addr_bytes[4], &client_addr_bytes[5]);
+
+
+        // ioctl(fd, SIOCGIFHWADDR, &ifr);
+        // for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
+        //         client_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
 
         /* Compare the interfaces to onvm_mgr ports by hwaddr and assign port id accordingly */
         if (memcmp(&client_addr_bytes, &ports->mac[0], RTE_ETHER_ADDR_LEN) == 0) {
@@ -347,13 +366,13 @@ get_iface_inf(void) {
 
         printf("\nLoad balancer interfaces:\n");
         printf("Client iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-               lb->client_iface_name, lb->client_port, lb->ip_lb_client, lb->ip_lb_client & 0xFF,
-               (lb->ip_lb_client >> 8) & 0xFF, (lb->ip_lb_client >> 16) & 0xFF, (lb->ip_lb_client >> 24) & 0xFF);
+               lb->client_iface_name, lb->client_port, lb->ip_lb_client, (lb->ip_lb_client >> 24) & 0xFF,
+               (lb->ip_lb_client >> 16) & 0xFF, (lb->ip_lb_client >> 8) & 0xFF, lb->ip_lb_client & 0xFF);
         printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", client_addr_bytes[0], client_addr_bytes[1], client_addr_bytes[2],
                client_addr_bytes[3], client_addr_bytes[4], client_addr_bytes[5]);
         printf("Server iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-               lb->server_iface_name, lb->server_port, lb->ip_lb_server, lb->ip_lb_server & 0xFF,
-               (lb->ip_lb_server >> 8) & 0xFF, (lb->ip_lb_server >> 16) & 0xFF, (lb->ip_lb_server >> 24) & 0xFF);
+               lb->server_iface_name, lb->server_port, lb->ip_lb_server, (lb->ip_lb_server >> 24) & 0xFF,
+               (lb->ip_lb_server >> 16) & 0xFF, (lb->ip_lb_server >> 8) & 0xFF, lb->ip_lb_server & 0xFF);
         printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", server_addr_bytes[0], server_addr_bytes[1], server_addr_bytes[2],
                server_addr_bytes[3], server_addr_bytes[4], server_addr_bytes[5]);
 }
