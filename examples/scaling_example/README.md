@@ -1,12 +1,12 @@
 Scaling Example NF
 ==
 This program showcases how to use NF scaling. It shows how to use the ONVM scaling API or use the advanced rings mode and implement your own scaling logic.
-The NF will spawn X children (provided by `-n`, defaulting to 1 if arg isn't provided) and send packets to destination NF.    
+The NF will spawn `N` children (provided by `-n`, defaulting to 1 if arg isn't provided) with the same service ID as the parent NF. When packets are received, they are distributed equally among the parent and children (`N+1`) NFs. Packets are then forwarded to the destination NF (provided by `-d`).     
 
-Has 2 modes:
+This NF can be run in 2 modes:
 
- - By default using the nflib ring processing, the NF will use the functions provided in the nf_function_table callbacks.
- - Second with the advanced rings flag, the NF will do its own pthread creation, manage the NF rx/tx ring on its own..
+ - **Callback Mode**: This mode will be used by default. In callback mode, the NF will use the functions provided in the `nf_function_table` callbacks. `nf_function_table->pkt_handler` is set to a default function for forwarding packets to the destination NF provided by `-d`. 
+ - **Advanced Rings Mode**: This mode will be used when the advanced rings flag, `-a`, is set. The NF will do its own pthread creation and manage the NF rx/tx ring on its own. In advanced rings mode, the default action for processing packets in `thread_main_loop` is to forward packets to the destination NF provided by `-d`. 
 
 Compilation and Execution
 --
@@ -14,7 +14,7 @@ Compilation and Execution
 cd examples
 make
 cd scaling_example
-./go.sh SERVICE_ID -d DST_ID [ADVANCED_RINGS]
+./go.sh SERVICE_ID -d DST_ID [-n NUM_CHILDREN] [-a]
 
 OR
 
