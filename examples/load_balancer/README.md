@@ -25,7 +25,7 @@ ARP NF
 ./go.sh 1 -d 2 -s 10.0.0.37,11.0.0.37
 
 LB NF
-./go.sh 2 -c 10.0.0.37/0 -s 11.0.0.37/1 -f server.conf 
+./go.sh 2 -c 10.0.0.37 -r 0 -s 11.0.0.37 -t 1 -f server.conf 
 ```
 
 
@@ -33,21 +33,23 @@ Compilation and Execution
 --
 ```
 make
-./go.sh SERVICE_ID -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [PRINT_DELAY]
+./go.sh SERVICE_ID -c CLIENT_IP -r CLIENT_PORT -s SERVER_IP -t SERVER_PORT -f SERVER_CONFIG [PRINT_DELAY]
 
 OR
 
-./go.sh -F CONFIG_FILE -- -- -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [-p PRINT_DELAY]
+./go.sh -F CONFIG_FILE -- -- -c CLIENT_IP -r CLIENT_PORT -s SERVER_IP -t SERVER_PORT -f SERVER_CONFIG [-p PRINT_DELAY]
 
 OR
 
-sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [-p PRINT_DELAY]
+sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -c CLIENT_IP -r CLIENT_PORT -s SERVER_IP -t SERVER_PORT -f SERVER_CONFIG [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
 --
-  - `CLIENT_IFACE` : client IP and client port number, separated by a /
-  - `SERVER_IFACE` : client IP and client port number, separated by a /
+  - `CLIENT_IP` : client IP address
+  - `CLIENT_PORT` : client port ID
+  - `SERVER_IP` : server IP address
+  - `SERVER_PORT` : server port ID
   - `SERVER_CONFIG` : backend server config file
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
 

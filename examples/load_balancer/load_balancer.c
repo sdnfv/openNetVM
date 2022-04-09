@@ -130,10 +130,27 @@ usage(const char *progname) {
             progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-c CLIENT_INFO` : client IP and client port number, separated by a /\n");
-        printf(" - `-s SERVER_INFO` : client IP and client port number, separated by a /\n");
+        printf(" - `-c CLIENT_IP` : client IP address\n");
+        printf(" - `-r CLIENT_PORT` : client port ID\n");
+        printf(" - `-s SERVER_IP` : server IP address\n");
+        printf(" - `-t SERVER_PORT` : server port ID\n");
         printf(" - `-f SERVER_CONFIG` : backend server config file\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+}
+
+/*
+ * Parse application IP-addresses for LB interfaces.
+ */
+static int
+parse_iface_ip(char *arg, uint32_t *ip_dest) {
+        int ret;
+
+        ret = onvm_pkt_parse_ip(arg, ip_dest);
+        if (ret < 0) {
+                return -1;
+        }
+        *ip_dest = rte_cpu_to_be_32(*ip_dest);
+        return 0;
 }
 
 /*
@@ -142,42 +159,32 @@ usage(const char *progname) {
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c, ret;
-        char *client_args, *server_args;
-        char client_ip[32], server_ip[32];
 
         lb->cfg_filename = NULL;
         lb->client_port = RTE_MAX_ETHPORTS;
         lb->server_port = RTE_MAX_ETHPORTS;
 
-        while ((c = getopt(argc, argv, "c:s:f:p:")) != -1) {
+        while ((c = getopt(argc, argv, "c:r:s:t:f:p:")) != -1) {
                 switch (c) {
                         case 'c':
-                                client_args = strdup(optarg);
-                                ret = sscanf(client_args, "%[^/]/%hhd", client_ip, &lb->client_port);
-                                if (ret != 2) {
-                                        RTE_LOG(INFO, APP, "Load balancer NF requires a client interface IP and port ID, separated by a /.\n");
-                                        return -1;
-                                }
-                                ret = onvm_pkt_parse_ip(client_ip, &lb->ip_lb_client);
+                                ret = parse_iface_ip(strdup(optarg), &lb->ip_lb_client);
                                 if (ret < 0) {
                                         RTE_LOG(INFO, APP, "Error parsing client IP address");
                                         return -1;
                                 }
-                                lb->ip_lb_client = rte_cpu_to_be_32(lb->ip_lb_client);
+                                break;
+                        case 'r':
+                                lb->client_port = atoi(strdup(optarg));
                                 break;
                         case 's':
-                                server_args = strdup(optarg);
-                                ret = sscanf(server_args, "%[^/]/%hhd", server_ip, &lb->server_port);
-                                if (ret != 2) {
-                                        RTE_LOG(INFO, APP, "Load balancer NF requires a server interface IP and port ID, separated by a /.\n");
-                                        return -1;
-                                }
-                                ret = onvm_pkt_parse_ip(server_ip, &lb->ip_lb_server);
+                                ret = parse_iface_ip(strdup(optarg), &lb->ip_lb_server);
                                 if (ret < 0) {
                                         RTE_LOG(INFO, APP, "Error parsing server IP address");
                                         return -1;
                                 }
-                                lb->ip_lb_server = rte_cpu_to_be_32(lb->ip_lb_server);
+                                break;
+                        case 't':
+                                lb->server_port = atoi(strdup(optarg));
                                 break;
                         case 'f':
                                 lb->cfg_filename = strdup(optarg);
@@ -337,7 +344,7 @@ print_flow_info(struct flow_info *f) {
  * Parse and print load balancer server/client interface information, check port validity
  */
 static void
-print_iface_inf(void) {
+validate_iface_config(void) {
         int i;
         int client_flag = 0;
         int server_flag = 0;
@@ -628,7 +635,7 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
-        print_iface_inf();
+        validate_iface_config();
         parse_backend_config();
 
         lb->expire_time = 32;
