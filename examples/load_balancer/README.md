@@ -6,7 +6,7 @@ This NF acts as a layer 3, round-robin load balancer. When a packet arrives the 
 App Specific Instuctions
 --
 **Setting up dpdk interfaces**  
-This NF requires 2 DPDK interfaces to work, both can be setup using the mTCP submodule iface setup, which can be found at the [mTCP onvm module install guide][mTCP repo]. 
+This NF requires 2 DPDK interfaces.
 
 **Server Config**  
 The server config needs to have the total number of backend servers with their ip and mac address combination, an example config file `server.conf` is provided.  
@@ -17,15 +17,15 @@ An example usage for LB server port at 10.0.0.37 with clients matching 11.0.0.0/
 ```sudo ip route add 11.0.0.0/24 via 10.0.0.37 dev p2p1```  
 
 **This NF should be run with the ARP NF**    
-The Load Balancer NF needs to respond to client and server ARP requests. As `onvm_mgr` currently doesn't resolve arp requests, an ARP NF    with the LB NF as destination is used.
+The Load Balancer NF needs to respond to client and server ARP requests. As `onvm_mgr` currently doesn't resolve arp requests, an ARP NF with the LB NF as destination is used.
 
-An example usage of the ARP&LB NF, with the Load Balancer using dpdk0 - 10.0.0.37 and  dpdk1 - 11.0.0.37 for client, server ports respecively. 
+An example usage of the ARP&LB NF, with the Load Balancer using interface-1 (IP 10.0.0.37, port0) and interface-2 (IP 11.0.0.37, port1) for client and server ports, respecively. 
 ```
 ARP NF
 ./go.sh 1 -d 2 -s 10.0.0.37,11.0.0.37
 
 LB NF
-./go.sh 2 -c dpdk0 -s dpdk1 -f server.conf 
+./go.sh 2 -c 10.0.0.37,0 -s 11.0.0.37,1 -f server.conf 
 ```
 
 
@@ -33,21 +33,21 @@ Compilation and Execution
 --
 ```
 make
-./go.sh SERVICE_ID -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [PRINT_DELAY]
+./go.sh SERVICE_ID -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [PRINT_DELAY]
 
 OR
 
-./go.sh -F CONFIG_FILE -- -- -c CLIENT_FACE -s SERVER_IFACE -f SERVER_CONFIG [-p PRINT_DELAY]
+./go.sh -F CONFIG_FILE -- -- -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [-p PRINT_DELAY]
 
 OR
 
-sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -c CLIENT_IFACE -s SERVER_IFACE -f SERVER_CONFIG [-p PRINT_DELAY]
+sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-type=secondary -- -r SERVICE_ID -- -c CLIENT_INFO -s SERVER_INFO -f SERVER_CONFIG [-p PRINT_DELAY]
 ```
 
 App Specific Arguments
 --
-  - `CLIENT_IFACE` : name of the client interface
-  - `SERVER_IFACE` : name of the server interface
+  - `CLIENT_IFACE` : client IP and client port number, separated by a comma
+  - `SERVER_IFACE` : client IP and client port number, separated by a comma
   - `SERVER_CONFIG` : backend server config file
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
 
@@ -57,5 +57,3 @@ This NF supports the NF generating arguments from a config file. For
 additional reading, see [Examples.md](../../docs/Examples.md)
 
 See `../example_config.json` for all possible options that can be set.
-
-[mTCP repo]: https://github.com/mtcp-stack/mtcp/tree/devel#onvm-version
