@@ -130,8 +130,8 @@ usage(const char *progname) {
             progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-c CLIENT_INFO` : client IP and client port number, separated by a comma\n");
-        printf(" - `-s SERVER_INFO` : client IP and client port number, separated by a comma\n");
+        printf(" - `-c CLIENT_INFO` : client IP and client port number, separated by a /\n");
+        printf(" - `-s SERVER_INFO` : client IP and client port number, separated by a /\n");
         printf(" - `-f SERVER_CONFIG` : backend server config file\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
 }
@@ -153,25 +153,29 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 switch (c) {
                         case 'c':
                                 client_args = strdup(optarg);
-                                ret = sscanf(client_args, "%[^,],%hhd", client_ip, &lb->client_port);
+                                ret = sscanf(client_args, "%[^/]/%hhd", client_ip, &lb->client_port);
                                 if (ret != 2) {
-                                        RTE_LOG(INFO, APP, "Load balancer NF requires a client interface IP and port ID, separated by a comma.\n");
+                                        RTE_LOG(INFO, APP, "Load balancer NF requires a client interface IP and port ID, separated by a /.\n");
+                                        return -1;
                                 }
                                 ret = onvm_pkt_parse_ip(client_ip, &lb->ip_lb_client);
                                 if (ret < 0) {
                                         RTE_LOG(INFO, APP, "Error parsing client IP address");
+                                        return -1;
                                 }
                                 lb->ip_lb_client = rte_cpu_to_be_32(lb->ip_lb_client);
                                 break;
                         case 's':
                                 server_args = strdup(optarg);
-                                ret = sscanf(server_args, "%[^,],%hhd", server_ip, &lb->server_port);
+                                ret = sscanf(server_args, "%[^/]/%hhd", server_ip, &lb->server_port);
                                 if (ret != 2) {
-                                        RTE_LOG(INFO, APP, "Load balancer NF requires a server interface IP and port ID, separated by a comma.\n");
+                                        RTE_LOG(INFO, APP, "Load balancer NF requires a server interface IP and port ID, separated by a /.\n");
+                                        return -1;
                                 }
                                 ret = onvm_pkt_parse_ip(server_ip, &lb->ip_lb_server);
                                 if (ret < 0) {
                                         RTE_LOG(INFO, APP, "Error parsing server IP address");
+                                        return -1;
                                 }
                                 lb->ip_lb_server = rte_cpu_to_be_32(lb->ip_lb_server);
                                 break;
@@ -330,22 +334,35 @@ print_flow_info(struct flow_info *f) {
 }
 
 /*
- * Parse and assign load balancer server/client interface information
+ * Parse and print load balancer server/client interface information, check port validity
  */
 static void
 print_iface_inf(void) {
         int i;
+        int client_flag = 0;
+        int server_flag = 0;
         uint8_t client_addr_bytes[RTE_ETHER_ADDR_LEN];
         uint8_t server_addr_bytes[RTE_ETHER_ADDR_LEN];
+        
 
         /* Compare the interfaces to onvm_mgr ports by hwaddr and assign port id accordingly */
         for (i = 0; i < ports->num_ports; i++) {
-                if (ports->id[i] == lb->client_port) {
+                if (lb->client_port == ports->id[i]) {
                         memcpy(client_addr_bytes, &ports->mac[i], RTE_ETHER_ADDR_LEN);
+                        client_flag = 1;
                 }
-                if (ports->id[i] == lb->server_port) {
+                if (lb->server_port == ports->id[i]) {
                         memcpy(server_addr_bytes, &ports->mac[i], RTE_ETHER_ADDR_LEN);
+                        server_flag = 1;
                 }
+        }
+
+        if (!client_flag) {
+                rte_exit(EXIT_FAILURE, "Client port ID invalid.\n");
+        }
+
+        if (!server_flag) {
+                rte_exit(EXIT_FAILURE, "Server port ID invalid.\n");
         }
 
         printf("\nLoad balancer interfaces:\n");
