@@ -25,7 +25,7 @@ ARP NF
 ./go.sh 1 -d 2 -s 10.0.0.37,11.0.0.37
 
 LB NF
-./go.sh 2 -c 10.0.0.37,0 -s 11.0.0.37,1 -f server.conf 
+./go.sh 2 -c 10.0.0.37/0 -s 11.0.0.37/1 -f server.conf 
 ```
 
 
@@ -46,8 +46,8 @@ sudo ./load_balancer/x86_64-native-linuxapp-gcc/forward -l CORELIST -n 3 --proc-
 
 App Specific Arguments
 --
-  - `CLIENT_IFACE` : client IP and client port number, separated by a comma
-  - `SERVER_IFACE` : client IP and client port number, separated by a comma
+  - `CLIENT_IFACE` : client IP and client port number, separated by a /
+  - `SERVER_IFACE` : client IP and client port number, separated by a /
   - `SERVER_CONFIG` : backend server config file
   - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.
 
