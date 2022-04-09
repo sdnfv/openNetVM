@@ -146,8 +146,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         char client_ip[32], server_ip[32];
 
         lb->cfg_filename = NULL;
-        lb->client_port = RTE_MAX_ETHPORTS+1;
-        lb->server_port = RTE_MAX_ETHPORTS+1;
+        lb->client_port = RTE_MAX_ETHPORTS;
+        lb->server_port = RTE_MAX_ETHPORTS;
 
         while ((c = getopt(argc, argv, "c:s:f:p:")) != -1) {
                 switch (c) {
@@ -207,7 +207,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 return -1;
         }
 
-        if (lb->client_port == RTE_MAX_ETHPORTS+1) {
+        if (lb->client_port == RTE_MAX_ETHPORTS) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a client port ID.\n");
                 return -1;
         }
@@ -217,7 +217,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 return -1;
         }
 
-        if (lb->server_port == RTE_MAX_ETHPORTS+1) {
+        if (lb->server_port == RTE_MAX_ETHPORTS) {
                 RTE_LOG(INFO, APP, "Load balancer NF requires a server port ID.\n");
                 return -1;
         }
