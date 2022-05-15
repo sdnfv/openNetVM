@@ -16,7 +16,7 @@ Overview
 Cloudlab Node Setup
 -----------------
 - Open Cloudlab and start a new experiment. When prompted to choose a profile, select :code:`Simple_Load_Balancer`.
-- Begin by SSHing into each node within the experiment, and download the **Simple Load Balancer Topology Template** `here <https://cloudlab.us/>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
+- Begin by SSHing into each node within the experiment, and download the **Simple Load Balancer Topology Template** `here <https://github.com/jettjacobs/openNetVM/blob/docs/docs/loadbalancer/ONVM_LB_TopologyDoc.pdf>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
 - For every node, use :code:`ifconfig` to view all available network interfaces. Record the appropriate name, IPv4 (inet), and MAC address (ether) for each network interface in the Topology Template, as shown below. The ONVM_LB node requires the use of two ports: one for connection to the client and one for connecting to the servers. It is recommended that you use the 10-Gigabit SFI/SFP+ network connections. Port IDs will be handled later.
 
   .. image:: ../images/lb-2.png
@@ -57,6 +57,7 @@ Testing The Load Balancer with iPerf (recommended):
  - iPerf provides incremental throughput and bandwidth. Results can be seen below. Additional traffic information can be obtained by changing/adding command-line arguments, as discussed `here <https://helpmanual.io/man1/iperf/>`_. This page also provides instructions for running a UDP Client and Server, rather than TCP.
  
   .. image:: ../images/lb-6.png
+  
   .. image:: ../images/lb-7.png
  
 Testing The Load Balancer with Pktgen:
