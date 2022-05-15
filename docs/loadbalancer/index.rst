@@ -56,8 +56,8 @@ Testing The Load Balancer with iPerf (recommended):
  - At this point, you should notice traffic being sent from the client and being received by one of the two servers. If you run the client multiple times, you should observe that the traffic is being distributed across each of the backend nodes evenly.
  - iPerf provides incremental throughput and bandwidth. Results can be seen below. Additional traffic information can be obtained by changing/adding command-line arguments, as discussed `here <https://helpmanual.io/man1/iperf/>`_. This page also provides instructions for running a UDP Client and Server, rather than TCP.
  
-.. image:: ../images/lb-5.png
 .. image:: ../images/lb-6.png
+.. image:: ../images/lb-7.png
  
 Testing The Load Balancer with Pktgen:
 -----------------
@@ -66,7 +66,7 @@ Testing The Load Balancer with Pktgen:
  - In the following, we will refer to the client node as Node A and the ONVM node as Node B
  - On Node B, start the manager, the ARP NF, and the load balancer.
  - On Node A, ensure that the one port (which you intend to send packets through) is bound to the DPDK-compatible driver. Then, go to :code:`/tools/Pktgen/OpenNetVM-Scripts/pktgen-config.lua` and add the client-side port ID and Mac Address (from the ONVM node) into the script, as shown below.
- .. image:: ../images/lb-7.png
+ .. image:: ../images/lb-8.png
  - In the same :code:`/OpenNetVM-Scripts` directory, execute the command :code:`./run-pktgen.sh 1`. This will begin Pktgen, and you can start the traffic by executing :code:`start all`.
  - If Pktgen cannot successfully start, reference the `installation guide <https://github.com/sdnfv/openNetVM-dev/blob/master/tools/Pktgen/README.md>`_  for additional help.
 
@@ -78,4 +78,4 @@ Troubleshooting:
 
 - If you receive the error :code:`connect failed: No route to host` when starting the iPerf client, it is possible that the ARP NF was unable to complete all of the necessary IP/HWAddress mappings. We can check whether this is the case by executing arp -n in the command line of the client node. If the HWaddress resolves to :code:`(incomplete)` (example shown below), then the MAC address must be mapped manually. Refer to the **Topology Template** to confirm the correct hardware address for the client-side ONVM port. Then, execute the command :code:`sudo arp -s <X.X.X.X> <X:X:X:X:X>` where the first input is the ONVM client-side port IP and the second input is the client-side port MAC address. Using the template above, the arguments would be :code:`sudo arp -s 10.10.1.2 90:e2:ba:24:d1:14`. Additional manual mappings may also be needed on the backend nodes. The same process is applied, but the mapping will now correlate to the server-side ONVM port. Confirm that the HWaddress has now been added by running :code:`arp -n`, and proceed with running the iPerf client again.
 
-.. image:: ../images/lb-8.png
+.. image:: ../images/lb-9.png
