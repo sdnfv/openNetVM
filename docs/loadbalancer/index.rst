@@ -32,12 +32,12 @@ Cloudlab Node Setup
   #. Define a static route in each of the backend servers to specify the correct gateway for which traffic will enter. 
 
 - To specify the server information for the load balancer, go to :code:`/examples/load_balancer/server.conf` and copy the information that is shown in the bottom left quadrant of your **Topology Template**. This includes the *"LIST_SIZE 2"* and the IP+MAC address of each port.
-- To define the static routes, navigate to the two backend nodes (Server1 and Server2) and execute the respective commands shown on the bottom-center area of the **Topology Template**. This includes the :code:`sudo ip route add * command for each server`.
+- To define the static routes, navigate to the two backend nodes (Server1 and Server2) and execute the respective commands shown on the bottom-center area of the **Topology Template**. This includes the :code:`sudo ip route add *` command for each server.
 
 Running The Load Balancer
 -----------------
 
-- Since that environment is set, we can begin running the load balancer. In order to properly map IPs to HWAddresses, we must run the ARP NF. To do so, open a new terminal within the ONVM node; enter the :code:`/examples/arp_response` directory and run the command shown at the top of the **Topology Template** labeled *“Run Arp:”*. Once properly running, the NF will appear as below:
+- Since the ONVM environment is set, we can begin running the load balancer. In order to properly map IPs to HWAddresses, we must run the ARP NF. To do so, open a new terminal within the ONVM node; enter the :code:`/examples/arp_response` directory and run the command shown at the top of the **Topology Template** labeled *“Run Arp:”*. Once properly running, the NF will appear as below:
 
   .. image:: ../images/lb-4.png
 
@@ -50,7 +50,7 @@ Running The Load Balancer
 Testing The Load Balancer with iPerf (recommended):
 -----------------
 
-- iPerf is a simple packet-generation tool which allows for simple tests to confirm that the load balancer is properly distributing traffic. To run iPerf, perform the following:
+- iPerf is a simple packet-generation tool which we may use to confirm that the load balancer is properly distributing traffic. To run iPerf, perform the following:
  - In the terminal of both backend servers, execute the command :code:`iperf -s`. This will start a TCP server on each of the backend nodes.
  - Following, you may start the iPerf client on the client node using the command :code:`iperf -c <X.X.X.X>` where the IP to fill is the client-side port on the ONVM node.
  - At this point, you should notice traffic being sent from the client and being received by one of the two servers. If you run the client multiple times, you should observe that the traffic is being distributed across each of the backend nodes evenly.
