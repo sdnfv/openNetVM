@@ -54,11 +54,15 @@ Testing The Load Balancer with iPerf (recommended):
  - In the terminal of both backend servers, execute the command :code:`iperf -s`. This will start a TCP server on each of the backend nodes.
  - Following, you may start the iPerf client on the client node using the command :code:`iperf -c <X.X.X.X>` where the IP to fill is the client-side port on the ONVM node.
  - At this point, you should notice traffic being sent from the client and being received by one of the two servers. If you run the client multiple times, you should observe that the traffic is being distributed across each of the backend nodes evenly.
- - iPerf provides incremental throughput and bandwidth. Results can be seen below. Additional traffic information can be obtained by changing/adding command-line arguments, as discussed `here <https://helpmanual.io/man1/iperf/>`_. This page also provides instructions for running a UDP Client and Server, rather than TCP.
- 
-  .. image:: ../images/lb-6.png
+  - iPerf Client
+    
+    .. image:: ../images/lb-6.png
+    
+  - iPerf Server
+    
+    .. image:: ../images/lb-7.png
   
-  .. image:: ../images/lb-7.png
+ - iPerf provides incremental throughput and bandwidth. Results can be seen below. Additional traffic information can be obtained by changing/adding command-line arguments, as discussed `here <https://helpmanual.io/man1/iperf/>`_. This page also provides instructions for running a UDP Client and Server, rather than TCP.
  
 Testing The Load Balancer with Pktgen:
 -----------------
