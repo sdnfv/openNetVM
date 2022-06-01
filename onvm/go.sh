@@ -217,7 +217,7 @@ then
 fi
 
 # Convert the port mask to binary
-# Using bc where obase=2 indicates the output is base 2 and ibase=16 indicates the output is base 16
+# Using bc where obase=2 indicates the output is base 2 and ibase=16 indicates the input is base 16
 ports_bin=$(echo "obase=2; ibase=16; $ports" | bc)
 # Splice out the 0's from the binary numbers. The result is only 1's. Example: 1011001 -> 1111
 ports_bin="${ports_bin//0/}"
