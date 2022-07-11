@@ -16,12 +16,19 @@ Overview
 Cloudlab Node Setup
 -----------------
 - Open Cloudlab and start a new experiment. When prompted to choose a profile, select :code:`Simple_Load_Balancer`.
-- Begin by SSHing into each node within the experiment, and download the **Simple Load Balancer Topology Template** `here <https://github.com/jettjacobs/openNetVM/blob/docs/docs/loadbalancer/ONVM_LB_TopologyDoc.pdf>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
+- Begin by SSHing into each node within the experiment, and download the **Simple Load Balancer Topology Template** `here <ONVM_LB_TopologyDoc.pdf>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
 - For every node, use :code:`ifconfig` to view all available network interfaces. Record the appropriate name, IPv4 (inet), and MAC address (ether) for each network interface in the Topology Template, as shown below. The ONVM_LB node requires the use of two ports: one for connection to the client and one for connecting to the servers. It is recommended that you use the 10-Gigabit SFI/SFP+ network connections. Port IDs will be handled later.
 
   .. image:: ../images/lb-2.png
 
-- In the ONVM LB node, set up the environment using setup_cloudlab.sh in the scripts directory. Once the ports have been successfully bound to the DPDK-compatible driver, start the manager with at least two available ports. You may use :code:`./onvm/go.sh -k 3 -n 0xFF -s stdout`
+- In the ONVM LB node, set up the environment using setup_cloudlab.sh in the scripts directory. Once the ports have been successfully bound to the DPDK-compatible driver, start the manager with at least two available ports. Listed below are the abbreviated steps for binding available ports to the DPDK-bound driver. To start the manager, you may use :code:`./onvm/go.sh -k 3 -n 0xFF -s stdout`.
+  
+  #. Unbind the connected NICs: :code:`sudo ifconfig <IFACE> down` where <IFACE> represents the interface name (eg. :code:`enp6s0f0`)
+  #. Navigate to the :code:`/local/onvm/openNetVM/scripts` directory and bind the NICs to DPDK using the command :code:`source ./setup_cloudlab.sh`
+  #. Ensure that you see the two NICs in the section defining “Network devices using DPDK-compatible driver.” If you only see one NIC, it’s possible that you did not unbind the other NIC from the kernel driver using :code:`sudo ifconfig <IFACE> down`. Repeat step (i).
+  #. Navigate back to the openNetVM folder (:code:`cd ..`) and compile the Manager using :code:`cd onvm && make && cd ..`
+  #. It is recommended to compile the NFs as well: :code:`cd examples && make && cd ..`
+  
 - At the top of the manager display (pictured below), you can observe two (or more) port IDs and their associated MAC addresses. Use these ID mappings to complete the Port ID sections of the **Topology Template**.
 
   .. image:: ../images/lb-3.png
