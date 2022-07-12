@@ -29,7 +29,7 @@ A CloudLab template will be available with the latest release here: [https://www
 - [[296](https://github.com/sdnfv/openNetVM/pull/296)] Adds unit test for NF messaging infrastructure and fixes memory leak related to overflow of message pools [[Issue 293](https://github.com/sdnfv/openNetVM/pull/293)]. 
 - [[297](https://github.com/sdnfv/openNetVM/pull/297)] Adds VS Code profile to simplify debugging of NFs. 
 - [[302](https://github.com/sdnfv/openNetVM/pull/302)] Adds NF chain performance test to measure and plot inter-NF throughput and latency.
-
+- [[308](https://github.com/sdnfv/openNetVM/pull/308)] Adds socket ID information to NF and manager logging print statements. 
 
 **Miscellaneous Bug and Documentation Fixes**
 
@@ -39,6 +39,9 @@ A CloudLab template will be available with the latest release here: [https://www
 - [[272](https://github.com/sdnfv/openNetVM/pull/272)] Fixes two bugs (including Issue #233) where the NF rings would not be cleared after deallocation and an underflow bug in stats.
 - [[265](https://github.com/sdnfv/openNetVM/pull/265)] Updates Install README to provide further clarification as well as to include a missing package. 
 - [[267](https://github.com/sdnfv/openNetVM/pull/267)] Fixes typos in `onvm_pkt_helper.h`.
+- [[317](https://github.com/sdnfv/openNetVM/pull/317)] Fixes the ARP NF endianness for source IP addresses. 
+- [[306](https://github.com/sdnfv/openNetVM/pull/306)] Updates linter installation script to use newer versions of cppcheck and Ubuntu.
+- [[316](https://github.com/sdnfv/openNetVM/pull/316)] Fixes Speed Tester NF so that it does not crash while loading a PCAP trace with jumbo frames without the correct flags.
 
 Contributors:
 

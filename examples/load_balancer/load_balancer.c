@@ -93,10 +93,8 @@ struct loadbalance {
         uint8_t server_port;
         uint8_t client_port;
 
-        /* config file, interface names */
+        /* config file */
         char *cfg_filename;
-        char *client_iface_name;
-        char *server_iface_name;
 };
 
 /* Struct for backend servers */
@@ -132,10 +130,27 @@ usage(const char *progname) {
             progname);
         printf("%s -F <CONFIG_FILE.json> [EAL args] -- [NF_LIB args] -- [NF args]\n\n", progname);
         printf("Flags:\n");
-        printf(" - `-c CLIENT_IFACE` : name of the client interface\n");
-        printf(" - `-s SERVER_IFACE` : name of the server interface\n");
+        printf(" - `-c CLIENT_IP` : client IP address\n");
+        printf(" - `-r CLIENT_PORT` : client port ID\n");
+        printf(" - `-s SERVER_IP` : server IP address\n");
+        printf(" - `-t SERVER_PORT` : server port ID\n");
         printf(" - `-f SERVER_CONFIG` : backend server config file\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+}
+
+/*
+ * Parse application IP-addresses for LB interfaces.
+ */
+static int
+parse_iface_ip(char *arg, uint32_t *ip_dest) {
+        int ret;
+
+        ret = onvm_pkt_parse_ip(arg, ip_dest);
+        if (ret < 0) {
+                return -1;
+        }
+        *ip_dest = rte_cpu_to_be_32(*ip_dest);
+        return 0;
 }
 
 /*
@@ -143,19 +158,33 @@ usage(const char *progname) {
  */
 static int
 parse_app_args(int argc, char *argv[], const char *progname) {
-        int c;
+        int c, ret;
 
         lb->cfg_filename = NULL;
-        lb->client_iface_name = NULL;
-        lb->server_iface_name = NULL;
+        lb->client_port = RTE_MAX_ETHPORTS;
+        lb->server_port = RTE_MAX_ETHPORTS;
 
-        while ((c = getopt(argc, argv, "c:s:f:p:")) != -1) {
+        while ((c = getopt(argc, argv, "c:r:s:t:f:p:")) != -1) {
                 switch (c) {
                         case 'c':
-                                lb->client_iface_name = strdup(optarg);
+                                ret = parse_iface_ip(strdup(optarg), &lb->ip_lb_client);
+                                if (ret < 0) {
+                                        RTE_LOG(INFO, APP, "Error parsing client IP address");
+                                        return -1;
+                                }
+                                break;
+                        case 'r':
+                                lb->client_port = atoi(strdup(optarg));
                                 break;
                         case 's':
-                                lb->server_iface_name = strdup(optarg);
+                                ret = parse_iface_ip(strdup(optarg), &lb->ip_lb_server);
+                                if (ret < 0) {
+                                        RTE_LOG(INFO, APP, "Error parsing server IP address");
+                                        return -1;
+                                }
+                                break;
+                        case 't':
+                                lb->server_port = atoi(strdup(optarg));
                                 break;
                         case 'f':
                                 lb->cfg_filename = strdup(optarg);
@@ -185,13 +214,23 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                 return -1;
         }
 
-        if (!lb->client_iface_name) {
-                RTE_LOG(INFO, APP, "Load balancer NF requires a client interface name.\n");
+        if (lb->client_port == RTE_MAX_ETHPORTS) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a client port ID.\n");
                 return -1;
         }
 
-        if (!lb->server_iface_name) {
-                RTE_LOG(INFO, APP, "Load balancer NF requires a backend server interface name.\n");
+        if (!lb->ip_lb_client) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a client IP address.\n");
+                return -1;
+        }
+
+        if (lb->server_port == RTE_MAX_ETHPORTS) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a server port ID.\n");
+                return -1;
+        }
+
+        if (!lb->ip_lb_server) {
+                RTE_LOG(INFO, APP, "Load balancer NF requires a server IP address.\n");
                 return -1;
         }
 
@@ -302,60 +341,48 @@ print_flow_info(struct flow_info *f) {
 }
 
 /*
- * Parse and assign load balancer server/client interface information
+ * Parse and print load balancer server/client interface information, check port validity
  */
 static void
-get_iface_inf(void) {
-        int fd, i;
-        struct ifreq ifr;
+validate_iface_config(void) {
+        int i;
+        int client_flag = 0;
+        int server_flag = 0;
         uint8_t client_addr_bytes[RTE_ETHER_ADDR_LEN];
         uint8_t server_addr_bytes[RTE_ETHER_ADDR_LEN];
-
-        fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-        ifr.ifr_addr.sa_family = AF_INET;
-
-        /* Parse server interface */
-        strncpy(ifr.ifr_name, lb->server_iface_name, IFNAMSIZ - 1);
-
-        ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_server = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-
-        ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
-                server_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
-
-        /* Parse client interface */
-        strncpy(ifr.ifr_name, lb->client_iface_name, IFNAMSIZ - 1);
-
-        ioctl(fd, SIOCGIFADDR, &ifr);
-        lb->ip_lb_client = *(uint32_t *)(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-
-        ioctl(fd, SIOCGIFHWADDR, &ifr);
-        for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
-                client_addr_bytes[i] = ifr.ifr_hwaddr.sa_data[i];
+        
 
         /* Compare the interfaces to onvm_mgr ports by hwaddr and assign port id accordingly */
-        if (memcmp(&client_addr_bytes, &ports->mac[0], RTE_ETHER_ADDR_LEN) == 0) {
-                lb->client_port = ports->id[0];
-                lb->server_port = ports->id[1];
-        } else {
-                lb->client_port = ports->id[1];
-                lb->server_port = ports->id[0];
+        for (i = 0; i < ports->num_ports; i++) {
+                if (lb->client_port == ports->id[i]) {
+                        memcpy(client_addr_bytes, &ports->mac[i], RTE_ETHER_ADDR_LEN);
+                        client_flag = 1;
+                }
+                if (lb->server_port == ports->id[i]) {
+                        memcpy(server_addr_bytes, &ports->mac[i], RTE_ETHER_ADDR_LEN);
+                        server_flag = 1;
+                }
         }
 
-        close(fd);
+        if (!client_flag) {
+                rte_exit(EXIT_FAILURE, "Client port ID invalid.\n");
+        }
+
+        if (!server_flag) {
+                rte_exit(EXIT_FAILURE, "Server port ID invalid.\n");
+        }
 
         printf("\nLoad balancer interfaces:\n");
-        printf("Client iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-               lb->client_iface_name, lb->client_port, lb->ip_lb_client, lb->ip_lb_client & 0xFF,
+        printf("Client iface: ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
+               lb->client_port, lb->ip_lb_client, lb->ip_lb_client & 0xFF,
                (lb->ip_lb_client >> 8) & 0xFF, (lb->ip_lb_client >> 16) & 0xFF, (lb->ip_lb_client >> 24) & 0xFF);
         printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", client_addr_bytes[0], client_addr_bytes[1], client_addr_bytes[2],
                client_addr_bytes[3], client_addr_bytes[4], client_addr_bytes[5]);
-        printf("Server iface \'%s\' ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
-               lb->server_iface_name, lb->server_port, lb->ip_lb_server, lb->ip_lb_server & 0xFF,
+        printf("Server iface: ID: %d, IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "), ",
+               lb->server_port, lb->ip_lb_server, lb->ip_lb_server & 0xFF,
                (lb->ip_lb_server >> 8) & 0xFF, (lb->ip_lb_server >> 16) & 0xFF, (lb->ip_lb_server >> 24) & 0xFF);
         printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", server_addr_bytes[0], server_addr_bytes[1], server_addr_bytes[2],
-               server_addr_bytes[3], server_addr_bytes[4], server_addr_bytes[5]);
+                server_addr_bytes[3], server_addr_bytes[4], server_addr_bytes[5]);
 }
 
 /*
@@ -608,7 +635,7 @@ main(int argc, char *argv[]) {
                 rte_exit(EXIT_FAILURE, "Unable to create flow table");
         }
 
-        get_iface_inf();
+        validate_iface_config();
         parse_backend_config();
 
         lb->expire_time = 32;

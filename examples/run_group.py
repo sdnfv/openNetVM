@@ -114,7 +114,7 @@ def running_services():
     """Checks running NFs"""
     if timeout != 0:
         start = time.time()
-        time.clock()
+        time.perf_counter()
         elapsed = 0
         while elapsed < timeout:
             elapsed = time.time() - start
