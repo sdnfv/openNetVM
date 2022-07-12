@@ -244,9 +244,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 parse_backend_config(void) {
-        int ret, temp, i;
+        int ret, temp, i, weight;
         char ip[32];
         char mac[32];
+        char policy[32];
         FILE *cfg;
 
         cfg = fopen(lb->cfg_filename, "r");
@@ -265,8 +266,12 @@ parse_backend_config(void) {
                 rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
         }
 
+        ret = fscanf(cfg, "%s", policy);
+        lb->policy = strdup(policy);
+
         for (i = 0; i < lb->server_count; i++) {
-                ret = fscanf(cfg, "%s %s", ip, mac);
+                ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
+                if (strcmp(policy, "weighted")) weight = 1;
                 if (ret != 2) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
@@ -459,11 +464,21 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 return -1;
         }
 
-        lb->num_stored++;
-        data->dest = lb->num_stored % lb->server_count;
-        data->last_pkt_cycles = lb->elapsed_cycles;
-        data->is_active = 0;
+        if (!strcmp(lb->policy,"random")) {
+                /* Intializes random number generator */
+                srand((unsigned) time(&t));
 
+                lb->num_stored++;
+                data->dest = rand() % lb->server_count;
+                data->last_pkt_cycles = lb->elapsed_cycles;
+                data->is_active = 0;
+        }
+        else if (!strcmp(lb->policy,"rrobin")) {
+                lb->num_stored++;
+                data->dest = lb->num_stored % lb->server_count;
+                data->last_pkt_cycles = lb->elapsed_cycles;
+                data->is_active = 0;
+        }
         *flow = data;
 
         return 0;
