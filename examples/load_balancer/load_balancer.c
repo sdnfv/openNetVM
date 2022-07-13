@@ -468,6 +468,8 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         if (!strcmp(lb->policy,"random")) {
+                time_t t;
+
                 /* Intializes random number generator */
                 srand((unsigned) time(&t));
 
