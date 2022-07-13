@@ -95,6 +95,9 @@ struct loadbalance {
 
         /* config file */
         char *cfg_filename;
+        
+        /* LB policy */
+        char *policy;
 };
 
 /* Struct for backend servers */
