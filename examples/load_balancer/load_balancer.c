@@ -274,7 +274,7 @@ parse_backend_config(void) {
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-                if (strcmp(policy, "weighted")) weight = 1;
+                if (strcmp(policy, "weighted_random")) weight = 1;
                 if (ret != 3) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
@@ -476,6 +476,15 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
         else if (!strcmp(lb->policy,"rrobin")) {
                 data->dest = lb->num_stored % lb->server_count;
+        }
+        else if (!strcmp(lb->policy,"weighted_random")) {
+                uint8_t w_mod = lb->num_stored % (lb->server_count + 6);
+                if (w_mod) {
+                        data->dest = 1;
+                } else {
+                        data->dest = 0;
+                }
+                
         }
         
         data->last_pkt_cycles = lb->elapsed_cycles;
