@@ -467,23 +467,19 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 return -1;
         }
 
+        lb->num_stored++;
         if (!strcmp(lb->policy,"random")) {
                 time_t t;
-
                 /* Intializes random number generator */
                 srand((unsigned) time(&t));
-
-                lb->num_stored++;
                 data->dest = rand() % lb->server_count;
-                data->last_pkt_cycles = lb->elapsed_cycles;
-                data->is_active = 0;
         }
         else if (!strcmp(lb->policy,"rrobin")) {
-                lb->num_stored++;
                 data->dest = lb->num_stored % lb->server_count;
-                data->last_pkt_cycles = lb->elapsed_cycles;
-                data->is_active = 0;
         }
+        
+        data->last_pkt_cycles = lb->elapsed_cycles;
+        data->is_active = 0;
         *flow = data;
 
         return 0;
