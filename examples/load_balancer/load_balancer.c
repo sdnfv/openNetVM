@@ -98,6 +98,10 @@ struct loadbalance {
         
         /* LB policy */
         char *policy;
+
+        /* structures to store server weights */
+        int *weights;
+        int total_weight;
 };
 
 /* Struct for backend servers */
@@ -263,6 +267,8 @@ parse_backend_config(void) {
         }
         lb->server_count = temp;
 
+        lb->weights = (int*)calloc(temp,sizeof(int));
+
         lb->server = (struct backend_server *)rte_malloc("backend server info",
                                                          sizeof(struct backend_server) * lb->server_count, 0);
         if (lb->server == NULL) {
@@ -271,6 +277,10 @@ parse_backend_config(void) {
 
         ret = fscanf(cfg, "%s", policy);
         lb->policy = strdup(policy);
+
+        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+        }
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
@@ -288,6 +298,9 @@ parse_backend_config(void) {
                 if (ret < 0) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
+
+                lb->weights[i] = weight;
+                lb->total_weight += weight;
         }
 
         fclose(cfg);
@@ -478,14 +491,28 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 data->dest = lb->num_stored % lb->server_count;
         }
         else if (!strcmp(lb->policy,"weighted_random")) {
-                uint8_t w_mod = lb->num_stored % (lb->server_count + 6);
-                if (w_mod) {
-                        data->dest = 1;
-                } else {
-                        data->dest = 0;
+                // uint8_t w_mod = lb->num_stored % (lb->server_count + 6);
+                // if (w_mod) {
+                //         data->dest = 1;
+                // } else {
+                //         data->dest = 0;
+                // }
+                time_t t;
+                int i, wrand, cur_weight_sum;
+                /* Intializes random number generator */
+                srand((unsigned) time(&t));
+                wrand = rand() % lb->total_weight;
+                cur_weight_sum=0;
+                for (i = 0; i < lb->server_count; i++) {
+                        cur_weight_sum+=lb->weights[i];
+                        if(wrand<=cur_weight_sum) {
+                                data->dest=i;
+                                break;
+                        }
                 }
-                
+
         }
+        
         
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
