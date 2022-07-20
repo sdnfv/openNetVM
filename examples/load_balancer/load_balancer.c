@@ -505,7 +505,7 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 cur_weight_sum=0;
                 for (i = 0; i < lb->server_count; i++) {
                         cur_weight_sum+=lb->weights[i];
-                        if(wrand<=cur_weight_sum) {
+                        if(wrand < cur_weight_sum) {
                                 data->dest=i;
                                 break;
                         }
