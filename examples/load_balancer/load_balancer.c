@@ -491,12 +491,6 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 data->dest = lb->num_stored % lb->server_count;
         }
         else if (!strcmp(lb->policy,"weighted_random")) {
-                // uint8_t w_mod = lb->num_stored % (lb->server_count + 6);
-                // if (w_mod) {
-                //         data->dest = 1;
-                // } else {
-                //         data->dest = 0;
-                // }
                 time_t t;
                 int i, wrand, cur_weight_sum;
                 /* Intializes random number generator */
@@ -512,7 +506,6 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 }
 
         }
-        
         
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
