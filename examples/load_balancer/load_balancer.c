@@ -251,89 +251,11 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 /*
  * This function parses the backend config. It takes the filename
  * and fills up the backend_server array. This includes the mac and ip
- * address of the backend servers
- */
-static int
-parse_backend_config(void) {
-        int ret, temp, i, weight;
-        char ip[32];
-        char mac[32];
-        char policy[32];
-        FILE *cfg;
-
-        cfg = fopen(lb->cfg_filename, "r");
-        if (cfg == NULL) {
-                rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", lb->cfg_filename);
-        }
-        ret = fscanf(cfg, "%*s %d", &temp);
-        if (temp <= 0) {
-                rte_exit(EXIT_FAILURE, "Error parsing config, need at least one server configurations\n");
-        }
-        lb->server_count = temp;
-
-        lb->weights = (int*)calloc(temp,sizeof(int));
-
-        lb->server = (struct backend_server *)rte_malloc("backend server info",
-                                                         sizeof(struct backend_server) * lb->server_count, 0);
-        if (lb->server == NULL) {
-                rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
-        }
-
-        ret = fscanf(cfg, "%s", policy);
-        lb->policy = strdup(policy);
-
-        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
-                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        }
-
-        for (i = 0; i < lb->server_count; i++) {
-                ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-                if (strcmp(policy, "weighted_random")) weight = 1;
-                if (ret != 3) {
-                        rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
-                }
-
-                ret = onvm_pkt_parse_ip(ip, &lb->server[i].d_ip);
-                if (ret < 0) {
-                        rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
-                }
-
-                ret = onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
-                if (ret < 0) {
-                        rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
-                }
-
-                lb->weights[i] = weight;
-                lb->total_weight += weight;
-        }
-
-        fclose(cfg);
-        printf("\nARP config:\n");
-        for (i = 0; i < lb->server_count; i++) {
-                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
-                       (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF,
-                       lb->server[i].d_ip & 0xFF);
-                printf("%02x:%02x:%02x:%02x:%02x:%02x\n", lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
-                       lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3], lb->server[i].d_addr_bytes[4],
-                       lb->server[i].d_addr_bytes[5]);
-        }
-
-        return ret;
-}
-
-
-/*
- * This function parses the backend config. It takes the filename
- * and fills up the backend_server array. This includes the mac and ip
  * address of the backend servers as well as their weights
  */
 static int
 parse_backend_json_config(void) {
-        int ret, i, num_objects;
-        // char ip[32];
-        // char mac[32];
-        // char policy[32];
-        //FILE *cfg;
+        int ret, i;
         i = 0;
 
         cJSON *config_json = onvm_config_parse_file(lb->cfg_filename);
@@ -348,7 +270,6 @@ parse_backend_json_config(void) {
                                        " the directory to the config file is being specified.\n", lb->cfg_filename);
         }
 
-        num_object = onvm_config_get_item_count(config_json);
         config_json = config_json -> child;
 
         list_size = cJSON_GetObjectItem(config_json, "LIST_SIZE");
@@ -407,7 +328,6 @@ parse_backend_json_config(void) {
         }
         cJSON_Delete(config_json);
 
-        //fclose(cfg);
         printf("\nARP config:\n");
         for (i = 0; i < lb->server_count; i++) {
                 printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
@@ -418,56 +338,7 @@ parse_backend_json_config(void) {
                        lb->server[i].d_addr_bytes[5]);
         }
 
-        return ret;
-
-
-        //cfg = fopen(lb->cfg_filename, "r");
-        // if (cfg == NULL) {
-        //         rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", lb->cfg_filename);
-        // }
-        // ret = fscanf(cfg, "%*s %d", &temp);
-        // if (temp <= 0) {
-        //         rte_exit(EXIT_FAILURE, "Error parsing config, need at least one server configurations\n");
-        // }
-        // lb->server_count = temp;
-
-        //lb->weights = (int*)calloc(temp,sizeof(int));
-
-        // lb->server = (struct backend_server *)rte_malloc("backend server info",
-        //                                                  sizeof(struct backend_server) * lb->server_count, 0);
-        // if (lb->server == NULL) {
-        //         rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
-        // }
-
-        // ret = fscanf(cfg, "%s", policy);
-        // lb->policy = strdup(policy);
-
-        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
-        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        // }
-
-        // for (i = 0; i < lb->server_count; i++) {
-        //         ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-        //         if (strcmp(policy, "weighted_random")) weight = 1;
-        //         if (ret != 3) {
-        //                 rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
-        //         }
-
-        //         ret = onvm_pkt_parse_ip(ip, &lb->server[i].d_ip);
-        //         if (ret < 0) {
-        //                 rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
-        //         }
-
-        //         ret = onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
-        //         if (ret < 0) {
-        //                 rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
-        //         }
-
-        //         lb->weights[i] = weight;
-        //         lb->total_weight += weight;
-        // }
-
-        
+        return ret;     
 }
 
 /*
