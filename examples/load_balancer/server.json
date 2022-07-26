@@ -1,0 +1,17 @@
+{
+    "Info" : {
+        "LIST_SIZE": 2,
+        "policy": "random"
+    },
+    "Server0": {
+        "ip": "10.10.1.2",
+        "mac_addr": "90:e2:ba:ac:16:34",
+        "weight": 1
+    },
+    "Server1": {
+        "ip": "10.10.1.3",
+        "mac_addr": "90:e2:ba:b3:bb:7d",
+        "weight": 1
+    }
+    
+}

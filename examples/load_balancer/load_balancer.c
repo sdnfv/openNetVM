@@ -69,6 +69,10 @@
 #include "onvm_flow_table.h"
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_config_common.h"
+
+
+#include "cJSON.h"
 
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
@@ -317,6 +321,154 @@ parse_backend_config(void) {
         return ret;
 }
 
+
+/*
+ * This function parses the backend config. It takes the filename
+ * and fills up the backend_server array. This includes the mac and ip
+ * address of the backend servers as well as their weights
+ */
+static int
+parse_backend_json_config(void) {
+        int ret, i, num_objects;
+        // char ip[32];
+        // char mac[32];
+        // char policy[32];
+        //FILE *cfg;
+        i = 0;
+
+        cJSON *config_json = onvm_config_parse_file(lb->cfg_filename);
+        cJSON *list_size = NULL;
+        cJSON *policy = NULL;
+        cJSON *ip_addr = NULL;
+        cJSON *mac_addr = NULL;
+        cJSON *weight = NULL;
+
+        if (config_json == NULL) {
+                rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure config file"
+                                       " the directory to the config file is being specified.\n", lb->cfg_filename);
+        }
+
+        num_object = onvm_config_get_item_count(config_json);
+        config_json = config_json -> child;
+
+        list_size = cJSON_GetObjectItem(config_json, "LIST_SIZE");
+        policy = cJSON_GetObjectItem(config_json, "policy");
+        
+        if (list_size == NULL) rte_exit(EXIT_FAILURE, "LIST_SIZE not found/invalid\n");
+        if (policy == NULL) rte_exit(EXIT_FAILURE, "Policy not found/invalid\n");
+
+        lb->server_count = list_size->valueint;
+        lb->policy = strdup(policy->valuestring);
+
+        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+        }
+        
+        
+        lb->weights = (int*)calloc(lb->server_count,sizeof(int));
+
+        lb->server = (struct backend_server *)rte_malloc("backend server info",
+                                                         sizeof(struct backend_server) * lb->server_count, 0);
+        if (lb->server == NULL) {
+                rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
+        }
+
+        config_json = config_json->next;
+
+
+        while (config_json != NULL) {
+                ip_addr = cJSON_GetObjectItem(config_json, "ip");
+                mac_addr =  cJSON_GetObjectItem(config_json, "mac_addr");
+                weight = cJSON_GetObjectItem(config_json, "weight");
+
+                if (ip_addr == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+                if (mac_addr == NULL) rte_exit(EXIT_FAILURE, "MAC address not found/invalid\n");
+                if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
+
+                ret = onvm_pkt_parse_ip(ip_addr->valuestring, &lb->server[i].d_ip);
+                if (ret < 0) {
+                        rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
+                }
+                ret = onvm_pkt_parse_mac(mac_addr->valuestring, lb->server[i].d_addr_bytes);
+                if (ret < 0) {
+                        rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
+                }
+
+                if (strcmp(lb->policy, "weighted_random")) lb->weights[i] = 1;
+                else {
+                        lb->weights[i] = weight->valueint;
+                        lb->total_weight += weight->valueint;
+                }
+                i++;
+
+                
+
+        }
+        cJSON_Delete(config_json);
+
+        //fclose(cfg);
+        printf("\nARP config:\n");
+        for (i = 0; i < lb->server_count; i++) {
+                printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
+                       (lb->server[i].d_ip >> 16) & 0xFF, (lb->server[i].d_ip >> 8) & 0xFF,
+                       lb->server[i].d_ip & 0xFF);
+                printf("%02x:%02x:%02x:%02x:%02x:%02x\n", lb->server[i].d_addr_bytes[0], lb->server[i].d_addr_bytes[1],
+                       lb->server[i].d_addr_bytes[2], lb->server[i].d_addr_bytes[3], lb->server[i].d_addr_bytes[4],
+                       lb->server[i].d_addr_bytes[5]);
+        }
+
+        return ret;
+
+
+        //cfg = fopen(lb->cfg_filename, "r");
+        // if (cfg == NULL) {
+        //         rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", lb->cfg_filename);
+        // }
+        // ret = fscanf(cfg, "%*s %d", &temp);
+        // if (temp <= 0) {
+        //         rte_exit(EXIT_FAILURE, "Error parsing config, need at least one server configurations\n");
+        // }
+        // lb->server_count = temp;
+
+        //lb->weights = (int*)calloc(temp,sizeof(int));
+
+        // lb->server = (struct backend_server *)rte_malloc("backend server info",
+        //                                                  sizeof(struct backend_server) * lb->server_count, 0);
+        // if (lb->server == NULL) {
+        //         rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
+        // }
+
+        // ret = fscanf(cfg, "%s", policy);
+        // lb->policy = strdup(policy);
+
+        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+        // }
+
+        // for (i = 0; i < lb->server_count; i++) {
+        //         ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
+        //         if (strcmp(policy, "weighted_random")) weight = 1;
+        //         if (ret != 3) {
+        //                 rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
+        //         }
+
+        //         ret = onvm_pkt_parse_ip(ip, &lb->server[i].d_ip);
+        //         if (ret < 0) {
+        //                 rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
+        //         }
+
+        //         ret = onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
+        //         if (ret < 0) {
+        //                 rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
+        //         }
+
+        //         lb->weights[i] = weight;
+        //         lb->total_weight += weight;
+        // }
+
+        
+}
+
 /*
  * This function displays stats. It uses ANSI terminal codes to clear
  * screen when called. It is called from a single non-master
@@ -491,12 +643,6 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 data->dest = lb->num_stored % lb->server_count;
         }
         else if (!strcmp(lb->policy,"weighted_random")) {
-                // uint8_t w_mod = lb->num_stored % (lb->server_count + 6);
-                // if (w_mod) {
-                //         data->dest = 1;
-                // } else {
-                //         data->dest = 0;
-                // }
                 time_t t;
                 int i, wrand, cur_weight_sum;
                 /* Intializes random number generator */
@@ -688,7 +834,7 @@ main(int argc, char *argv[]) {
         }
 
         validate_iface_config();
-        parse_backend_config();
+        parse_backend_json_config();
 
         lb->expire_time = 32;
         lb->elapsed_cycles = rte_get_tsc_cycles();
