@@ -399,6 +399,7 @@ parse_backend_json_config(void) {
                         lb->weights[i] = weight->valueint;
                         lb->total_weight += weight->valueint;
                 }
+                config_json = config_json->next;
                 i++;
 
                 
