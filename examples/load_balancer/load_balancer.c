@@ -689,6 +689,10 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+
+		free(lb->weights);
+		free(lb->policy);
+
         onvm_ft_free(lb->ft);
         rte_free(lb);
         printf("If we reach here, program is ending\n");
