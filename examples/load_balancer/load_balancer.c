@@ -70,8 +70,6 @@
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
 #include "onvm_config_common.h"
-
-
 #include "cJSON.h"
 
 #define NF_TAG "load_balancer"
@@ -255,8 +253,9 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 parse_backend_json_config(void) {
-        int ret, i;
+        int ret, i, server_count;
         i = 0;
+        server_count=0;
 
         cJSON *config_json = onvm_config_parse_file(lb->cfg_filename);
         cJSON *list_size = NULL;
@@ -266,17 +265,17 @@ parse_backend_json_config(void) {
         cJSON *weight = NULL;
 
         if (config_json == NULL) {
-                rte_exit(EXIT_FAILURE, "%s file could not be parsed/not found. Assure config file"
+                rte_exit(EXIT_FAILURE, "%s file could not be parsed or was not found. Assure"
                                        " the directory to the config file is being specified.\n", lb->cfg_filename);
         }
 
         config_json = config_json -> child;
 
-        list_size = cJSON_GetObjectItem(config_json, "LIST_SIZE");
+        list_size = cJSON_GetObjectItem(config_json, "list_size");
         policy = cJSON_GetObjectItem(config_json, "policy");
         
-        if (list_size == NULL) rte_exit(EXIT_FAILURE, "LIST_SIZE not found/invalid\n");
-        if (policy == NULL) rte_exit(EXIT_FAILURE, "Policy not found/invalid\n");
+        if (list_size == NULL) rte_exit(EXIT_FAILURE, "list_size not found/invalid\n");
+        if (policy == NULL) rte_exit(EXIT_FAILURE, "policy not found/invalid\n");
 
         lb->server_count = list_size->valueint;
         lb->policy = strdup(policy->valuestring);
@@ -284,7 +283,6 @@ parse_backend_json_config(void) {
         if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
                 rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
         }
-        
         
         lb->weights = (int*)calloc(lb->server_count,sizeof(int));
 
@@ -296,7 +294,6 @@ parse_backend_json_config(void) {
 
         config_json = config_json->next;
 
-
         while (config_json != NULL) {
                 ip_addr = cJSON_GetObjectItem(config_json, "ip");
                 mac_addr =  cJSON_GetObjectItem(config_json, "mac_addr");
@@ -304,7 +301,7 @@ parse_backend_json_config(void) {
 
                 if (ip_addr == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
                 if (mac_addr == NULL) rte_exit(EXIT_FAILURE, "MAC address not found/invalid\n");
-                if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
+                
 
                 ret = onvm_pkt_parse_ip(ip_addr->valuestring, &lb->server[i].d_ip);
                 if (ret < 0) {
@@ -317,15 +314,19 @@ parse_backend_json_config(void) {
 
                 if (strcmp(lb->policy, "weighted_random")) lb->weights[i] = 1;
                 else {
+                        if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
                         lb->weights[i] = weight->valueint;
                         lb->total_weight += weight->valueint;
                 }
                 config_json = config_json->next;
                 i++;
+                server_count++;
+
 
                 
 
         }
+        if (server_count!=lb->server_count) rte_exit(EXIT_FAILURE, "Invalid list_size in config file\n");
         cJSON_Delete(config_json);
 
         printf("\nARP config:\n");
@@ -338,7 +339,7 @@ parse_backend_json_config(void) {
                        lb->server[i].d_addr_bytes[5]);
         }
 
-        return ret;     
+        return ret;
 }
 
 /*
