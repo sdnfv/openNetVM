@@ -639,9 +639,9 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
-		time_t t;
-		/* Intializes random number generator */
-		srand((unsigned) time(&t));
+	time_t t;
+	/* Intializes random number generator */
+	srand((unsigned) time(&t));
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
