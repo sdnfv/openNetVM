@@ -488,7 +488,8 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         lb->num_stored++;
-
+        
+        int i, wrand, cur_weight_sum;
         switch (lb->policy)
         {
         case RANDOM:
@@ -498,7 +499,6 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 data->dest = lb->num_stored % lb->server_count;
                 break;
         case WEIGHTED_RANDOM:
-                int i, wrand, cur_weight_sum;
                 wrand = rand() % lb->total_weight;
                 cur_weight_sum=0;
                 for (i = 0; i < lb->server_count; i++) {
