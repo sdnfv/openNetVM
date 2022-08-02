@@ -73,6 +73,8 @@
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
 
+enum lb_policy {rrobin, random, weighted_random};
+
 /* Struct for load balancer information */
 struct loadbalance {
         struct onvm_ft *ft;
@@ -97,7 +99,7 @@ struct loadbalance {
         char *cfg_filename;
         
         /* LB policy */
-        char *policy;
+        enum lb_policy policy;
 
         /* structures to store server weights */
         int *weights;
@@ -254,7 +256,7 @@ parse_backend_config(void) {
         int ret, temp, i, weight;
         char ip[32];
         char mac[32];
-        char policy[32];
+        char config_policy[32];
         FILE *cfg;
 
         cfg = fopen(lb->cfg_filename, "r");
@@ -275,16 +277,21 @@ parse_backend_config(void) {
                 rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
         }
 
-        ret = fscanf(cfg, "%s", policy);
-        lb->policy = strdup(policy);
+        ret = fscanf(cfg, "%s", config_policy);
+        // lb->policy = strdup(policy);
+        if (!strcmp(config_policy, "rrobin")) lb->policy = rrobin;
+        else if (!strcmp(config_policy, "random")) lb->policy = random;
+        else if (!strcmp(config_policy, "weighted_random")) lb->policy = weighted_random;
+        else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
 
-        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
-                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        }
+        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+        // }
+
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-                if (strcmp(policy, "weighted_random")) weight = 1;
+                if (strcmp(config_policy, "weighted_random")) weight = 1;
                 if (ret != 3) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
@@ -481,13 +488,16 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         lb->num_stored++;
-        if (!strcmp(lb->policy,"random")) {
+
+        switch (lb->policy)
+        {
+        case random:
                 data->dest = rand() % lb->server_count;
-        }
-        else if (!strcmp(lb->policy,"rrobin")) {
+                break;
+        case rrobin:
                 data->dest = lb->num_stored % lb->server_count;
-        }
-        else if (!strcmp(lb->policy,"weighted_random")) {
+                break;
+        case weighted_random:
                 int i, wrand, cur_weight_sum;
                 wrand = rand() % lb->total_weight;
                 cur_weight_sum=0;
@@ -498,8 +508,30 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                                 break;
                         }
                 }
-
+                break;
+        default:
+                rte_exit(EXIT_FAILURE, "Invalid policy while adding entry to table!\n");
+                break;
         }
+
+        // if (!strcmp(lb->policy,"random")) {
+        //         data->dest = rand() % lb->server_count;
+        // }
+        // else if (!strcmp(lb->policy,"rrobin")) {
+        //         data->dest = lb->num_stored % lb->server_count;
+        // }
+        // else if (!strcmp(lb->policy,"weighted_random")) {
+        //         int i, wrand, cur_weight_sum;
+        //         wrand = rand() % lb->total_weight;
+        //         cur_weight_sum=0;
+        //         for (i = 0; i < lb->server_count; i++) {
+        //                 cur_weight_sum+=lb->weights[i];
+        //                 if(wrand < cur_weight_sum) {
+        //                         data->dest=i;
+        //                         break;
+        //                 }
+        //         }
+        // }
         
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
@@ -689,7 +721,7 @@ main(int argc, char *argv[]) {
         onvm_nflib_stop(nf_local_ctx);
 
  	free(lb->weights);
-        free(lb->policy);
+        // free(lb->policy);
         onvm_ft_free(lb->ft);
         rte_free(lb);
         printf("If we reach here, program is ending\n");
