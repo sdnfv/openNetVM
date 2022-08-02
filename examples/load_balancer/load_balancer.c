@@ -73,7 +73,7 @@
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
 
-enum lb_policy {rrobin, random, weighted_random};
+enum lb_policy {RROBIN, RANDOM, WEIGHTED_RANDOM};
 
 /* Struct for load balancer information */
 struct loadbalance {
@@ -279,19 +279,19 @@ parse_backend_config(void) {
 
         ret = fscanf(cfg, "%s", config_policy);
         // lb->policy = strdup(policy);
-        if (!strcmp(config_policy, "rrobin")) lb->policy = rrobin;
-        else if (!strcmp(config_policy, "random")) lb->policy = random;
-        else if (!strcmp(config_policy, "weighted_random")) lb->policy = weighted_random;
+        if (!strcmp(config_policy, "RROBIN")) lb->policy = RROBIN;
+        else if (!strcmp(config_policy, "RANDOM")) lb->policy = RANDOM;
+        else if (!strcmp(config_policy, "WEIGHTED_RANDOM")) lb->policy = WEIGHTED_RANDOM;
         else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
 
-        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+        // if (!((!strcmp(lb->policy,"RANDOM")) || (!strcmp(lb->policy,"RROBIN")) || (!strcmp(lb->policy,"WEIGHTED_RANDOM")))) {
         //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
         // }
 
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-                if (strcmp(config_policy, "weighted_random")) weight = 1;
+                if (strcmp(config_policy, "WEIGHTED_RANDOM")) weight = 1;
                 if (ret != 3) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
@@ -491,13 +491,13 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
 
         switch (lb->policy)
         {
-        case random:
+        case RANDOM:
                 data->dest = rand() % lb->server_count;
                 break;
-        case rrobin:
+        case RROBIN:
                 data->dest = lb->num_stored % lb->server_count;
                 break;
-        case weighted_random:
+        case WEIGHTED_RANDOM:
                 int i, wrand, cur_weight_sum;
                 wrand = rand() % lb->total_weight;
                 cur_weight_sum=0;
@@ -514,13 +514,13 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 break;
         }
 
-        // if (!strcmp(lb->policy,"random")) {
+        // if (!strcmp(lb->policy,"RANDOM")) {
         //         data->dest = rand() % lb->server_count;
         // }
-        // else if (!strcmp(lb->policy,"rrobin")) {
+        // else if (!strcmp(lb->policy,"RROBIN")) {
         //         data->dest = lb->num_stored % lb->server_count;
         // }
-        // else if (!strcmp(lb->policy,"weighted_random")) {
+        // else if (!strcmp(lb->policy,"WEIGHTED_RANDOM")) {
         //         int i, wrand, cur_weight_sum;
         //         wrand = rand() % lb->total_weight;
         //         cur_weight_sum=0;
@@ -672,7 +672,7 @@ main(int argc, char *argv[]) {
         const char *progname = argv[0];
 
 	time_t t;
-	/* Intializes random number generator */
+	/* Intializes RANDOM number generator */
 	srand((unsigned) time(&t));
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
