@@ -482,19 +482,13 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
 
         lb->num_stored++;
         if (!strcmp(lb->policy,"random")) {
-                time_t t;
-                /* Intializes random number generator */
-                srand((unsigned) time(&t));
                 data->dest = rand() % lb->server_count;
         }
         else if (!strcmp(lb->policy,"rrobin")) {
                 data->dest = lb->num_stored % lb->server_count;
         }
         else if (!strcmp(lb->policy,"weighted_random")) {
-                time_t t;
                 int i, wrand, cur_weight_sum;
-                /* Intializes random number generator */
-                srand((unsigned) time(&t));
                 wrand = rand() % lb->total_weight;
                 cur_weight_sum=0;
                 for (i = 0; i < lb->server_count; i++) {
@@ -644,6 +638,10 @@ main(int argc, char *argv[]) {
         struct onvm_nf_function_table *nf_function_table;
         int arg_offset;
         const char *progname = argv[0];
+
+		time_t t;
+		/* Intializes random number generator */
+		srand((unsigned) time(&t));
 
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
