@@ -322,9 +322,6 @@ parse_backend_json_config(void) {
                 i++;
                 server_count++;
 
-
-                
-
         }
         if (server_count!=lb->server_count) rte_exit(EXIT_FAILURE, "Invalid list_size in config file\n");
         cJSON_Delete(config_json);
