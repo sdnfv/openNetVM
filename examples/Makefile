@@ -40,9 +40,7 @@ $(error "Please define RTE_SDK environment variable")
 endif
 
 # To add new examples, append the directory name to this variable
-
-examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response nf_router scaling_example load_generator payload_scan firewall simple_fwd_tb l2fwd test_messaging l3fwd fair_queue skeleton
-
+examples = bridge basic_monitor simple_forward speed_tester flow_table test_flow_dir aes_encrypt aes_decrypt flow_tracker load_balancer arp_response nf_router scaling_example load_generator payload_scan firewall simple_fwd_tb l2fwd test_messaging l3fwd fair_queue
 
 ifeq ($(NDPI_HOME),)
 $(warning "Skipping ndpi_stats NF as NDPI_HOME is not set")
