@@ -39,6 +39,7 @@ Testing and Development Improvements
 - `[296] <https://github.com/sdnfv/openNetVM/pull/296>`_ Adds unit test for NF messaging infrastructure and fixes memory leak related to overflow of message pools [Issue `293 <https://github.com/sdnfv/openNetVM/pull/293>`_].
 - `[297] <https://github.com/sdnfv/openNetVM/pull/297>`_ Adds VS Code profile to simplify debugging of NFs.
 - `[302] <https://github.com/sdnfv/openNetVM/pull/302>`_ Adds NF chain performance test to measure and plot inter-NF throughput and latency.
+- `[308] <https://github.com/sdnfv/openNetVM/pull/308>`_ Adds socket ID information to NF and manager logging print statements. 
 
 Miscellaneous Bug and Documentation Fixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -49,7 +50,9 @@ Miscellaneous Bug and Documentation Fixes
 - `[272] <https://github.com/sdnfv/openNetVM/pull/272>`_ Fixes two bugs (including Issue `233 <https://github.com/sdnfv/openNetVM/pull/233>`_) where the NF rings would not be cleared after deallocation and an underflow bug in stats.
 - `[265] <https://github.com/sdnfv/openNetVM/pull/265>`_ Updates Install README to provide further clarification as well as to include a missing package.
 - `[267] <https://github.com/sdnfv/openNetVM/pull/267>`_ Fixes typos in :code:`onvm_pkt_helper.h`.
-
+- `[317] <https://github.com/sdnfv/openNetVM/pull/317>`_ Fixes the ARP NF endianness for source IP addresses. 
+- `[306] <https://github.com/sdnfv/openNetVM/pull/306>`_ Updates linter installation script to use newer versions of cppcheck and Ubuntu.
+- `[316] <https://github.com/sdnfv/openNetVM/pull/316>`_ Fixes Speed Tester NF so that it does not crash while loading a PCAP trace with jumbo frames without the correct flags.
 
 Contributors:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
