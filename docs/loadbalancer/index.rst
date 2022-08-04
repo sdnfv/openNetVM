@@ -17,7 +17,7 @@ Cloudlab Node Setup
 -----------------
 - Open Cloudlab and start a new experiment. When prompted to choose a profile, select :code:`ONVM_LoadBalancer`. For this tutorial, set the number of backend servers to 2, and set the OS Image to :code:`ONVM & Sledge UBUNTU20.04`. With regards to defining the physical node type, we will leave this blank and expect the default c220g2 nodes. In the following section (under "Finalize"), select the :code:`Cloudlab Wisconsin` cluster, and all remaining inputs are discretionary.
 - Begin by SSHing into each node within the experiment, and download the **Load Balancer Topology Template** `here <ONVM_LB_TopologyDoc.pdf>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
-- For every node, use :code:`ifconfig` to view all available network interfaces. Record the appropriate name, IPv4 (inet), and MAC address (ether) for each network interface in the Topology Template, as shown below. Note that the client side and server side nodes should be on a different IP subnets. The ONVM_LB node requires the use of two ports: one for connection to the client and one for connecting to the servers. It is recommended that you use the 10-Gigabit SFI/SFP+ network connections. Port IDs will be handled later.
+- For every node, use :code:`ifconfig` to view all available network interfaces. Record the appropriate name, IPv4 (inet), and MAC address (ether) for each network interface in the Topology Template, as shown below. Note that the client side and server side nodes should be on a different IP subnets and the first 3 values of the client ip must match it's serverside onvm port. The first 3 values of the servers and their onvm port must also match.  The ONVM_LB node requires the use of two ports: one for connection to the client and one for connecting to the servers. It is recommended that you use the 10-Gigabit SFI/SFP+ network connections. Port IDs will be handled later.
 
   .. image:: ../images/lb-2.png
 
@@ -39,10 +39,11 @@ Running ONVM Manager
 
 - Now that the **Topology Template** is complete, all commands within the PDF document should be populated. To complete our LB configuration, we must:
   
-  #. Specify the backend servers’ port information in **server.conf**
+  #. Specify the backend servers’ port information in **server.json**
   #. Define a static route in each of the backend servers to specify the correct gateway for which traffic will enter. 
 
-- To specify the server information for the load balancer, go to :code:`/examples/load_balancer/server.conf` and copy the information that is shown in the bottom left quadrant of your **Topology Template**. This includes the *"LIST_SIZE 2"* and the IP+MAC address of each port.
+- To specify the server information for the load balancer, go to :code:`/examples/load_balancer/server.json` and copy the json code that is shown in the bottom left quadrant of your **Topology Template**. This includes the *"list_size 2"*, the policy, and the IP + MAC address + weight of each port.
+- The Load Balancer currently supports random ("random"), weighted random ("weighted_random"), and round robin ("rrobin") packet distribution policies. The policy may be selected in the json using the strings provided in parenthesis. Weight fields are only required for weighted random policy.
 - To define the static routes, navigate to the two backend nodes (Server1 and Server2) and execute the respective commands shown on the bottom-center area of the **Topology Template**. This includes the :code:`sudo ip route add *` command for each server.
 
 Running The Load Balancer
