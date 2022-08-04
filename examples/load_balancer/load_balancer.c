@@ -291,7 +291,7 @@ parse_backend_config(void) {
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
-                if (strcmp(config_policy, "WEIGHTED_RANDOM")) weight = 1;
+                if (lb->policy != WEIGHTED_RANDOM) weight = 1;
                 if (ret != 3) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
