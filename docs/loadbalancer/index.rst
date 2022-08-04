@@ -7,7 +7,7 @@ Getting Started
 
 Overview
 -----------------
-- In the following tutorial, we will explore a means of deploying and testing ONVM’s example Layer-3 round-robin load balancer. To do this, we will instantiate a Cloudlab experiment using the :code:`ONVM_LoadBalancer` profile; this topology (shown below) includes two backend servers and a single client, in addition to the ONVM load balancer.
+- In the following tutorial, we will explore a means of deploying and testing ONVM’s load balancer. To do this, we will instantiate a Cloudlab experiment using the :code:`ONVM_LoadBalancer` profile; this topology (shown below) includes two backend servers and a single client, in addition to the ONVM load balancer.
 
   .. image:: ../images/lb-1.png
 
@@ -15,18 +15,23 @@ Overview
 
 Cloudlab Node Setup
 -----------------
-- Open Cloudlab and start a new experiment. When prompted to choose a profile, select :code:`ONVM_LoadBalancer`. For this tutorial, set the number of backend servers to 2, and set the OS Image to :code:`ONVM UBUNTU20.04`. With regards to defining the physical node type, we will leave this blank and expect the default c220g2 nodes. In the following section (under "Finalize"), select the :code:`Cloudlab Wisconsin` cluster, and all remaining inputs are discretionary.
+- Open Cloudlab and start a new experiment. When prompted to choose a profile, select :code:`ONVM_LoadBalancer`. For this tutorial, set the number of backend servers to 2, and set the OS Image to :code:`ONVM & Sledge UBUNTU20.04`. With regards to defining the physical node type, we will leave this blank and expect the default c220g2 nodes. In the following section (under "Finalize"), select the :code:`Cloudlab Wisconsin` cluster, and all remaining inputs are discretionary.
 - Begin by SSHing into each node within the experiment, and download the **Load Balancer Topology Template** `here <ONVM_LB_TopologyDoc.pdf>`_. If you are using any Apple product to complete this tutorial, avoid using Preview as your PDF editor; autofill scripts will not apply. Google Chrome or Adobe Acrobat are viable alternatives.
 - For every node, use :code:`ifconfig` to view all available network interfaces. Record the appropriate name, IPv4 (inet), and MAC address (ether) for each network interface in the Topology Template, as shown below. Note that the client side and server side nodes should be on a different IP subnets. The ONVM_LB node requires the use of two ports: one for connection to the client and one for connecting to the servers. It is recommended that you use the 10-Gigabit SFI/SFP+ network connections. Port IDs will be handled later.
 
   .. image:: ../images/lb-2.png
 
-- In the ONVM LB node, set up the environment using :code:`setup_cloudlab.sh` in the scripts directory. Once the ports have been successfully bound to the DPDK-compatible driver, start the manager with at least two available ports. Listed below are the abbreviated steps for binding available ports to the DPDK-bound driver. To start the manager, you may use :code:`./onvm/go.sh -k 3 -n 0xFF -s stdout`.
-  
-  #. Unbind the connected NICs: :code:`sudo ifconfig <IFACE> down` where <IFACE> represents the interface name (eg. :code:`enp6s0f0`)
+Running ONVM Manager
+-----------------
+
+- In the ONVM LB node
+
+  #. Unbind both of the connected NICs: :code:`sudo ifconfig <IFACE> down` where <IFACE> represents the interface name (eg. :code:`enp6s0f0`)
   #. Navigate to the :code:`/local/onvm/openNetVM/scripts` directory and bind the NICs to DPDK using the command :code:`source ./setup_cloudlab.sh`
   #. Ensure that you see the two NICs in the section defining “Network devices using DPDK-compatible driver.” If you only see one NIC, it’s possible that you did not unbind the other NIC from the kernel driver using :code:`sudo ifconfig <IFACE> down`. Repeat step (i).
-  #. Navigate back to the openNetVM folder (:code:`cd ..`) and compile the Manager using :code:`cd onvm && make && cd ..`
+  #. Navigate back to the openNetVM folder (:code:`cd ..`), and compile the Manager using :code:`cd onvm && make && cd ..`
+  #. Navigate to examples folder :code:`cd examples && make && cd ..`
+  #. Run the manager :code:`./onvm/go.sh -k 3 -n 0xFF -s stdout`
   
 - At the top of the manager display (pictured below), you can observe two (or more) port IDs and their associated MAC addresses. Use these ID mappings to complete the Port ID sections of the **Topology Template**.
 
