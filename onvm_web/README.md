@@ -6,6 +6,8 @@ Resources to view openNetVM Manager statistics through a web console.
 
 The [start web console][start_web] script will run cors_server.py (which is an extension of [Python's SimpleHTTPServer][simplehttp] which enables CORS) on port 8080 by default, or on a port of your specification using the `-p` flag. See more details for this in the **Usage** section below.
 
+OpenNetVM web now supports using Grafana with Prometheus to extract more data metrics. Grafana server will run on its default port 3000, but the Grafana page can be accessed using the current web console.
+
 ## Usage
 
 Start the openNetVM Manager following steps in either the [install
@@ -50,6 +52,28 @@ You could also specify a port argument using the `-p` flag:
 ```sh
 cd onvm_web
 ./start_web_console.sh -p 9000
+```
+
+This would only start the web consle and display the web status, it would not start the onvm manager!
+
+## Install Guide
+
+Because Prometheus, Grafana and pushgateway api are running on their official docker image, please make sure you have `docker.io` installed on your machine.
+If not, please run following command to install it first, otherwise prometheus server may not be able to properly started.
+
+```sh
+sudo apt install docker.io
+```
+
+You also need to install pushgateway python client in order to run pushgateway
+```sh
+sudo pip install prometheus_client
+```
+
+The python server had been updated to flask server. In order to use flask server you need to install flask and flaks CORS in order to run the server
+```sh
+sudo pip install flask
+sudo pip install -U flask_cors
 ```
 
 ## Design and Implementation
@@ -105,6 +129,20 @@ sudo npm install uglify-js -g
 sudo npm install uglifycss -g
 ```
 
+## About Grafana
+
+OpenNetVM uses Grafana to display more data metrics collected by Prometheus. Currently the Grafana provisioning is set up to use prometheus as its default data source. The default dashboard will display some information about current CPU usage.
+
+To create new dashboards, you can simply create it in the Grafana server and then save the json format config file, and save it in grafana/conf/provisioning/dashboards folder. The provisioning file will automatically upload any new json format dashboards dynamically.
+
+To set up a new data source, you need to modify [datasource.yaml][datasource]. You can add additional data source below the current one, for more information on how to set up provision file, you can check [grafana_provision][Grafana Provision] for detailed information. The [datasource.yaml][datasource] also contains explainations on how to set up new data source.
+
+### About Prometheus
+
+Prometheus is a tool for collecting metrics. It also provides an internal query language PromQL that can search through the metrics and selectively represent them. The Prometheus server is running from the official docker image. The [Prometheus.yml][prometheus] set up file sets up the Prometheus to listen on the node exporter. To modify it, check out [prometheus_setup][prometheus setup page] for more information.
+
+Prometheus works with different exporters and collects information from different exporters. The node exporter can mainly extract information on your current machine. But there are other exporters that can be used to extract more information.
+
 [install]: ../docs/Install.md
 [examples]: ../docs/Examples.md
 [start_web]: ./start_web_console.sh
@@ -112,3 +150,7 @@ sudo npm install uglifycss -g
 [onvm_main_c]: ../onvm/onvm_mgr/main.c
 [app_wrapper_react_js]: ./react-app/src/AppWrapper.react.js
 [pubsub_js]: ./react-app/src/pubsub.js
+[datasource.yaml]: ./conf/provisioning/datasources/datasources.yaml
+[grafana_provision]: https://grafana.com/docs/grafana/latest/administration/provisioning/#provisioning-grafana
+[Prometheus.yml]: ./Prometheus.yml
+[prometheus_setup]: https://prometheus.io/docs/prometheus/latest/configuration/configuration/

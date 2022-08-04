@@ -43,6 +43,17 @@ function usage {
 }
 
 web_port=8080
+prometheus_file="./Prometheus.yml"
+grafana_file="./provisioning/datasources/sample.yaml"
+
+# check if docker is installed
+is_docker_installed=$(command -v docker)
+if [[ $is_docker_installed == "" ]]
+then
+  echo "[ERROR] Docker is not installed, please install docker with"
+  echo "sudo apt install docker.io"
+  exit 1
+fi
 
 while getopts "p:" opt; do
     case $opt in
@@ -51,6 +62,15 @@ while getopts "p:" opt; do
             ;;
     esac
 done
+
+# Get localhost IP address
+# This might need to change depending on the host address
+host_ip=$(ifconfig | grep inet | grep -v inet6 | grep -v 127 | cut -d '' -f2 | awk '{if(NR==2)print $2}')
+if [[ "$host_ip" == "" ]]
+then
+  host_ip=$(ifconfig | grep inet | grep -v int6 | grep -v 127 | cut -d '' -f2 | awk '{print $2}')
+fi
+echo "$host_ip"
 
 # Start ONVM web stats console at http://localhost:<port num>
 echo -n "Starting openNetVM Web Stats Console at http://localhost:"
@@ -74,10 +94,114 @@ then
   exit 1
 fi
 
+# start Grafana server at http://localhost:3000
+echo "Starting Grafana server at http://localhost:3000"
+is_grafana_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":3000")
+if [[ "$is_grafana_port_in_use" != "" ]]
+then
+  echo "[ERROR] Grafana port 3000 is in use"
+  echo "$is_grafana_port_in_use"
+  echo "[ERROR] Grafana server failed to start"
+  exit 1
+fi
+
+# check if Grafana docker image has been build
+is_grafana_build=$(sudo docker images | grep modified_grafana)
+if [[ "$is_grafana_build" == "" ]]
+then
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $grafana_file
+  sudo docker build -t grafana/modified_grafana ./
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $grafana_file
+fi
+
+# start prometheus server at http://localhost:9090
+echo "Starting Prometheus server at http://localhost:9090"
+is_prometheus_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9090")
+if [[ "$is_prometheus_port_in_use" != "" ]]
+then
+  echo "[ERROR] Prometheus port 9090 is in use"
+  echo "$is_prometheus_port_in_use"
+  echo "[ERROR] Prometheus server failed to start"
+  exit 1
+fi
+
+# start node exporter server at http://localhost:9100
+echo "Starting node exporter server at http://localhost:9100"
+is_node_exporter_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9090")
+if [[ "$is_node_exporter_port_in_use" != "" ]]
+then
+  echo "[ERROR] Node exporter port 9100 is in use"
+  echo "$is_prometheus_port_in_use"
+  echo "[ERROR] Node exporter server failed to start"
+  exit 1
+fi
+
+# start pushgateway server at http://localhost:9091
+echo "Starting pushgateway server at http://localhost:9091"
+is_pushgateway_port_in_use=$(sudo netstat -tulpn | grep LISTEN | grep ":9091")
+if [[ "$is_pushgateway_port_in_use" != "" ]]
+then
+  echo "[ERROR] Pushgateway port 9091 is in use"
+  echo "$is_pushgateway_port_in_use"
+  echo "[ERROR] Pushgateway server failed to start"
+  exit 1
+fi
+
+is_grafana_started=$(sudo docker ps -a | grep grafana)
+if [[ "$is_grafana_started" == "" ]]
+then
+  sudo docker run -d -p 3000:3000 --name grafana grafana/modified_grafana
+else
+  sudo docker start grafana
+fi
+
+is_prometheus_started=$(sudo docker ps -a | grep prometheus)
+if [[ "$is_prometheus_started" == "" ]]
+then
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
+  sudo docker run -d -p 9090:9090 --name prometheus -v "$ONVM_HOME"/onvm_web/Prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
+else
+  sed -i "/HOSTIP/s/HOSTIP/$host_ip/g" $prometheus_file
+  sudo docker start prometheus
+  sed -i "/$host_ip/s/$host_ip/HOSTIP/g" $prometheus_file
+fi
+
+is_pushgateway_started=$(sudo docker ps -a | grep pushgateway)
+if [[ "$is_pushgateway_started" == "" ]]
+then
+  sudo docker run -d -p 9091:9091 --name=pushgateway prom/pushgateway
+else
+  sudo docker start pushgateway
+fi
+
+cd "$ONVM_HOME"/onvm_web/node_exporter || usage
+sudo chmod a+x node_exporter
+sudo nohup ./node_exporter &
+export NODE_PID=$!
+
+# Create all the log files needed for the server
+cd "$ONVM_HOME"/examples
+if [ -f "./nf_chain_config.json" ]
+then
+  sudo rm nf_chain_config.json
+  touch nf_chain_config.json
+fi
+
 cd "$ONVM_HOME"/onvm_web || usage
-nohup python cors_server.py 8000 &
+nohup sudo python3 flask_server.py &
 export ONVM_WEB_PID=$!
+
+# Check if the log folder exists
+if [ ! -d "./nf-chain-logs" ]
+then
+  mkdir nf-chain-logs
+fi
 
 cd "$ONVM_HOME"/onvm_web/web-build || usage
 nohup python -m SimpleHTTPServer "$web_port" &
 export ONVM_WEB_PID2=$!
+
+# Run pushgateway monitor
+cd "$ONVM_HOME"/onvm_web || usage
+nohup sudo python3 pushgateway_monitor.py &

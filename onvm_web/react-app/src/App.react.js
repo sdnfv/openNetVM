@@ -14,6 +14,8 @@ import PortDashboardPage from "./pages/PortDashboardPage.react";
 import SingleNFPage from "./pages/SingleNFPage.react";
 import CoreMappingsPage from "./pages/CoreMappingsPage.react";
 import Error404Page from "./pages/Error404Page.react";
+import Grafana from "./pages/Grafana.react"
+import LaunchNFChainPage from "./pages/LaunchNFChain.react"
 
 import "tabler-react/dist/Tabler.css";
 import "./c3jscustom.css";
@@ -35,6 +37,8 @@ function App(props: Props): React.Node {
             <Route exact path="/nfs/:nfLabel" component={SingleNFPage} />
             <Route exact path="/ports" component={PortDashboardPage} />
             <Route exact path="/core-mappings" component={CoreMappingsPage} />
+            <Route exact path="/grafana" component={Grafana} />
+            <Route exact path="/nf-chain" component={LaunchNFChainPage} />
             <Route component={Error404Page} />
           </Switch>
         </Router>

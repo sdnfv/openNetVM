@@ -261,9 +261,9 @@ then
     cd "$ONVM_HOME"/onvm_web/ || usage
     if [ -n "${web_port}" ]
     then
-        . start_web_console.sh -p "${web_port}"
+        sudo ./start_web_console.sh -p "${web_port}"
     else
-        . start_web_console.sh
+        sudo ./start_web_console.sh
     fi
 
     cd "$ONVM_HOME"/onvm || usage
@@ -277,6 +277,5 @@ sudo "$SCRIPTPATH"/onvm_mgr/"$RTE_TARGET"/onvm_mgr -l "$cpu" -n 4 --proc-type=pr
 if [ "${stats}" = "-s web" ]
 then
     echo "Killing web stats running with PIDs: $ONVM_WEB_PID, $ONVM_WEB_PID2"
-    kill "$ONVM_WEB_PID"
-    kill "$ONVM_WEB_PID2"
+    sudo "$ONVM_HOME"/onvm_web/stop_web_interface.sh
 fi

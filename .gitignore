@@ -5,6 +5,9 @@
 # dpdk built target
 dpdk-1.8.0/x86_64-native-linuxapp-gcc/*
 
+# nf chain log files
+**/nf-chain-logs/**
+
 # ctags files
 tags
 .tags
