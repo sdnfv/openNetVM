@@ -73,6 +73,8 @@
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
 
+enum lb_policy {RROBIN, RANDOM, WEIGHTED_RANDOM};
+
 /* Struct for load balancer information */
 struct loadbalance {
         struct onvm_ft *ft;
@@ -95,6 +97,13 @@ struct loadbalance {
 
         /* config file */
         char *cfg_filename;
+        
+        /* LB policy */
+        enum lb_policy policy;
+
+        /* structures to store server weights */
+        int *weights;
+        int total_weight;
 };
 
 /* Struct for backend servers */
@@ -244,9 +253,10 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 parse_backend_config(void) {
-        int ret, temp, i;
+        int ret, temp, i, weight;
         char ip[32];
         char mac[32];
+        char config_policy[32];
         FILE *cfg;
 
         cfg = fopen(lb->cfg_filename, "r");
@@ -259,15 +269,24 @@ parse_backend_config(void) {
         }
         lb->server_count = temp;
 
+        lb->weights = (int*)calloc(temp,sizeof(int));
+
         lb->server = (struct backend_server *)rte_malloc("backend server info",
                                                          sizeof(struct backend_server) * lb->server_count, 0);
         if (lb->server == NULL) {
                 rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
         }
 
+        ret = fscanf(cfg, "%s", config_policy);
+        if (!strcmp(config_policy, "RROBIN")) lb->policy = RROBIN;
+        else if (!strcmp(config_policy, "RANDOM")) lb->policy = RANDOM;
+        else if (!strcmp(config_policy, "WEIGHTED_RANDOM")) lb->policy = WEIGHTED_RANDOM;
+        else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+
         for (i = 0; i < lb->server_count; i++) {
-                ret = fscanf(cfg, "%s %s", ip, mac);
-                if (ret != 2) {
+                ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
+                if (lb->policy != WEIGHTED_RANDOM) weight = 1;
+                if (ret != 3) {
                         rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
                 }
 
@@ -280,6 +299,9 @@ parse_backend_config(void) {
                 if (ret < 0) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
+
+                lb->weights[i] = weight;
+                lb->total_weight += weight;
         }
 
         fclose(cfg);
@@ -460,10 +482,34 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         lb->num_stored++;
-        data->dest = lb->num_stored % lb->server_count;
+        
+        int i, wrand, cur_weight_sum;
+        switch (lb->policy)
+        {
+        case RANDOM:
+                data->dest = rand() % lb->server_count;
+                break;
+        case RROBIN:
+                data->dest = lb->num_stored % lb->server_count;
+                break;
+        case WEIGHTED_RANDOM:
+                wrand = rand() % lb->total_weight;
+                cur_weight_sum=0;
+                for (i = 0; i < lb->server_count; i++) {
+                        cur_weight_sum+=lb->weights[i];
+                        if(wrand < cur_weight_sum) {
+                                data->dest=i;
+                                break;
+                        }
+                }
+                break;
+        default:
+                rte_exit(EXIT_FAILURE, "Invalid policy while adding entry to table!\n");
+                break;
+        }
+        
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
-
         *flow = data;
 
         return 0;
@@ -600,6 +646,10 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
+	time_t t;
+	/* Intializes RANDOM number generator */
+	srand((unsigned) time(&t));
+
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
@@ -644,6 +694,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+
+ 	free(lb->weights);
         onvm_ft_free(lb->ft);
         rte_free(lb);
         printf("If we reach here, program is ending\n");
