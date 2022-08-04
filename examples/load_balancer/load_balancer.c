@@ -278,16 +278,10 @@ parse_backend_config(void) {
         }
 
         ret = fscanf(cfg, "%s", config_policy);
-        // lb->policy = strdup(policy);
         if (!strcmp(config_policy, "RROBIN")) lb->policy = RROBIN;
         else if (!strcmp(config_policy, "RANDOM")) lb->policy = RANDOM;
         else if (!strcmp(config_policy, "WEIGHTED_RANDOM")) lb->policy = WEIGHTED_RANDOM;
         else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-
-        // if (!((!strcmp(lb->policy,"RANDOM")) || (!strcmp(lb->policy,"RROBIN")) || (!strcmp(lb->policy,"WEIGHTED_RANDOM")))) {
-        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        // }
-
 
         for (i = 0; i < lb->server_count; i++) {
                 ret = fscanf(cfg, "%s %s %d", ip, mac, &weight);
@@ -513,25 +507,6 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
                 rte_exit(EXIT_FAILURE, "Invalid policy while adding entry to table!\n");
                 break;
         }
-
-        // if (!strcmp(lb->policy,"RANDOM")) {
-        //         data->dest = rand() % lb->server_count;
-        // }
-        // else if (!strcmp(lb->policy,"RROBIN")) {
-        //         data->dest = lb->num_stored % lb->server_count;
-        // }
-        // else if (!strcmp(lb->policy,"WEIGHTED_RANDOM")) {
-        //         int i, wrand, cur_weight_sum;
-        //         wrand = rand() % lb->total_weight;
-        //         cur_weight_sum=0;
-        //         for (i = 0; i < lb->server_count; i++) {
-        //                 cur_weight_sum+=lb->weights[i];
-        //                 if(wrand < cur_weight_sum) {
-        //                         data->dest=i;
-        //                         break;
-        //                 }
-        //         }
-        // }
         
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
@@ -721,7 +696,6 @@ main(int argc, char *argv[]) {
         onvm_nflib_stop(nf_local_ctx);
 
  	free(lb->weights);
-        // free(lb->policy);
         onvm_ft_free(lb->ft);
         rte_free(lb);
         printf("If we reach here, program is ending\n");
