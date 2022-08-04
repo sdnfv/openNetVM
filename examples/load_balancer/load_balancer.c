@@ -69,6 +69,8 @@
 #include "onvm_flow_table.h"
 #include "onvm_nflib.h"
 #include "onvm_pkt_helper.h"
+#include "onvm_config_common.h"
+#include "cJSON.h"
 
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
@@ -95,6 +97,13 @@ struct loadbalance {
 
         /* config file */
         char *cfg_filename;
+        
+        /* LB policy */
+        char *policy;
+
+        /* structures to store server weights */
+        int *weights;
+        int total_weight;
 };
 
 /* Struct for backend servers */
@@ -240,24 +249,42 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 /*
  * This function parses the backend config. It takes the filename
  * and fills up the backend_server array. This includes the mac and ip
- * address of the backend servers
+ * address of the backend servers as well as their weights
  */
 static int
-parse_backend_config(void) {
-        int ret, temp, i;
-        char ip[32];
-        char mac[32];
-        FILE *cfg;
+parse_backend_json_config(void) {
+        int ret, i, server_count;
+        i = 0;
+        server_count=0;
 
-        cfg = fopen(lb->cfg_filename, "r");
-        if (cfg == NULL) {
-                rte_exit(EXIT_FAILURE, "Error openning server \'%s\' config\n", lb->cfg_filename);
+        cJSON *config_json = onvm_config_parse_file(lb->cfg_filename);
+        cJSON *list_size = NULL;
+        cJSON *policy = NULL;
+        cJSON *ip_addr = NULL;
+        cJSON *mac_addr = NULL;
+        cJSON *weight = NULL;
+
+        if (config_json == NULL) {
+                rte_exit(EXIT_FAILURE, "%s file could not be parsed or was not found. Assure"
+                                       " the directory to the config file is being specified.\n", lb->cfg_filename);
         }
-        ret = fscanf(cfg, "%*s %d", &temp);
-        if (temp <= 0) {
-                rte_exit(EXIT_FAILURE, "Error parsing config, need at least one server configurations\n");
+
+        config_json = config_json -> child;
+
+        list_size = cJSON_GetObjectItem(config_json, "list_size");
+        policy = cJSON_GetObjectItem(config_json, "policy");
+        
+        if (list_size == NULL) rte_exit(EXIT_FAILURE, "list_size not found/invalid\n");
+        if (policy == NULL) rte_exit(EXIT_FAILURE, "policy not found/invalid\n");
+
+        lb->server_count = list_size->valueint;
+        lb->policy = strdup(policy->valuestring);
+
+        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
         }
-        lb->server_count = temp;
+        
+        lb->weights = (int*)calloc(lb->server_count,sizeof(int));
 
         lb->server = (struct backend_server *)rte_malloc("backend server info",
                                                          sizeof(struct backend_server) * lb->server_count, 0);
@@ -265,24 +292,40 @@ parse_backend_config(void) {
                 rte_exit(EXIT_FAILURE, "Malloc failed, can't allocate server information\n");
         }
 
-        for (i = 0; i < lb->server_count; i++) {
-                ret = fscanf(cfg, "%s %s", ip, mac);
-                if (ret != 2) {
-                        rte_exit(EXIT_FAILURE, "Invalid backend config structure\n");
-                }
+        config_json = config_json->next;
 
-                ret = onvm_pkt_parse_ip(ip, &lb->server[i].d_ip);
+        while (config_json != NULL) {
+                ip_addr = cJSON_GetObjectItem(config_json, "ip");
+                mac_addr =  cJSON_GetObjectItem(config_json, "mac_addr");
+                weight = cJSON_GetObjectItem(config_json, "weight");
+
+                if (ip_addr == NULL) rte_exit(EXIT_FAILURE, "IP not found/invalid\n");
+                if (mac_addr == NULL) rte_exit(EXIT_FAILURE, "MAC address not found/invalid\n");
+                
+
+                ret = onvm_pkt_parse_ip(ip_addr->valuestring, &lb->server[i].d_ip);
                 if (ret < 0) {
                         rte_exit(EXIT_FAILURE, "Error parsing config IP address #%d\n", i);
                 }
-
-                ret = onvm_pkt_parse_mac(mac, lb->server[i].d_addr_bytes);
+                ret = onvm_pkt_parse_mac(mac_addr->valuestring, lb->server[i].d_addr_bytes);
                 if (ret < 0) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
-        }
 
-        fclose(cfg);
+                if (strcmp(lb->policy, "weighted_random")) lb->weights[i] = 1;
+                else {
+                        if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
+                        lb->weights[i] = weight->valueint;
+                        lb->total_weight += weight->valueint;
+                }
+                config_json = config_json->next;
+                i++;
+                server_count++;
+
+        }
+        if (server_count!=lb->server_count) rte_exit(EXIT_FAILURE, "Invalid list_size in config file\n");
+        cJSON_Delete(config_json);
+
         printf("\nARP config:\n");
         for (i = 0; i < lb->server_count; i++) {
                 printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 " ", (lb->server[i].d_ip >> 24) & 0xFF,
@@ -460,10 +503,35 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         lb->num_stored++;
-        data->dest = lb->num_stored % lb->server_count;
+        if (!strcmp(lb->policy,"random")) {
+                time_t t;
+                /* Intializes random number generator */
+                srand((unsigned) time(&t));
+                data->dest = rand() % lb->server_count;
+        }
+        else if (!strcmp(lb->policy,"rrobin")) {
+                data->dest = lb->num_stored % lb->server_count;
+        }
+        else if (!strcmp(lb->policy,"weighted_random")) {
+                time_t t;
+                int i, wrand, cur_weight_sum;
+                /* Intializes random number generator */
+                srand((unsigned) time(&t));
+                wrand = rand() % lb->total_weight;
+                cur_weight_sum=0;
+                for (i = 0; i < lb->server_count; i++) {
+                        cur_weight_sum+=lb->weights[i];
+                        if(wrand<=cur_weight_sum) {
+                                data->dest=i;
+                                break;
+                        }
+                }
+
+        }
+        
+        
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
-
         *flow = data;
 
         return 0;
@@ -636,7 +704,7 @@ main(int argc, char *argv[]) {
         }
 
         validate_iface_config();
-        parse_backend_config();
+        parse_backend_json_config();
 
         lb->expire_time = 32;
         lb->elapsed_cycles = rte_get_tsc_cycles();
