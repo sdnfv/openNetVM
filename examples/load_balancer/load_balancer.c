@@ -321,7 +321,7 @@ parse_backend_json_config(void) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
 
-                if (lb->policy != WEIGHTED_RANDOM) weight = 1;
+                if (lb->policy != WEIGHTED_RANDOM) lb->weights[i] = 1;
                 else {
                         if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
                         lb->weights[i] = weight->valueint;
@@ -679,7 +679,7 @@ main(int argc, char *argv[]) {
         time_t t;
 	/* Intializes RANDOM number generator */
 	srand((unsigned) time(&t));
-        
+
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
