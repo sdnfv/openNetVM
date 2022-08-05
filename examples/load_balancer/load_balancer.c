@@ -75,6 +75,8 @@
 #define NF_TAG "load_balancer"
 #define TABLE_SIZE 65536
 
+enum lb_policy {RROBIN, RANDOM, WEIGHTED_RANDOM};
+
 /* Struct for load balancer information */
 struct loadbalance {
         struct onvm_ft *ft;
@@ -99,7 +101,8 @@ struct loadbalance {
         char *cfg_filename;
         
         /* LB policy */
-        char *policy;
+        // char *policy;
+        enum lb_policy policy;
 
         /* structures to store server weights */
         int *weights;
@@ -277,12 +280,18 @@ parse_backend_json_config(void) {
         if (list_size == NULL) rte_exit(EXIT_FAILURE, "list_size not found/invalid\n");
         if (policy == NULL) rte_exit(EXIT_FAILURE, "policy not found/invalid\n");
 
-        lb->server_count = list_size->valueint;
-        lb->policy = strdup(policy->valuestring);
 
-        if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
-                rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        }
+        lb->server_count = list_size->valueint;
+        //lb->policy = strdup(policy->valuestring);
+
+        if (!strcmp(policy->valuestring, "RROBIN")) lb->policy = RROBIN;
+        else if (!strcmp(policy->valuestring, "RANDOM")) lb->policy = RANDOM;
+        else if (!strcmp(policy->valuestring, "WEIGHTED_RANDOM")) lb->policy = WEIGHTED_RANDOM;
+        else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.json\n");
+
+        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
+        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
+        // }
         
         lb->weights = (int*)calloc(lb->server_count,sizeof(int));
 
@@ -312,7 +321,7 @@ parse_backend_json_config(void) {
                         rte_exit(EXIT_FAILURE, "Error parsing config MAC address #%d\n", i);
                 }
 
-                if (strcmp(lb->policy, "weighted_random")) lb->weights[i] = 1;
+                if (lb->policy != WEIGHTED_RANDOM) weight = 1;
                 else {
                         if (weight == NULL) rte_exit(EXIT_FAILURE, "Weight not found/invalid\n");
                         lb->weights[i] = weight->valueint;
@@ -503,32 +512,31 @@ table_add_entry(struct onvm_ft_ipv4_5tuple *key, struct flow_info **flow) {
         }
 
         lb->num_stored++;
-        if (!strcmp(lb->policy,"random")) {
-                time_t t;
-                /* Intializes random number generator */
-                srand((unsigned) time(&t));
+
+        int i, wrand, cur_weight_sum;
+        switch (lb->policy)
+        {
+        case RANDOM:
                 data->dest = rand() % lb->server_count;
-        }
-        else if (!strcmp(lb->policy,"rrobin")) {
+                break;
+        case RROBIN:
                 data->dest = lb->num_stored % lb->server_count;
-        }
-        else if (!strcmp(lb->policy,"weighted_random")) {
-                time_t t;
-                int i, wrand, cur_weight_sum;
-                /* Intializes random number generator */
-                srand((unsigned) time(&t));
+                break;
+        case WEIGHTED_RANDOM:
                 wrand = rand() % lb->total_weight;
                 cur_weight_sum=0;
                 for (i = 0; i < lb->server_count; i++) {
                         cur_weight_sum+=lb->weights[i];
-                        if(wrand<=cur_weight_sum) {
+                        if(wrand < cur_weight_sum) {
                                 data->dest=i;
                                 break;
                         }
                 }
-
+                break;
+        default:
+                rte_exit(EXIT_FAILURE, "Invalid policy while adding entry to table!\n");
+                break;
         }
-        
         
         data->last_pkt_cycles = lb->elapsed_cycles;
         data->is_active = 0;
@@ -668,6 +676,10 @@ main(int argc, char *argv[]) {
         int arg_offset;
         const char *progname = argv[0];
 
+        time_t t;
+	/* Intializes RANDOM number generator */
+	srand((unsigned) time(&t));
+        
         nf_local_ctx = onvm_nflib_init_nf_local_ctx();
         onvm_nflib_start_signal_handler(nf_local_ctx, NULL);
 
@@ -712,6 +724,8 @@ main(int argc, char *argv[]) {
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+
+        free(lb->weights);
         onvm_ft_free(lb->ft);
         rte_free(lb);
         printf("If we reach here, program is ending\n");
