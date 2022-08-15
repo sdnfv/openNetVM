@@ -127,6 +127,9 @@ struct loadbalance *lb;
 /* number of package between each print */
 static uint32_t print_delay = 1000000;
 
+/* switch for turning on debug mode */
+static int debug_mode = 0;
+
 /* onvm struct for port info lookup */
 extern struct port_info *ports;
 
@@ -148,6 +151,7 @@ usage(const char *progname) {
         printf(" - `-t SERVER_PORT` : server port ID\n");
         printf(" - `-f SERVER_CONFIG` : backend server config file\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" - `-d`: debug info including when connections are recieved and when packets are recieved.\n");
 }
 
 /*
@@ -176,7 +180,7 @@ parse_app_args(int argc, char *argv[], const char *progname) {
         lb->client_port = RTE_MAX_ETHPORTS;
         lb->server_port = RTE_MAX_ETHPORTS;
 
-        while ((c = getopt(argc, argv, "c:r:s:t:f:p:")) != -1) {
+        while ((c = getopt(argc, argv, "c:r:s:t:f:p:d")) != -1) {
                 switch (c) {
                         case 'c':
                                 ret = parse_iface_ip(strdup(optarg), &lb->ip_lb_client);
@@ -204,11 +208,12 @@ parse_app_args(int argc, char *argv[], const char *progname) {
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
+                        case 'd':
+                                debug_mode = 1;
+                                break;
                         case '?':
                                 usage(progname);
-                                if (optopt == 'd')
-                                        RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
-                                else if (optopt == 'p')
+                                if (optopt == 'p')
                                         RTE_LOG(INFO, APP, "Option -%c requires an argument.\n", optopt);
                                 else if (isprint(optopt))
                                         RTE_LOG(INFO, APP, "Unknown option `-%c'.\n", optopt);
@@ -256,9 +261,8 @@ parse_app_args(int argc, char *argv[], const char *progname) {
  */
 static int
 parse_backend_json_config(void) {
-        int ret, i, server_count;
+        int ret, i;
         i = 0;
-        server_count=0;
 
         cJSON *config_json = onvm_config_parse_file(lb->cfg_filename);
         cJSON *list_size = NULL;
@@ -282,16 +286,11 @@ parse_backend_json_config(void) {
 
 
         lb->server_count = list_size->valueint;
-        //lb->policy = strdup(policy->valuestring);
 
         if (!strcmp(policy->valuestring, "RROBIN")) lb->policy = RROBIN;
         else if (!strcmp(policy->valuestring, "RANDOM")) lb->policy = RANDOM;
         else if (!strcmp(policy->valuestring, "WEIGHTED_RANDOM")) lb->policy = WEIGHTED_RANDOM;
         else rte_exit(EXIT_FAILURE, "Invalid policy. Check server.json\n");
-
-        // if (!((!strcmp(lb->policy,"random")) || (!strcmp(lb->policy,"rrobin")) || (!strcmp(lb->policy,"weighted_random")))) {
-        //         rte_exit(EXIT_FAILURE, "Invalid policy. Check server.conf\n");
-        // }
         
         lb->weights = (int*)calloc(lb->server_count,sizeof(int));
 
@@ -329,10 +328,8 @@ parse_backend_json_config(void) {
                 }
                 config_json = config_json->next;
                 i++;
-                server_count++;
-
         }
-        if (server_count!=lb->server_count) rte_exit(EXIT_FAILURE, "Invalid list_size in config file\n");
+        if ( i != lb->server_count) rte_exit(EXIT_FAILURE, "Invalid list_size in config file\n");
         cJSON_Delete(config_json);
 
         printf("\nARP config:\n");
@@ -631,6 +628,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
                         flow_info->s_addr_bytes[i] = ehdr->s_addr.addr_bytes[i];
                 }
+                if(debug_mode) printf("New connection made with server %d.\n",flow_info->dest);
         }
 
         if (pkt->port == lb->server_port) {
