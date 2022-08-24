@@ -66,11 +66,18 @@
 
 #define NF_TAG "test_flow_dir"
 
-/* number of package between each print */
+/* Number of packets between each print. */
 static uint32_t print_delay = 1000000;
 
 static uint32_t destination;
 
+/* Populate flow disabled by default */
+static int populate_flow = 0;
+
+static struct onvm_flow_entry *flow_entry = NULL;
+
+/* Pointer to the manager flow table */
+extern struct onvm_ft* sdn_ft;
 /*
  * Print a usage message
  */
@@ -82,6 +89,8 @@ usage(const char *progname) {
         printf("Flags:\n");
         printf(" - `-d <dst>`: destination service ID to foward to\n");
         printf(" - `-p <print_delay>`: number of packets between each print, e.g. `-p 1` prints every packets.\n");
+        printf(" -  -s : Prepopulate sample flow table rules. \n");
+
 }
 
 /*
@@ -91,13 +100,16 @@ static int
 parse_app_args(int argc, char *argv[], const char *progname) {
         int c;
 
-        while ((c = getopt(argc, argv, "d:p:")) != -1) {
+        while ((c = getopt(argc, argv, "d:p:s")) != -1) {
                 switch (c) {
                         case 'd':
                                 destination = strtoul(optarg, NULL, 10);
                                 break;
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
+                                break;
+                        case 's':
+                                populate_flow = 1;
                                 break;
                         case '?':
                                 usage(progname);
@@ -151,32 +163,96 @@ do_stats_display(struct rte_mbuf *pkt) {
         }
 }
 
+/*
+ * This function populates a set of flows to the sdn flow table.
+ * For each new flow a service chain is created and appended.
+ * Each service chain is of max 4 length. This function is not enabled by default.
+ * Users may update the predefined struct with their own rules here.
+ */
+
+static void
+populate_sample_ipv4(void) {
+        struct test_add_key {
+                struct onvm_ft_ipv4_5tuple key;
+                uint8_t destinations[ONVM_MAX_CHAIN_LENGTH];
+        };
+
+        struct test_add_key keys[] = {
+                {{RTE_IPV4(100, 10, 0, 0), RTE_IPV4(100, 10, 0, 0),  1, 1, IPPROTO_TCP}, {2,3}},
+                {{RTE_IPV4(102, 10, 0, 0), RTE_IPV4(101, 10, 0, 1),  0, 1, IPPROTO_TCP}, {4,3,2,1}},
+                {{RTE_IPV4(103, 10, 0, 0), RTE_IPV4(102, 10, 0, 1),  0, 1, IPPROTO_TCP}, {2,1}},
+                {{RTE_IPV4(10, 11, 1, 17), RTE_IPV4(10, 11, 1, 17),  1234, 1234, IPPROTO_UDP}, {4,3,2}},
+        };
+
+        uint32_t num_keys = RTE_DIM(keys);
+        for (uint32_t i = 0; i < num_keys; i++) {
+                struct onvm_ft_ipv4_5tuple key;
+                key = keys[i].key;
+                int ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
+                if (ret >= 0) {
+                        continue;
+                } else {
+                        printf("\nAdding Key: ");
+                        _onvm_ft_print_key(&key);
+                        ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
+                        if (ret < 0) {
+                                printf("Unable to add key.");
+                                continue;
+                        }
+                        printf("Creating new service chain.\n");
+                        flow_entry->sc = onvm_sc_create();
+                        uint32_t num_dest = RTE_DIM(keys[i].destinations);
+                        for (uint32_t j = 0; j < num_dest; j++) {
+                                if (keys[i].destinations[j] == 0) {
+                                        continue;
+                                }
+                                printf("Appending Destination: %d \n", keys[i].destinations[j]);
+                                onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, keys[i].destinations[j]);
+                        }
+                }
+        }
+}
+
+static void
+nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
+        flow_entry = (struct onvm_flow_entry *) rte_calloc(NULL, 1, sizeof(struct onvm_flow_entry), 0);
+        if (flow_entry == NULL) {
+                rte_exit(EXIT_FAILURE, "Unable to allocate flow entry\n");
+        }
+}
+
 static int
 packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                __attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
         static uint32_t counter = 0;
-        struct onvm_flow_entry *flow_entry = NULL;
         int ret;
+
+        if (!onvm_pkt_is_ipv4(pkt)) {
+                meta->action = ONVM_NF_ACTION_DROP;
+                return 0;
+        }
 
         if (++counter == print_delay) {
                 do_stats_display(pkt);
                 counter = 0;
         }
 
-        ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
+        struct onvm_ft_ipv4_5tuple key;
+        onvm_ft_fill_key(&key, pkt);
+        ret = onvm_ft_lookup_key(sdn_ft, &key, (char **)&flow_entry);
         if (ret >= 0) {
                 meta->action = ONVM_NF_ACTION_NEXT;
         } else {
-                ret = onvm_flow_dir_add_pkt(pkt, &flow_entry);
+                ret = onvm_ft_add_key(sdn_ft, &key, (char **)&flow_entry);
                 if (ret < 0) {
                         meta->action = ONVM_NF_ACTION_DROP;
                         meta->destination = 0;
                         return 0;
                 }
-                memset(flow_entry, 0, sizeof(struct onvm_flow_entry));
                 flow_entry->sc = onvm_sc_create();
                 onvm_sc_append_entry(flow_entry->sc, ONVM_NF_ACTION_TONF, destination);
-                // onvm_sc_print(flow_entry->sc);
+                meta->action = ONVM_NF_ACTION_TONF;
+                meta->destination = destination;
         }
         return 0;
 }
@@ -193,6 +269,7 @@ main(int argc, char *argv[]) {
 
         nf_function_table = onvm_nflib_init_nf_function_table();
         nf_function_table->pkt_handler = &packet_handler;
+        nf_function_table->setup = &nf_setup;
 
         if ((arg_offset = onvm_nflib_init(argc, argv, NF_TAG, nf_local_ctx, nf_function_table)) < 0) {
                 onvm_nflib_stop(nf_local_ctx);
@@ -214,9 +291,16 @@ main(int argc, char *argv[]) {
         /* Map the sdn_ft table */
         onvm_flow_dir_nf_init();
 
+        if (populate_flow) {
+                printf("Populating flow table. \n");
+                populate_sample_ipv4();
+        }
+
         onvm_nflib_run(nf_local_ctx);
 
         onvm_nflib_stop(nf_local_ctx);
+        rte_free(flow_entry);
+        flow_entry = NULL;
         printf("If we reach here, program is ending\n");
         return 0;
 }
