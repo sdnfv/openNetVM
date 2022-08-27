@@ -1,7 +1,7 @@
 {
     "Info" : {
         "list_size": 2,
-        "policy": "random"
+        "policy": "RANDOM"
     },
 
     "Server0": {
