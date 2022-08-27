@@ -632,9 +632,9 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 }
                 if(debug_mode) {
                         printf("New connection made with server %d.\n",flow_info->dest);
-                        printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ":%" PRIu16") made a new connection with server %d.\n", hdr->src_addr,
-                                hdr->src_addr & 0xFF, (hdr->src_addr >> 8) & 0xFF, (hdr->src_addr >> 16) & 0xFF,
-                                (hdr->src_addr >> 24) & 0xFF, rte_be_to_cpu_16(tcp->src_port),flow_info->dest);
+                        printf("Source IP: %" PRIu32 " (%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ":%" PRIu16") made a new connection with server %d.\n", ip->src_addr,
+                                ip->src_addr & 0xFF, (ip->src_addr >> 8) & 0xFF, (ip->src_addr >> 16) & 0xFF,
+                                (ip->src_addr >> 24) & 0xFF, rte_be_to_cpu_16(tcp->src_port),flow_info->dest);
                 }
         }
 
