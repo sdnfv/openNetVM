@@ -184,15 +184,15 @@ nf_setup(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx) {
                 ehdr = (struct rte_ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
 
                 /* Using manager mac addr for source*/
-                if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
-                        onvm_get_fake_macaddr(&ehdr->s_addr);
+                if (onvm_get_macaddr(0, &ehdr->src_addr) == -1) {
+                        onvm_get_fake_macaddr(&ehdr->src_addr);
                 }
                 for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
-                        ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                        ehdr->dst_addr.addr_bytes[j] = d_addr_bytes[j];
                 }
                 ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
-                pmeta = onvm_get_pkt_meta(pkt);
+                pmeta = onvm_get_pkt_meta(pkt, nf_local_ctx->nf->dynfield_offset);
                 pmeta->destination = destination;
                 pmeta->action = ONVM_NF_ACTION_TONF;
                 pkt->hash.rss = i;
@@ -367,12 +367,12 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                 }
                 /* Process all the packets */
                 for (i = 0; i < nb_pkts; i++) {
-                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
+                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i], nf->dynfield_offset);
                         packet_handler_fwd((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
                 /* Process all packet actions */
-                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
+                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, nf->dynfield_offset, tx_batch_size, nf);
                 if (tx_batch_size < PACKET_READ_SIZE) {
                         onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
                 }

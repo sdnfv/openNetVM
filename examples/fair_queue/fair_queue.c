@@ -268,7 +268,7 @@ tx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
                         continue;
                 }
 
-                meta = onvm_get_pkt_meta((struct rte_mbuf *)pkt);
+                meta = onvm_get_pkt_meta((struct rte_mbuf *)pkt, nf_local_ctx->nf->dynfield_offset);
                 meta->action = ONVM_NF_ACTION_TONF;
                 meta->destination = destination;
                 pktsTX[tx_batch_size++] = pkt;
@@ -327,7 +327,7 @@ rx_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 for (i = 0; i < nb_pkts; i++) {
                         if (fairqueue_enqueue(fair_queue, pkts[i]) == -1) {
-                                meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
+                                meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i], nf_local_ctx->nf->dynfield_offset);
                                 meta->action = ONVM_NF_ACTION_DROP;
                                 meta->destination = destination;
                                 pktsDrop[tx_batch_size++] = pkts[i];

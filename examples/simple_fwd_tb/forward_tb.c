@@ -310,12 +310,12 @@ thread_main_loop(struct onvm_nf_local_ctx *nf_local_ctx) {
 
                 /* Process all the dequeued packets */
                 for (i = 0; i < nb_pkts; i++) {
-                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i]);
+                        meta = onvm_get_pkt_meta((struct rte_mbuf *)pkts[i], nf->dynfield_offset);
                         packet_handler_tb((struct rte_mbuf *)pkts[i], meta, nf_local_ctx);
                         pktsTX[tx_batch_size++] = pkts[i];
                 }
 
-                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, tx_batch_size, nf);
+                onvm_pkt_process_tx_batch(nf->nf_tx_mgr, pktsTX, nf->dynfield_offset, tx_batch_size, nf);
                 if (tx_batch_size < PACKET_READ_SIZE) {
                         onvm_pkt_flush_all_nfs(nf->nf_tx_mgr, nf);
                 }

@@ -599,26 +599,26 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
         if (flow_info->is_active == 0) {
                 flow_info->is_active = 1;
                 for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
-                        flow_info->s_addr_bytes[i] = ehdr->s_addr.addr_bytes[i];
+                        flow_info->s_addr_bytes[i] = ehdr->src_addr.addr_bytes[i];
                 }
         }
 
         if (pkt->port == lb->server_port) {
-                if (onvm_get_macaddr(lb->client_port, &ehdr->s_addr) == -1) {
+                if (onvm_get_macaddr(lb->client_port, &ehdr->src_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
                 for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
-                        ehdr->d_addr.addr_bytes[i] = flow_info->s_addr_bytes[i];
+                        ehdr->dst_addr.addr_bytes[i] = flow_info->s_addr_bytes[i];
                 }
 
                 ip->src_addr = lb->ip_lb_client;
                 meta->destination = lb->client_port;
         } else {
-                if (onvm_get_macaddr(lb->server_port, &ehdr->s_addr) == -1) {
+                if (onvm_get_macaddr(lb->server_port, &ehdr->src_addr) == -1) {
                         rte_exit(EXIT_FAILURE, "Failed to obtain MAC address\n");
                 }
                 for (i = 0; i < RTE_ETHER_ADDR_LEN; i++) {
-                        ehdr->d_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
+                        ehdr->dst_addr.addr_bytes[i] = lb->server[flow_info->dest].d_addr_bytes[i];
                 }
 
                 ip->dst_addr = rte_cpu_to_be_32(lb->server[flow_info->dest].d_ip);

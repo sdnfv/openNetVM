@@ -59,6 +59,7 @@
 #include <rte_fbk_hash.h>
 #include <rte_malloc.h>
 #include <rte_memcpy.h>
+#include <rte_mbuf_dyn.h>
 #ifdef RTE_LIBRTE_PDUMP
 #include <rte_pdump.h>
 #endif

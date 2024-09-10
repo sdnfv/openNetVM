@@ -70,7 +70,7 @@ onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *
  *
  */
 static inline void
-onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, struct onvm_nf *nf);
+onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, int pkt_meta_offset, struct onvm_nf *nf);
 
 /*
  * Helper function to drop a packet.
@@ -86,7 +86,7 @@ onvm_pkt_drop(struct rte_mbuf *pkt);
 /**********************************Interfaces*********************************/
 
 void
-onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf) {
+onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], int pkt_meta_offset, uint16_t tx_count, struct onvm_nf *nf) {
         uint16_t i;
         struct onvm_pkt_meta *meta;
         struct packet_buf *out_buf;
@@ -95,7 +95,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                 return;
 
         for (i = 0; i < tx_count; i++) {
-                meta = (struct onvm_pkt_meta *)&(((struct rte_mbuf *)pkts[i])->udata64);
+                meta = onvm_get_pkt_meta(pkts[i], pkt_meta_offset);
                 meta->src = nf->instance_id;
                 if (meta->action == ONVM_NF_ACTION_DROP) {
                         // if the packet is drop, then <return value> is 0
@@ -106,7 +106,7 @@ onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uin
                         /* TODO: Here we drop the packet : there will be a flow table
                         in the future to know what to do with the packet next */
                         nf->stats.act_next++;
-                        onvm_pkt_process_next_action(tx_mgr, pkts[i], nf);
+                        onvm_pkt_process_next_action(tx_mgr, pkts[i], pkt_meta_offset, nf);
                 } else if (meta->action == ONVM_NF_ACTION_TONF) {
                         nf->stats.act_tonf++;
                         onvm_pkt_enqueue_nf(tx_mgr, meta->destination, pkts[i], nf);
@@ -271,23 +271,23 @@ onvm_pkt_enqueue_port(struct queue_mgr *tx_mgr, uint16_t port, struct rte_mbuf *
 }
 
 inline static void
-onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, struct onvm_nf *nf) {
+onvm_pkt_process_next_action(struct queue_mgr *tx_mgr, struct rte_mbuf *pkt, int pkt_meta_offset, struct onvm_nf *nf) {
         if (tx_mgr == NULL || pkt == NULL || nf == NULL)
                 return;
 
         struct onvm_flow_entry *flow_entry;
         struct onvm_service_chain *sc;
-        struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt);
+        struct onvm_pkt_meta *meta = onvm_get_pkt_meta(pkt, pkt_meta_offset);
         int ret;
 
         ret = onvm_flow_dir_get_pkt(pkt, &flow_entry);
         if (ret >= 0) {
                 sc = flow_entry->sc;
-                meta->action = onvm_sc_next_action(sc, pkt);
-                meta->destination = onvm_sc_next_destination(sc, pkt);
+                meta->action = onvm_sc_next_action(sc, pkt, pkt_meta_offset);
+                meta->destination = onvm_sc_next_destination(sc, pkt, pkt_meta_offset);
         } else {
-                meta->action = onvm_sc_next_action(default_chain, pkt);
-                meta->destination = onvm_sc_next_destination(default_chain, pkt);
+                meta->action = onvm_sc_next_action(default_chain, pkt, pkt_meta_offset);
+                meta->destination = onvm_sc_next_destination(default_chain, pkt, pkt_meta_offset);
         }
 
         switch (meta->action) {

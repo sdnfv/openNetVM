@@ -230,6 +230,6 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
  * Generates a sample UDP packet
  */
 struct rte_mbuf*
-onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool);
+onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool, int pkt_meta_offset);
 
 #endif  // _ONVM_PKT_HELPER_H_"

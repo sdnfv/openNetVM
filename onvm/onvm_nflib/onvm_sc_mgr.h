@@ -53,8 +53,8 @@ onvm_next_action(struct onvm_service_chain* chain, uint16_t cur_nf) {
 }
 
 static inline uint8_t
-onvm_sc_next_action(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-        return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt));
+onvm_sc_next_action(struct onvm_service_chain* chain, struct rte_mbuf* pkt, int pkt_meta_offset) {
+        return onvm_next_action(chain, onvm_get_pkt_chain_index(pkt, pkt_meta_offset));
 }
 
 static inline uint16_t
@@ -66,8 +66,8 @@ onvm_next_destination(struct onvm_service_chain* chain, uint16_t cur_nf) {
 }
 
 static inline uint16_t
-onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt) {
-        return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt));
+onvm_sc_next_destination(struct onvm_service_chain* chain, struct rte_mbuf* pkt, int pkt_meta_offset) {
+        return onvm_next_destination(chain, onvm_get_pkt_chain_index(pkt, pkt_meta_offset));
 }
 
 /*get service chain*/

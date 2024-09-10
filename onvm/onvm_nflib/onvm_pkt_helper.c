@@ -73,8 +73,8 @@ onvm_pkt_set_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, unsigned dst_p
          * Get the MAC addresses of the src and destination NIC ports,
          * and set the ethernet header's fields to them.
          */
-        rte_ether_addr_copy(&ports->mac[src_port_id], &eth->s_addr);
-        rte_ether_addr_copy(&ports->mac[dst_port_id], &eth->d_addr);
+        rte_ether_addr_copy(&ports->mac[src_port_id], &eth->src_addr);
+        rte_ether_addr_copy(&ports->mac[dst_port_id], &eth->dst_addr);
 
         return 0;
 }
@@ -95,13 +95,13 @@ onvm_pkt_swap_src_mac_addr(struct rte_mbuf* pkt, unsigned dst_port_id, struct po
         /*
          * Copy the source mac address to the destination field.
          */
-        rte_ether_addr_copy(&eth->s_addr, &eth->d_addr);
+        rte_ether_addr_copy(&eth->src_addr, &eth->dst_addr);
 
         /*
          * Get the mac address of the specified destination port id
          * and set the source field to it.
          */
-        rte_ether_addr_copy(&ports->mac[dst_port_id], &eth->s_addr);
+        rte_ether_addr_copy(&ports->mac[dst_port_id], &eth->src_addr);
 
         return 0;
 }
@@ -122,13 +122,13 @@ onvm_pkt_swap_dst_mac_addr(struct rte_mbuf* pkt, unsigned src_port_id, struct po
         /*
          * Copy the destination mac address to the source field.
          */
-        rte_ether_addr_copy(&eth->d_addr, &eth->s_addr);
+        rte_ether_addr_copy(&eth->dst_addr, &eth->src_addr);
 
         /*
          * Get the mac address of specified source port id
          * and set the destination field to it.
          */
-        rte_ether_addr_copy(&ports->mac[src_port_id], &eth->d_addr);
+        rte_ether_addr_copy(&ports->mac[src_port_id], &eth->dst_addr);
 
         return 0;
 }
@@ -322,12 +322,12 @@ onvm_pkt_print_ether(struct rte_ether_hdr* hdr) {
         if (unlikely(hdr == NULL)) {
                 return;
         }
-        printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->s_addr.addr_bytes[0], hdr->s_addr.addr_bytes[1],
-               hdr->s_addr.addr_bytes[2], hdr->s_addr.addr_bytes[3], hdr->s_addr.addr_bytes[4],
-               hdr->s_addr.addr_bytes[5]);
-        printf("Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->d_addr.addr_bytes[0], hdr->d_addr.addr_bytes[1],
-               hdr->d_addr.addr_bytes[2], hdr->d_addr.addr_bytes[3], hdr->d_addr.addr_bytes[4],
-               hdr->d_addr.addr_bytes[5]);
+        printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->src_addr.addr_bytes[0], hdr->src_addr.addr_bytes[1],
+               hdr->src_addr.addr_bytes[2], hdr->src_addr.addr_bytes[3], hdr->src_addr.addr_bytes[4],
+               hdr->src_addr.addr_bytes[5]);
+        printf("Dest MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", hdr->dst_addr.addr_bytes[0], hdr->dst_addr.addr_bytes[1],
+               hdr->dst_addr.addr_bytes[2], hdr->dst_addr.addr_bytes[3], hdr->dst_addr.addr_bytes[4],
+               hdr->dst_addr.addr_bytes[5]);
         switch (hdr->ether_type) {
                 case RTE_ETHER_TYPE_IPV4:
                         type = "IPv4";
@@ -410,13 +410,13 @@ onvm_pkt_get_checksum_offload_flags(uint8_t port_id) {
 
         rte_eth_dev_info_get(port_id, &dev_info);
 
-        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
+        if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_IPV4_CKSUM) {
                 hw_offload_flags |= SUPPORTS_IPV4_CHECKSUM_OFFLOAD;
         }
-        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_TCP_CKSUM) {
+        if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_TCP_CKSUM) {
                 hw_offload_flags |= SUPPORTS_TCP_CHECKSUM_OFFLOAD;
         }
-        if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
+        if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_UDP_CKSUM) {
                 hw_offload_flags |= SUPPORTS_UDP_CHECKSUM_OFFLOAD;
         }
         return hw_offload_flags;
@@ -480,7 +480,7 @@ onvm_pkt_set_checksums(struct rte_mbuf* pkt) {
                 ip->hdr_checksum = 0;
                 pkt->l2_len = sizeof(struct rte_ether_hdr);
                 pkt->l3_len = (ip->version_ihl & 0b1111) * 4;
-                pkt->ol_flags |= PKT_TX_IPV4;
+                pkt->ol_flags |= RTE_MBUF_F_TX_IPV4;
 
                 if (tcp != NULL) {
                         tcp->cksum = 0;
@@ -488,7 +488,7 @@ onvm_pkt_set_checksums(struct rte_mbuf* pkt) {
 
                         if (hw_cksum_support & SUPPORTS_TCP_CHECKSUM_OFFLOAD) {
                                 tcp->cksum = rte_ipv4_phdr_cksum(ip, pkt->ol_flags);
-                                pkt->ol_flags |= PKT_TX_TCP_CKSUM;
+                                pkt->ol_flags |= RTE_MBUF_F_TX_TCP_CKSUM;
                         } else {
                                 /* software TCP checksumming */
                                 tcp->cksum = calculate_tcpudp_cksum(ip, tcp, pkt->l3_len, IP_PROTOCOL_TCP);
@@ -501,7 +501,7 @@ onvm_pkt_set_checksums(struct rte_mbuf* pkt) {
 
                         if (hw_cksum_support & SUPPORTS_UDP_CHECKSUM_OFFLOAD) {
                                 udp->dgram_cksum = rte_ipv4_phdr_cksum(ip, pkt->ol_flags);
-                                pkt->ol_flags |= PKT_TX_UDP_CKSUM;
+                                pkt->ol_flags |= RTE_MBUF_F_TX_UDP_CKSUM;
                         } else {
                                 /* software UDP checksumming */
                                 udp->dgram_cksum = calculate_tcpudp_cksum(ip, udp, pkt->l3_len, IP_PROTOCOL_UDP);
@@ -509,7 +509,7 @@ onvm_pkt_set_checksums(struct rte_mbuf* pkt) {
                 }
 
                 if (hw_cksum_support & SUPPORTS_IPV4_CHECKSUM_OFFLOAD) {
-                        pkt->ol_flags |= PKT_TX_IP_CKSUM;
+                                pkt->ol_flags |= RTE_MBUF_F_TX_IP_CKSUM;
                 } else {
                         /* software IP checksumming */
                         ip->hdr_checksum = calculate_ip_cksum(ip, pkt->l3_len);
@@ -523,12 +523,12 @@ onvm_pkt_swap_ether_hdr(struct rte_ether_hdr* ether_hdr) {
         struct rte_ether_addr temp_ether_addr;
 
         for (i = 0; i < RTE_ETHER_ADDR_LEN; ++i) {
-                temp_ether_addr.addr_bytes[i] = ether_hdr->s_addr.addr_bytes[i];
-                ether_hdr->s_addr.addr_bytes[i] = ether_hdr->d_addr.addr_bytes[i];
+                temp_ether_addr.addr_bytes[i] = ether_hdr->src_addr.addr_bytes[i];
+                ether_hdr->src_addr.addr_bytes[i] = ether_hdr->dst_addr.addr_bytes[i];
         }
 
         for (i = 0; i < RTE_ETHER_ADDR_LEN; ++i) {
-                ether_hdr->d_addr.addr_bytes[i] = temp_ether_addr.addr_bytes[i];
+                ether_hdr->dst_addr.addr_bytes[i] = temp_ether_addr.addr_bytes[i];
         }
 
         return 0;
@@ -574,7 +574,7 @@ onvm_pkt_generate_tcp(struct rte_mempool* pktmbuf_pool, struct rte_tcp_hdr* tcp_
                 return NULL;
         }
 
-        pkt->ol_flags = PKT_TX_IP_CKSUM | PKT_TX_IPV4 | PKT_TX_TCP_CKSUM;
+        pkt->ol_flags = RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_TCP_CKSUM;
         pkt->l2_len = sizeof(struct rte_ether_hdr);
         pkt->l3_len = sizeof(struct rte_ipv4_hdr);
 
@@ -664,17 +664,17 @@ onvm_pkt_fill_ether(struct rte_ether_hdr* eth_hdr, int port, struct rte_ether_ad
         int i;
 
         /* Set ether header */
-        rte_ether_addr_copy(&ports->mac[port], &eth_hdr->s_addr);
+        rte_ether_addr_copy(&ports->mac[port], &eth_hdr->src_addr);
         eth_hdr->ether_type = rte_be_to_cpu_16(RTE_ETHER_TYPE_IPV4);
         for (i = 0; i < RTE_ETHER_ADDR_LEN; ++i) {
-                eth_hdr->d_addr.addr_bytes[i] = dst_mac_addr->addr_bytes[i];
+                eth_hdr->dst_addr.addr_bytes[i] = dst_mac_addr->addr_bytes[i];
         }
 
         return 0;
 }
 
 struct rte_mbuf*
-onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool) {
+onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool, int pkt_meta_offset) {
         struct onvm_pkt_meta* pmeta = NULL;
         struct rte_mbuf* pkt;
         struct rte_udp_hdr udp_hdr;
@@ -694,7 +694,7 @@ onvm_pkt_generate_udp_sample(struct rte_mempool* pktmbuf_pool) {
         }
 
         /* Set packet dest */
-        pmeta = onvm_get_pkt_meta(pkt);
+        pmeta = onvm_get_pkt_meta(pkt, pkt_meta_offset);
         pmeta->destination = SAMPLE_NIC_PORT;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
@@ -715,7 +715,7 @@ onvm_pkt_generate_udp(struct rte_mempool* pktmbuf_pool, struct rte_udp_hdr* udp_
                 return NULL;
         }
 
-        pkt->ol_flags = PKT_TX_IP_CKSUM | PKT_TX_IPV4 | PKT_TX_UDP_CKSUM;
+        pkt->ol_flags = RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_UDP_CKSUM;
         pkt->l2_len = sizeof(struct rte_ether_hdr);
         pkt->l3_len = sizeof(struct rte_ipv4_hdr);
 

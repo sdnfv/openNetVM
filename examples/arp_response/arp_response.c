@@ -235,9 +235,9 @@ send_arp_reply(int port, struct rte_ether_addr *tha, uint32_t tip, struct onvm_n
 
         // SET ETHER HEADER INFO
         eth_hdr = onvm_pkt_ether_hdr(out_pkt);
-        rte_ether_addr_copy(&ports->mac[port], &eth_hdr->s_addr);
+        rte_ether_addr_copy(&ports->mac[port], &eth_hdr->src_addr);
         eth_hdr->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
-        rte_ether_addr_copy(tha, &eth_hdr->d_addr);
+        rte_ether_addr_copy(tha, &eth_hdr->dst_addr);
 
         // SET ARP HDR INFO
         out_arp_hdr = rte_pktmbuf_mtod_offset(out_pkt, struct rte_arp_hdr *, sizeof(struct rte_ether_hdr));
@@ -255,7 +255,7 @@ send_arp_reply(int port, struct rte_ether_addr *tha, uint32_t tip, struct onvm_n
         rte_ether_addr_copy(tha, &out_arp_hdr->arp_data.arp_tha);
 
         // SEND PACKET OUT/SET METAINFO
-        pmeta = onvm_get_pkt_meta(out_pkt);
+        pmeta = onvm_get_pkt_meta(out_pkt, nf->dynfield_offset);
         pmeta->destination = port;
         pmeta->action = ONVM_NF_ACTION_OUT;
 
@@ -282,7 +282,7 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                         case RTE_ARP_OP_REQUEST:
                                 if (rte_be_to_cpu_32(in_arp_hdr->arp_data.arp_tip) ==
                                                 state_info->source_ips[ports->id[pkt->port]]) {
-                                        result = send_arp_reply(pkt->port, &eth_hdr->s_addr,
+                                        result = send_arp_reply(pkt->port, &eth_hdr->src_addr,
                                                                 in_arp_hdr->arp_data.arp_sip, nf_local_ctx->nf);
                                         if (state_info->print_flag) {
                                                 printf("ARP Reply From Port %d (ID %d): %d\n", pkt->port,

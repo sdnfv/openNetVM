@@ -209,18 +209,18 @@ l2fwd_mac_updating(struct rte_mbuf *pkt, unsigned dest_portid, struct state_info
         eth = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
 
         /* 02:00:00:00:00:xx */
-        tmp = &eth->d_addr.addr_bytes[0];
+        tmp = &eth->dst_addr.addr_bytes[0];
         *((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
-        rte_ether_addr_copy(tmp, &eth->s_addr);
+        rte_ether_addr_copy(tmp, &eth->src_addr);
 
         if (stats->print_mac) {
                 printf("Packet updated MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
-                        eth->s_addr.addr_bytes[0],
-                        eth->s_addr.addr_bytes[1],
-                        eth->s_addr.addr_bytes[2],
-                        eth->s_addr.addr_bytes[3],
-                        eth->s_addr.addr_bytes[4],
-                        eth->s_addr.addr_bytes[5]);
+                        eth->src_addr.addr_bytes[0],
+                        eth->src_addr.addr_bytes[1],
+                        eth->src_addr.addr_bytes[2],
+                        eth->src_addr.addr_bytes[3],
+                        eth->src_addr.addr_bytes[4],
+                        eth->src_addr.addr_bytes[5]);
         }
 }
 

@@ -72,7 +72,7 @@ extern struct onvm_service_chain *default_chain;
  *
  */
 void
-onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], uint16_t tx_count, struct onvm_nf *nf);
+onvm_pkt_process_tx_batch(struct queue_mgr *tx_mgr, struct rte_mbuf *pkts[], int pkt_meta_offset, uint16_t tx_count, struct onvm_nf *nf);
 
 /*
  * Interface to send packets to all NFs after processing them.

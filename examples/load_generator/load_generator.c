@@ -274,7 +274,7 @@ callback_handler(__attribute__((unused)) struct onvm_nf_local_ctx *nf_local_ctx)
                         pkt_ehdr = (struct rte_ether_hdr *)rte_pktmbuf_append(pkt, packet_size);
                         rte_memcpy(pkt_ehdr, ehdr, sizeof(struct rte_ether_hdr));
 
-                        struct onvm_pkt_meta *pmeta = onvm_get_pkt_meta(pkt);
+                        struct onvm_pkt_meta *pmeta = onvm_get_pkt_meta(pkt, nf_local_ctx->nf->dynfield_offset);
                         pmeta->destination = destination;
                         pmeta->flags |= ONVM_SET_BIT(0, LOAD_GEN_BIT);
                         if (action_out) {
@@ -327,12 +327,12 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                 rte_exit(EXIT_FAILURE, "Failed to allocate common ehdr\n");
         }
 
-        if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
+        if (onvm_get_macaddr(0, &ehdr->src_addr) == -1) {
                 RTE_LOG(INFO, APP, "Using fake MAC address\n");
-                onvm_get_fake_macaddr(&ehdr->s_addr);
+                onvm_get_fake_macaddr(&ehdr->src_addr);
         }
         for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
-                ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                ehdr->dst_addr.addr_bytes[j] = d_addr_bytes[j];
         }
         ehdr->ether_type = rte_cpu_to_be_16(LOCAL_EXPERIMENTAL_ETHER);
 }

@@ -1,11 +1,13 @@
-[submodule "dpdk-1.8.0"]
-        path = dpdk
-        url = https://dpdk.org/git/dpdk
-        branch = master
-        commit = 0da7f445df445630c794897347ee360d6fe6348b
 [submodule "tools/Pktgen/pktgen-dpdk"]
         path = tools/Pktgen/pktgen-dpdk
         url = http://dpdk.org/git/apps/pktgen-dpdk
         branch = master
         commit = 807b4d2cfcc8ded46ece85353cefe5d655674de3
 
+[submodule "dpdk"]
+	path = subprojects/dpdk
+	url = https://github.com/DPDK/dpdk.git
+[submodule "subprojects/dpdk-kmods"]
+	path = subprojects/dpdk-kmods
+	url = https://dpdk.org/git/dpdk-kmods
+        ignore = all

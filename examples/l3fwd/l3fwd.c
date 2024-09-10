@@ -196,10 +196,10 @@ packet_handler(struct rte_mbuf *pkt, struct onvm_pkt_meta *meta,
                 ++(ipv4_hdr->hdr_checksum);
 #endif
                 /* dst addr */
-                *(uint64_t *)&eth_hdr->d_addr = stats->dest_eth_addr[dst_port];
+                *(uint64_t *)&eth_hdr->dst_addr = stats->dest_eth_addr[dst_port];
 
                 /* src addr */
-                rte_ether_addr_copy(&stats->ports_eth_addr[dst_port], &eth_hdr->s_addr);
+                rte_ether_addr_copy(&stats->ports_eth_addr[dst_port], &eth_hdr->src_addr);
 
                 meta->destination = dst_port;
                 stats->port_statistics[dst_port]++;

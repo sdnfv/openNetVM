@@ -138,12 +138,14 @@ struct onvm_event {
         void *data;
 };
 
-cJSON* onvm_json_root;
-cJSON* onvm_json_port_stats_obj;
-cJSON* onvm_json_nf_stats_obj;
-cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
-cJSON* onvm_json_nf_stats[MAX_NFS];
-cJSON* onvm_json_events_arr;
+/****************************Global variables***************************************/
+
+extern cJSON* onvm_json_root;
+extern cJSON* onvm_json_port_stats_obj;
+extern cJSON* onvm_json_nf_stats_obj;
+extern cJSON* onvm_json_port_stats[RTE_MAX_ETHPORTS];
+extern cJSON* onvm_json_nf_stats[MAX_NFS];
+extern cJSON* onvm_json_events_arr;
 
 /*********************************Interfaces**********************************/
 

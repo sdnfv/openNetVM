@@ -239,7 +239,7 @@ tx_thread_main(void *arg) {
 
                         /* Now process the Client packets read */
                         if (likely(tx_count > 0)) {
-                                onvm_pkt_process_tx_batch(tx_mgr, pkts, tx_count, nf);
+                                onvm_pkt_process_tx_batch(tx_mgr, pkts, onvm_config->dynfield_offset, tx_count, nf);
                         }
                 }
 

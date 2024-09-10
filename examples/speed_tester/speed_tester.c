@@ -393,16 +393,16 @@ nf_setup(struct onvm_nf_local_ctx *nf_local_ctx) {
                         /*using manager mac addr for source
                         *using input string for dest addr
                         */
-                        if (onvm_get_macaddr(0, &ehdr->s_addr) == -1) {
+                        if (onvm_get_macaddr(0, &ehdr->src_addr) == -1) {
                                 RTE_LOG(INFO, APP, "Using fake MAC address\n");
-                                onvm_get_fake_macaddr(&ehdr->s_addr);
+                                onvm_get_fake_macaddr(&ehdr->src_addr);
                         }
                         for (j = 0; j < RTE_ETHER_ADDR_LEN; ++j) {
-                                ehdr->d_addr.addr_bytes[j] = d_addr_bytes[j];
+                                ehdr->dst_addr.addr_bytes[j] = d_addr_bytes[j];
                         }
                         ehdr->ether_type = LOCAL_EXPERIMENTAL_ETHER;
 
-                        pmeta = onvm_get_pkt_meta(pkt);
+                        pmeta = onvm_get_pkt_meta(pkt, nf_local_ctx->nf->dynfield_offset);
                         pmeta->destination = destination;
                         pmeta->action = ONVM_NF_ACTION_TONF;
                         pmeta->flags = ONVM_SET_BIT(0, SPEED_TESTER_BIT);

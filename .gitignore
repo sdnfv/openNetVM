@@ -1,6 +1,7 @@
 # build directories
 **/build/**
 **/x86_64-native-linuxapp-gcc/**
+/build
 
 # dpdk built target
 dpdk-1.8.0/x86_64-native-linuxapp-gcc/*
@@ -49,3 +50,16 @@ _preinstall
 
 # Debug files
 *.dSYM/
+
+# Python virtual environment
+env
+
+# Meson artifacts
+/insstall
+**/insstall/**
+
+# Submodules
+/subprojects/dpdk-kmods/*
+
+# Output directories
+/bin

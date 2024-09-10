@@ -59,6 +59,9 @@
 #include "onvm_config_common.h"
 #include "onvm_msg_common.h"
 
+#define JUMBO_FRAME_MAX_SIZE    0x2600
+#define MAX_MTU (JUMBO_FRAME_MAX_SIZE - (RTE_ETHER_HDR_LEN + RTE_ETHER_CRC_LEN))
+
 #define ONVM_NF_HANDLE_TX 1                   // should be true if NFs primarily pass packets to each other
 #define ONVM_NF_SHUTDOWN_CORE_REASSIGNMENT 0  // should be true if on NF shutdown onvm_mgr tries to reallocate cores
 
@@ -114,16 +117,16 @@ struct onvm_pkt_meta {
         uint8_t chain_index;  /*index of the current step in the service chain*/
         uint8_t flags;        /* bits for custom NF data. Use with caution to prevent collisions from different NFs. */
 };
+typedef struct onvm_pkt_meta onvm_pkt_meta_t;
 
 static inline struct onvm_pkt_meta *
-onvm_get_pkt_meta(struct rte_mbuf *pkt) {
-        return (struct onvm_pkt_meta *)&pkt->udata64;
+onvm_get_pkt_meta(struct rte_mbuf *pkt, int pkt_meta_offset) {
+        return RTE_MBUF_DYNFIELD(pkt, pkt_meta_offset, struct onvm_pkt_meta *);
 }
 
 static inline uint8_t
-onvm_get_pkt_chain_index(struct rte_mbuf *pkt) {
-        struct onvm_pkt_meta* pkt_meta = (struct onvm_pkt_meta*) &pkt->udata64;
-        return pkt_meta->chain_index;
+onvm_get_pkt_chain_index(struct rte_mbuf *pkt, int pkt_meta_offset) {
+        return (onvm_get_pkt_meta(pkt, pkt_meta_offset))->chain_index;
 }
 
 /*
@@ -210,6 +213,7 @@ struct onvm_configuration {
         struct {
                 uint8_t ONVM_NF_SHARE_CORES;
         } flags;
+        int dynfield_offset;
 };
 
 struct core_status {
@@ -324,6 +328,9 @@ struct onvm_nf {
                 /* Mutex for NF sem_wait */
                 sem_t *nf_mutex;
         } shared_core;
+
+        /** Used by RTE_MBUF_DYNFIELD to access ovnm pkt meta*/
+        int dynfield_offset;
 };
 
 /*
