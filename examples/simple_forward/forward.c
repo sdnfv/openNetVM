@@ -85,10 +85,19 @@ parse_app_args(int argc, char *argv[], const char *progname) {
 
         while ((c = getopt(argc, argv, "d:p:")) != -1) {
                 switch (c) {
-                        case 'd':
-                                destination = strtoul(optarg, NULL, 10);
+                        case 'd': {
+                                char *end = NULL;
+                                unsigned long val = strtoul(optarg, &end, 10);
+
+                                if (end == optarg || *end != '\0') {
+                                        RTE_LOG(INFO, APP, "Invalid destination ID: %s\n", optarg);
+                                        return -1;
+                                }
+
+                                destination = (uint32_t)val;
                                 dst_flag = 1;
                                 break;
+                        }
                         case 'p':
                                 print_delay = strtoul(optarg, NULL, 10);
                                 break;
